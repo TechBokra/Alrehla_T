@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Users, UserCheck, LayoutDashboard, Settings, BookOpen, Box, ShoppingCart,
   Calendar, LifeBuoy, FileText, DollarSign, ShieldAlert, Star, Truck, Quote,
-  Package, Menu, X, LucideIcon,
+  Package, ClipboardList, Menu, X, LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -22,6 +22,7 @@ import {
 const ICONS: Record<string, LucideIcon> = {
   Users, UserCheck, LayoutDashboard, Settings, BookOpen, Box, ShoppingCart,
   Calendar, LifeBuoy, FileText, DollarSign, ShieldAlert, Star, Truck, Quote, Package,
+  ClipboardList,
 };
 
 export type SidebarLink = { label: string; href: string; icon: string };

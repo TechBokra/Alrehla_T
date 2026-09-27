@@ -8,13 +8,14 @@ import {
   PublisherOrder,
   InstructorPricingOption, PricingFormulaSettings, InstructorCompensationProfile, InstructorCertification,
   BookedSlot, DayOfWeek, InstructorSession, StudentSession,
-  PublicInstructor, InstructorStatus, WeeklySlot
+  PublicInstructor, InstructorStatus, WeeklySlot, SessionStatus
 } from '@/types';
 import { cookies } from 'next/headers';
 import { createPublicClient } from '@/lib/supabase/public';
-import { getParticipantName } from '@/data/domains/account';
+import { getParticipantName, getParticipantNames, participantKey } from '@/data/domains/account';
 import { createClient } from '@/lib/supabase/server';
 import { cairoParts } from '@/lib/timezone';
+import { isSessionOverdue } from '@/lib/session-status';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
@@ -763,6 +764,92 @@ export async function getSessionReport(sessionId: string): Promise<{
   };
 }
 
+export interface AdminSessionRow {
+  id: string;
+  sessionNumber: number;
+  scheduledAt: string;
+  status: SessionStatus;
+  participantName: string;
+  packageName: string;
+  instructorName: string | null;
+  /** الرقم المرجعي للحجز — هو اللي الإدارة بتدوّر بيه، لا معرّف الجلسة. */
+  paymentReference: string | null;
+  attendance: 'present' | 'absent' | null;
+  reportText: string;
+  reportedAt: string | null;
+  /** معادها فات ولا اتقفلت ولا اتلغت — بند البلاغ بالحرف. */
+  isOverdue: boolean;
+}
+
+/**
+ * كل الجلسات ومعاها تقاريرها — صفوف شاشة **الجلسات والتقارير**.
+ *
+ * ── بلاغ فريق العمل (27 سبتمبر) ─────────────────────────────
+ *
+ * «المدرب trainer2 أرسل تقريرًا عن حضور ميار أحمد… **لم أجد في لوحة
+ *  تحكم الإدارة أي صفحة لمتابعة هذه التقارير**.»
+ *
+ * ⚠️ **والبلاغ دقيق.** كان في `/dashboard/admin/sessions/[id]` صفحة
+ *    لجلسة واحدة — **ومفيش قايمة تودّي لها**. مفيش رابط في القايمة
+ *    الجانبية، ومفيش صفحة فهرس. الطريق الوحيد ليها كان إشعار الغياب
+ *    اللي ضفناه امبارح. يعني تقرير موجود في القاعدة، وشاشة تعرضه،
+ *    ومفيش طريق بينهم.
+ *
+ * ── والقايمة بتجيب التقرير مع الجلسة ────────────────────────
+ *
+ * ⚠️ **مش استعلام لكل جلسة.** التقارير بتتجاب بـ`in` واحد، والأسماء
+ *    بـ`getParticipantNames`، والمدربون باستعلام واحد. أربع استعلامات
+ *    لأي عدد جلسات — بدل `2 + 1` لكل جلسة.
+ */
+export async function getSessionsForAdmin(): Promise<AdminSessionRow[]> {
+  const sessions = await getSessions();
+  if (sessions.length === 0) return [];
+
+  const supabase = await createClient();
+
+  const sessionIds = sessions.map((s) => s.id);
+  const instructorIds = [
+    ...new Set(sessions.map((s) => s.instructorId).filter(Boolean)),
+  ] as string[];
+
+  const [{ data: reports }, { data: instructors }, names] = await Promise.all([
+    supabase
+      .from('session_reports')
+      .select('session_id, attendance, report, updated_at')
+      .in('session_id', sessionIds),
+    instructorIds.length
+      ? supabase.from('instructors').select('id, display_name').in('id', instructorIds)
+      : Promise.resolve({ data: [] as { id: string; display_name: string }[] }),
+    getParticipantNames(
+      sessions.map((s) => ({ dependentId: s.childId, independentId: s.userId })),
+    ),
+  ]);
+
+  const reportBySession = new Map((reports ?? []).map((r) => [r.session_id, r]));
+  const instructorName = new Map((instructors ?? []).map((i) => [i.id, i.display_name]));
+
+  return sessions.map((s) => {
+    const report = reportBySession.get(s.id);
+    return {
+      id: s.id,
+      sessionNumber: s.sessionNumber,
+      scheduledAt: s.scheduledAt,
+      status: s.status,
+      participantName:
+        names.get(participantKey(s.childId, s.userId)) ?? 'مشارك غير معروف',
+      packageName: s.packageName ?? 'باقة محذوفة',
+      instructorName: s.instructorId
+        ? (instructorName.get(s.instructorId) ?? 'مدرب محذوف')
+        : null,
+      paymentReference: s.paymentReference ?? null,
+      attendance: report ? (report.attendance === 'absent' ? 'absent' : 'present') : null,
+      reportText: report?.report ?? '',
+      reportedAt: report?.updated_at ?? null,
+      isOverdue: isSessionOverdue(s),
+    };
+  });
+}
+
 /**
  * صفوف شاشة إدارة المدربين.
  *
@@ -870,11 +957,19 @@ export async function getCourseBookingsForAdmin(): Promise<AdminCourseBooking[]>
   const packageName = new Map((packages ?? []).map((p) => [p.id, p.name]));
   const instructorName = new Map((instructors ?? []).map((i) => [i.id, i.display_name]));
 
+  // ⚠️ كان `await getParticipantName(...)` **جوّه اللفّة** — استعلامين
+  //    متسلسلين لكل حجز. بقى استعلامين للكل.
+  const names = await getParticipantNames(
+    data.map((row) => ({ dependentId: row.child_id ?? undefined, independentId: row.user_id })),
+  );
+
   const rows: AdminCourseBooking[] = [];
   for (const row of data) {
     rows.push({
       id: row.id,
-      participantName: await getParticipantName(row.child_id ?? undefined, row.user_id),
+      participantName:
+        names.get(participantKey(row.child_id ?? undefined, row.user_id)) ??
+        'مشارك غير معروف',
       packageName: packageName.get(row.package_id) ?? 'باقة محذوفة',
       amount: row.amount ?? null,
       status: row.status,

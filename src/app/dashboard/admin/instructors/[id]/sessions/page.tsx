@@ -8,6 +8,7 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
 import { StatusBadge } from '@/components/StatusBadge';
+import { sessionStatusView } from '@/lib/session-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,26 +26,42 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
   
-  const allBookings = await getSessions();
-  const instructorBookings = allBookings.filter(b => b.instructorId === target.id);
+  const allSessions = await getSessions();
+  const instructorSessions = allSessions.filter(s => s.instructorId === target.id);
 
-  const formattedBookings = instructorBookings.map(b => ({
-    ...b,
-    idDisplay: <Link href={`/dashboard/admin/bookings/${b.id}`} className="text-blue-600 font-bold hover:underline">#{b.id.split('-')[1]}</Link>,
-    dateDisplay: formatDate(b.scheduledAt),
-    statusDisplay: (
-      <span className={`rounded-md px-2 py-1 text-xs font-bold ${
-        b.status === 'confirmed' ? 'bg-indigo-100 text-indigo-700' :
-        b.status === 'completed' ? 'bg-slate-100 text-slate-700' :
-        'bg-amber-100 text-amber-700'
-      }`}>
-        {b.status}
-      </span>
-    )
-  }));
+  const formattedSessions = instructorSessions.map(s => {
+    const view = sessionStatusView(s.status);
+    return {
+      ...s,
+      // ⚠️ كان بيودّي لـ`/dashboard/admin/bookings/<معرّف الجلسة>` —
+      //    **مسار الحجوزات بمعرّف جلسة**، يعني «غير موجود» دايمًا.
+      //    والعنوان كان `#${b.id.split('-')[1]}` — قطعة من UUID
+      //    مالهاش معنى، معروضة تحت اسم «رقم الحجز» وهي مش رقم حجز.
+      idDisplay: (
+        <Link
+          href={`/dashboard/admin/sessions/${s.id}`}
+          className="font-bold text-blue-600 hover:underline"
+        >
+          جلسة {s.sessionNumber}
+        </Link>
+      ),
+      referenceDisplay: (
+        <span dir="ltr" className="block text-right font-mono text-xs text-slate-500">
+          {s.paymentReference ?? '—'}
+        </span>
+      ),
+      participantDisplay: s.packageName ?? '—',
+      dateDisplay: formatDate(s.scheduledAt),
+      // الحالة كانت بتتعرض خام بالإنجليزي، و`confirmed` وحدها كانت
+      //  ملوّنة — وهي القيمة اللي **القاعدة عمرها ما كتبتها**.
+      statusDisplay: <StatusBadge type={view.badge} label={view.label} />,
+    };
+  });
 
   const columns = [
-    { header: 'رقم الحجز', accessorKey: 'idDisplay' },
+    { header: 'الجلسة', accessorKey: 'idDisplay' },
+    { header: 'الرقم المرجعي', accessorKey: 'referenceDisplay' },
+    { header: 'الباقة', accessorKey: 'participantDisplay' },
     { header: 'تاريخ الجلسة', accessorKey: 'dateDisplay' },
     { header: 'الحالة', accessorKey: 'statusDisplay' }
   ];
@@ -52,7 +69,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <DashboardPageHeader title={`جلسات المدرب: ${target.displayName}`} backHref={`/dashboard/admin/instructors/${target.id}`} />
-      <SimpleDataTable columns={columns} data={formattedBookings} />
+      <SimpleDataTable columns={columns} data={formattedSessions} />
     </div>
   );
 }

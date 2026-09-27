@@ -245,6 +245,25 @@ export type ServiceProviderAccount = {
 // حالة الحجز
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
+/**
+ * حالة الجلسة.
+ *
+ * ⚠️ **دي مش `BookingStatus`.** الجلسات كانت متعلَّمة `BookingStatus`،
+ *    وهي **مفيهاش `scheduled`** — وهي **القيمة الافتراضية للعمود في
+ *    القاعدة**. يعني النوع كان بيقول إن قيمة مستحيلة، وهي أشهر قيمة
+ *    في الجدول.
+ *
+ * والسبب إن `getSessions()` كانت بتكتب `sess.status as any`، فالـ
+ * `as any` شال التحقّق اللي كان هيمسك الفرق ده من أول يوم. ودي نفس
+ * فئة العطل بتاعة قاعدة «ج»: النوع بيقول حاجة والقاعدة فيها حاجة تانية.
+ */
+export type SessionStatus =
+  | 'pending'
+  | 'scheduled'
+  | 'confirmed'
+  | 'completed'
+  | 'cancelled';
+
 // عملية الحجز لباقة معينة
 export type Booking = {
   id: string;
@@ -495,7 +514,7 @@ export interface InstructorSession {
   id: string;
   sessionNumber: number;
   scheduledAt: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: SessionStatus;
   meetingUrl?: string;
   courseSubscriptionId: string;
   participantName: string;
@@ -511,7 +530,7 @@ export interface StudentSession {
   id: string;
   sessionNumber: number;
   scheduledAt: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: SessionStatus;
   meetingUrl?: string;
   packageName: string;
   instructorName?: string;
@@ -729,7 +748,7 @@ export interface Session {
   instructorId?: string;
   sessionNumber: number;
   scheduledAt: string;
-  status: BookingStatus;
+  status: SessionStatus;
   createdAt: string;
   updatedAt: string;
 }

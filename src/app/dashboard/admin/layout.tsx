@@ -56,6 +56,7 @@ const GROUPS: RawGroup[] = [
       // كانت شاشة طلبات الخدمات موصولة من جوّه شاشة الطلبات بس.
       { label: 'طلبات الخدمات', href: '/dashboard/admin/orders/services', icon: 'ShoppingCart', permission: 'canManageOrders' },
       { label: 'الحجوزات والجلسات', href: '/dashboard/admin/bookings', icon: 'Calendar', permission: 'canManageBookings' },
+      { label: 'الجلسات وتقارير المدربين', href: '/dashboard/admin/sessions', icon: 'ClipboardList', permission: 'canManageBookings' },
       { label: 'تقويم الجلسات', href: '/dashboard/admin/bookings/calendar', icon: 'Calendar', permission: 'canManageBookings' },
       { label: 'اشتراكات صندوق الرحلة', href: '/dashboard/admin/subscriptions/box', icon: 'Box', permission: 'canManageSubscriptions' },
       // الشاشتين دول ما كانش ليهم أي رابط في أي مكان — الوصول الوحيد

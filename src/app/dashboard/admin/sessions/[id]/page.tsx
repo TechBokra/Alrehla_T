@@ -8,15 +8,38 @@ import {
   getSessionReport,
 } from '@/data/domains/writing';
 import { getParticipantName } from '@/data/domains/account';
+import { getCurrentUser } from '@/data/domains/auth';
+import { hasAdminPermission } from '@/lib/utils';
+import { Unauthorized } from '@/components/admin/Unauthorized';
+import { sessionStatusView } from '@/lib/session-status';
+import { StatusBadge } from '@/components/StatusBadge';
 import { notFound } from 'next/navigation';
 import { SessionSettings } from './SessionSettings';
 import { FileText, Download, Upload } from 'lucide-react';
-import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { PLATFORM_TIMEZONE, formatCairo } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';
 
-export default async function InstructorSessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+/**
+ * صفحة الجلسة الواحدة في لوحة الإدارة.
+ *
+ * ⚠️ **الصفحة دي كانت بلا حارس صلاحيات.** كل صفحة تانية تحت
+ *    `/dashboard/admin` بتبدأ بـ`hasAdminPermission`، ودي لأ. مفيش
+ *    تسريب بيانات حصل — صلاحيات القاعدة بترجّع لكل واحد جلساته هو —
+ *    لكن أي مستخدم مسجَّل كان بيفتح شاشة إدارية ويشوف واجهة الإدارة
+ *    على بياناته. والخطر الحقيقي إن الحارس المفقود بيبقى صح **بالحظ**:
+ *    أول ما سياسة قراءة تتوسّع لأي سبب، الصفحة دي بتبقى باب.
+ *
+ * ⚠️ و`backHref` كانت بتودّي **لوحة المدرب** من جوّه لوحة الإدارة —
+ *    الصفحة كانت منسوخة من شاشة المدرب والرابط ما اتغيّرش.
+ */
+export default async function AdminSessionDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: sessionId } = await params;
+
+  const admin = await getCurrentUser();
+  if (!hasAdminPermission(admin, 'canManageBookings')) {
+    return <Unauthorized />;
+  }
 
   // The session details on this page — date, package and student — were all
   // written into the markup and identical for every session.
@@ -38,8 +61,8 @@ export default async function InstructorSessionDetailsPage({ params }: { params:
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
       <DashboardPageHeader 
-        title={`مساحة الجلسة`} 
-        backHref="/dashboard/instructor"
+        title={`جلسة ${session.sessionNumber} — ${studentName}`} 
+        backHref="/dashboard/admin/sessions"
         action={
           session.meetingUrl
             ? { label: 'الدخول للجلسة', href: session.meetingUrl }
@@ -69,6 +92,15 @@ export default async function InstructorSessionDetailsPage({ params }: { params:
               <div className="flex justify-between border-b border-slate-50 pb-3">
                 <span className="text-slate-500">المتدرب</span>
                 <span className="font-bold text-slate-800">{studentName}</span>
+              </div>
+              {/* الحالة كانت ناقصة من الشاشة خالص — وهي أول حاجة الإدارة
+                  بتسأل عنها لما تفتح جلسة. */}
+              <div className="flex justify-between border-b border-slate-50 pb-3">
+                <span className="text-slate-500">الحالة</span>
+                <StatusBadge
+                  type={sessionStatusView(session.status).badge}
+                  label={sessionStatusView(session.status).label}
+                />
               </div>
             </div>
           </section>
@@ -130,6 +162,9 @@ export default async function InstructorSessionDetailsPage({ params }: { params:
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <p className="mb-2 text-sm font-bold text-slate-600">
                     الحضور: {report.attendance === 'present' ? 'حضر' : 'لم يحضر'}
+                    <span className="ms-2 font-medium text-slate-400">
+                      · سُجّل {formatCairo(report.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
                   </p>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-600">
                     {report.report || 'بدون ملاحظات.'}
