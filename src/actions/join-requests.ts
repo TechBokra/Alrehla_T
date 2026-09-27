@@ -6,6 +6,7 @@ import { notifyAdmins } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { joinRequestRoleLabel, SERVICE_PROVIDER_ROLES } from '@/lib/join-roles';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 export type JoinRequestResult =
   | { ok: true; nextHref?: string; nextLabel?: string }
@@ -167,12 +168,20 @@ export async function submitJoinRequest(params: {
   }
   if (!params.requestedRole) return { ok: false, error: 'اختر الدور المطلوب' };
 
+  // ⚠️ **`type="tel"` مش بيمنع الحروف** — بيغيّر لوحة مفاتيح الموبايل
+  //    وبس. فالإدارة كانت بتفتح طلبًا عليه «تليفون» مكتوب فيه كلام،
+  //    وماتقدرش تتواصل — والمتقدّم فاكر إنه سجّل صح.
+  const phone = normalizePhone(params.phone);
+  if (phone && !isValidPhone(phone)) {
+    return { ok: false, error: PHONE_ERROR };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from('join_requests').insert({
     applicant_name: applicantName,
     requested_role: params.requestedRole,
     email,
-    phone: params.phone.trim() || null,
+    phone: phone || null,
     portfolio_url: params.portfolioUrl.trim() || null,
     message: params.message.trim() || null,
     status: 'pending',

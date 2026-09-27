@@ -145,6 +145,8 @@ export function WithdrawalRequestForm({
                 <input
                   required
                   type="tel"
+                    inputMode="tel"
+                    pattern="[+]?[0-9\s()-]{7,20}"
                   dir="ltr"
                   value={walletNumber}
                   onChange={(e) => setWalletNumber(e.target.value)}

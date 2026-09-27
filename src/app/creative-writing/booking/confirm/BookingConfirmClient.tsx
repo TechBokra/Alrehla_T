@@ -48,7 +48,6 @@ export function BookingConfirmClient({
     import('@/app/actions/family').then(mod => mod.fetchFamilyMembers()).then(data => setChildren(data ? data.map((d: any) => ({id: d.id, name: d.fullName})) : []));
   }, []);
 
-  const [giftMessage, setGiftMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState<{ id: string; reference: string } | null>(null);
@@ -71,7 +70,6 @@ export function BookingConfirmClient({
         participantType,
         childId: childId || undefined,
         preferredSlot,
-        giftMessage: giftMessage.trim() || undefined,
       });
 
       if (!result.ok) {
@@ -256,29 +254,16 @@ export function BookingConfirmClient({
             )}
           </div>
 
-          {/* ── الإهداء الخاص ─────────────────────────────────────
-              بيتخزّن في `course_subscriptions.gift_message` (ملف SQL 86)،
-              وبيتقفل بعد الحجز زي المبلغ. */}
-          <div className="space-y-2">
-            <label htmlFor="gift-message" className="block text-xl font-black text-slate-800">
-              إهداء خاص <span className="text-sm font-bold text-slate-500">(اختياري)</span>
-            </label>
-            <p className="text-sm font-medium text-slate-600">
-              كلمة تتكتب مع الحجز وتوصل للمدرب — زي «رحلتك تبدأ يا بطل».
-            </p>
-            <textarea
-              id="gift-message"
-              value={giftMessage}
-              onChange={(e) => setGiftMessage(e.target.value.slice(0, 500))}
-              maxLength={500}
-              rows={3}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-emerald-600"
-              placeholder="اكتب كلمتك هنا…"
-            />
-            <p className="text-xs font-medium text-slate-500">
-              {giftMessage.length}/500 · الإهداء بيتقفل بعد تسجيل الحجز.
-            </p>
-          </div>
+          {/* ⚠️ **«الإهداء الخاص» اتشال بقرار تامر (27 سبتمبر).**
+
+              كان بند اختياري في شاشة المراجعة بيتخزّن في
+              `course_subscriptions.gift_message` (ملف SQL 86).
+              فريق العمل قال إنه مش محتاجه، فاتشال من الشاشة.
+
+              ⚠️ **والعمود في القاعدة ما اتشالش عن قصد** — فيه حجوزات
+                 قديمة ممكن تكون كاتبة فيه، وحذف العمود بيمسحها.
+                 والدالة `create_course_booking` لسه بتقبل المعامل
+                 (بقيمة فاضية)، فمفيش كسر في القاعدة ولا في الدالة. */}
 
           <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
 

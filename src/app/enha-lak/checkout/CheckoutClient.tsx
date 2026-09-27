@@ -213,7 +213,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
-                  <input type="tel" required value={shippingInfo.phone} onChange={e => setShippingInfo({...shippingInfo, phone: e.target.value})} dir="ltr" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white text-right" />
+                  <input type="tel"
+                    inputMode="tel"
+                    pattern="[+]?[0-9\s()-]{7,20}" required value={shippingInfo.phone} onChange={e => setShippingInfo({...shippingInfo, phone: e.target.value})} dir="ltr" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white text-right" />
                 </div>
               </div>
 

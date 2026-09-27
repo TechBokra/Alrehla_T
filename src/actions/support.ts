@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 import { notifyAdmins } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/server';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 /**
  * A customer asking for a support session.
@@ -22,10 +23,17 @@ export async function submitSupportSessionRequest(
     data: { user },
   } = await supabase.auth.getUser();
 
+  // ⚠️ الرقم ده هو **الطريق الوحيد** للرد على الطلب — لو فيه حروف
+  //    الطلب بيوصل وميتردّش عليه. و`type="tel"` مش بيمنع الحروف.
+  const phone = normalizePhone(contactPhone);
+  if (!isValidPhone(phone)) {
+    throw new Error(PHONE_ERROR);
+  }
+
   const { error } = await supabase.from('support_session_requests').insert({
     user_id: user?.id ?? null,
     contact_name: contactName,
-    contact_phone: contactPhone,
+    contact_phone: phone,
     message,
     status: 'pending',
   });

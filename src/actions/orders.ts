@@ -8,6 +8,7 @@ import { notifyAdmins } from '@/lib/notifications';
 
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/supabase';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 export type ShippingDetails = {
   recipientName: string;
@@ -73,6 +74,12 @@ export async function createOrder(
 
   const supabase = await createClient();
 
+  // ⚠️ **`type="tel"` مش بيمنع الحروف** — والرقم ده بيروح لشركة
+  //    الشحن. الفحص على الخادم لأن الواجهة مش دليل (قاعدة «ع»).
+  if (shipping && !isValidPhone(shipping.recipientPhone)) {
+    return { ok: false as const, error: PHONE_ERROR };
+  }
+
   const { data, error } = await supabase.rpc('create_customer_order', {
     p_items: items.map((item) => ({
       product_id: item.productId,
@@ -86,7 +93,8 @@ export async function createOrder(
     p_shipping: shipping
       ? {
           recipientName: shipping.recipientName?.trim() ?? '',
-          recipientPhone: shipping.recipientPhone?.trim() ?? '',
+          // ⚠️ الرقم ده بيروح لشركة الشحن. حروف فيه = شحنة مش هتتسلّم.
+          recipientPhone: normalizePhone(shipping.recipientPhone),
           addressLine: shipping.addressLine?.trim() ?? '',
           city: shipping.city?.trim() ?? '',
           governorate: shipping.governorate?.trim() ?? '',

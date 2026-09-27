@@ -109,7 +109,20 @@ export function InstructorSessionClient({ session }: Props) {
               <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">ط</div>
               <div>
                 <Link href={`/dashboard/instructor/students/${studentId}`} className="font-bold text-blue-600 hover:underline">{session.participantName}</Link>
-                <p className="text-xs text-slate-500">باقة شغف الكتابة (الشهر الثاني)</p>
+                {/* ⚠️ **كان نصًّا ثابتًا: «باقة شغف الكتابة (الشهر الثاني)».**
+
+                    ومفيش باقة بالاسم ده في الموقع أصلًا، والطالب كان
+                    في أول حصة. يعني المدرب بيقرا بيانات **مخترعة** عن
+                    طالب حقيقي قدامه في الجلسة.
+
+                    والاسم الحقيقي موجود في `session.packageName` ورقم
+                    الجلسة في `session.sessionNumber` — والاتنين كانوا
+                    متاحين ومحدّش بيقراهم. */}
+                <p className="text-xs text-slate-500">
+                  {session.packageName
+                    ? `${session.packageName} · الجلسة ${session.sessionNumber}`
+                    : `الجلسة ${session.sessionNumber}`}
+                </p>
               </div>
             </div>
           </div>

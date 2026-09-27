@@ -104,6 +104,8 @@ export function JoinForm() {
           <label className="text-sm font-bold text-slate-700">رقم الهاتف</label>
           <input
             type="tel"
+                    inputMode="tel"
+                    pattern="[+]?[0-9\s()-]{7,20}"
             dir="ltr"
             className={`${inputClass} text-right`}
             placeholder="رقم الهاتف مع رمز الدولة"

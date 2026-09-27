@@ -80,6 +80,8 @@ export function SessionRequestForm() {
           <label className="mb-1 block text-sm font-bold text-slate-700">رقم الهاتف (للتواصل)</label>
           <input
             type="tel"
+                    inputMode="tel"
+                    pattern="[+]?[0-9\s()-]{7,20}"
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
