@@ -47,15 +47,19 @@ export default async function InstructorsPage() {
             <Card
               key={instructor.id}
               accentColor="emerald"
-              className="relative flex flex-col overflow-hidden p-8 transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10"
+              className="relative flex flex-col overflow-hidden p-6 transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 md:p-8"
             >
+              {/* ⚠️ الشارة كانت `absolute top-4 right-4` — وفي اتجاه
+                  اليمين-لليسار دي **نفس ناحية الصورة والاسم**، فكانت
+                  بتركب فوقهم. والكارت كان شايل `mt-4` دايمًا عشان
+                  يفضّي لها مكان، حتى في الكروت اللي مالهاش شارة أصلًا. */}
               {instructor.isSample && (
-                <div className="absolute top-4 right-4 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                <div className="mb-4 w-fit rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
                   بيانات تجريبية
                 </div>
               )}
 
-              <div className="mt-4 mb-6 flex items-center gap-6">
+              <div className="mb-6 flex items-center gap-4 md:gap-6">
                 {/*
                   الكارت كان بيرسم أيقونة الشخص الرمادية **دايمًا**، من غير
                   أي شرط — يعني حتى لو الصورة موجودة ما كانتش هتظهر هنا.
@@ -63,7 +67,7 @@ export default async function InstructorsPage() {
                   عطل عرض مستقل، وكان لازم الاتنين يتصلحوا عشان الصورة
                   تبان في القايمة.
                 */}
-                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 md:h-20 md:w-20">
                   {instructor.avatarUrl ? (
                     <Image
                       src={optimizedImageUrl(instructor.avatarUrl, 160)}
@@ -77,8 +81,8 @@ export default async function InstructorsPage() {
                     <User className="h-10 w-10 text-slate-400" />
                   )}
                 </div>
-                <div>
-                  <h2 className="mb-2 text-2xl font-black text-slate-800">
+                <div className="min-w-0">
+                  <h2 className="mb-2 text-xl font-black break-words text-slate-800 md:text-2xl">
                     <Link
                       href={`/creative-writing/instructors/${instructor.id}`}
                       className="hover:text-emerald-700 hover:underline"
@@ -100,7 +104,7 @@ export default async function InstructorsPage() {
                 </div>
               </div>
 
-              <p className="mb-8 flex-1 text-base leading-relaxed font-medium text-slate-600">
+              <p className="mb-6 flex-1 leading-relaxed font-medium text-slate-600 md:mb-8 md:text-base">
                 {instructor.bio}
               </p>
 
@@ -125,7 +129,7 @@ export default async function InstructorsPage() {
                   وما كانش فيه طريق يوصّلك ليها من القايمة. */}
               <Link
                 href={`/creative-writing/instructors/${instructor.id}`}
-                className="mt-8 block rounded-xl bg-slate-900 px-6 py-3 text-center font-bold text-white transition-colors hover:bg-slate-800"
+                className="mt-6 block rounded-xl bg-slate-900 px-6 py-3 md:mt-8 text-center font-bold text-white transition-colors hover:bg-slate-800"
               >
                 عرض الملف الكامل
               </Link>

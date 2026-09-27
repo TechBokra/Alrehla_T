@@ -35,7 +35,15 @@ export function PageContainer({
     <div
       className={cn(
         'relative flex w-full flex-1 flex-col items-center justify-start px-6 font-sans text-slate-800 md:px-12',
-        '[&>section:first-child]:pt-8 md:[&>section:first-child]:pt-10',
+        // أول قسم في الصفحة هو دايمًا العنوان والسطر اللي تحته.
+        // فراغه من فوق أقل لأن الهيدر فوقه، ومن تحت أقل لأن القسم
+        // اللي بعده بيجيب فراغه بنفسه.
+        //
+        // ⚠️ قِسْت صفحة الخدمات على موبايل: 212 بكسل من الشرائط
+        //    فوق + 344 بكسل القسم التعريفي = **556 من 812**. تلتين
+        //    الشاشة الأولى عنوان وفراغ قبل أول محتوى حقيقي.
+        '[&>section:first-child]:pt-6 md:[&>section:first-child]:pt-10',
+        '[&>section:first-child]:pb-4 md:[&>section:first-child]:pb-8',
         className
       )}
     >

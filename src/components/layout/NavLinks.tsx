@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useActiveIntoView } from '@/lib/use-active-into-view';
 
 const LINKS = [
   { href: '/', label: 'الرئيسية' },
@@ -69,13 +70,23 @@ export function NavLinks() {
  */
 export function NavLinksMobile() {
   const pathname = usePathname();
+  const scroller = useRef<HTMLElement>(null);
+  useActiveIntoView(scroller, pathname);
+
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
     <nav
+      ref={scroller}
       aria-label="أقسام الموقع"
-      className="mx-auto mt-2 flex max-w-7xl gap-2 overflow-x-auto px-2 pb-1 text-[13px] font-bold whitespace-nowrap text-slate-600 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={
+        'mx-auto mt-2 flex max-w-7xl gap-2 overflow-x-auto px-2 pb-1 text-[13px] font-bold whitespace-nowrap text-slate-600 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
+        // ⚠️ الشريط ده عرضه 506 بكسل على شاشة 343 — يعني **رابطين من
+        //    الستة بره الشاشة** والـscrollbar مخفي، فمفيش أي علامة
+        //    إنهم موجودين. التلاشي على الطرفين بيقول «فيه كمان».
+        '[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)]'
+      }
     >
       {LINKS.map((link) => {
         const active = isActive(link.href);
@@ -83,6 +94,7 @@ export function NavLinksMobile() {
           <Link
             key={link.href}
             href={link.href}
+            data-active={active || undefined}
             aria-current={active ? 'page' : undefined}
             className={
               active

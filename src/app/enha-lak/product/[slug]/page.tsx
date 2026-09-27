@@ -99,8 +99,26 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </Link>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-2">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-lg">
+        {/* ⚠️ **الترتيب على الموبايل كان غلط.**
+
+            `grid lg:grid-cols-2` معناه إن العمودين بيتراصّوا تحت بعض
+            على التليفون **بترتيب الكود**: الصورة الأول، وبعدها الاسم.
+            والصورة `3/4` يعني حوالي 470 بكسل على شاشة 375 — فالزائر
+            بيفتح صفحة منتج فيشوف **صندوق صورة وبس**، ولازم ينزل
+            نص شاشة عشان يعرف اسم المنتج وسعره. ولو الصورة لسه
+            مترفعتش (زي دلوقتي) بيشوف مربّعًا رماديًّا فاضيًا.
+
+            دلوقتي الترتيب على التليفون: **الاسم ← الصورة ← السعر
+            والزرار**، وعلى اللابتوب زي ما كان بالظبط — الصورة يمين
+            في عمود، والباقي شمال — عن طريق تحديد الصف والعمود
+            صراحةً بدل الاعتماد على ترتيب الكود. */}
+        <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
+          <div className="lg:col-start-2 lg:row-start-1 lg:self-end">
+            <h1 className="text-3xl leading-tight font-black text-slate-900 md:text-4xl">{product.name}</h1>
+            <p className="mt-4 leading-relaxed text-slate-600 md:mt-6 md:text-lg">{product.shortDescription}</p>
+          </div>
+
+          <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-lg sm:max-w-xs lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-w-none">
             {product.coverImageUrl ? (
               <Image
                 src={optimizedImageUrl(product.coverImageUrl, 900)}
@@ -114,12 +132,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             )}
           </div>
           
-          <div className="flex flex-col justify-center space-y-8">
-            <div>
-              <h1 className="text-4xl font-black text-slate-900 leading-tight">{product.name}</h1>
-              <p className="mt-6 text-lg text-slate-600 leading-relaxed">{product.shortDescription}</p>
-            </div>
-
+          <div className="flex flex-col justify-start space-y-6 lg:col-start-2 lg:row-start-2 lg:space-y-8 lg:self-start">
             {product.features && product.features.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-bold text-slate-800">ميزات المنتج:</h3>
