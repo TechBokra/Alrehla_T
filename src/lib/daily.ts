@@ -31,6 +31,64 @@ export function isDailyConfigured(): boolean {
   return Boolean(process.env.DAILY_API_KEY);
 }
 
+/**
+ * بصمة المفتاح المنشور — **من غير ما نعرضه**.
+ *
+ * ⚠️ الغرض سؤال واحد: **أي مفتاح واصل للخادم فعلًا؟** لما يبقى في
+ *    Vercel أكتر من متغيّر، ومتغيّر باسم غلط، ومفتاح من منتج تاني،
+ *    الأربع احتمالات دي بتفرّق بينها أول أربع حروف والطول.
+ *
+ * ⚠️ **ومابنطبعش المفتاح ولا آخره.** أول أربع حروف وطول — ده
+ *    بيفرّق بين مفتاحين ومابيديش حد وسيلة يستخدم أي واحد فيهم.
+ *    والشاشة اللي بتعرضها للإدارة وحدها.
+ */
+export function dailyKeyFingerprint(): { present: boolean; prefix: string; length: number } {
+  const key = process.env.DAILY_API_KEY ?? '';
+  return {
+    present: key.length > 0,
+    prefix: key.slice(0, 4),
+    length: key.length,
+  };
+}
+
+export type DailyCheck = {
+  ok: boolean;
+  message: string;
+  fingerprint: ReturnType<typeof dailyKeyFingerprint>;
+  /** مسافات أو أسطر في أول المفتاح أو آخره — سبب متكرر للرفض. */
+  hasWhitespace: boolean;
+};
+
+/**
+ * فحص المفتاح بنداء حقيقي أخفّ ما يكون.
+ *
+ * بنطلب غرفة واحدة بس: لو الرد نجح، المفتاح شغّال؛ ولو اترفض، رسالة
+ * Daily نفسها بتترجع. **ده أسرع من تخمين، وأصدق.**
+ */
+export async function checkDailyKey(): Promise<DailyCheck> {
+  const raw = process.env.DAILY_API_KEY ?? '';
+  const fingerprint = dailyKeyFingerprint();
+  const hasWhitespace = raw !== raw.trim();
+
+  if (!fingerprint.present) {
+    return {
+      ok: false,
+      message:
+        'مفيش متغيّر اسمه DAILY_API_KEY واصل للخادم. اتأكد إن اسمه بالحرف كده في Vercel، وإنك عملت Redeploy بعد ما ضفته.',
+      fingerprint,
+      hasWhitespace,
+    };
+  }
+
+  const result = await call<unknown>('/rooms?limit=1');
+  return {
+    ok: result.ok,
+    message: result.ok ? 'المفتاح شغّال وDaily بيرد.' : result.error,
+    fingerprint,
+    hasWhitespace,
+  };
+}
+
 async function call<T>(
   path: string,
   init: RequestInit = {},
@@ -56,16 +114,40 @@ async function call<T>(
     const body = text ? JSON.parse(text) : {};
 
     if (!response.ok) {
-      // ⚠️ رسالة Daily بتتسجّل عندنا ومابتتعرضش كاملة للمستخدم:
-      //    ممكن تحتوي أسماء غرف أو تفاصيل حساب.
       console.error('Daily API error', path, response.status, body);
+
+      // ⚠️ **رسالة Daily بتوصل للإدارة زي ما هي.**
+      //
+      //    أول مرة المفتاح اترفض، الشاشة قالت «مفتاح Daily مرفوض»
+      //    وبس — ودي جملة **بتقول إن فيه مشكلة ومابتقولش إيه هي**.
+      //    فضلنا نخمّن: المفتاح غلط؟ اتحط في متغيّر باسم تاني؟ ما
+      //    اتنشرش؟ خدمة تانية؟ وكل تخمين جولة كاملة رايح جاي.
+      //
+      //    الرسالة اللي Daily بيبعتها فيها السبب الحقيقي — والشاشة
+      //    دي مايشوفهاش غير إداري مسجَّل دخوله.
+      const detail =
+        typeof (body as { info?: string }).info === 'string'
+          ? (body as { info: string }).info
+          : typeof (body as { error?: string }).error === 'string'
+            ? (body as { error: string }).error
+            : '';
+
       if (response.status === 401) {
-        return { ok: false, error: 'مفتاح Daily مرفوض — راجع الإعدادات.' };
+        return {
+          ok: false,
+          error:
+            'Daily رفض المفتاح (401). ' +
+            (detail ? `رسالته: «${detail}». ` : '') +
+            'الأسباب المتكررة: المفتاح اتنسخ ناقص أو معاه مسافة، أو ده مفتاح منتج تاني من Daily مش مفتاح الـAPI، أو المتغيّر في Vercel اسمه مش DAILY_API_KEY بالحرف.',
+        };
       }
       if (response.status === 404) {
         return { ok: false, error: 'الغرفة مش موجودة عند Daily.' };
       }
-      return { ok: false, error: `Daily رفض الطلب (${response.status}).` };
+      return {
+        ok: false,
+        error: `Daily رفض الطلب (${response.status})${detail ? `: «${detail}»` : ''}.`,
+      };
     }
 
     return { ok: true, data: body as T };

@@ -13,6 +13,7 @@ import { sessionStatusView } from '@/lib/session-status';
 import { retentionLabel } from '@/lib/session-recording';
 import {
   DAILY_FREE_MINUTES,
+  checkDailyKey,
   getMonthUsage,
   getPresence,
   isDailyConfigured,
@@ -49,7 +50,11 @@ export default async function Page() {
 
   const ready = isDailyConfigured();
 
-  const [sessions, settings, presence, usage] = await Promise.all([
+  // ⚠️ **الفحص بيتعمل أول حاجة.** لو المفتاح مرفوض، باقي النداءات
+  //    هترجع نفس الخطأ تلات مرات في تلات أماكن مختلفة — والإدارة
+  //    بتقرا «فيه مشكلة» تلاتة من غير ما تعرف إيه هي.
+  const [check, sessions, settings, presence, usage] = await Promise.all([
+    checkDailyKey(),
     getSessionsForAdmin(),
     getSiteSettings(),
     ready ? getPresence() : Promise.resolve(null),
@@ -111,12 +116,43 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
       <DashboardPageHeader title="الغرف والجلسات المباشرة" backHref="/dashboard/admin" />
 
-      {!ready && (
-        <p className="mb-6 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-900">
-          <AlertTriangle className="h-5 w-5 shrink-0" />
-          مفتاح Daily مش مظبوط على الخادم (`DAILY_API_KEY` في Vercel). الغرف
-          مش هتشتغل لحد ما يتظبط.
-        </p>
+      {!check.ok && (
+        <section className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+          <h2 className="mb-2 flex items-center gap-2 font-black text-rose-900">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            الاتصال بـDaily مش شغّال
+          </h2>
+          <p className="mb-4 text-sm leading-relaxed font-bold text-rose-900">
+            {check.message}
+          </p>
+
+          {/* ⚠️ البصمة دي بتجاوب على سؤال واحد: **أي مفتاح واصل
+              للخادم فعلًا؟** أول أربع حروف بتفرّق بين مفتاح ومفتاح
+              من غير ما تعرض ولا واحد منهم. */}
+          <dl className="grid gap-2 text-xs font-bold text-rose-800 sm:grid-cols-3">
+            <div className="rounded-xl bg-white/60 p-3">
+              <dt className="text-rose-500">المتغيّر واصل؟</dt>
+              <dd className="mt-1">{check.fingerprint.present ? 'أيوه' : '**لأ**'}</dd>
+            </div>
+            <div className="rounded-xl bg-white/60 p-3">
+              <dt className="text-rose-500">أول حروفه</dt>
+              <dd dir="ltr" className="mt-1 text-right font-mono">
+                {check.fingerprint.prefix || '—'}…
+              </dd>
+            </div>
+            <div className="rounded-xl bg-white/60 p-3">
+              <dt className="text-rose-500">طوله</dt>
+              <dd className="mt-1">{check.fingerprint.length} حرف</dd>
+            </div>
+          </dl>
+
+          {check.hasWhitespace && (
+            <p className="mt-3 text-sm font-bold text-rose-900">
+              ⚠️ المفتاح فيه مسافة أو سطر في أوله أو آخره — اتنسخ ناقص أو
+              بزيادة. امسحه وألصقه تاني.
+            </p>
+          )}
+        </section>
       )}
 
       {withoutRoom > 0 && (
