@@ -289,6 +289,43 @@ export async function resetUserPassword(params: {
 
   const supabaseAdmin = createAdminClient();
 
+  // ── مين المستهدَف؟ ────────────────────────────────────────
+  //
+  // ⚠️ **ده كان باب رفع صلاحيات مفتوح.**
+  //
+  //    `canManageUsers` موجودة عند **المشرف العام** كمان، مش مدير
+  //    النظام وحده. فالدالة من غير الفحص ده كانت بتخلّي أي مشرف عام
+  //    يعيّن كلمة مرور **لحساب مدير النظام** ويدخل مكانه — والحساب
+  //    يتسرق من جوّه بضغطتين، والسجل يقول «مدير النظام عمل كذا»
+  //    وهو مش هو.
+  //
+  //    والقاعدة دي مكتوبة في نفس الملف في `checkRole`: «منح صلاحيات
+  //    إدارية قرار خطير: مدير النظام وحده يقدر يعمله». وإعادة تعيين
+  //    كلمة مرور إداري **أخطر** من منح الصلاحية نفسها، لأنها بتدّي
+  //    الحساب كله لا صلاحية واحدة.
+  //
+  // ⚠️ والدور بيتقري **من القاعدة** لا من اللي الشاشة بعتته
+  //    (قاعدة «ف»).
+  const { data: targetProfile, error: profileError } = await supabaseAdmin
+    .from('user_profiles')
+    .select('role, full_name')
+    .eq('id', params.userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('Error reading target profile before password reset', profileError);
+    return { ok: false, error: 'تعذّر قراءة بيانات الحساب — جرّب تاني.' };
+  }
+
+  const targetRole = (targetProfile?.role ?? 'customer') as UserRole;
+
+  if (ADMIN_ROLES.includes(targetRole) && admin.role !== 'super_admin') {
+    return {
+      ok: false,
+      error: 'الحساب ده إداري — إعادة تعيين كلمة مروره متاحة لمدير النظام وحده.',
+    };
+  }
+
   const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(params.userId);
   if (userError || !userData?.user) {
     return { ok: false, error: 'تعذّر العثور على حساب الدخول لهذا المستخدم' };

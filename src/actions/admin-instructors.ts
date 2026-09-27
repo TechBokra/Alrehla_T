@@ -137,17 +137,31 @@ export async function createInstructor(params: {
     throw new Error('تعذّر إنشاء ملف المدرب');
   }
 
-  // إنشاء صف مقدّم الخدمة المرتبط بالمدرب لسوق الخدمات الإبداعية تلقائيًا
-  try {
-    await supabaseAdmin.from('service_providers').insert({
+  // ── صف مقدّم الخدمة المرتبط بالمدرب ───────────────────────
+  //
+  // ⚠️ **كان `try/catch` حوالين نداء Supabase — وده مش بيمسك حاجة.**
+  //
+  //    عميل Supabase **مبيرميش**: بيرجّع `{ error }`. فالـ`catch`
+  //    مكانش بيتنفّذ أبدًا، و`error` محدّش كان بيقراه. يعني الإدراج
+  //    يفشل، والمدرب يتعمل بلا صف مقدّم خدمة، ومحدّش يعرف —
+  //    **والـ`catch` بيدّي إحساس زائف إن الحالة متعالَجة**.
+  //
+  // ⚠️ **والفشل هنا مش بيوقّع إنشاء المدرب.** المدرب اتعمل فعلًا
+  //    والرمز المؤقت في إيد الإدارة؛ الرمي هنا كان هيدّيها رسالة خطأ
+  //    على عملية **تمّت** ويخلّيها تعيد الإنشاء فيطلع حسابان.
+  //    فبنرجّع العلامة والشاشة تقولها.
+  const { error: providerError } = await supabaseAdmin
+    .from('service_providers')
+    .insert({
       kind: 'instructor',
       instructor_id: created.id,
       display_name: displayName,
       bio: params.bio.trim(),
       status: 'pending',
     });
-  } catch (provErr) {
-    console.error('Failed to create linked service_provider row', provErr);
+
+  if (providerError) {
+    console.error('Failed to create linked service_provider row', providerError);
   }
 
   await logAuditAction({
@@ -162,7 +176,16 @@ export async function createInstructor(params: {
   revalidatePath('/dashboard/admin/instructors');
   revalidatePath('/creative-writing/instructors');
 
-  return { ok: true, instructorId: created.id, invited, tempCode };
+  return {
+    ok: true,
+    instructorId: created.id,
+    invited,
+    tempCode,
+    // فاضية = اتعمل. النص ده بيتعرض للإدارة كتنبيه أصفر لا كخطأ.
+    providerWarning: providerError
+      ? 'المدرب اتعمل، بس صف «مقدّم الخدمة» بتاعه ما اتعملش — مش هيقدر يعرض خدمات إبداعية لحد ما الإدارة تضيفه من شاشة مقدّمي الخدمة.'
+      : null,
+  };
 }
 
 /**
@@ -190,6 +213,25 @@ export async function resetInstructorPassword(params: {
 
   if (instructorError || !instructor || !instructor.user_id) {
     throw new Error('المدرب غير موجود أو ليس لديه حساب مستخدم مرتبط');
+  }
+
+  // ⚠️ **نفس باب رفع الصلاحيات بتاع `resetUserPassword`.**
+  //
+  //    `canManageInstructors` عند المشرف العام كمان. ولو حساب إداري
+  //    كان مربوطًا بصف مدرب — وده وارد: إداري بيدرّب كمان — كان
+  //    المشرف يعيّن كلمة مروره ويدخل مكانه من الباب ده.
+  const { data: ownerProfile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('role')
+    .eq('id', instructor.user_id)
+    .maybeSingle();
+
+  const ownerRole = ownerProfile?.role ?? 'customer';
+  if (
+    (ownerRole === 'super_admin' || ownerRole === 'general_supervisor') &&
+    admin.role !== 'super_admin'
+  ) {
+    throw new Error('الحساب ده إداري — إعادة تعيين كلمة مروره متاحة لمدير النظام وحده.');
   }
 
   // جلب بيانات الحساب من Auth

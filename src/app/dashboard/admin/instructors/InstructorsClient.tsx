@@ -9,6 +9,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/dashboard/Pagination';
 import { createInstructor } from '@/actions/admin-instructors';
 import { TempCodeBox } from '@/components/dashboard/TempCodeBox';
+import { FormNotice } from '@/components/ui/FormError';
 import type { InstructorAdminRow } from '@/data/domains/writing';
 
 const inputClass =
@@ -300,6 +301,7 @@ function AddInstructorForm({
   const [done, setDone] = useState('');
   const [code, setCode] = useState('');
   const [codeEmail, setCodeEmail] = useState('');
+  const [providerWarning, setProviderWarning] = useState('');
 
   const submit = async () => {
     setBusy(true);
@@ -316,6 +318,11 @@ function AddInstructorForm({
           .filter(Boolean),
         yearsExperience: Number(form.yearsExperience) || 0,
       });
+      // ⚠️ التنبيه ده على عملية **تمّت**: المدرب اتعمل والرمز في إيد
+      //    الإدارة، بس صف مقدّم الخدمة لأ. لونه أصفر لا أحمر عشان
+      //    محدّش يعيد الإنشاء ويطلّع حسابين.
+      setProviderWarning(result.providerWarning ?? '');
+
       if (result.tempCode) {
         setCode(result.tempCode);
         // البريد بيتمسح من النموذج بعد شوية سطور، فبنمسكه دلوقتي
@@ -364,6 +371,7 @@ function AddInstructorForm({
         </div>
       )}
 
+      <FormNotice message={providerWarning} className="mb-4" />
       {code && <TempCodeBox code={code} email={codeEmail} role="المدرب" />}
 
       <div className="grid gap-4 md:grid-cols-2">
