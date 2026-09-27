@@ -10,6 +10,8 @@ import type { WeeklySlot } from '@/types';
 import { hasAdminPermission } from '@/lib/utils';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getDependentGuardian } from '@/lib/auth-guard';
+import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
+import { getSiteSettings } from '@/data/domains/content';
 
 export type BookingResult =
   | { ok: true; subscriptionId: string; paymentReference: string }
@@ -250,13 +252,60 @@ async function createSessionsForSubscription(
         status: 'scheduled',
       }))
     )
-    .select('id');
+    .select('id, scheduled_at');
 
   if (error) {
     // الفشل هنا مش بيلغي تأكيد الدفع — الفلوس وصلت فعلًا. بيتسجّل عشان
     // تعرف إن الاشتراك محتاج جدولة بالإيد.
     console.error('Error creating sessions for subscription', error);
     return 0;
+  }
+
+  // ── غرفة اللقاء لكل جلسة ────────────────────────────────────
+  //
+  // ⚠️ **الفشل هنا مابيلغيش الجلسات.** العميل دفع والجلسات اتجدولت؛
+  //    غرفة ما اتعملتش مشكلة تتصلّح بزرّ «جهّز الغرف» في لوحة
+  //    الإدارة، مش سبب يرجّع الحجز كله.
+  //
+  // ⚠️ **والنداء بيتعمل واحدة واحدة عن قصد.** إنشاء عشر غرف
+  //    بالتوازي على حساب مجاني بيرجّع رفضًا بسبب كثرة الطلبات،
+  //    والنتيجة نص الجلسات بلا غرف وسبب مالوش علاقة بالمنطق.
+  if (inserted && inserted.length > 0 && isDailyConfigured()) {
+    const settings = await getSiteSettings();
+
+    for (const session of inserted) {
+      const room = await createSessionRoom({
+        sessionId: session.id,
+        startsAt: new Date(session.scheduled_at),
+        durationMinutes: 40,
+        recordingEnabled: settings.sessionRecording.enabled,
+      });
+      if (!room.ok) {
+        console.error('Room not created for session', session.id, room.error);
+        continue;
+      }
+
+      // موعد حذف التسجيل بيتحسب **من الإعدادات وقت الجلسة**، لأن
+      // ده الوعد اللي ولي الأمر شافه وقت الحجز. تغيير المدة بعدين
+      // مالوش أثر رجعي على الجلسات دي.
+      const expiresAt = settings.sessionRecording.enabled
+        ? new Date(
+            new Date(session.scheduled_at).getTime() +
+              settings.sessionRecording.retentionDays * 24 * 60 * 60 * 1000,
+          ).toISOString()
+        : null;
+
+      await supabase
+        .from('sessions')
+        .update({
+          room_name: room.data.name,
+          room_url: room.data.url,
+          recording_expires_at: expiresAt,
+          recording_status: settings.sessionRecording.enabled ? 'pending' : null,
+        })
+        .eq('id', session.id)
+        .select('id');
+    }
   }
 
   return inserted?.length ?? 0;

@@ -779,6 +779,8 @@ export interface AdminSessionRow {
   reportedAt: string | null;
   /** معادها فات ولا اتقفلت ولا اتلغت — بند البلاغ بالحرف. */
   isOverdue: boolean;
+  /** اسم الغرفة عند Daily — فاضي = الجلسة مالهاش مكان لقاء. */
+  roomName: string | null;
 }
 
 /**
@@ -812,7 +814,7 @@ export async function getSessionsForAdmin(): Promise<AdminSessionRow[]> {
     ...new Set(sessions.map((s) => s.instructorId).filter(Boolean)),
   ] as string[];
 
-  const [{ data: reports }, { data: instructors }, names] = await Promise.all([
+  const [{ data: reports }, { data: instructors }, { data: rooms }, names] = await Promise.all([
     supabase
       .from('session_reports')
       .select('session_id, attendance, report, updated_at')
@@ -820,12 +822,18 @@ export async function getSessionsForAdmin(): Promise<AdminSessionRow[]> {
     instructorIds.length
       ? supabase.from('instructors').select('id, display_name').in('id', instructorIds)
       : Promise.resolve({ data: [] as { id: string; display_name: string }[] }),
+    // اسم الغرفة مش في `getSessions()` — بيتجاب هنا عشان لوحة
+    // الغرف تعرف مين ليه مكان لقاء ومين لأ.
+    supabase.from('sessions').select('id, room_name').in('id', sessionIds),
     getParticipantNames(
       sessions.map((s) => ({ dependentId: s.childId, independentId: s.userId })),
     ),
   ]);
 
   const reportBySession = new Map((reports ?? []).map((r) => [r.session_id, r]));
+  const roomBySession = new Map(
+    (rooms ?? []).map((r) => [r.id, r.room_name as string | null]),
+  );
   const instructorName = new Map((instructors ?? []).map((i) => [i.id, i.display_name]));
 
   return sessions.map((s) => {
@@ -846,6 +854,7 @@ export async function getSessionsForAdmin(): Promise<AdminSessionRow[]> {
       reportText: report?.report ?? '',
       reportedAt: report?.updated_at ?? null,
       isOverdue: isSessionOverdue(s),
+      roomName: roomBySession.get(s.id) ?? null,
     };
   });
 }

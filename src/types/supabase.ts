@@ -343,6 +343,9 @@ export type Database = {
           preferred_slot: Json | null
           /** إهداء خاص — ملف SQL 86. */
           gift_message: string | null
+          /** وقت موافقة ولي الأمر على تسجيل الجلسات — SQL 111.
+           *  فاضي = مفيش موافقة مسجّلة (حجز قبل تفعيل الميزة). */
+          recording_consent_at: string | null
         }
         Insert: {
           id?: string
@@ -361,6 +364,7 @@ export type Database = {
           payment_receipt_url?: string | null
           preferred_slot?: Json | null
           gift_message?: string | null
+          recording_consent_at?: string | null
         }
         Update: {
           id?: string
@@ -379,6 +383,7 @@ export type Database = {
           payment_receipt_url?: string | null
           preferred_slot?: Json | null
           gift_message?: string | null
+          recording_consent_at?: string | null
         }
         Relationships: []
       }
@@ -1535,6 +1540,13 @@ export type Database = {
           created_at: string
           updated_at: string | null
           meeting_url: string | null
+          /** اسم الغرفة عند Daily — SQL 111. */
+          room_name: string | null
+          room_url: string | null
+          recording_id: string | null
+          recording_status: string | null
+          /** بيتحسب وقت الجلسة لا وقت الحذف — SQL 111. */
+          recording_expires_at: string | null
         }
         Insert: {
           id?: string
@@ -1546,6 +1558,11 @@ export type Database = {
           created_at?: string
           updated_at?: string | null
           meeting_url?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          recording_id?: string | null
+          recording_status?: string | null
+          recording_expires_at?: string | null
         }
         Update: {
           id?: string
@@ -1557,6 +1574,11 @@ export type Database = {
           created_at?: string
           updated_at?: string | null
           meeting_url?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          recording_id?: string | null
+          recording_status?: string | null
+          recording_expires_at?: string | null
         }
         Relationships: []
       }
