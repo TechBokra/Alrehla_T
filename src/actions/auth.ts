@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { syncUserProfile } from '@/data/domains/auth'
 import { authErrorMessage } from '@/lib/auth-errors'
 import { getSafeRedirectPath } from '@/lib/safe-redirect'
+import { SITE_URL } from '@/lib/seo'
 
 /**
  * تنظيف البريد قبل ما يروح لـSupabase.
@@ -144,4 +145,56 @@ export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/')
+}
+
+/**
+ * «نسيت كلمة المرور» — بنبعت رابط استرجاع على البريد.
+ *
+ * ── العطل اللي بيقفله ───────────────────────────────────────
+ *
+ * الموقع **مكانش فيه طريق واحد** لاسترجاع كلمة مرور منسية. اللي
+ * بينسى كلمة مروره بيبقى مقفول برّه للأبد — الطريق الوحيد إنه يكلّم
+ * الإدارة وحد يعيّنها له بإيده من لوحة التحكم. ودي مش خدمة عملاء،
+ * دي عميل ضايع.
+ *
+ * ── وليه الرسالة واحدة في كل الحالات ────────────────────────
+ *
+ * ⚠️ **مابنقولش إذا كان البريد مسجَّل عندنا ولا لأ.** لو قلنا،
+ *    يبقى أي حد يقدر يكتب بريد ويعرف منّنا هل صاحبه عميل عندنا —
+ *    ودي معلومة عن عملائنا مش عنّا. فالرسالة واحدة دايمًا:
+ *    «لو البريد مسجّل، الرسالة في طريقها».
+ *
+ * ⚠️ **وحتى الخطأ من Supabase مابيتعرضش.** الخطأ الوحيد اللي بيرجع
+ *    هو بريد مكتوب غلط شكلًا — وده الشخص نفسه يقدر يشوفه.
+ *
+ * ── الرابط بيودّي فين ───────────────────────────────────────
+ *
+ * `/auth/callback?next=/reset-password` — نفس الطريق اللي بيبدّل
+ * الكود بجلسة. فالشخص بيوصل `/reset-password` **وهو مسجَّل دخوله
+ * فعلًا**، وبيحطّ كلمة مروره بنفس الأكشن اللي بيستخدمه أول دخول.
+ *
+ * ⚠️ **ولازم العنوان ده يتسجّل في Supabase** تحت
+ *    Authentication ← URL Configuration ← Redirect URLs، وإلا
+ *    الرابط بيرجّع الشخص للصفحة الرئيسية بلا جلسة.
+ */
+export async function requestPasswordReset(email: string): Promise<AuthActionResult> {
+  const clean = typeof email === 'string' ? email.trim() : '';
+
+  // فحص شكلي بس — مش تأكيد إن البريد موجود عندنا.
+  if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+    return { error: 'اكتب بريدًا إلكترونيًّا صحيحًا.' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(clean, {
+    redirectTo: `${SITE_URL}/auth/callback?next=/reset-password`,
+  });
+
+  // بنسجّله عندنا ومابنقولوش للزائر — الرسالة واحدة في كل الحالات.
+  if (error) console.error('Error sending password reset', error);
+
+  return {
+    notice:
+      'لو البريد ده مسجّل عندنا، هيوصله رابط لتغيير كلمة المرور خلال دقايق. شوف صندوق الوارد والبريد المهمَل.',
+  };
 }

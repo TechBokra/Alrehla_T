@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { signIn } from '@/actions/auth'
@@ -95,6 +96,18 @@ export function SignInForm() {
         {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'تسجيل الدخول'}
         {!pending && <ArrowRight className="h-5 w-5 rotate-180" />}
       </button>
+
+      {/* ⚠️ **الرابط ده مكانش موجود، ولا الصفحة اللي وراه.** واللي
+          بينسى كلمة مروره بيبقى واقف على الشاشة دي بالظبط — فده
+          مكانه الطبيعي. */}
+      <p className="text-center">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-bold text-slate-500 transition-colors hover:text-amber-600 hover:underline"
+        >
+          نسيت كلمة المرور؟
+        </Link>
+      </p>
     </form>
   )
 }
