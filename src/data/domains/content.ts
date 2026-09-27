@@ -50,6 +50,17 @@ export interface SiteSettings {
    * صفر أو فاضي = مفيش تنبيه.
    */
   instructorPriceAlert: number;
+  /**
+   * تسجيل الجلسات.
+   *
+   * ⚠️ **الإطفاء هنا بيوقّف التسجيل فعلًا، والنصّ اللي بيقول لولي
+   *    الأمر إن الجلسة بتتسجّل بيختفي معاه.** الاتنين من نفس
+   *    المفتاح عن قصد: شاشة بتقول «بتتسجّل» وتسجيل مقفول — أو
+   *    العكس — أسوأ من الاتنين.
+   *
+   * و`retentionDays` مدة الاحتفاظ قبل الحذف التلقائي.
+   */
+  sessionRecording: SessionRecordingSettings;
   /** Site imagery, by slot. See src/lib/site-images.ts. */
   images: SiteImages;
 }
@@ -81,6 +92,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       workingHours: '',
       announcement: { enabled: false, text: '', until: '' },
       instructorPriceAlert: 0,
+      sessionRecording: DEFAULT_RECORDING_SETTINGS,
       images: {},
     };
   }
@@ -103,6 +115,16 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       until: value.announcement?.until ?? '',
     },
     instructorPriceAlert: Number(value.instructorPriceAlert) || 0,
+    // ⚠️ الافتراضي **مقفول**: لو الصف اتقرا غلط لأي سبب، الشاشات
+    //    تسكت عن التسجيل — مش تقول لولي أمر إن ابنه بيتسجّل وهو مش
+    //    متسجّل، ولا العكس.
+    sessionRecording: {
+      enabled: value.sessionRecording?.enabled === true,
+      retentionDays:
+        Number(value.sessionRecording?.retentionDays) > 0
+          ? Number(value.sessionRecording?.retentionDays)
+          : DEFAULT_RETENTION_DAYS,
+    },
     images: value.images ?? {},
   };
 });
@@ -111,6 +133,11 @@ import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import type { SiteImages } from '@/lib/site-images';
+import {
+  DEFAULT_RECORDING_SETTINGS,
+  DEFAULT_RETENTION_DAYS,
+  type SessionRecordingSettings,
+} from '@/lib/session-recording';
 import { CONTENT_DEFAULTS, type SiteContent } from '@/lib/site-content';
 
 /**

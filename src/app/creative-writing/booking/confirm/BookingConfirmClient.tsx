@@ -8,6 +8,8 @@ import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/Paym
 import { Button } from '@/components/ui/Button';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
+import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
+import { consentLabel, type SessionRecordingSettings } from '@/lib/session-recording';
 
 export function BookingConfirmClient({
   paymentWalletNumber,
@@ -20,6 +22,7 @@ export function BookingConfirmClient({
   instructorAvatarUrl,
   preferredSlot,
   presetChildId,
+  recording,
 }: {
   paymentWalletNumber: string;
   paymentQrUrl?: string;
@@ -37,6 +40,8 @@ export function BookingConfirmClient({
    * من غيره كان لازم يختاره بإيده، فيحجز باسمه هو بالغلط.
    */
   presetChildId?: string;
+  /** إعدادات تسجيل الجلسات — الإفصاح والموافقة بيتبنوا منها. */
+  recording: SessionRecordingSettings;
 }) {
   const [participantType, setParticipantType] = useState<'self' | 'child'>(
     presetChildId ? 'child' : 'self',
@@ -52,6 +57,12 @@ export function BookingConfirmClient({
   const [error, setError] = useState('');
   const [booking, setBooking] = useState<{ id: string; reference: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // ⚠️ **الموافقة مبدئيًّا مش متعلَّمة، ومفيش «موافق ضمنًا».** ولي
+  //    الأمر لازم يعمل الفعل بنفسه، وإلا مابقتش موافقة.
+  const [recordingConsent, setRecordingConsent] = useState(false);
+  const consentNeeded = recording.enabled;
+  const consentMissing = consentNeeded && !recordingConsent;
 
   /** الخطوة الأولى: تسجيل الحجز — منها بييجي الرقم المرجعي. */
   const handleRegisterBooking = (e: React.FormEvent) => {
@@ -272,10 +283,42 @@ export function BookingConfirmClient({
             رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.
           </div>
 
+          {/* ── الإفصاح والموافقة — قبل الدفع، مش بعده ──────────
+
+              ⚠️ **مكانها هنا مقصود.** ولي الأمر لازم يعرف إن
+                 الجلسة هتتسجّل **قبل** ما يدفع، لا في شاشة تأكيد
+                 بعد ما فلوسه راحت. الإفصاح اللي بييجي بعد الدفع
+                 مش إفصاح — هو إخطار بأمر واقع.
+
+              ⚠️ **والمربّع ده بيمنع الحجز فعلًا** (`disabled`)،
+                 لكن الفحص في المتصفح مش دليل (قاعدة «ع»). تسجيل
+                 الموافقة نفسها في القاعدة خطوة لسه ما اتعملتش —
+                 موثّقة في خطة التكامل. */}
+          {consentNeeded && (
+            <div className="space-y-4 border-t border-slate-100 pt-6">
+              <SessionRecordingNotice
+                enabled={recording.enabled}
+                retentionDays={recording.retentionDays}
+                tone="prominent"
+              />
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={recordingConsent}
+                  onChange={(e) => setRecordingConsent(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-sm leading-relaxed font-bold text-slate-700">
+                  {consentLabel(recording.retentionDays)}
+                </span>
+              </label>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || consentMissing}
               accentColor="emerald"
               className="flex-1 py-4 text-center disabled:opacity-70"
             >

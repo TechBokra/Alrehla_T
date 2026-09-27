@@ -3,6 +3,8 @@ import { getInstructorSessions } from '@/data/domains/writing';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { InstructorSessionClient } from './InstructorSessionClient';
+import { getSiteSettings } from '@/data/domains/content';
+import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +17,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   // رقم الجلسة في الرابط كان بيتقرا وما بيتستخدمش: الصفحة كانت بتعرض
   // **أول جلسة في القايمة** مهما كان الرابط، بتعليق «mock first booking».
-  const sessions = await getInstructorSessions();
+  const [sessions, settings] = await Promise.all([
+    getInstructorSessions(),
+    getSiteSettings(),
+  ]);
   const session = sessions.find((s) => s.id === id);
   if (!session) notFound();
 
@@ -24,6 +29,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       <DashboardPageHeader 
         title={`جلسة ${session.sessionNumber} — ${session.packageName}`}
         backHref="/dashboard/instructor"
+      />
+      {/* المدرب لازم يعرف إنه متسجَّل قبل ما يدخل — ده حقّه هو كمان،
+          مش إفصاح لولي الأمر وحده. */}
+      <SessionRecordingNotice
+        enabled={settings.sessionRecording.enabled}
+        retentionDays={settings.sessionRecording.retentionDays}
+        className="mb-6"
       />
       <InstructorSessionClient session={session} />
     </div>

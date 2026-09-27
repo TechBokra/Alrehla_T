@@ -13,6 +13,8 @@ import { CONTENT_DEFAULTS, CONTENT_FIELDS } from '@/lib/site-content';
  * contact email, see it saved, and find it reverted after the next restart.
  * It now updates the single `site_settings` row the footer reads.
  */
+import { DEFAULT_RETENTION_DAYS } from '@/lib/session-recording';
+
 export type SiteSettingsResult = { ok: true } | { ok: false; error: string };
 
 export async function updateSiteSettings(
@@ -76,6 +78,23 @@ export async function updateSiteSettings(
     } else {
       next.instructorPriceAlert = parsed;
     }
+  }
+
+  // تسجيل الجلسات — التفعيل والمدة مع بعض.
+  //
+  // ⚠️ **المدة بتتفحص هنا مش في الشاشة بس** (قاعدة «ع»): رقم سالب أو
+  //    صفر معناه «احذف التسجيل فورًا»، ورقم ضخم معناه احتفاظ بلا
+  //    نهاية — والاتنين وعد غلط لولي أمر. الحد من يوم لسنة.
+  if (formData.has('recordingRetentionDays')) {
+    const raw = String(formData.get('recordingRetentionDays') ?? '').trim();
+    const parsed = Math.trunc(Number(raw));
+    const days =
+      Number.isFinite(parsed) && parsed >= 1 && parsed <= 365 ? parsed : DEFAULT_RETENTION_DAYS;
+
+    next.sessionRecording = {
+      enabled: formData.get('recordingEnabled') === 'on',
+      retentionDays: days,
+    };
   }
 
   // شريط التنبيه العلوي — كائن واحد عشان التلات حاجات يتحفظوا مع بعض.

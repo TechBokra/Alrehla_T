@@ -7,6 +7,7 @@ import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SettingsForm } from './SettingsForm';
 import { PaymentQrUploader } from './PaymentQrUploader';
+import { RETENTION_OPTIONS } from '@/lib/session-recording';
 
 export const dynamic = 'force-dynamic';
 
@@ -188,6 +189,48 @@ export default async function Page() {
               defaultValue={settings.instructorPriceAlert || ''}
               className={`${field} text-left`}
             />
+          </div>
+        </Section>
+
+        <Section
+          title="تسجيل الجلسات"
+          hint="لمّا يكون شغّالًا، بيظهر لولي الأمر قبل الدفع إن الجلسات بتتسجّل، وموافقته بتبقى شرط لإتمام الحجز. وإطفاؤه بيوقّف التسجيل ويشيل الإفصاح من الشاشات."
+        >
+          <div className="md:col-span-2">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                name="recordingEnabled"
+                defaultChecked={settings.sessionRecording.enabled}
+                className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+              />
+              <span className="text-sm font-bold text-slate-700">
+                سجّل جلسات «بداية الرحلة»
+              </span>
+            </label>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className={labelClass}>مدة الاحتفاظ بالتسجيل قبل الحذف</label>
+            <select
+              name="recordingRetentionDays"
+              defaultValue={String(settings.sessionRecording.retentionDays)}
+              className={field}
+            >
+              {RETENTION_OPTIONS.map((option) => (
+                <option key={option.days} value={option.days}>
+                  {option.label} ({option.days} يومًا)
+                </option>
+              ))}
+            </select>
+            {/* ⚠️ الرقم ده بيظهر لولي الأمر كوعد صريح — فتغييره مش
+                إعداد داخلي. والسياسة **مابتتحدّثش لوحدها**: لازم
+                تعدّل نص «تسجيل الجلسات» في سياسة الخصوصية كمان. */}
+            <p className="mt-2 text-xs font-bold text-amber-700">
+              الرقم ده بيظهر لولي الأمر في شاشة الحجز وفي سياسة الخصوصية. لو
+              غيّرته، عدّل نص السياسة من «محتوى الصفحات ← سياسة الخصوصية» —
+              مش بيتحدّث لوحده.
+            </p>
           </div>
         </Section>
 

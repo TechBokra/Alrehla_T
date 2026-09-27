@@ -92,6 +92,7 @@ export default async function BookingConfirmPage({
         <Card accentColor="emerald" className="p-6 md:p-10 shadow-xl shadow-slate-200/50">
           <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
             <BookingConfirmClient
+              recording={settings.sessionRecording}
               paymentWalletNumber={settings.paymentWalletNumber}
               paymentQrUrl={settings.paymentQrUrl}
               packageId={chosenPackage.id}
