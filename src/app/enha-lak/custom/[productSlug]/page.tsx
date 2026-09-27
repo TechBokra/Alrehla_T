@@ -34,7 +34,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
   //    بيحرس. والمالك بيقرّر مين بياخد فلوس وبس.
   if (!product || product.category !== 'custom') {
     return (
-      <PageContainer>
+      <PageContainer className="py-12 space-y-12 md:py-16">
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h1 className="text-3xl font-black text-slate-800">المنتج غير متاح للتخصيص</h1>
           <Link href="/enha-lak" className="mt-8 rounded-xl bg-rose-500 px-6 py-3 font-bold text-white hover:bg-rose-600 transition-colors">

@@ -78,7 +78,7 @@ export default async function OrderServicePage({
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="py-12 space-y-12 md:py-16">
       <Section containerClassName="mx-auto w-full max-w-2xl pt-16 pb-24">
         <Link
           href={

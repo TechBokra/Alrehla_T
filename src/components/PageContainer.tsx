@@ -1,6 +1,29 @@
 import { cn } from '@/lib/utils';
 import React from 'react';
 
+/**
+ * إطار الصفحة العامة.
+ *
+ * ── ليه الإعدادات اتغيّرت ───────────────────────────────────
+ *
+ * كان الافتراضي `py-20 space-y-24` — يعني 80 بكسل فوق وتحت، و96
+ * بكسل بين كل قسم والتاني، **فوق** الفراغ اللي كل `Section` بتحطه
+ * لنفسها (`py-16 md:py-24`).
+ *
+ * ⚠️ **و26 صفحة من 34 كانت بتكتب `!py-0 !space-y-0` عشان تلغيه.**
+ *    لما تلات أرباع الاستخدامات بتحارب الافتراضي، يبقى الافتراضي
+ *    هو الغلط — مش الصفحات. والثمانية الباقية بقت بتطلب فراغها
+ *    صراحةً، وهي صفحات مالهاش أقسام أصلًا (تسجيل الدخول، تأكيد
+ *    الطلب…).
+ *
+ * فالإيقاع الرأسي بقى في مكان واحد: `Section`. والإطار ده مسؤول عن
+ * الهوامش الجانبية وبس.
+ *
+ * ⚠️ **وأول قسم في الصفحة بياخد فراغ أقل من فوق.** القسم الأول
+ *    تحته الهيدر مباشرةً — والهيدر نفسه بيسيب 24 بكسل فوقه. فالفراغ
+ *    الكامل هناك كان بيتجمّع على 184 بكسل قبل أول كلمة، وده اللي
+ *    كان بيخلّي الصفحات تبان فاضية من فوق.
+ */
 export function PageContainer({
   children,
   className,
@@ -11,7 +34,8 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        'relative flex w-full flex-1 flex-col items-center justify-start space-y-24 px-6 py-20 font-sans text-slate-800 md:px-12',
+        'relative flex w-full flex-1 flex-col items-center justify-start px-6 font-sans text-slate-800 md:px-12',
+        '[&>section:first-child]:pt-8 md:[&>section:first-child]:pt-10',
         className
       )}
     >

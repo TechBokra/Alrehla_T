@@ -6,7 +6,7 @@ import { Star, Quote, BookOpen, PenTool, Search, Wand2, Gift } from 'lucide-reac
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
-import { optimizedImageUrl, slotImageUrl, blurPlaceholder } from '@/lib/cloudinary';
+import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
 import { getSiteSettings, getSiteContent, getTestimonials } from '@/data/domains/content';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { RichText } from '@/components/ui/RichText';
@@ -102,21 +102,47 @@ export default async function Home() {
             اللي اتاخد في السلايدر قبل ما يتشال.)
           • نسبة أبعاد مش ارتفاع ثابت: 4:3 موبايل ← 16:9 ← 21:9
           • `alt=""` عن قصد — صورة زينة، والمعنى في الـ`h1` اللي جنبها
+
+          ⚠️ **وكل مقاس بياخد قصّته من الصورة الأصلية.**
+
+             قبل كده كانت الصورة بتتسلّم `21:9` دايمًا، و`object-cover`
+             بيقصّها لـ4:3 على الموبايل — **قص فوق قص**: اللي بيبان
+             الشريط الأوسط من صورة عريضة أصلًا، وأطرافها بتروح. وأغلب
+             الزوار على الموبايل.
+
+             دلوقتي `<picture>` بتطلب من Cloudinary قصّة مستقلة لكل
+             مقاس، و`g_auto` بيحلّل **الأصل** في كل مرة. والمتصفح
+             بيحمّل **واحدة بس** — اللي مقاسها مطابق، فالموبايل بياخد
+             900 بكسل بدل 2100.
+
+          ⚠️ **و`<picture>` مش `next/image` عن قصد**: `next/image`
+             مبتعرفش تدّي قصّات مختلفة لمقاسات مختلفة (art direction)،
+             وروابط Cloudinary دي متحوّلة أصلًا فـ`next/image` كانت
+             بتمرّرها زي ما هي من غير ما تضيف حاجة.
       */}
       <section className="relative w-full">
-        <div className="relative aspect-[4/3] w-full overflow-hidden sm:aspect-[16/9] lg:aspect-[21/9]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 sm:aspect-[16/9] lg:aspect-[21/9]">
           {settings.images.homeHero ? (
-            <Image
-              src={slotImageUrl(settings.images.homeHero, 'homeHero')}
-              alt=""
-              fill
-              sizes="100vw"
-              priority
-              placeholder={blurPlaceholder(settings.images.homeHero) ? 'blur' : 'empty'}
-              blurDataURL={blurPlaceholder(settings.images.homeHero)}
-              className="object-cover"
-              referrerPolicy="no-referrer"
-            />
+            <picture>
+              <source
+                media="(min-width: 1024px)"
+                srcSet={slotImageUrlAt(settings.images.homeHero, '21:9', 2100)}
+              />
+              <source
+                media="(min-width: 640px)"
+                srcSet={slotImageUrlAt(settings.images.homeHero, '16:9', 1400)}
+              />
+              <img
+                src={slotImageUrlAt(settings.images.homeHero, '4:3', 900)}
+                alt=""
+                width={900}
+                height={675}
+                fetchPriority="high"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </picture>
           ) : (
             <ImagePlaceholder label="طفل يقرأ كتاباً" />
           )}

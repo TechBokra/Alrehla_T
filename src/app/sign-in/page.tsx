@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function SignInPage() {
   return (
-    <PageContainer>
+    <PageContainer className="py-12 space-y-12 md:py-16">
       <div className="mx-auto w-full max-w-md pt-12 pb-24">
         <div className="mb-10 text-center">
           <Link href="/" className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 mb-6">

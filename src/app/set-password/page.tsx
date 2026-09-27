@@ -38,7 +38,7 @@ export default async function Page() {
   if (!needsPasswordSetup(user)) redirect('/dashboard');
 
   return (
-    <PageContainer>
+    <PageContainer className="py-12 space-y-12 md:py-16">
       <div className="mx-auto w-full max-w-md pt-12 pb-24">
         <div className="mb-10 text-center">
           <div className="mx-auto mb-6 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">

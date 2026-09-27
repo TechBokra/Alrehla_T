@@ -79,7 +79,7 @@ export default async function ServiceProvidersPage({
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="py-12 space-y-12 md:py-16">
       <Section containerClassName="mx-auto w-full max-w-4xl pt-16 pb-10">
         {/* Top Navigation */}
         <div className="mb-8">

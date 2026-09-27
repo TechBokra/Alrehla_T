@@ -17,7 +17,7 @@ export default async function InstructorPayoutsPage() {
   const payouts = await getInstructorPayouts();
 
   return (
-    <PageContainer>
+    <PageContainer className="py-12 space-y-12 md:py-16">
       <div className="mx-auto w-full max-w-5xl flex-1 py-12">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">

@@ -20,7 +20,14 @@ export function SectionSubNav({
   const pathname = usePathname();
 
   return (
-    <nav aria-label="القائمة الفرعية" className="w-full border-b border-slate-200/40 bg-white/50 backdrop-blur-xl mb-8 sticky top-24 z-40">
+    /* ⚠️ `top-24` = 96 بكسل، والهيدر بينتهي عند 88 — فكان بيفضل
+       شريط 8 بكسل من محتوى الصفحة بيعدّي بينهم وإنت بتنزل. بقى
+       ملزوقًا تحته بالظبط.
+
+       و`mb-8` اتشالت: أول قسم في الصفحة بياخد فراغه من
+       `PageContainer` أصلًا، والاتنين مع بعض كانوا بيعملوا فجوة
+       مضاعفة تحت القايمة. */
+    <nav aria-label="القائمة الفرعية" className="w-full border-b border-slate-200/40 bg-white/50 backdrop-blur-xl sticky top-[5.5rem] z-40">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="hide-scrollbar flex w-full justify-center overflow-x-auto py-4 md:justify-start">
           <div className="flex items-center gap-3 whitespace-nowrap">
