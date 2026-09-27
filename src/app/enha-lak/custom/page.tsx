@@ -15,11 +15,10 @@ import { optimizedImageUrl } from '@/lib/cloudinary';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import Link from 'next/link';
 import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
-import { PenTool, Plus, Book, FileText, ShoppingCart } from 'lucide-react';
+import { PenTool, Plus, Book, FileText } from 'lucide-react';
 
 import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
-import { AddToCartButton } from '@/components/cart/AddToCartButton';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -125,6 +124,19 @@ export default async function CustomPage() {
 
       {/* Addons */}
       <Section containerClassName="max-w-4xl rounded-3xl border border-slate-100 bg-slate-50/50 p-8 md:p-12 pb-24">
+        {/* ⚠️ **كان هنا زرار «أضف للسلة» على كل إضافة.**
+
+            والإضافة **مش منتج يتباع لوحده**: هي بتتعلّق بقصة، وسعرها
+            بيتحسب جوّه سعر القصة في القاعدة. والأهم إن أرقام الإضافات
+            في جدول `addon_products` — ودالة إنشاء الطلب بتدوّر على كل
+            بند في `personalized_products`. يعني إضافة لوحدها في السلة
+            بتخلّي **الطلب كله يترفض**، بالقصص اللي معاها.
+
+            والعميل مكانش هيفهم السبب: الرسالة «منتج غير موجود: <رقم>».
+
+            فالقسم ده بقى **عرضًا لا سلّة**: بيقول إيه المتاح وبكام،
+            والإضافة بتتاخد وإنت بتخصّص القصة — وهي الخطوة الوحيدة
+            اللي بتعرف الإضافة تتعلّق بإيه. */}
         <div className="mb-10 text-center">
           <h2 className="flex items-center justify-center gap-3 text-3xl font-black text-slate-800">
             <Plus className="h-8 w-8 text-rose-500" />
@@ -132,6 +144,9 @@ export default async function CustomPage() {
           </h2>
           <p className="mt-4 font-medium text-slate-500">
             اجعل تجربة طفلك أكثر متعة وتفاعلاً مع هذه الإضافات الممتعة.
+          </p>
+          <p className="mt-2 text-sm font-bold text-slate-400">
+            الإضافات بتتختار وإنت بتخصّص القصة — مش بتتطلب لوحدها.
           </p>
         </div>
 
@@ -154,18 +169,9 @@ export default async function CustomPage() {
                 <span className="text-lg font-black text-rose-600">
                   {formatPrice(addon.price)}
                 </span>
-                <AddToCartButton 
-                  product={{
-                    id: addon.id,
-                    productId: addon.id,
-                    name: addon.name,
-                    price: addon.price,
-                    quantity: 1,
-                    type: 'custom',
-                  }} 
-                  variant="outline"
-                  className="w-auto px-4 py-2"
-                />
+                <span className="text-xs font-bold text-slate-400">
+                  تُضاف أثناء التخصيص
+                </span>
               </div>
             </Card>
           ))}
