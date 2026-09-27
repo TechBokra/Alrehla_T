@@ -28,7 +28,14 @@ export function InstructorSessionClient({ session }: Props) {
     setIsSaving(true);
     setError('');
     try {
-      await saveSessionReport({ sessionId: session.id, attendance, report });
+      // ⚠️ **النتيجة بتتقري دلوقتي.** الشاشة كانت بترميها وبتعرض
+      //    «تم الحفظ» مهما رجع — وده اللي خلّى المدرب يشوف نجاحًا
+      //    والتقرير ما يوصلش لحد.
+      const result = await saveSessionReport({ sessionId: session.id, attendance, report });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setIsSubmitted(true);
       router.refresh();
     } catch (err) {
