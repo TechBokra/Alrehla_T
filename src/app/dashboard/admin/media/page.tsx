@@ -12,6 +12,7 @@ import {
   listFolderAssets,
 } from '@/lib/cloudinary-admin';
 import { formatCairo } from '@/lib/timezone';
+import { OrphanGallery } from './OrphanGallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,23 @@ export default async function Page() {
         </p>
       )}
 
+      {/* ⚠️ **فحص آلي على الفحص نفسه.**
+
+          لو نص صور المجلّد أو أكتر بانت «مهجورة»، الاحتمال الأرجح
+          مش إن نصّ المخزن زبالة — الاحتمال الأرجح إن **جدول ما
+          اتقريش** فصوره كلها بانت بلا رابط. وده بالظبط السيناريو
+          اللي بيخلّي ضغطة حذف تمسح شغل شهور. */}
+      {assets.length > 0 && orphans.length > assets.length / 2 && (
+        <p className="mb-6 flex gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <span>
+            أكتر من نص صور المجلّد ({orphans.length} من {assets.length}) بانت بلا
+            رابط. ده رقم كبير غير متوقّع — الأرجح إن جدول ما اتقريش لا إن الصور
+            دي فعلًا مهجورة. <strong>راجع قبل ما تحذف أي حاجة.</strong>
+          </span>
+        </p>
+      )}
+
       {/* ── تحذير قبل أي حذف ─────────────────────────────── */}
       <section className="mb-10 rounded-3xl border border-amber-200 bg-amber-50 p-6">
         <h2 className="mb-2 flex items-center gap-2 font-black text-amber-900">
@@ -126,13 +144,16 @@ export default async function Page() {
         </div>
       </section>
 
-      <Gallery
-        title="مالهاش رابط في القاعدة"
-        subtitle="مرشَّحة للحذف بعد المراجعة"
-        assets={orphans}
-        usage={usage}
-        empty="كل صور المجلّد مستخدمة."
-      />
+      <section className="mb-10">
+        <h2 className="text-lg font-black text-slate-800">
+          مالهاش رابط في القاعدة{' '}
+          <span className="text-sm font-bold text-slate-400">({orphans.length})</span>
+        </h2>
+        <p className="mb-4 text-sm font-medium text-slate-500">
+          حدّد اللي متأكد منه واحذفه. الحذف نهائي.
+        </p>
+        <OrphanGallery assets={orphans} />
+      </section>
 
       <Gallery
         title="مستخدمة في الموقع"
