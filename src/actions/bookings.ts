@@ -52,6 +52,15 @@ export async function createCourseBooking(params: {
    *    الشاشة دي، فالحد الأقصى لازم يبقى في `create_course_booking`.
    */
   giftMessage?: string;
+  /**
+   * موافقة ولي الأمر على تسجيل الجلسات.
+   *
+   * ⚠️ **بتتفحص على الخادم، مش في الشاشة بس.** مربّع الاختيار
+   *    بيعطّل الزرّ، لكن الأكشن ده ممكن يتنادى من غير الشاشة دي
+   *    خالص (قاعدة «ع»). فلو التسجيل شغّال ومفيش موافقة، الحجز
+   *    **بيترفض هنا** — مش بيعدّي وبعدين نكتشف.
+   */
+  recordingConsent?: boolean;
 }): Promise<BookingResult> {
   const supabase = await createClient();
   const {
@@ -63,6 +72,17 @@ export async function createCourseBooking(params: {
   const dependent = await getDependentGuardian();
   if (dependent) {
     return { ok: false, error: 'الحجز محتاج موافقة ولي أمرك. كلّمه يعمله من حسابه.' };
+  }
+
+  // ── الموافقة شرط، والشرط بيتنفّذ هنا ──────────────────────
+  const settings = await getSiteSettings();
+  const consentRequired = settings.sessionRecording.enabled;
+
+  if (consentRequired && params.recordingConsent !== true) {
+    return {
+      ok: false,
+      error: 'لازم توافق على تسجيل الجلسات قبل إتمام الحجز.',
+    };
   }
 
   const { data, error } = await supabase.rpc('create_course_booking', {
@@ -87,6 +107,40 @@ export async function createCourseBooking(params: {
       .eq('id', subscriptionId)
       .select('id');
     if (slotError) console.error('Error saving preferred slot', slotError);
+  }
+
+  // ── تسجيل الموافقة ─────────────────────────────────────────
+  //
+  // ⚠️ **بنقرا القيمة اللي نزلت فعلًا، مش بنعدّ الصفوف.**
+  //
+  //    `update … select('id')` بيرجّع صفًّا حتى لو محفّز حماية
+  //    رجّع العمود لقيمته القديمة — وده اللي حصل بالظبط في
+  //    `guard_order_fields` وخلّى ستة طلبات بإجمالي صفر وإحنا
+  //    فاكرين إن الكتابة نجحت.
+  //
+  //    فبنطلب العمود نفسه: لو رجع فاضي، يبقى الكتابة **اترفضت
+  //    في صمت** مهما كان عدد الصفوف.
+  //
+  // ⚠️ **والفشل هنا مابيلغيش الحجز** — الحجز اتسجّل في القاعدة
+  //    خلاص والعميل هيدفع. بس الإدارة لازم تعرف، لأن حجز بلا
+  //    موافقة مسجّلة معناه إننا مانقدرش نثبت إن ولي الأمر وافق.
+  if (consentRequired) {
+    const { data: consentRow, error: consentError } = await supabase
+      .from('course_subscriptions')
+      .update({ recording_consent_at: new Date().toISOString() })
+      .eq('id', subscriptionId)
+      .select('recording_consent_at')
+      .maybeSingle();
+
+    if (consentError || !consentRow?.recording_consent_at) {
+      console.error('Recording consent not saved', subscriptionId, consentError);
+      await notifyAdmins({
+        event: 'payment_review',
+        title: 'حجز بلا موافقة تسجيل مسجّلة',
+        message: `الحجز ${subscriptionId} اتسجّل، لكن موافقة ولي الأمر على التسجيل ما اتكتبتش في القاعدة. راجعه قبل أول جلسة.`,
+        link: `/dashboard/admin/bookings/${subscriptionId}`,
+      });
+    }
   }
 
   // الرقم المرجعي بيتولّد في القاعدة مع الحجز، والعميل بيكتبه في ملاحظة

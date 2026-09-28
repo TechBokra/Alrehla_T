@@ -81,6 +81,9 @@ export function BookingConfirmClient({
         participantType,
         childId: childId || undefined,
         preferredSlot,
+        // الخادم بيرفض الحجز لو التسجيل شغّال والقيمة دي مش `true` —
+        // فالمربّع مش مجرد زينة في الشاشة.
+        recordingConsent,
       });
 
       if (!result.ok) {

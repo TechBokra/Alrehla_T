@@ -48,6 +48,13 @@ export default async function Page() {
     amountDisplay: b.amount != null ? formatPrice(b.amount) : '—',
     instructorDisplay: b.preferredInstructorName ?? 'لم يُحدَّد',
     sessionsDisplay: b.sessionsCount > 0 ? `${b.sessionsCount} جلسة` : 'لم تُجدول',
+    // ⚠️ الموافقة بتظهر للإدارة **لأنها الدليل**. الفاضي في حجز جديد
+    //    معناه إن الكتابة فشلت — مش تفصيلة تتساب لحد ما تحصل شكوى.
+    consentDisplay: b.recordingConsentAt ? (
+      <StatusBadge type="success" label={`وافق · ${formatDate(b.recordingConsentAt)}`} />
+    ) : (
+      <StatusBadge type="neutral" label="—" />
+    ),
     statusDisplay: (
       <StatusBadge
         type={STATUS[b.status]?.type ?? 'warning'}
@@ -64,6 +71,7 @@ export default async function Page() {
     { header: 'المبلغ', accessorKey: 'amountDisplay' },
     { header: 'المدرب المفضل', accessorKey: 'instructorDisplay' },
     { header: 'الجلسات', accessorKey: 'sessionsDisplay' },
+    { header: 'موافقة التسجيل', accessorKey: 'consentDisplay' },
     { header: 'الحالة', accessorKey: 'statusDisplay' },
   ];
 

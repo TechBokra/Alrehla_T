@@ -928,6 +928,14 @@ export type AdminCourseBooking = {
   sessionsCount: number;
   /** إهداء خاص كتبه صاحب الحجز — بيتقفل بعد الإنشاء. */
   giftMessage: string | null;
+  /**
+   * وقت موافقة ولي الأمر على تسجيل الجلسات.
+   *
+   * ⚠️ فاضي معناه حاجة من اتنين: **حجز قديم** قبل ما الميزة تشتغل،
+   *    أو **الكتابة فشلت** — والتانية دي بتوصل للإدارة كإشعار وقتها.
+   *    الشاشة بتفرّق بينهم بتاريخ الحجز.
+   */
+  recordingConsentAt: string | null;
 };
 
 /**
@@ -993,6 +1001,7 @@ export async function getCourseBookingsForAdmin(): Promise<AdminCourseBooking[]>
       startedAt: row.started_at ?? null,
       sessionsCount: (sessions ?? []).filter((x) => x.course_subscription_id === row.id).length,
       giftMessage: row.gift_message ?? null,
+      recordingConsentAt: row.recording_consent_at ?? null,
     });
   }
 
