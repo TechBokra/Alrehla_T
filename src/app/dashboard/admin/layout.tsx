@@ -73,6 +73,7 @@ const GROUPS: RawGroup[] = [
       { label: 'المدونة', href: '/dashboard/admin/content/blog', icon: 'FileText', permission: 'canManageContent' },
       { label: 'محتوى الصفحات', href: '/dashboard/admin/content/pages', icon: 'LayoutDashboard', permission: 'canManageContent' },
       { label: 'صور الموقع', href: '/dashboard/admin/content/images', icon: 'FileText', permission: 'canManageContent' },
+      { label: 'مخزن الصور (Cloudinary)', href: '/dashboard/admin/media', icon: 'Images', permission: 'canManageContent' },
       { label: 'آراء العملاء', href: '/dashboard/admin/content/testimonials', icon: 'Quote', permission: 'canManageContent' },
       { label: 'التقييمات', href: '/dashboard/admin/reviews', icon: 'Star', permission: 'canManageContent' },
       // رقم الدفع والـ QR بيتظبطوا من هنا.

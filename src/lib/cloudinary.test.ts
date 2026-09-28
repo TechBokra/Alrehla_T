@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
+import { publicIdFromUrl } from '@/lib/cloudinary-admin';
 
 const CLOUD = 'https://res.cloudinary.com/dwg0hr34g/image/upload/v1/alrehla/site/x.jpg';
 
@@ -114,5 +115,41 @@ describe('قصّة لكل مقاس', () => {
   it('مبيكدّسش تحويلات على رابط عليه تحويلات', () => {
     const already = 'https://res.cloudinary.com/x/image/upload/w_100/v1/a.jpg';
     expect(slotImageUrlAt(already, '4:3', 900)).toBe(already);
+  });
+});
+
+/**
+ * ⚠️ الاختبارات دي بتحرس **قرار حذف**. شاشة الصور بتقارن صور
+ *    Cloudinary بالروابط اللي في القاعدة، والمقارنة دي بتتم برقم
+ *    الصورة. لو الاستخراج غلط، صورة شغّالة بتبان «مهجورة» —
+ *    والحذف مالوش تراجع.
+ */
+describe('رقم الصورة من رابطها', () => {
+  it('بيستخرج الرقم من رابط عليه تحويلات', () => {
+    expect(
+      publicIdFromUrl(
+        'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,w_900,c_fill,g_auto,ar_4:3/v1/alrehla/site/hero.jpg',
+      ),
+    ).toBe('alrehla/site/hero');
+  });
+
+  it('⚠️ نفس الصورة بتحويلات مختلفة = نفس الرقم', () => {
+    const base = 'https://res.cloudinary.com/dwg0hr34g/image/upload';
+    const a = publicIdFromUrl(`${base}/w_900,ar_4:3/v1/alrehla/site/hero.jpg`);
+    const b = publicIdFromUrl(`${base}/w_2100,ar_21:9/v1/alrehla/site/hero.jpg`);
+    // لولا ده، كل مقاس كان هيتحسب صورة لوحدها وواحدة منهم «مهجورة».
+    expect(a).toBe(b);
+  });
+
+  it('بيشتغل على رابط بلا تحويلات', () => {
+    expect(
+      publicIdFromUrl('https://res.cloudinary.com/dwg0hr34g/image/upload/v17/alrehla/a/b.png'),
+    ).toBe('alrehla/a/b');
+  });
+
+  it('بيرجّع فاضي لأي رابط مش من Cloudinary', () => {
+    expect(publicIdFromUrl('https://example.com/x.png')).toBeNull();
+    expect(publicIdFromUrl('')).toBeNull();
+    expect(publicIdFromUrl(null)).toBeNull();
   });
 });
