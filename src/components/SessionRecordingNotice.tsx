@@ -18,11 +18,14 @@ import { recordingNotice } from '@/lib/session-recording';
 export function SessionRecordingNotice({
   enabled,
   retentionDays,
+  template,
   tone = 'info',
   className = '',
 }: {
   enabled: boolean;
   retentionDays: number;
+  /** النص من لوحة التحكم. من غيره بيتعرض الأصلي. */
+  template?: string;
   /** `info` للمتابعة، و`prominent` للشاشة اللي قبل الدفع. */
   tone?: 'info' | 'prominent';
   className?: string;
@@ -44,7 +47,7 @@ export function SessionRecordingNotice({
         className={`mt-0.5 h-5 w-5 shrink-0 ${prominent ? 'text-amber-600' : 'text-slate-400'}`}
       />
       <p className={`text-sm leading-relaxed ${prominent ? 'font-bold' : 'font-medium'}`}>
-        {recordingNotice(retentionDays)}
+        {recordingNotice(retentionDays, template)}
       </p>
     </div>
   );

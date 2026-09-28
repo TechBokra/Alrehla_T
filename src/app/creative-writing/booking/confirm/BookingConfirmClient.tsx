@@ -23,6 +23,7 @@ export function BookingConfirmClient({
   preferredSlot,
   presetChildId,
   recording,
+  recordingText,
 }: {
   paymentWalletNumber: string;
   paymentQrUrl?: string;
@@ -42,6 +43,8 @@ export function BookingConfirmClient({
   presetChildId?: string;
   /** إعدادات تسجيل الجلسات — الإفصاح والموافقة بيتبنوا منها. */
   recording: SessionRecordingSettings;
+  /** نصوص التسجيل من لوحة التحكم — المدة بتتحط مكان {المدة}. */
+  recordingText: { notice: string; consent: string };
 }) {
   const [participantType, setParticipantType] = useState<'self' | 'child'>(
     presetChildId ? 'child' : 'self',
@@ -302,6 +305,7 @@ export function BookingConfirmClient({
               <SessionRecordingNotice
                 enabled={recording.enabled}
                 retentionDays={recording.retentionDays}
+                template={recordingText.notice}
                 tone="prominent"
               />
               <label className="flex cursor-pointer items-start gap-3">
@@ -312,7 +316,7 @@ export function BookingConfirmClient({
                   className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <span className="text-sm leading-relaxed font-bold text-slate-700">
-                  {consentLabel(recording.retentionDays)}
+                  {consentLabel(recording.retentionDays, recordingText.consent)}
                 </span>
               </label>
             </div>

@@ -16,6 +16,7 @@ import { getStandaloneServices, getProvidersForService } from '@/data/domains/se
 import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
+import { getSiteContent } from '@/data/domains/content';
 
 
 /**
@@ -100,16 +101,16 @@ async function buildCategories() {
 }
 
 export default async function ServicesPage() {
-  const serviceCategories = await buildCategories();
+  const [serviceCategories, content] = await Promise.all([buildCategories(), getSiteContent()]);
   return (
     <PageContainer className="!py-0 !space-y-0">
       {/* Header */}
       <Section containerClassName="pt-16 pb-12 text-center max-w-3xl mx-auto">
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">
-          الخدمات الإبداعية
+          {content['services.title']}
         </h1>
         <p className="text-lg md:text-xl font-medium text-slate-600 leading-relaxed">
-          خدمات مصممة خصيصاً لدعم رحلة طفلك الإبداعية في كل خطوة، سواء كان مشتركاً في برامجنا أم لا.
+          {content['services.description']}
         </p>
 
       </Section>
@@ -181,9 +182,9 @@ export default async function ServicesPage() {
       <Section containerClassName="pb-16">
         <div className="mx-auto w-full max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center shadow-sm">
           <h3 className="mb-4 text-2xl font-black text-slate-800">
-            تبحث عن مسار متكامل بدل خدمة واحدة؟
+            {content['services.ctaTitle']}
           </h3>
-          <p className="mb-8 text-slate-600 font-medium">استكشف باقات الكتابة الإبداعية المصممة لبناء مهارات متكاملة على مدار فترة أطول.</p>
+          <p className="mb-8 text-slate-600 font-medium">{content['services.ctaText']}</p>
           <Link
             href="/creative-writing/packages"
             className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-lg font-bold text-white shadow-md transition-all hover:bg-slate-800 hover:-translate-y-1 hover:shadow-lg"

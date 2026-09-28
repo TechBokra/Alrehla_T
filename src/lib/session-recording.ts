@@ -52,18 +52,45 @@ export function retentionLabel(days: number): string {
   return `${days} يومًا`;
 }
 
-/** الجملة اللي بتظهر على الشاشات قبل الحجز وأثناء المتابعة. */
-export function recordingNotice(days: number): string {
-  return `الجلسات بتتسجّل لأغراض الأمان ومراجعة جودة التدريب، وبتتحذف تلقائيًّا بعد ${retentionLabel(
-    days,
-  )}. التسجيل مابيتنشرش ومابيتشافش إلا من إدارة المنصة.`;
+/**
+ * العلامة اللي بتتبدّل بالمدة داخل نصوص لوحة التحكم.
+ *
+ * ⚠️ **المدة مابتتكتبش في النص نفسه** — عشان صفحة ما تقولش «شهر»
+ *    والإعدادات فيها «أسبوع». الإدارة بتكتب `{المدة}` والرقم
+ *    بيتحط وقت العرض.
+ */
+export const DURATION_TOKEN = '{المدة}';
+
+/**
+ * بيحطّ المدة مكان العلامة في نص جاي من لوحة التحكم.
+ *
+ * ⚠️ **ولو العلامة مش موجودة، النص بيتعرض زي ما هو.** مابنضيفش
+ *    المدة في الآخر ولا بنرمي خطأ: الإدارة اللي كتبت النص أدرى،
+ *    وشاشة الإعدادات بتحذّر إن المدة هتختفي.
+ */
+export function withRetention(template: string, days: number): string {
+  return template.split(DURATION_TOKEN).join(retentionLabel(days));
+}
+
+/**
+ * الجملة اللي بتظهر على الشاشات قبل الحجز وأثناء المتابعة.
+ *
+ * `template` بييجي من لوحة التحكم. من غيره بيرجع النص الأصلي —
+ * فالشاشة عمرها ما تفضى.
+ */
+export function recordingNotice(days: number, template?: string): string {
+  const text =
+    template?.trim() ||
+    `الجلسات بتتسجّل لأغراض الأمان ومراجعة جودة التدريب، وبتتحذف تلقائيًّا بعد ${DURATION_TOKEN}. التسجيل مابيتنشرش ومابيتشافش إلا من إدارة المنصة.`;
+  return withRetention(text, days);
 }
 
 /** الجملة اللي جنب مربّع الموافقة في شاشة الحجز. */
-export function consentLabel(days: number): string {
-  return `أوافق على تسجيل الجلسات وحفظها لمدة ${retentionLabel(
-    days,
-  )} لأغراض الأمان ومراجعة الجودة.`;
+export function consentLabel(days: number, template?: string): string {
+  const text =
+    template?.trim() ||
+    `أوافق على تسجيل الجلسات وحفظها لمدة ${DURATION_TOKEN} لأغراض الأمان ومراجعة الجودة.`;
+  return withRetention(text, days);
 }
 
 /**

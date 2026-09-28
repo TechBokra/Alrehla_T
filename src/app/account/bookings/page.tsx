@@ -2,14 +2,18 @@ import { getSessions } from '@/data/domains/writing';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { formatCairo } from '@/lib/timezone';
 import { sessionStatusView } from '@/lib/session-status';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings, getSiteContent } from '@/data/domains/content';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { AccountBookingsClient, type BookingRow } from './AccountBookingsClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BookingsPage() {
-  const [sessions, settings] = await Promise.all([getSessions(), getSiteSettings()]);
+  const [sessions, settings, content] = await Promise.all([
+    getSessions(),
+    getSiteSettings(),
+    getSiteContent(),
+  ]);
 
   const rows: BookingRow[] = sessions.map((session) => {
     const status = sessionStatusView(session.status);
@@ -38,6 +42,7 @@ export default async function BookingsPage() {
       <SessionRecordingNotice
         enabled={settings.sessionRecording.enabled}
         retentionDays={settings.sessionRecording.retentionDays}
+        template={content['recording.notice']}
       />
       <AccountBookingsClient initialRows={rows} />
     </div>

@@ -23,10 +23,11 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getSiteContent } from '@/data/domains/content';
 
 
 export default async function PackagesPage() {
-  const packages = await getWritingPackages();
+  const [packages, content] = await Promise.all([getWritingPackages(), getSiteContent()]);
 
   // حساب الطفل التابع بيشوف «اطلب من ولي أمرك» بدل زرار الحجز.
   // الفشل هنا بيتعامل معاه كـ«مش تابع» — صفحة عرض، والحارس الحقيقي
@@ -77,8 +78,8 @@ export default async function PackagesPage() {
       {/* Header */}
       <Section containerClassName="pt-8 pb-12">
         <SectionHeader
-          title="باقات «بداية الرحلة»"
-          description="رحلات تختلف في طول المسار وعدد الجلسات، موزعة على ثلاثة مسارات. قارن ما تتضمنه كل رحلة ثم اختر ما يناسب المشارك."
+          title={content['packages.title']}
+          description={content['packages.description']}
         />
 
       </Section>
@@ -103,7 +104,7 @@ export default async function PackagesPage() {
         {untracked.length > 0 && (
           <Section>
             <div className="mb-10 text-center md:text-right">
-              <h2 className="text-3xl font-black text-slate-800">باقات أخرى</h2>
+              <h2 className="text-3xl font-black text-slate-800">{content['packages.otherTitle']}</h2>
               <p className="mt-2 font-medium text-slate-500">
                 لم يُحدَّد مسارها بعد
               </p>

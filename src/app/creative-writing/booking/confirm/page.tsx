@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings, getSiteContent } from '@/data/domains/content';
 import {
   getWritingPackages,
   getPublicInstructors,
@@ -47,10 +47,11 @@ export default async function BookingConfirmPage({
     time: slotTime,
     child: childParam,
   } = await searchParams;
-  const [settings, packages, instructors] = await Promise.all([
+  const [settings, packages, instructors, content] = await Promise.all([
     getSiteSettings(),
     getWritingPackages(),
     getPublicInstructors(),
+    getSiteContent(),
   ]);
 
   const chosenPackage = packages.find((pkg) => pkg.id === packageId);
@@ -93,6 +94,10 @@ export default async function BookingConfirmPage({
           <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
             <BookingConfirmClient
               recording={settings.sessionRecording}
+              recordingText={{
+                notice: content['recording.notice'],
+                consent: content['recording.consent'],
+              }}
               paymentWalletNumber={settings.paymentWalletNumber}
               paymentQrUrl={settings.paymentQrUrl}
               packageId={chosenPackage.id}

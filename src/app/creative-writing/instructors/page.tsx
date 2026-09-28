@@ -21,10 +21,14 @@ import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { getSiteContent } from '@/data/domains/content';
 
 
 export default async function InstructorsPage() {
-  const instructors = await getPublicInstructors();
+  const [instructors, content] = await Promise.all([
+    getPublicInstructors(),
+    getSiteContent(),
+  ]);
   const ratings = await getInstructorRatingSummaries(instructors.map((i) => i.id));
 
   return (
@@ -32,9 +36,9 @@ export default async function InstructorsPage() {
       {/* Header */}
       <Section containerClassName="pt-8 pb-12">
         <SectionHeader
-          title="مدربو «بداية الرحلة»"
+          title={content['instructors.title']}
           
-          description="فريق من الكُتّاب والتربويين المتخصصين في أدب الطفل واليافعين، يجمعون بين الشغف الإبداعي والقدرة على التوجيه بأسلوب داعم ومحفز."
+          description={content['instructors.description']}
         />
       </Section>
 
@@ -42,7 +46,7 @@ export default async function InstructorsPage() {
       <Section containerClassName="mx-auto w-full max-w-6xl pb-20">
         <div className="grid gap-8 md:grid-cols-2">
           {instructors.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-slate-500 font-medium text-lg">قريبًا</div>
+          <div className="col-span-full py-16 text-center text-slate-500 font-medium text-lg">{content['instructors.empty']}</div>
         ) : instructors.map((instructor) => (
             <Card
               key={instructor.id}
