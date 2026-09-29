@@ -1,208 +1,189 @@
 'use client';
-import { formatPrice } from '@/lib/utils';
 
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
-import { optimizedImageUrl } from '@/lib/cloudinary';
-import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
-import Link from 'next/link';
+import { Book, Search, SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Book, FileText, Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import { PersonalizedProduct, Publisher } from '@/types';
+import { ProductCard } from '@/components/enha-lak/ProductCard';
+import {
+  filterProducts,
+  sortProducts,
+  resultLabel,
+  hasActiveFilter,
+  PRODUCT_SORTS,
+  type ProductSort,
+} from '@/lib/product-display';
+import type { PersonalizedProduct, Publisher } from '@/types';
 
-
-interface LibraryClientProps {
+/**
+ * شبكة المكتبة بفلاترها.
+ *
+ * ── تلات أعطال اتصلحت هنا ───────────────────────────────────
+ *
+ * 🔴 **فلتر «مطبوع فقط» مكانش بيعمل حاجة.** الشرط بتاعه كان فرعًا
+ *    فاضيًا فيه تعليق «لو كان عندنا حقل للمطبوع كنا هنفلتر». يعني
+ *    العميل بيختاره والقايمة مابتتغيّرش — **الزرّ الصامت** اللي
+ *    وقعنا فيه تلات مرات قبل كده. اتشال هو وفلتر النوع كله، لأن
+ *    نصّه التاني (إلكتروني) بيفلتر بسعر مش قابل للشراء أصلًا.
+ *
+ * 🔴 **«الأحدث» كانت بترتّب بالرقم.** رقم المنتج `uuid` عشوائي،
+ *    فالترتيب كان عشوائيًّا وثابتًا. بقى بالتاريخ الحقيقي.
+ *
+ * 🔴 **«لا توجد نتائج — جرّب تغيير كلمات البحث»** كانت بتظهر حتى
+ *    لما الرفّ فاضي أصلًا. الجملة دي بتقول للعميل إنه غلطان وهو
+ *    مش غلطان.
+ */
+export function LibraryClient({
+  initialProducts,
+  publishers,
+}: {
   initialProducts: PersonalizedProduct[];
   publishers: Publisher[];
-}
+}) {
+  const [query, setQuery] = useState('');
+  const [publisherId, setPublisherId] = useState('all');
+  const [sort, setSort] = useState<ProductSort>('newest');
 
-export function LibraryClient({ initialProducts, publishers }: LibraryClientProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPublisher, setSelectedPublisher] = useState('all');
-  const [bookType, setBookType] = useState('all'); // all, print, digital
-  const [sortBy, setSortBy] = useState('newest'); // newest, price-asc, price-desc
+  const visible = useMemo(
+    () => sortProducts(filterProducts(initialProducts, { query, publisherId }), sort),
+    [initialProducts, query, publisherId, sort],
+  );
 
-  const filteredAndSortedProducts = useMemo(() => {
-    let result = [...initialProducts];
+  const filtering = hasActiveFilter({ query, publisherId });
+  const count = resultLabel(visible.length, initialProducts.length);
 
-    // Filter by search query
-    if (searchQuery) {
-      result = result.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }
+  const clear = () => {
+    setQuery('');
+    setPublisherId('all');
+  };
 
-    // Filter by publisher
-    if (selectedPublisher !== 'all') {
-      result = result.filter(p => p.publisherId === selectedPublisher);
-    }
-
-    // Filter by book type
-    if (bookType === 'digital') {
-      result = result.filter(p => p.electronicPrice != null);
-    } else if (bookType === 'print') {
-      // Assuming all books are available as print, or if we had a specific field for print
-      // we could filter here. Currently, we show all if 'print' is selected, except if we want to enforce it.
-    }
-
-    // Sort
-    if (sortBy === 'price-asc') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-desc') {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'newest') {
-      // «الأحدث» بيترتب بالرقم لأن تاريخ الإضافة مش موجود في بيانات الواجهة.
-      result.sort((a, b) => b.id.localeCompare(a.id));
-    }
-
-    return result;
-  }, [initialProducts, searchQuery, selectedPublisher, bookType, sortBy]);
+  // ⚠️ دور النشر اللي مالهاش كتاب في المكتبة **مابتظهرش في القايمة**:
+  //    اختيارها بيدّي صفر نتايج دايمًا، والعميل بيفتكر إن الموقع باظ.
+  const usablePublishers = publishers.filter((pub) =>
+    initialProducts.some((p) => p.publisherId === pub.id),
+  );
 
   return (
     <Section containerClassName="max-w-7xl">
-      {/* Filters Toolbar */}
-      <Card accentColor="rose" className="mb-8 p-4 shadow-sm lg:p-6">
+      <Card accentColor="rose" className="mb-6 p-4 shadow-sm lg:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          
-          {/* Search */}
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 right-0 flex items-center pr-4">
-              <Search className="h-5 w-5 text-slate-400" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+              <Search className="h-5 w-5 text-slate-500" />
             </div>
             <input
-              type="text"
-              placeholder="ابحث عن اسم الكتاب..."
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-12 pl-4 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              type="search"
+              placeholder="ابحث باسم الكتاب أو بكلمة من وصفه…"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pr-12 pl-4 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
 
           <div className="flex flex-wrap gap-4 md:flex-nowrap">
-            {/* Publisher Filter */}
+            {usablePublishers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="hidden h-5 w-5 text-slate-500 sm:block" />
+                <select
+                  aria-label="دار النشر"
+                  className="min-w-[160px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                  value={publisherId}
+                  onChange={(e) => setPublisherId(e.target.value)}
+                >
+                  <option value="all">جميع دور النشر</option>
+                  {usablePublishers.map((pub) => (
+                    <option key={pub.id} value={pub.id}>
+                      {pub.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-5 w-5 text-slate-400 hidden sm:block" />
+              <ArrowUpDown className="hidden h-5 w-5 text-slate-500 sm:block" />
               <select
-                className="rounded-2xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 min-w-[160px]"
-                value={selectedPublisher}
-                onChange={(e) => setSelectedPublisher(e.target.value)}
+                aria-label="الترتيب"
+                className="min-w-[180px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                value={sort}
+                onChange={(e) => setSort(e.target.value as ProductSort)}
               >
-                <option value="all">جميع دور النشر</option>
-                {publishers.map(pub => (
-                  <option key={pub.id} value={pub.id}>{pub.name}</option>
+                {PRODUCT_SORTS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
-              </select>
-            </div>
-
-            {/* Type Filter */}
-            <select
-              className="rounded-2xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 min-w-[140px]"
-              value={bookType}
-              onChange={(e) => setBookType(e.target.value)}
-            >
-              <option value="all">كل الأنواع</option>
-              <option value="print">مطبوع فقط</option>
-              <option value="digital">متوفر إلكتروني</option>
-            </select>
-
-            {/* Sort */}
-            <div className="flex items-center gap-2">
-              <ArrowUpDown className="h-5 w-5 text-slate-400 hidden sm:block" />
-              <select
-                className="rounded-2xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 min-w-[160px]"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="newest">الأحدث</option>
-                <option value="price-asc">السعر: من الأقل للأعلى</option>
-                <option value="price-desc">السعر: من الأعلى للأقل</option>
               </select>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Results Grid */}
-      {filteredAndSortedProducts.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredAndSortedProducts.map((product) => {
-            const publisher = publishers.find(p => p.id === product.publisherId);
-            return (
-              <Card
-                key={product.id}
-                accentColor="rose"
-                className="flex flex-col overflow-hidden relative p-0 transition-all hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-500/10"
-              >
-                <Link href={`/enha-lak/product/${product.slug}`} className="absolute inset-0 z-0" />
-                <div className="relative h-64 w-full bg-slate-100">
-                  {product.coverImageUrl ? (
-                    <Image
-                      src={optimizedImageUrl(product.coverImageUrl, 600)}
-                      alt={product.name}
-                      fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 260px"
-                      className="object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <ImagePlaceholder label={product.name} />
-                  )}
-                  {publisher && (
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-sm z-10 pointer-events-none">
-                      {publisher.name}
-                    </div>
-                  )}
+      {/* ⚠️ العدد مش زينة: من غيره العميل اللي فلتر مايعرفش هو بيبصّ
+          على الكل ولا على جزء، ولا إن الفلتر قصّ النتايج. */}
+      {count && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <p aria-live="polite" className="text-sm font-bold text-slate-600">
+            {count}
+          </p>
+          {filtering && (
+            <button
+              type="button"
+              onClick={clear}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600 transition-colors hover:border-slate-400"
+            >
+              <X className="h-3.5 w-3.5" />
+              امسح الفلاتر
+            </button>
+          )}
+        </div>
+      )}
 
-                </div>
-                <div className="flex flex-1 flex-col p-6 z-10 pointer-events-none">
-                  <h3 className="mb-2 text-xl font-bold text-slate-800">
-                    {product.name}
-                  </h3>
-                  <p className="mb-6 flex-1 text-sm font-medium text-slate-500 line-clamp-2">
-                    {product.shortDescription}
-                  </p>
-                  <div className="mb-6 space-y-3">
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
-                      <div className="flex items-center gap-2">
-                        <Book className="h-4 w-4 text-slate-400" />
-                        <span className="text-xs font-bold text-slate-700">
-                          مطبوعة
-                        </span>
-                      </div>
-                      <span className="font-black text-rose-600">
-                        {formatPrice(product.price)}
-                      </span>
-                    </div>
-                    {product.electronicPrice && (
-                      <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-slate-400" />
-                          <span className="text-xs font-bold text-slate-700">
-                            إلكترونية
-                          </span>
-                        </div>
-                        <span className="font-black text-rose-600">
-                          {formatPrice(product.electronicPrice)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    href={`/enha-lak/custom-library/${product.slug}`}
-                    accentColor="rose"
-                    className="w-full pointer-events-auto"
-                  >
-                    تخصيص الغلاف
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
+      {visible.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visible.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              publisherName={publishers.find((p) => p.id === product.publisherId)?.name}
+              cardHref={`/enha-lak/product/${product.slug}`}
+              actionLabel="تخصيص الغلاف"
+              actionHref={`/enha-lak/custom-library/${product.slug}`}
+            />
+          ))}
         </div>
       ) : (
-        <Card accentColor="rose" className="flex flex-col items-center justify-center py-20 text-center">
-          <Book className="h-16 w-16 text-slate-300 mb-4" />
-          <h3 className="text-2xl font-black text-slate-800 mb-2">لا توجد نتائج</h3>
-          <p className="text-slate-500">جرب تغيير كلمات البحث أو استخدام فلاتر مختلفة.</p>
+        <Card
+          accentColor="rose"
+          className="flex flex-col items-center justify-center py-20 text-center"
+        >
+          <Book className="mb-4 h-16 w-16 text-slate-300" />
+          {/* ⚠️ رسالتان لا واحدة. «جرّب تغيير كلمات البحث» على رفّ
+              فاضي بتقول للعميل إنه غلطان وهو مش غلطان. */}
+          {filtering ? (
+            <>
+              <h3 className="mb-2 text-2xl font-black text-slate-800">مفيش نتايج</h3>
+              <p className="mb-6 font-medium text-slate-600">
+                جرّب كلمة تانية أو شيل الفلاتر.
+              </p>
+              <button
+                type="button"
+                onClick={clear}
+                className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800"
+              >
+                اعرض كل الكتب
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="mb-2 text-2xl font-black text-slate-800">
+                المكتبة لسه بتتجهّز
+              </h3>
+              <p className="font-medium text-slate-600">
+                بنضيف إصدارات دور النشر أول بأول — ارجع لنا قريب.
+              </p>
+            </>
+          )}
         </Card>
       )}
     </Section>

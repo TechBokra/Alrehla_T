@@ -125,7 +125,7 @@ export default async function PackagesPage() {
             غير متأكد أي باقة تناسبك؟{' '}
             <Link
               href="/support"
-              className="font-bold text-emerald-600 hover:underline"
+              className="font-bold text-emerald-700 hover:underline"
             >
               تواصل معنا وسنساعدك على فهم الفروق قبل الحجز.
             </Link>

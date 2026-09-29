@@ -22,7 +22,7 @@ export default async function CreativeWritingLayout({ children }: { children: Re
       </div>
       
       <div className="relative z-10">
-        <SectionSubNav tabs={creativeWritingTabs} activeColorClass="bg-emerald-600 text-white" />
+        <SectionSubNav tabs={creativeWritingTabs} activeColorClass="bg-emerald-700 text-white" />
         
         {/* الشرائح كانت هنا، يعني بتظهر فوق **كل** صفحة في القسم —
             وده مزعج في صفحات زي المكتبة والدفع. بقت في صفحة القسم

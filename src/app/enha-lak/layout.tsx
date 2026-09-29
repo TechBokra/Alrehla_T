@@ -21,7 +21,7 @@ export default async function EnhaLakLayout({ children }: { children: React.Reac
       </div>
       
       <div className="relative z-10">
-        <SectionSubNav tabs={enhaLakTabs} activeColorClass="bg-rose-600 text-white" />
+        <SectionSubNav tabs={enhaLakTabs} activeColorClass="bg-rose-700 text-white" />
         
         {/* الشرائح كانت هنا، يعني بتظهر فوق **كل** صفحة في القسم —
             وده مزعج في صفحات زي المكتبة والدفع. بقت في صفحة القسم

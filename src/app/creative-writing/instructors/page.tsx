@@ -95,7 +95,7 @@ export default async function InstructorsPage() {
                     </Link>
                   </h2>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-700">
                       <Award className="h-4 w-4" />
                       خبرة {instructor.yearsExperience}{' '}
                       {instructor.yearsExperience === 1 ? 'سنة' : 'سنوات'}

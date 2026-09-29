@@ -64,6 +64,7 @@ export const getPersonalizedProducts = async (
     publisherCost: p.publisher_cost ?? undefined,
     features: p.features || undefined,
     isActive: p.is_active ?? true,
+    createdAt: p.created_at ?? undefined,
   }));
 };
 
@@ -223,7 +224,8 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
       ownerType: data.owner_type,
       publisherCost: data.publisher_cost ?? undefined,
       features: data.features || undefined,
-      isActive: data.is_active ?? true
+      isActive: data.is_active ?? true,
+      createdAt: data.created_at ?? undefined
     };
   }
   

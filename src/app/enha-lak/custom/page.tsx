@@ -10,18 +10,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { formatPrice } from '@/lib/utils';
-import Image from 'next/image';
-import { optimizedImageUrl } from '@/lib/cloudinary';
-import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
-import Link from 'next/link';
 import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
-import { PenTool, Plus, Book, FileText } from 'lucide-react';
+import { PenTool, Plus } from 'lucide-react';
 
 import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ProductCard } from '@/components/enha-lak/ProductCard';
 
 
 export default async function CustomPage() {
@@ -44,82 +41,36 @@ export default async function CustomPage() {
 
       {/* Custom Products */}
       <Section containerClassName="max-w-6xl">
-        <div className="grid gap-8 md:grid-cols-3">
-          {customProducts.map((product) => (
-            <Card
-              key={product.id}
-              accentColor="rose"
-              className="flex flex-col overflow-hidden relative p-0 transition-all hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-500/10"
-            >
-              <div className="relative h-64 w-full bg-slate-100">
-                {product.coverImageUrl ? (
-                  <Image
-                    src={optimizedImageUrl(product.coverImageUrl, 600)}
-                    alt={product.name}
-                    fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 260px"
-                    className="object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <ImagePlaceholder label={product.name} />
-                )}
-
-              </div>
-              <div className="flex flex-1 flex-col p-6">
-                <h3 className="mb-2 text-2xl font-bold text-slate-800">
-                  {product.name}
-                </h3>
-                <p className="mb-6 flex-1 font-medium text-slate-500">
-                  {product.shortDescription}
-                </p>
-
-                <div className="mb-6 space-y-3">
-                  <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
-                    <div className="flex items-center gap-2">
-                      <Book className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm font-bold text-slate-700">
-                        نسخة مطبوعة
-                      </span>
-                    </div>
-                    <span className="font-black text-rose-600">
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
-                  {product.electronicPrice && (
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-700">
-                          نسخة إلكترونية
-                        </span>
-                      </div>
-                      <span className="font-black text-rose-600">
-                        {formatPrice(product.electronicPrice)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* كان هنا زرار «أضف للسلة» مباشر — والمنتجات دي مخصصة
-                    بطبيعتها. يعني العميل كان يقدر يدفع تمن قصة بطلها
-                    طفله من غير ما يدخل اسم الطفل ولا صورته ولا هواياته،
-                    فيوصل للإدارة طلب **مستحيل تنفيذه**. الشراء دلوقتي
-                    بيبدأ من التخصيص، والسلة بتتملى من آخر خطوة فيه. */}
-                <Button
-                  href={`/enha-lak/custom/${product.slug}`}
-                  accentColor="rose"
-                  className="w-full justify-center !bg-slate-900 !text-white hover:!bg-slate-800"
-                >
-                  ابدأ التخصيص
-                </Button>
-                <Button href={`/enha-lak/product/${product.slug}`} variant="secondary" className="mt-3 w-full">
-                  عرض تفاصيل المنتج
-                </Button>
-
-              </div>
-            </Card>
-          ))}
-        </div>
+        {/* ⚠️ الكارت بقى مكوّنًا مشتركًا مع المكتبة. كان متكرّرًا
+            في الصفحتين بنسختين بدأوا متشابهين وبعدوا، وكل إصلاح
+            كان بيتعمل في واحدة وينسى التانية. */}
+        {customProducts.length > 0 ? (
+          <div className="grid gap-8 md:grid-cols-3">
+            {customProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                actionLabel="ابدأ التخصيص"
+                actionHref={`/enha-lak/custom/${product.slug}`}
+                detailsHref={`/enha-lak/product/${product.slug}`}
+              />
+            ))}
+          </div>
+        ) : (
+          /* ⚠️ الشبكة الفاضية كانت بتسيب فراغًا أبيض بلا أي كلمة —
+             والزائر بيقرا الفراغ على إن الصفحة باظت. */
+          <Card
+            accentColor="rose"
+            className="flex flex-col items-center justify-center py-20 text-center"
+          >
+            <h3 className="mb-2 text-2xl font-black text-slate-800">
+              القصص المخصصة لسه بتتجهّز
+            </h3>
+            <p className="font-medium text-slate-600">
+              بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.
+            </p>
+          </Card>
+        )}
       </Section>
 
       {/* Addons */}
@@ -145,7 +96,7 @@ export default async function CustomPage() {
           <p className="mt-4 font-medium text-slate-500">
             اجعل تجربة طفلك أكثر متعة وتفاعلاً مع هذه الإضافات الممتعة.
           </p>
-          <p className="mt-2 text-sm font-bold text-slate-400">
+          <p className="mt-2 text-sm font-bold text-slate-600">
             الإضافات بتتختار وإنت بتخصّص القصة — مش بتتطلب لوحدها.
           </p>
         </div>
@@ -166,10 +117,10 @@ export default async function CustomPage() {
                 </p>
               </div>
               <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-lg font-black text-rose-600">
+                <span className="text-lg font-black text-rose-700">
                   {formatPrice(addon.price)}
                 </span>
-                <span className="text-xs font-bold text-slate-400">
+                <span className="text-xs font-bold text-slate-600">
                   تُضاف أثناء التخصيص
                 </span>
               </div>
