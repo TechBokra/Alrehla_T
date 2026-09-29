@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Book } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
@@ -25,11 +25,40 @@ import type { PersonalizedProduct } from '@/types';
  *
  * 🔴 **الكارت كان بيعرض «نسخة إلكترونية» بسعرها — ومفيش طريقة
  *    تشتريها.** السلة مابتحملش صيغة، و`create_customer_order`
- *    بتسعّر من `price` وحده. يعني الرقم ده وعد مالوش تنفيذ:
- *    العميل بيشوفه، ويدوّر على زرّ مش موجود، ويبعت يسأل.
+ *    بتسعّر من `price` وحده. يعني الرقم ده وعد مالوش تنفيذ.
  *
- *    العمود لسه في القاعدة وفي شاشة الناشر — **البيانات اتسابت،
- *    العرض هو اللي اتوقف** لحد ما السلة تقبل صيغة.
+ * ═══════════════════════════════════════════════════════════
+ * 🔴 **الغلاف كان بيتقصّ — وده مقيس مش مفترَض**
+ * ═══════════════════════════════════════════════════════════
+ *
+ * قياس على الموقع المنشور (صفحة المكتبة، لابتوب 1440):
+ *
+ *     الصورة الأصلية على Cloudinary : 396×395  ← **مربّعة**
+ *     الصندوق اللي بتتعرض فيه        : 218×256  ← مستطيل طولي
+ *     object-fit                      : cover
+ *
+ * `h-64` ارتفاع **ثابت** والعرض متغيّر حسب الشبكة، و`object-cover`
+ * بتملا الصندوق وتقصّ الزيادة. يعني الغلاف المربّع كان بيتقصّ من
+ * فوق ومن تحت — **وأعلى الغلاف هو مكان العنوان واسم المؤلف**.
+ *
+ * ── والحل مش تغيير النسبة لـ3/4 ─────────────────────────────
+ *
+ * أغلفة الكتب المفروض تبقى طولية، **بس المرفوع فعلًا مربّع**. لو
+ * عملنا الصندوق `3/4` مع `cover`، القصّ بيزيد مش بيقلّ.
+ *
+ * **فالصندوق بقى `4/5` والصورة `object-contain`:**
+ *
+ *   • `contain` **مابتقصّش أبدًا** — الغلاف بيبان كامل مهما كانت
+ *     نسبته. المربّع بياخد عرض الصندوق وبيسيب شريطين فوق وتحت،
+ *     والطولي بيملاه. **ومحدش محتاج يعدّل الكود لما الأغلفة
+ *     الحقيقية تترفع.**
+ *   • خلفية متدرّجة فاتحة + ظل تحت الغلاف = شكل «كتاب على رفّ»
+ *     بدل صورة مقصوصة لازقة في حواف الكارت.
+ *
+ * ⚠️ **وباقي عطل مش في الكود:** الأصل 396 بكسل وبس. الكارت عرضه
+ *    ~290 على اللابتوب، فالصورة شبه مكبّرة لأقصاها وبتبان ناعمة.
+ *    ده بند **محتوى** (الأغلفة تترفع بدقة 1200 بكسل على الأقل)،
+ *    والكود هنا بيعرض أحسن ما يقدر من الموجود.
  */
 export function ProductCard({
   product,
@@ -37,7 +66,7 @@ export function ProductCard({
   /** الزرّ الأساسي — «تخصيص الغلاف» أو «ابدأ التخصيص». */
   actionLabel,
   actionHref,
-  /** زرّ تانٍ اختياري لصفحة تفاصيل المنتج. */
+  /** رابط تانٍ اختياري لصفحة تفاصيل المنتج. */
   detailsHref,
   /** الكارت كله رابط لصفحة المنتج (شبكة المكتبة). */
   cardHref,
@@ -52,7 +81,11 @@ export function ProductCard({
   return (
     <Card
       accentColor="rose"
-      className="relative flex flex-col overflow-hidden p-0 transition-all hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-500/10"
+      interactive
+      // `h-full` عشان الكارت ياخد ارتفاع خانة الشبكة كاملًا حتى
+      // وهو ملفوف في `Reveal` — فالأسعار والأزرار بتتراصّ على خط
+      // واحد عبر الصف مهما اختلفت أطوال الأسماء.
+      className="group relative flex h-full flex-col overflow-hidden p-0 hover:shadow-xl hover:shadow-rose-500/10"
     >
       {/* ⚠️ الكارت كله رابط، والأزرار جواه `pointer-events-auto`.
           الترتيب ده بيخلّي أي ضغطة على الكارت تروح لصفحة المنتج
@@ -65,14 +98,25 @@ export function ProductCard({
         />
       )}
 
-      <div className="relative h-64 w-full bg-slate-100">
+      {/* ══ لوح الغلاف ══════════════════════════════════════
+          نسبة أبعاد لا ارتفاع ثابت: الارتفاع بيتحسب من العرض،
+          فالكارت بيتصرّف بنفس الشكل في شبكة ٢ و٣ و٤ أعمدة. */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-rose-50 via-white to-slate-50">
         {product.coverImageUrl ? (
           <Image
             src={optimizedImageUrl(product.coverImageUrl, 600)}
             alt={product.name}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
-            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 300px"
+            // ⚠️ `contain` مش `cover` — دي الحتة اللي بتمنع القصّ.
+            //    و`p-6` بيسيب هامش حوالين الغلاف فيبان كأنه واقف
+            //    على رفّ لا لازق في حواف الكارت.
+            //    و`drop-shadow` بيمشي مع حدود الصورة نفسها (مش مع
+            //    الصندوق)، فالظل بيقع تحت الغلاف بالظبط.
+            //
+            //    الحركة على `transform` وحدها وجوّه `motion-safe:` —
+            //    اللي مفعّل «تقليل الحركة» في جهازه بياخدها ساكنة.
+            className="object-contain p-6 drop-shadow-lg transition-transform duration-[var(--dur-slow)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-[1.04]"
             referrerPolicy="no-referrer"
           />
         ) : (
@@ -86,23 +130,30 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="z-10 flex flex-1 flex-col p-6">
-        <h3 className="pointer-events-none mb-2 text-xl font-bold text-slate-800">
+      <div className="z-10 flex flex-1 flex-col p-5">
+        <h3 className="pointer-events-none mb-2 text-lg leading-snug font-bold text-slate-800">
           {product.name}
         </h3>
 
         {product.shortDescription && (
-          <p className="pointer-events-none mb-6 flex-1 text-sm leading-relaxed font-medium text-slate-600 line-clamp-3">
+          <p className="pointer-events-none mb-4 line-clamp-2 text-sm leading-relaxed font-medium text-slate-600">
             {product.shortDescription}
           </p>
         )}
 
-        <div className="pointer-events-none mb-6 flex items-center justify-between rounded-xl bg-slate-50 p-3">
-          <span className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <Book className="h-4 w-4 text-slate-500" />
+        {/* ══ السعر ═════════════════════════════════════════
+            كان جوّه صندوق رمادي بيقاسم «نسخة مطبوعة» نفس الحجم
+            والوزن — فالرقم، وهو أهم معلومة في الكارت، كان بيتوه.
+            دلوقتي الصيغة سطر صغير رمادي **فوق** الرقم، والرقم
+            وحده هو الكبير. و`mt-auto` بتثبّته تحت مهما طال الاسم،
+            فالأسعار بتتراصّ على خط واحد عبر الصف كله. */}
+        <div className="pointer-events-none mt-auto mb-4 border-t border-slate-100 pt-4">
+          <span className="block text-[11px] font-bold tracking-wide text-slate-500">
             نسخة مطبوعة
           </span>
-          <span className="font-black text-rose-700">{formatPrice(product.price)}</span>
+          <span className="text-enha-lak-strong text-2xl font-black">
+            {formatPrice(product.price)}
+          </span>
         </div>
 
         <Button
@@ -113,14 +164,19 @@ export function ProductCard({
           {actionLabel}
         </Button>
 
+        {/* ⚠️ كان زرًّا تانيًا بعرض الكارت كله. زرّان متساويان في
+            الحجم بيخلّوا العميل يقف يقارن بينهم — والزرّ ده مش
+            مقابل للأول: التخصيص هو الهدف، والتفاصيل مجرّد قراءة.
+            بقى رابط نصّي، والسهم بينزلق عند المرور (حركة على
+            `transform` وجوّه `motion-safe:`). */}
         {detailsHref && (
-          <Button
+          <Link
             href={detailsHref}
-            variant="secondary"
-            className="pointer-events-auto relative z-20 mt-3 w-full justify-center"
+            className="group/details text-enha-lak-strong pointer-events-auto relative z-20 mt-3 inline-flex min-h-[44px] items-center justify-center gap-1.5 text-sm font-bold"
           >
             عرض التفاصيل
-          </Button>
+            <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--dur-fast)] ease-[var(--ease-ui)] motion-safe:group-hover/details:-translate-x-1" />
+          </Link>
         )}
       </div>
     </Card>

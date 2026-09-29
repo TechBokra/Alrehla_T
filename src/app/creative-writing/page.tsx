@@ -183,7 +183,7 @@ export default async function CreativeWritingPage() {
         <div className="grid gap-6 md:grid-cols-2">
           <Link
             href="/creative-writing/packages"
-            className="group block rounded-3xl border border-slate-200 bg-white p-8 transition-all duration-300 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10"
+            className="group block rounded-3xl border border-slate-200 bg-white p-8 transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10"
           >
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <Map className="h-6 w-6" />
@@ -194,13 +194,13 @@ export default async function CreativeWritingPage() {
             <p className="mb-6 font-medium text-slate-600">
               {content['cw.pathway1.text']}
             </p>
-            <span className="flex items-center gap-2 font-bold text-emerald-600 transition-all group-hover:gap-3">
-              اكتشف الباقات <ArrowLeft className="h-4 w-4" />
+            <span className="flex items-center gap-2 font-bold text-emerald-700">
+              اكتشف الباقات <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--dur-fast)] ease-[var(--ease-ui)] motion-safe:group-hover:-translate-x-1" />
             </span>
           </Link>
           <Link
             href="/creative-writing/services"
-            className="group block rounded-3xl border border-slate-200 bg-white p-8 transition-all duration-300 hover:border-teal-300 hover:shadow-xl hover:shadow-teal-500/10"
+            className="group block rounded-3xl border border-slate-200 bg-white p-8 transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-teal-300 hover:shadow-xl hover:shadow-teal-500/10"
           >
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
               <PenTool className="h-6 w-6" />
@@ -211,8 +211,8 @@ export default async function CreativeWritingPage() {
             <p className="mb-6 font-medium text-slate-600">
               {content['cw.pathway2.text']}
             </p>
-            <span className="flex items-center gap-2 font-bold text-teal-600 transition-all group-hover:gap-3">
-              اكتشف الخدمات <ArrowLeft className="h-4 w-4" />
+            <span className="flex items-center gap-2 font-bold text-teal-700">
+              اكتشف الخدمات <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--dur-fast)] ease-[var(--ease-ui)] motion-safe:group-hover:-translate-x-1" />
             </span>
           </Link>
         </div>

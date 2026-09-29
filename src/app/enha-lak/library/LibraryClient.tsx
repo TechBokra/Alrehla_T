@@ -5,6 +5,7 @@ import { Book, Search, SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
+import { Reveal } from '@/components/ui/Reveal';
 import {
   filterProducts,
   sortProducts,
@@ -141,15 +142,25 @@ export function LibraryClient({
 
       {visible.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visible.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              publisherName={publishers.find((p) => p.id === product.publisherId)?.name}
-              cardHref={`/enha-lak/product/${product.slug}`}
-              actionLabel="تخصيص الغلاف"
-              actionHref={`/enha-lak/custom-library/${product.slug}`}
-            />
+          {visible.map((product, i) => (
+            // ⚠️ التدرّج **مسقوف عند ٦**. 60ms × عدد الكتب معناه إن
+            //    الكتاب رقم ٢٠ بيستنى ١.٢ ثانية عشان يظهر — الرفّ
+            //    بيبان بيتحمّل بالبطيء، والتدرّج اللي المفروض
+            //    يوحي بالترتيب بيوحي بالتعطيل.
+            // ⚠️ `h-full` على الغلاف **مش زينة**: `Reveal` بيحطّ
+            //    `div` جديدًا بين الشبكة والكارت. عناصر الشبكة
+            //    بتتمدّد لأطول واحد، لكن الكارت جوّه الـ`div` ده
+            //    مابياخدش الارتفاع إلا لو اتقاله. من غيرها ترتيب
+            //    الأزرار في الصف بيبوظ لأول اسم طويل.
+            <Reveal key={product.id} delay={Math.min(i, 5) * 60} className="h-full">
+              <ProductCard
+                product={product}
+                publisherName={publishers.find((p) => p.id === product.publisherId)?.name}
+                cardHref={`/enha-lak/product/${product.slug}`}
+                actionLabel="تخصيص الغلاف"
+                actionHref={`/enha-lak/custom-library/${product.slug}`}
+              />
+            </Reveal>
           ))}
         </div>
       ) : (

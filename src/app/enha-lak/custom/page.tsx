@@ -19,6 +19,7 @@ import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
+import { Reveal } from '@/components/ui/Reveal';
 
 
 export default async function CustomPage() {
@@ -46,14 +47,15 @@ export default async function CustomPage() {
             كان بيتعمل في واحدة وينسى التانية. */}
         {customProducts.length > 0 ? (
           <div className="grid gap-8 md:grid-cols-3">
-            {customProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                actionLabel="ابدأ التخصيص"
-                actionHref={`/enha-lak/custom/${product.slug}`}
-                detailsHref={`/enha-lak/product/${product.slug}`}
-              />
+            {customProducts.map((product, i) => (
+              <Reveal key={product.id} delay={Math.min(i, 5) * 60} className="h-full">
+                <ProductCard
+                  product={product}
+                  actionLabel="ابدأ التخصيص"
+                  actionHref={`/enha-lak/custom/${product.slug}`}
+                  detailsHref={`/enha-lak/product/${product.slug}`}
+                />
+              </Reveal>
             ))}
           </div>
         ) : (

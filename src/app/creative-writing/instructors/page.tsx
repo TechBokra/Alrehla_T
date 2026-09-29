@@ -21,6 +21,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { Reveal } from '@/components/ui/Reveal';
 import { getSiteContent } from '@/data/domains/content';
 
 
@@ -47,11 +48,17 @@ export default async function InstructorsPage() {
         <div className="grid gap-8 md:grid-cols-2">
           {instructors.length === 0 ? (
           <div className="col-span-full py-16 text-center text-slate-500 font-medium text-lg">{content['instructors.empty']}</div>
-        ) : instructors.map((instructor) => (
+        ) : instructors.map((instructor, i) => (
+          // ⚠️ `transition-all` اتشالت: `all` بتحرّك كل خاصية
+          //    بتتغيّر — ومنها `border-color` و`padding` — وبعضها
+          //    بيعيد حساب التخطيط فبتتلعثم على الأجهزة الضعيفة.
+          //    `interactive` في `Card` بتحرّك `transform` و
+          //    `box-shadow` وبس، وجوّه `motion-safe:`.
+          <Reveal key={instructor.id} delay={Math.min(i, 5) * 60} className="h-full">
             <Card
-              key={instructor.id}
               accentColor="emerald"
-              className="relative flex flex-col overflow-hidden p-6 transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 md:p-8"
+              interactive
+              className="relative flex h-full flex-col overflow-hidden p-6 hover:shadow-xl hover:shadow-emerald-500/10 md:p-8"
             >
               {/* ⚠️ الشارة كانت `absolute top-4 right-4` — وفي اتجاه
                   اليمين-لليسار دي **نفس ناحية الصورة والاسم**، فكانت
@@ -138,6 +145,7 @@ export default async function InstructorsPage() {
                 عرض الملف الكامل
               </Link>
             </Card>
+          </Reveal>
           ))}
         </div>
       </Section>

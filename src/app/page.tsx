@@ -205,7 +205,7 @@ export default async function Home() {
         <div className="grid gap-8 md:grid-cols-2">
           <Link
             href="/enha-lak"
-            className="group flex flex-col rounded-[2rem] border border-slate-200 bg-white p-10 transition-all duration-300 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="group flex flex-col rounded-[2rem] border border-slate-200 bg-white p-10 transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
             {settings.images.homeReading ? (
               <div className="relative mb-6 aspect-[16/9] w-full overflow-hidden rounded-2xl">
@@ -236,7 +236,7 @@ export default async function Home() {
 
           <Link
             href="/creative-writing"
-            className="group flex flex-col rounded-[2rem] border border-slate-200 bg-white p-10 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="group flex flex-col rounded-[2rem] border border-slate-200 bg-white p-10 transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             {settings.images.homeWriting ? (
               <div className="relative mb-6 aspect-[16/9] w-full overflow-hidden rounded-2xl">
