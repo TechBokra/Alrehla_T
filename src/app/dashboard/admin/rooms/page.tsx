@@ -18,10 +18,11 @@ import {
   expiredRecordings,
   getMonthUsage,
   getPresence,
+  getRoomsRecording,
   isDailyConfigured,
   listRecordings,
 } from '@/lib/daily';
-import { RoomActions, JoinRoomButton } from './RoomsClient';
+import { RoomActions, JoinRoomButton, RebuildRoomsButton } from './RoomsClient';
 import {
   WatchRecordingButton,
   DeleteRecordingButton,
@@ -82,6 +83,33 @@ export default async function Page() {
 
   const withoutRoom = upcoming.filter((s) => !s.roomName).length;
 
+  // ── الغرف بتتسجّل فعلًا؟ ──────────────────────────────────
+  //
+  // ⚠️ **`enable_recording` بينكتب في الغرفة ساعة ما تتعمل.** يعني
+  //    غرفة اتعملت والتسجيل مقفول **مش هتسجّل أبدًا** حتى لو
+  //    الإعداد اتفتح بعدها.
+  //
+  //    والشاشة كانت بتقول «التسجيل شغّال» من **الإعداد** — وعد عن
+  //    خانة في لوحة التحكم، مش عن الغرف اللي الأطفال هيدخلوها.
+  //    ولأن السياسة بتقول لولي الأمر إن الجلسة بتتسجّل، الفجوة دي
+  //    **وعد مكسور بيعدّي بلا أي عَرَض**: مفيش خطأ، بس قايمة
+  //    تسجيلات بتفضل فاضية.
+  //
+  // ⚠️ **وبنفحص أقرب عشرة وبس.** ده نداء شبكة لكل غرفة — فحص
+  //    خمسين غرفة في كل فتحة للصفحة بيعلّقها وبيستهلك حصة الـAPI.
+  //    والعشرة الأقرب هم اللي هيحصلوا الأول.
+  const soonest = upcoming.filter((s) => s.roomName).slice(0, 10);
+  const roomRecording = ready
+    ? await getRoomsRecording(soonest.map((s) => s.roomName as string))
+    : new Map<string, boolean>();
+
+  const wantRecording = settings.sessionRecording.enabled;
+  const staleRooms = soonest.filter((s) => {
+    const actual = roomRecording.get(s.roomName as string);
+    // غرفة ماعرفناش حالتها مش «قديمة» — الشك مايطلعش تحذيرًا.
+    return actual !== undefined && actual !== wantRecording;
+  });
+
   const minutes = usage?.ok ? usage.data.participantMinutes : 0;
   const percent = Math.min(100, Math.round((minutes / DAILY_FREE_MINUTES) * 100));
 
@@ -118,6 +146,16 @@ export default async function Page() {
         <StatusBadge type="danger" label="بلا غرفة" />
       ),
       joinDisplay: s.roomName ? <JoinRoomButton sessionId={s.id} /> : '—',
+      // ⚠️ الحالة دي مقروءة من Daily لكل غرفة، مش من الإعداد.
+      recordingDisplay: !s.roomName ? (
+        '—'
+      ) : roomRecording.get(s.roomName) === undefined ? (
+        <span className="text-xs font-medium text-slate-400">مش متأكدين</span>
+      ) : roomRecording.get(s.roomName) ? (
+        <StatusBadge type="success" label="بتتسجّل" />
+      ) : (
+        <StatusBadge type={wantRecording ? 'danger' : 'neutral'} label="مش بتتسجّل" />
+      ),
     };
   });
 
@@ -234,6 +272,38 @@ export default async function Page() {
             الجلسات القادمة».
           </span>
         </p>
+      )}
+
+      {/* ⚠️ **أخطر لافتة في الشاشة دي.**
+          الإعدادات بتقول «بنسجّل»، والسياسة بتقول لولي الأمر إن
+          جلسة ابنه بتتسجّل، والغرفة مش بتسجّل — ومفيش رسالة خطأ في
+          أي مكان. العَرَض الوحيد قايمة تسجيلات فاضية، وده بيتقري
+          «لسه مفيش جلسات» لا «الوعد مكسور». */}
+      {staleRooms.length > 0 && (
+        <section className="mb-6 rounded-2xl border border-rose-300 bg-rose-50 p-5">
+          <h2 className="mb-2 flex items-center gap-2 font-black text-rose-900">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            {wantRecording
+              ? 'فيه غرف قادمة مش هتتسجّل'
+              : 'فيه غرف قادمة لسه بتتسجّل'}
+          </h2>
+          <p className="mb-4 text-sm leading-relaxed font-bold text-rose-900">
+            {wantRecording ? (
+              <>
+                <strong>{staleRooms.length}</strong> من أقرب الجلسات غرفها
+                اتعملت والتسجيل كان مقفول، وإعداد التسجيل بيتكتب في الغرفة ساعة
+                ما تتعمل — ففتح الإعداد بعدها مالوش أثر عليها. والسياسة بتقول
+                لولي الأمر إن الجلسة بتتسجّل.
+              </>
+            ) : (
+              <>
+                <strong>{staleRooms.length}</strong> من أقرب الجلسات غرفها
+                اتعملت والتسجيل كان مفتوح، فهتفضل بتسجّل رغم إن الإعداد اتقفل.
+              </>
+            )}
+          </p>
+          <RebuildRoomsButton count={staleRooms.length} />
+        </section>
       )}
 
       <div className="mb-8">
@@ -416,6 +486,7 @@ export default async function Page() {
             { header: 'الموعد', accessorKey: 'dateDisplay' },
             { header: 'الحالة', accessorKey: 'statusDisplay' },
             { header: 'الغرفة', accessorKey: 'roomDisplay' },
+            { header: 'التسجيل', accessorKey: 'recordingDisplay' },
             { header: '', accessorKey: 'joinDisplay' },
           ]}
           data={upcomingRows}

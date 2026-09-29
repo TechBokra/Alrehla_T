@@ -235,6 +235,48 @@ export async function deleteRoom(name: string): Promise<DailyResult<unknown>> {
   return call(`/rooms/${encodeURIComponent(name)}`, { method: 'DELETE' });
 }
 
+/**
+ * الغرفة دي بتتسجّل ولا لأ — **من Daily نفسه**.
+ *
+ * ── ليه السؤال ده لازم يتسأل لكل غرفة على حدة ───────────────
+ *
+ * ⚠️ **`enable_recording` بينكتب في الغرفة ساعة ما تتعمل، وبيفضل
+ *    زي ما هو.** يعني غرفة اتعملت والتسجيل مقفول في الإعدادات
+ *    **مش هتسجّل أبدًا**، حتى لو الإعداد اتفتح بعدها بدقيقة.
+ *
+ *    والشاشة كانت بتقول «التسجيل شغّال» من **الإعداد** — وده وعد
+ *    عن خانة في لوحة التحكم، مش عن الغرف اللي الأطفال هيدخلوها.
+ *    الفرق بين الاتنين هو الفرق بين «إحنا بنسجّل» و«إحنا فاكرين
+ *    إننا بنسجّل».
+ *
+ *    ولأن السياسة بتقول لولي الأمر إن الجلسة بتتسجّل، الفجوة دي
+ *    **وعد مكسور بيعدّي من غير أي عَرَض** — مفيش رسالة خطأ، بس
+ *    قايمة تسجيلات بتفضل فاضية.
+ */
+export async function getRoomsRecording(
+  names: string[],
+): Promise<Map<string, boolean>> {
+  const out = new Map<string, boolean>();
+
+  const results = await Promise.all(
+    names.map(async (name) => {
+      const result = await call<{ properties?: { enable_recording?: string } }>(
+        `/rooms/${encodeURIComponent(name)}`,
+      );
+      // ⚠️ الفشل مابيتحوّلش لـ«مش بتسجّل». غرفة ماعرفناش حالتها
+      //    بتتساب برّه الخريطة، والشاشة بتقول «مش متأكدين» بدل ما
+      //    تطلع تحذيرًا كاذبًا يخلّي الإدارة تعيد تجهيز غرف سليمة.
+      if (!result.ok) return null;
+      return [name, result.data.properties?.enable_recording === 'cloud'] as const;
+    }),
+  );
+
+  for (const row of results) {
+    if (row) out.set(row[0], row[1]);
+  }
+  return out;
+}
+
 // ── التذاكر ──────────────────────────────────────────────────
 
 /**

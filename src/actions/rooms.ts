@@ -7,6 +7,8 @@ import {
   createMeetingToken,
   createSessionRoom,
   createTestRoom,
+  deleteRoom,
+  getRoomsRecording,
   isDailyConfigured,
 } from '@/lib/daily';
 import { getSiteSettings } from '@/data/domains/content';
@@ -154,6 +156,127 @@ export async function openTestRoom(): Promise<TestRoomResult> {
   });
 
   return { ok: true, url: `${room.data.url}?t=${token.data.token}` };
+}
+
+export type RebuildRoomsResult =
+  | { ok: true; rebuilt: number; failed: number; checked: number }
+  | { ok: false; error: string };
+
+/**
+ * إعادة تجهيز الغرف اللي إعداد التسجيل فيها قديم.
+ *
+ * ── العطل اللي الدالة دي بتصلّحه ────────────────────────────
+ *
+ * ⚠️ **`enable_recording` بينكتب في الغرفة ساعة ما تتعمل.** فالغرف
+ *    اللي اتعملت والتسجيل مقفول **مش هتسجّل أبدًا** مهما اتفتح
+ *    الإعداد بعدها. و`ensureUpcomingRooms` **بتتخطّى** اللي ليها
+ *    غرفة خلاص — يعني مكانش فيه أي طريقة تصلّحها.
+ *
+ *    والنتيجة كانت: الإعدادات بتقول «التسجيل شغّال»، والسياسة
+ *    بتقول لولي الأمر إن الجلسة بتتسجّل، **والجلسة مش بتتسجّل**،
+ *    ومفيش رسالة خطأ في أي مكان.
+ *
+ * ── وإزاي بتتصلّح ───────────────────────────────────────────
+ *
+ * الغرفة القديمة بتتحذف وواحدة جديدة بتتعمل بنفس الاسم.
+ *
+ * ⚠️ **وده بيبوّظ الروابط القديمة — وهي حاجة كويسة هنا.** الدخول
+ *    في المشروع ده بتذكرة بتتولّد لحظة الضغط، مش برابط ثابت
+ *    بيتنسخ. فمفيش حد ماشي معاه رابط بيموت.
+ *
+ * ⚠️ **وبنلمس القادمة وبس.** الجلسة اللي عدّت خلاص غرفتها انتهت،
+ *    وإعادة عملها بتتحاسب بلا سبب.
+ */
+export async function rebuildStaleRooms(limit = 25): Promise<RebuildRoomsResult> {
+  try {
+    await requireAdmin('canManageBookings', 'غير مصرح لك بتجهيز الغرف');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بتجهيز الغرف' };
+  }
+
+  if (!isDailyConfigured()) {
+    return { ok: false, error: 'مفتاح Daily مش مظبوط على الخادم.' };
+  }
+
+  const supabase = await createClient();
+  const settings = await getSiteSettings();
+  const wanted = settings.sessionRecording.enabled;
+
+  const { data: sessions, error } = await supabase
+    .from('sessions')
+    .select('id, scheduled_at, room_name')
+    .not('room_name', 'is', null)
+    .gt('scheduled_at', new Date().toISOString())
+    .neq('status', 'cancelled')
+    .order('scheduled_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error loading sessions for room rebuild', error);
+    return { ok: false, error: 'تعذّر قراءة الجلسات.' };
+  }
+
+  const names = (sessions ?? []).map((s) => s.room_name).filter(Boolean) as string[];
+  if (names.length === 0) return { ok: true, rebuilt: 0, failed: 0, checked: 0 };
+
+  const state = await getRoomsRecording(names);
+
+  let rebuilt = 0;
+  let failed = 0;
+
+  for (const session of sessions ?? []) {
+    const name = session.room_name;
+    if (!name) continue;
+
+    const current = state.get(name);
+    // ⚠️ غرفة ماعرفناش حالتها مابتتلمسش. الشك مايبررش حذف غرفة
+    //    شغّالة لجلسة قادمة.
+    if (current === undefined || current === wanted) continue;
+
+    await deleteRoom(name);
+
+    const room = await createSessionRoom({
+      sessionId: session.id,
+      startsAt: new Date(session.scheduled_at),
+      durationMinutes: 40,
+      recordingEnabled: wanted,
+    });
+
+    if (!room.ok) {
+      // ⚠️ الغرفة القديمة اتحذفت والجديدة ما اتعملتش — الجلسة بقت
+      //    بلا غرفة. بنصفّر العمودين عشان الشاشة تقولها «بلا غرفة»
+      //    وزرّ التجهيز يشوفها، بدل ما تفضل شايلة اسم غرفة مش
+      //    موجودة عند Daily (قاعدة «ك»: الفاضي أصدق من الكاذب).
+      await supabase
+        .from('sessions')
+        .update({ room_name: null, room_url: null, updated_at: new Date().toISOString() })
+        .eq('id', session.id);
+      failed += 1;
+      continue;
+    }
+
+    const { data: saved } = await supabase
+      .from('sessions')
+      .update({
+        room_name: room.data.name,
+        room_url: room.data.url,
+        recording_status: wanted ? 'pending' : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', session.id)
+      .select('id');
+
+    if (saved && saved.length > 0) rebuilt += 1;
+    else failed += 1;
+  }
+
+  await logAuditAction({
+    action: 'إعادة تجهيز غرف إعداد التسجيل فيها قديم',
+    entityType: 'session',
+    metadata: { checked: names.length, rebuilt, failed, recordingEnabled: wanted },
+  });
+
+  return { ok: true, rebuilt, failed, checked: names.length };
 }
 
 export type EnsureRoomResult =
