@@ -81,42 +81,72 @@ export function Reveal({
     //    بيحمي من «الجافاسكريبت متعطّل»، والجافاسكريبت هنا شغّال
     //    تمامًا — وبيخفي المحتوى.
     //
-    // فالقاعدة بقت: **يظهر لو متقاطع، أو لو عدّى فوق خالص.**
-    const passed = (rect: DOMRectReadOnly | DOMRect) => rect.bottom <= 0;
+    // ⚠️ **والسبب الحقيقي أدقّ من كده، وأنا غلطت فيه أول مرة:**
+    //    المراقب مابيبعتش تقريرًا فيه `isIntersecting: false`؛ هو
+    //    **مابيتنادى أصلًا**. التقرير بيتبعت عند **تغيّر الحالة**،
+    //    والعنصر اللي كان «برّه من تحت» وبقى «برّه من فوق» حالته
+    //    ما اتغيّرتش — الاتنين «برّه».
+    //
+    //    يعني فحص `entry.boundingClientRect` جوّه المراقب **عمره
+    //    ما هيتنفّذ** في الحالة دي. الإصلاح لازم يبقى **برّه**
+    //    المراقب.
+    //
+    // ── فالحماية بقت تلات طبقات ────────────────────────────
+    //
+    //   ① فحص فوري عند التركيب — الصفحة اللي بتفتح متمرّرة أصلًا
+    //   ② المراقب — الحالة العادية، وكفء لأنه مابيشتغلش على
+    //      الخيط الرئيسي
+    //   ③ مستمع تمرير خفيف — شبكة الأمان للقفزة. `passive` عشان
+    //      مايأخّرش التمرير، ومخنوق بإطار عرض واحد عشان القراءة
+    //      تحصل مرة في الإطار لا مع كل حدث
+    //
+    // ⚠️ **والتلاتة بيتشالوا مع أول ظهور** — مفيش مستمع فاضل
+    //    شغّالًا بعد ما العنصر بان.
+    const REVEAL_MARGIN = 80;
 
-    const reveal = () => {
-      setShown(true);
-      observer.disconnect();
+    /** دخل الشاشة، أو عدّى فوقها خالص. */
+    const visibleOrPassed = () => {
+      const r = node.getBoundingClientRect();
+      return r.top < window.innerHeight - REVEAL_MARGIN || r.bottom <= 0;
+    };
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (visibleOrPassed()) cleanup(true);
+      });
     };
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          // مرة واحدة — مافيش تكرار مع كل تمرير.
-          if (entry.isIntersecting || passed(entry.boundingClientRect)) {
-            reveal();
-            return;
-          }
-        }
+        if (entries.some((e) => e.isIntersecting)) cleanup(true);
       },
       // ⚠️ هامش سالب من تحت: العنصر بيبدأ يظهر وهو لسه داخل
       //    الشاشة بـ80 بكسل، مش في اللحظة اللي بيلمس فيها الحافة.
       //    من غيره الحركة بتحصل تحت نظر المستخدم مباشرة فتبان
       //    متأخرة.
-      { rootMargin: '0px 0px -80px 0px', threshold: 0.05 },
+      { rootMargin: `0px 0px -${REVEAL_MARGIN}px 0px`, threshold: 0.05 },
     );
 
-    // ⚠️ **وفحص فوري قبل المراقبة.** لو الصفحة فتحت وهي متمرّرة
-    //    أصلًا (رابط `#` أو رجوع من صفحة تانية)، العنصر اللي فوق
-    //    مكان التمرير مش هيدخل الشاشة تاني — فلازم يتظهّر دلوقتي
-    //    من غير ما ننتظر حدثًا مش جاي.
-    if (passed(node.getBoundingClientRect())) {
+    function cleanup(show: boolean) {
+      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+      if (show) setShown(true);
+    }
+
+    // ① الصفحة فتحت وهي متمرّرة (رابط `#`، رجوع، تحديث): العنصر
+    //    اللي فوق مكان التمرير مش هيدخل الشاشة تاني.
+    if (visibleOrPassed()) {
       setShown(true);
       return;
     }
 
     observer.observe(node);
-    return () => observer.disconnect();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => cleanup(false);
   }, []);
 
   return (
