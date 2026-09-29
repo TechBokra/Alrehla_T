@@ -1,5 +1,5 @@
 import { getCurrentUser } from '@/data/domains/auth';
-import { getSessions, getInstructorById } from '@/data/domains/writing';
+import { getSessions, getPublicInstructorById } from '@/data/domains/writing';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Video, Clock, User, AlertCircle } from 'lucide-react';
@@ -30,8 +30,16 @@ export default async function StudentSessionPage({
   const session = sessions.find((s) => s.id === id);
   if (!session) notFound();
 
+  // ⚠️ **كانت `getInstructorById` — وهي `select('*')`.**
+  //
+  //    الصفحة دي بتعرض **اسم المدرب وبس**، وكانت بتجيب الصف كامل:
+  //    `approved_price` و`requested_price` و`monthly_hours_committed`
+  //    — تسعير داخلي بين المنصة والمدرب — **بيتبعت في حمولة صفحة
+  //    الطالب**، وأي حد يفتح «مصدر الصفحة» يقراه.
+  //
+  //    الدالة العامة بترجّع الأعمدة الآمنة وحدها (ملف 83).
   const instructor = session.instructorId
-    ? await getInstructorById(session.instructorId)
+    ? await getPublicInstructorById(session.instructorId)
     : null;
 
   return (

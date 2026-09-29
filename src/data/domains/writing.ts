@@ -181,6 +181,47 @@ export const getPublicInstructorById = async (
  *    بعد التغيير ده، الصفحات العامة بقت بتاخد الأعمدة الآمنة بس،
  *    واللوحات بتقرا بهوية صاحبها.
  */
+/**
+ * تسعير المدربين — **من `instructor_pricing` لا من `instructors`**.
+ *
+ * ⚠️ الأعمدة اتنقلت لجدول لوحده (SQL 122) لأن سياسة القراءة على
+ *    `instructors` كانت `USING (true)` لكل مسجَّل، والصلاحيات
+ *    بتحمي الصفوف لا الأعمدة (قاعدة «ب»).
+ *
+ * ⚠️ **والفاضي هنا مش عطل.** الجدول سياسته: الإدارة والمدرب نفسه
+ *    وبس. فاللي بيقرا وهو مش واحد منهم بياخد خريطة فاضية —
+ *    والشاشة بتعرض «غير محدد» بدل ما تقع. ده **المقصود**: مفيش
+ *    شاشة لغير الإدارة والمدرب بتعرض الأرقام دي أصلًا.
+ */
+async function pricingByInstructorId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: string[],
+): Promise<Map<string, { approved?: number; requested?: number; hours?: number }>> {
+  const out = new Map<string, { approved?: number; requested?: number; hours?: number }>();
+  if (ids.length === 0) return out;
+
+  const { data, error } = await supabase
+    .from('instructor_pricing')
+    .select('instructor_id, approved_price, requested_price, monthly_hours_committed')
+    .in('instructor_id', ids);
+
+  // ⚠️ الرفض بيرجع فاضي لا بخطأ (قاعدة «ك») — بنسجّل الخطأ لو جه
+  //    عشان «الأرقام مختفية» ما تتقريش على إنها «مفيش أسعار».
+  if (error) {
+    console.error('Error reading instructor pricing', error);
+    return out;
+  }
+
+  for (const row of data ?? []) {
+    out.set(row.instructor_id, {
+      approved: row.approved_price ?? undefined,
+      requested: row.requested_price ?? undefined,
+      hours: row.monthly_hours_committed ?? undefined,
+    });
+  }
+  return out;
+}
+
 export const getInstructors = async (): Promise<Instructor[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from('instructors')
@@ -191,10 +232,13 @@ export const getInstructors = async (): Promise<Instructor[]> => {
     return [];
   }
 
-  const avatars = await avatarsByUserId(
-    supabase,
-    data.map((inst: { user_id: string }) => inst.user_id),
-  );
+  const [avatars, pricing] = await Promise.all([
+    avatarsByUserId(
+      supabase,
+      data.map((inst: { user_id: string }) => inst.user_id),
+    ),
+    pricingByInstructorId(supabase, data.map((inst: { id: string }) => inst.id)),
+  ]);
 
   return data.map((inst: any) => ({
     id: inst.id,
@@ -209,12 +253,12 @@ export const getInstructors = async (): Promise<Instructor[]> => {
     avatarUrl: avatars.get(inst.user_id),
     trainingPassed: inst.training_passed,
     workModel: inst.work_model,
-    requestedPrice: inst.requested_price || undefined,
+    requestedPrice: pricing.get(inst.id)?.requested,
     selectedPricingOptionId: inst.selected_pricing_option_id || undefined,
-    approvedPrice: inst.approved_price || undefined,
+    approvedPrice: pricing.get(inst.id)?.approved,
     weeklySchedule: (inst.weekly_schedule as any[]) || [],
     pendingSchedule: (inst.pending_schedule as any[]) || undefined,
-    monthlyHoursCommitted: inst.monthly_hours_committed || undefined
+    monthlyHoursCommitted: pricing.get(inst.id)?.hours,
   }));
 };
 
@@ -230,7 +274,11 @@ export const getInstructorById = async (
 
   if (error || !data) return null;
 
-  const avatars = await avatarsByUserId(supabase, [data.user_id]);
+  const [avatars, pricing] = await Promise.all([
+    avatarsByUserId(supabase, [data.user_id]),
+    pricingByInstructorId(supabase, [data.id]),
+  ]);
+  const price = pricing.get(data.id);
 
   return {
     id: data.id,
@@ -245,12 +293,12 @@ export const getInstructorById = async (
     avatarUrl: avatars.get(data.user_id),
     trainingPassed: data.training_passed ?? false,
     workModel: data.work_model,
-    requestedPrice: data.requested_price || undefined,
+    requestedPrice: price?.requested,
     selectedPricingOptionId: data.selected_pricing_option_id || undefined,
-    approvedPrice: data.approved_price || undefined,
+    approvedPrice: price?.approved,
     weeklySchedule: (data.weekly_schedule as any[]) || [],
     pendingSchedule: (data.pending_schedule as any[]) || undefined,
-    monthlyHoursCommitted: data.monthly_hours_committed || undefined
+    monthlyHoursCommitted: price?.hours,
   };
 };
 

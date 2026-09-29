@@ -720,6 +720,38 @@ export type Database = {
         }
         Relationships: []
       }
+      /**
+       * تسعير المدرب الداخلي — **جدول منفصل، SQL 122**.
+       *
+       * ⚠️ كان أعمدة في `instructors`، وسياسة القراءة هناك
+       *    `USING (true)` لكل مسجَّل — والصلاحيات بتحمي الصفوف لا
+       *    الأعمدة (قاعدة «ب»). فالأعمدة اتنقلت لصفّ تقدر السياسة
+       *    تحميه: الإدارة والمدرب نفسه وبس.
+       */
+      instructor_pricing: {
+        Row: {
+          instructor_id: string
+          approved_price: number | null
+          requested_price: number | null
+          monthly_hours_committed: number | null
+          updated_at: string
+        }
+        Insert: {
+          instructor_id: string
+          approved_price?: number | null
+          requested_price?: number | null
+          monthly_hours_committed?: number | null
+          updated_at?: string
+        }
+        Update: {
+          instructor_id?: string
+          approved_price?: number | null
+          requested_price?: number | null
+          monthly_hours_committed?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instructors: {
         Row: {
           id: string

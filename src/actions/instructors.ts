@@ -149,14 +149,48 @@ export async function approveProfileUpdateRequest(requestId: string) {
   }
 
   if (changes.workModel) update.work_model = changes.workModel;
-  if (changes.monthlyHoursCommitted !== undefined) {
-    update.monthly_hours_committed = changes.monthlyHoursCommitted;
-  }
   if (changes.weeklySchedule) update.weekly_schedule = changes.weeklySchedule as never;
 
+  // ── التسعير: جدول تاني (SQL 122) ──────────────────────────
+  //
+  // ⚠️ **الأعمدة دي اتنقلت من `instructors`.** سياسة القراءة هناك
+  //    `USING (true)` لكل مسجَّل، والصلاحيات بتحمي الصفوف لا
+  //    الأعمدة (قاعدة «ب») — فأي حساب كان بيقرا تسعير كل المدربين.
+  //
+  // ⚠️ **وبتتكتب في نفس اللحظة اللي الطلب بيتوافق عليها**، لأن
+  //    الموافقة هي اللي بتعتمد الرقم. `upsert` لأن المدرب القديم
+  //    ممكن ما يكونش له صفّ بعد.
+  const pricingUpdate: {
+    instructor_id: string;
+    approved_price?: number;
+    requested_price?: number;
+    monthly_hours_committed?: number;
+    updated_at: string;
+  } = { instructor_id: request.instructor_id, updated_at: new Date().toISOString() };
+  let touchesPricing = false;
+
+  if (changes.monthlyHoursCommitted !== undefined) {
+    pricingUpdate.monthly_hours_committed = changes.monthlyHoursCommitted;
+    touchesPricing = true;
+  }
   if (changes.requestedPrice) {
-    update.requested_price = changes.requestedPrice;
-    update.approved_price = changes.requestedPrice;
+    pricingUpdate.requested_price = changes.requestedPrice;
+    pricingUpdate.approved_price = changes.requestedPrice;
+    touchesPricing = true;
+  }
+
+  if (touchesPricing) {
+    // ⚠️ بـ`select()`: الكتابة على صفر صفوف بتنجح في صمت (قاعدة
+    //    «و») — والطلب كان هيتقفل «تمت الموافقة» والسعر ما اتغيّرش.
+    const { data: savedPricing, error: pricingError } = await supabase
+      .from('instructor_pricing')
+      .upsert(pricingUpdate, { onConflict: 'instructor_id' })
+      .select('instructor_id');
+
+    if (pricingError || !savedPricing || savedPricing.length === 0) {
+      console.error('Error saving instructor pricing', pricingError);
+      throw new Error('تعذّر حفظ تسعير المدرب — الطلب لسه معلّق.');
+    }
   }
 
   // كان هنا فرع تالت بياخد الحصيلة من «فئة سعر» ثابتة
