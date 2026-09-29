@@ -134,7 +134,7 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                       </li>
                     ))}
                     {(instructor.specialties ?? []).length === 0 && (
-                      <li className="font-medium text-slate-400">لم تُضف التخصصات بعد.</li>
+                      <li className="font-medium text-slate-600">لم تُضف التخصصات بعد.</li>
                     )}
                   </ul>
                 </section>

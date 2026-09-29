@@ -70,7 +70,7 @@ export function SendForm() {
 
         <div>
           <label className="mb-2 block text-sm font-bold text-slate-700">
-            الرسالة <span className="font-medium text-slate-400">(اختياري)</span>
+            الرسالة <span className="font-medium text-slate-600">(اختياري)</span>
           </label>
           <textarea
             value={message}
@@ -82,7 +82,7 @@ export function SendForm() {
 
         <div>
           <label className="mb-2 block text-sm font-bold text-slate-700">
-            رابط <span className="font-medium text-slate-400">(اختياري)</span>
+            رابط <span className="font-medium text-slate-600">(اختياري)</span>
           </label>
           <input
             value={link}

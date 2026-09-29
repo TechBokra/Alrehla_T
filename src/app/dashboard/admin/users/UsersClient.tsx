@@ -485,7 +485,7 @@ function AddUserForm({
         {mode === 'direct' && (
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-slate-700">
-              كلمة المرور <span className="font-medium text-slate-400">(اختيارية)</span>
+              كلمة المرور <span className="font-medium text-slate-600">(اختيارية)</span>
             </label>
             <input
               type="text"

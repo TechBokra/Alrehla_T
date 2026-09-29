@@ -45,7 +45,7 @@ export function RatingStars({
         ))}
       </span>
       <span className="text-slate-700">{summary.average.toFixed(1)}</span>
-      <span className="font-medium text-slate-400">({summary.count})</span>
+      <span className="font-medium text-slate-600">({summary.count})</span>
     </span>
   );
 }

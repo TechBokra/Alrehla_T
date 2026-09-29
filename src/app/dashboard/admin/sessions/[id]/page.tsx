@@ -171,7 +171,7 @@ export default async function AdminSessionDetailsPage({ params }: { params: Prom
                   </p>
                 </div>
               ) : (
-                <p className="font-medium text-slate-400">لم يسجّل المدرب تقريرًا بعد.</p>
+                <p className="font-medium text-slate-600">لم يسجّل المدرب تقريرًا بعد.</p>
               )}
             </div>
           </section>

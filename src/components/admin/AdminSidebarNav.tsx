@@ -59,7 +59,10 @@ export function AdminSidebarNav({ groups }: { groups: SidebarGroup[] }) {
       >
         {groups.map((group) => (
           <div key={group.title}>
-            <p className="px-4 pb-1 text-xs font-black uppercase tracking-wide text-slate-400">
+            {/* ⚠️ **2.63:1 بالقياس على الموقع المنشور.** العنوان ده
+                بيتكرّر ٥ مرات في **كل** شاشة إدارة، فهو أكتر نص
+                راسب في اللوحة كلها. */}
+            <p className="px-4 pb-1 text-xs font-black uppercase tracking-wide text-slate-600">
               {group.title}
             </p>
             <div className="flex flex-col gap-0.5">

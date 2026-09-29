@@ -362,7 +362,7 @@ export default async function AdminDashboard() {
                 {logs.slice(0, 8).map((log) => (
                   <li key={log.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                     <span className="font-bold text-slate-700">{log.action}</span>
-                    <span className="font-medium text-slate-400">
+                    <span className="font-medium text-slate-600">
                       {log.entityType} · {formatDate(log.createdAt)}
                     </span>
                   </li>
@@ -486,5 +486,5 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="py-4 text-center text-sm font-medium text-slate-400">{text}</p>;
+  return <p className="py-4 text-center text-sm font-medium text-slate-600">{text}</p>;
 }
