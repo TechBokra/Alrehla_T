@@ -24,7 +24,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
   
-  const allProducts = await getPersonalizedProducts();
+  const allProducts = await getPersonalizedProducts({ includeInactive: true });
   const publisherProducts = allProducts.filter(p => p.publisherId === target.id);
 
   const formattedProducts = publisherProducts.map(p => ({

@@ -178,3 +178,76 @@ export async function saveProduct(formData: FormData) {
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');
 }
+
+export type ProductStateResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * إيقاف منتج عن العرض — أو رجوعه.
+ *
+ * ── ليه إيقاف لا حذف ────────────────────────────────────────
+ *
+ * ⚠️ **الحذف بيضيّع تاريخ الطلبات.** بنود الطلبات القديمة مربوطة
+ *    بالمنتج، فحذفه بيخلّي طلبًا اتدفع تمنه يبان بلا منتج.
+ *
+ *    والجدول كان **مالوش مفتاح إيقاف أصلًا** (SQL 121)، فالإدارة
+ *    كانت بين اختيارين: تسيب الغلط ظاهر للعميل، أو تمسح تاريخ
+ *    الطلبات. ودي مشكلة واقعة مش نظرية — فيه منتجان بنفس الاسم
+ *    «اعماق البحار» بفرق 5,500 جنيه.
+ *
+ * ── والإيقاف بيعمل تلات حاجات ───────────────────────────────
+ *
+ *   ① بيختفي من المكتبة وصفحة الناشر وخريطة الموقع
+ *   ② صفحته بترجّع 404 — لا صفحة بسعر وزرّ بيترفض
+ *   ③ **وبيترفض في الطلبات الجديدة بمحفّز في القاعدة** — يعني
+ *      حتى سلة قديمة مفتوحة في متصفح عميل مش هتعدّي
+ *
+ * ⚠️ **والتالتة هي اللي بتخلّيه إيقافًا حقيقيًّا.** من غيرها كان
+ *    إخفاءً من الشاشة وبس، وأي نداء مباشر بيعدّي (قاعدة «ع»).
+ */
+export async function setProductActive(
+  productId: string,
+  isActive: boolean,
+): Promise<ProductStateResult> {
+  const currentUser = await getCurrentUser();
+  if (!hasAdminPermission(currentUser, 'canManagePublishers')) {
+    return { ok: false, error: 'غير مصرح لك بتعديل المنتجات' };
+  }
+
+  const supabase = await createClient();
+
+  // ⚠️ بـ`select()`: الكتابة على صفر صفوف بتنجح في صمت (قاعدة «و»).
+  //    والفحص على **القيمة** لا على رجوع الصف — الصف ممكن يرجع
+  //    والقيمة تفضل قديمة لو محفّز تدخّل.
+  const { data: saved, error } = await supabase
+    .from('personalized_products')
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq('id', productId)
+    .select('id, is_active, name');
+
+  if (error) {
+    console.error('Error toggling product state', error);
+    return { ok: false, error: 'تعذّر تنفيذ الإجراء.' };
+  }
+  if (!saved || saved.length === 0) {
+    return { ok: false, error: 'المنتج مش موجود، أو القاعدة رفضت الإجراء.' };
+  }
+  if (saved[0].is_active !== isActive) {
+    return { ok: false, error: 'القاعدة رجّعت القيمة القديمة — الإجراء ما تمّش.' };
+  }
+
+  await logAuditAction({
+    actorProfileId: currentUser.id,
+    actorName: currentUser.fullName,
+    action: isActive ? 'إرجاع منتج للعرض' : 'إيقاف منتج عن العرض',
+    entityType: 'PersonalizedProduct',
+    entityId: productId,
+    metadata: { name: saved[0].name },
+  });
+
+  revalidatePath('/dashboard/admin/products');
+  revalidatePath('/dashboard/admin/products/platform');
+  revalidatePath(`/dashboard/admin/products/${productId}`);
+  revalidatePath('/enha-lak/library');
+  revalidatePath('/enha-lak/custom');
+  return { ok: true };
+}

@@ -43,6 +43,9 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
     price: tier.priceTotal,
     shortDescription: `اشتراك صندوق الرحلة (لمدة ${tier.durationMonths} ${tier.durationMonths === 1 ? 'شهر' : 'أشهر'})`,
     ownerType: 'platform',
+    // المنتج ده مركَّب من خطة الصندوق لا مقروء من جدول المنتجات،
+    // فمفيش عمود إيقاف يتقرا — ووجوده هنا معناه إنه متاح.
+    isActive: true,
     coverImageUrl: undefined,
     features: [
       'قصة مخصصة جديدة شهرياً',

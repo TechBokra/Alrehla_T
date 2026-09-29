@@ -37,7 +37,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
-  const products = await getPersonalizedProducts();
+  const products = await getPersonalizedProducts({ includeInactive: true });
   const formattedItems = target.items.map((item: any, idx: number) => {
     const product = products.find(p => p.id === item.productId);
     const price = item.unitPrice || (product ? product.price : 0);

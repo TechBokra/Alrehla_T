@@ -14,7 +14,7 @@ export default async function PublisherProductsPage() {
   const myPublisher = await getMyPublisher();
   if (!myPublisher) notFound();
   
-  const allProducts = await getPersonalizedProducts();
+  const allProducts = await getPersonalizedProducts({ includeInactive: true });
   const myProducts = allProducts.filter(p => p.publisherId === myPublisher.id);
 
   // ⚠️ الخريطة القديمة كانت بتترجم «كتاب» و«لعبة» و«ملحق» —

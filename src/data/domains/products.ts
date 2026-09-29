@@ -20,11 +20,28 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { createClient } from '@/lib/supabase/server';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 
-export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> => {
+/**
+ * منتجات المتجر.
+ *
+ * ⚠️ **الافتراضي: المعروض بس.** الدالة دي بتتنادى من صفحات عامة
+ *    (المكتبة، صفحة الناشر، خريطة الموقع) **ومن لوحة الإدارة** —
+ *    والافتراضي لازم يكون الآمن.
+ *
+ *    لو كان الافتراضي «الكل» وموضع واحد نسي يفلتر، المنتج الموقوف
+ *    بيفضل معروضًا للعميل — والعَرَض الوحيد إن الإدارة بتوقفه
+ *    وبيفضل مكانه، وده اللي بيتقري «الزرّ مش شغّال» مش «فيه موضع
+ *    ناسي الفلتر».
+ *
+ *    فاللوحة بتطلب `includeInactive` صراحةً، والصفحات العامة
+ *    مابتعملش حاجة.
+ */
+export const getPersonalizedProducts = async (
+  options: { includeInactive?: boolean } = {},
+): Promise<PersonalizedProduct[]> => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.from('personalized_products')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = supabase.from('personalized_products').select('*');
+  if (!options.includeInactive) query = query.eq('is_active', true);
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error || !data || data.length === 0) {
     if (error) {
@@ -45,7 +62,8 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
     publisherId: p.publisher_id || undefined,
     ownerType: p.owner_type,
     publisherCost: p.publisher_cost ?? undefined,
-    features: p.features || undefined
+    features: p.features || undefined,
+    isActive: p.is_active ?? true,
   }));
 };
 
@@ -171,12 +189,20 @@ export const getPublisherBySlug = async (rawSlug: string): Promise<Publisher | n
   };
 };
 
+/**
+ * منتج واحد برابطه.
+ *
+ * ⚠️ **الموقوف بيرجّع `null`** — والصفحة بتطلع 404. البديل إنها
+ *    تعرض المنتج مع منع الشراء، وده أوحش: العميل بيشوف السعر
+ *    ويضغط ويترفض، وبيفتكر إن الموقع باظ.
+ */
 export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedProduct | null> => {
   const slug = decodeSlug(rawSlug);
   const supabase = createPublicClient();
   const { data, error } = await supabase.from('personalized_products')
     .select('*')
     .eq('slug', slug)
+    .eq('is_active', true)
     .single();
 
   if (error || !data) return null;
@@ -196,7 +222,8 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
       publisherId: data.publisher_id || undefined,
       ownerType: data.owner_type,
       publisherCost: data.publisher_cost ?? undefined,
-      features: data.features || undefined
+      features: data.features || undefined,
+      isActive: data.is_active ?? true
     };
   }
   

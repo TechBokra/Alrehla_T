@@ -17,7 +17,7 @@ export default async function Page() {
     return <Unauthorized />;
   }
 
-  const allProducts = await getPersonalizedProducts();
+  const allProducts = await getPersonalizedProducts({ includeInactive: true });
   const publishers = await getPublishers();
   
   const formattedProducts = allProducts.map(p => {
@@ -34,6 +34,14 @@ export default async function Page() {
       // ⚠️ كان شرطًا ثلاثيًّا بيكتب «اشتراك» على **أي حاجة تانية** —
       //    يعني تصنيف غير معروف كان بيتعرض غلط بدل ما يبان.
       categoryDisplay: productCategoryLabel(p.category),
+      // ⚠️ الموقوف مخفي من الموقع **ومرفوض في الطلبات الجديدة**
+      //    بمحفّز في القاعدة (SQL 121) — وبنود الطلبات القديمة
+      //    بتفضل زي ما هي.
+      stateDisplay: p.isActive ? (
+        <StatusBadge type="success" label="معروض" />
+      ) : (
+        <StatusBadge type="neutral" label="موقوف" />
+      ),
       ownerDisplay
     };
   });
@@ -42,7 +50,8 @@ export default async function Page() {
     { header: 'اسم المنتج', accessorKey: 'nameDisplay' },
     { header: 'النوع', accessorKey: 'categoryDisplay' },
     { header: 'المالك', accessorKey: 'ownerDisplay' },
-    { header: 'السعر', accessorKey: 'priceDisplay' }
+    { header: 'السعر', accessorKey: 'priceDisplay' },
+    { header: 'الحالة', accessorKey: 'stateDisplay' }
   ];
 
   return (

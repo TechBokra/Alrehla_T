@@ -19,7 +19,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const myPublisher = await getMyPublisher();
   if (!myPublisher) notFound();
 
-  const allProducts = await getPersonalizedProducts();
+  const allProducts = await getPersonalizedProducts({ includeInactive: true });
   const target = allProducts.find(p => p.id === id);
   // مفيش سجل بالرقم ده: بنعرض صفحة «غير موجود».
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح

@@ -996,6 +996,8 @@ export type Database = {
           features: string[] | null
           /** نصيب الناشر من النسخة الواحدة — ملف SQL 97. */
           publisher_cost: number | null
+          /** معروض للبيع — SQL 121. الموقوف بيترفض في الطلبات بمحفّز. */
+          is_active: boolean
           created_at: string
           updated_at: string
         }
@@ -1003,6 +1005,7 @@ export type Database = {
           id?: string
           slug: string
           name: string
+          is_active?: boolean
           category: Database["public"]["Enums"]["product_category"]
           price: number
           electronic_price?: number | null
@@ -1028,6 +1031,7 @@ export type Database = {
           owner_type?: Database["public"]["Enums"]["owner_type"]
           features?: string[] | null
           publisher_cost?: number | null
+          is_active?: boolean
           created_at?: string
           updated_at?: string
         }
