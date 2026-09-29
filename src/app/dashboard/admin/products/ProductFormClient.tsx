@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
+import { FormError } from '@/components/ui/FormError';
 import { Publisher, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
@@ -29,8 +30,29 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
     }
   }, [ownerType, basePrice, pricingSettings]);
 
+  const [busy, startTransition] = useTransition();
+  const [error, setError] = useState('');
+
+  /**
+   * ⚠️ **النموذج كان `<form action={saveProduct}>` والأكشن بيرمي.**
+   *
+   *    وNext بيمسح نصّ الاستثناء في الإنتاج (قاعدة «هـ») — فالإداري
+   *    بيضغط «حفظ» ويشوف **صفحة خطأ عامة** مالهاش علاقة بالخانة
+   *    الغلط. مش زرًّا صامتًا، لكن النتيجة أوحش: بيطلّعه برّه الشاشة.
+   *
+   *    دلوقتي الأكشن بيرجّع `{ ok:false, error }` والرسالة بتظهر
+   *    فوق النموذج، والخانات زيّ ما هي.
+   */
+  const submit = (formData: FormData) =>
+    startTransition(async () => {
+      setError('');
+      const result = await saveProduct(formData);
+      if (result && !result.ok) setError(result.error);
+    });
+
   return (
-    <form action={saveProduct} className="space-y-6">
+    <form action={submit} className="space-y-6">
+      <FormError message={error} />
       <input type="hidden" name="id" value="" />
       <input type="hidden" name="slug" value="" />
       {/* Hidden input to include the image URL in the form submission */}
@@ -145,8 +167,8 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
       />
       
       <div className="pt-6 border-t border-slate-100 flex justify-end">
-        <button type="submit" className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800">
-          إضافة المنتج
+        <button type="submit" disabled={busy} className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800">
+          {busy ? 'جارٍ الحفظ…' : 'إضافة المنتج'}
         </button>
       </div>
     </form>

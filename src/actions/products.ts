@@ -10,6 +10,7 @@ import {
   isProductCategory,
   PUBLISHER_PRODUCT_CATEGORIES,
 } from '@/lib/product-categories';
+import { validateProductInput, slugFromName } from '@/lib/product-input';
 import {
   customerPriceFromCost,
   NEUTRAL_FORMULA,
@@ -26,6 +27,13 @@ import {
  *
  * دلوقتي: الإدارة تعدّل أي حاجة، والناشر منتجاته هو بس، وأي حد تاني
  * بيترفض.
+ *
+ * ⚠️ **والدالة بترجّع `{ ok:false, error }` ومابترميش.** كانت بترمي،
+ *    وNext بيمسح نصّ الاستثناء في الإنتاج (قاعدة «هـ») — فالإداري
+ *    بيشوف صفحة خطأ عامة **ويطلع برّه الشاشة اللي كان بيملاها**.
+ *
+ *    ⚠️ ولازم **كل** المخارج ترجّع، لا نصّها. الحارس على نصّ المسار
+ *       أوحش من غيابه كله، لأنه بيدّي إحساسًا إن الموضوع متغطّى.
  */
 export async function saveProduct(formData: FormData) {
   const supabase = await createClient();
@@ -33,28 +41,52 @@ export async function saveProduct(formData: FormData) {
   const id = formData.get('id') as string;
   const isNew = !id;
   
-  const name = formData.get('name') as string;
+  const nameRaw = formData.get('name');
   // ⚠️ **الخانة في الواجهة مش دليل** (قاعدة «ع»). النموذج بيعرض
   //    القيم الصالحة بس، لكن اللي بيوصل للخادم نص من المتصفح — وأي
   //    حد يقدر يبعت اللي هو عايزه. والقاعدة هترفض القيمة الغلط،
   //    لكن الرسالة اللي هتوصل للإداري ساعتها غير مفهومة.
   const categoryRaw = formData.get('category');
   if (!isProductCategory(categoryRaw)) {
-    throw new Error('التصنيف المختار غير صالح');
+    return { ok: false as const, error: 'التصنيف المختار غير صالح' };
   }
   const category = categoryRaw;
   // ⚠️ **الرقم اللي بيوصل من الناشر هو نصيبه، مش سعر العميل.**
   //    سعر العميل بيتحسب تحت من معادلة `publisher-default`. أما
   //    الإدارة فبتكتب سعر منتج المنصة مباشرة — مفيش ناشر ياخد منه.
-  const rawPrice = Number(formData.get('price'));
   const publisherCostRaw = formData.get('publisherCost');
   const publisherCost =
     publisherCostRaw !== null && publisherCostRaw !== ''
       ? Number(publisherCostRaw)
       : null;
-  let price = rawPrice;
-  const electronicPrice = formData.get('electronicPrice') ? Number(formData.get('electronicPrice')) : null;
-  const shortDescription = formData.get('shortDescription') as string;
+
+  // ── التحقّق ───────────────────────────────────────────────
+  //
+  // ⚠️ **سعر المنصة كان بيتقرا بـ`Number(...)` وخلاص.** و`Number`
+  //    مابترفضش حاجة:
+  //      • خانة فاضية → **صفر** → **منتج مجاني**
+  //      • نص غير رقمي → `NaN`، و`numeric` في Postgres **بيقبله**،
+  //        والشاشة بتعرض «NaN ج.م» للعميل
+  //      • سالب → بيتحفظ زي ما هو
+  //
+  // ⚠️ **ونصيب الناشر كان متحقَّقًا منه فعلًا وسعر المنصة لأ** —
+  //    يعني الحارس كان على نصّ المسار. وده أوحش من غيابه كله،
+  //    لأنه بيدّي إحساسًا إن الموضوع متغطّى.
+  //
+  // ⚠️ **والخانة `required` في النموذج مش دليل** (قاعدة «ع»).
+  //    منتج الناشر سعره بيتحسب من نصيبه تحت، فالسعر مش مطلوب منه.
+  const isPublisherProduct = formData.get('ownerType') === 'publisher';
+  const checked = validateProductInput({
+    name: formData.get('name'),
+    shortDescription: formData.get('shortDescription'),
+    price: isPublisherProduct ? '1' : formData.get('price'),
+    electronicPrice: formData.get('electronicPrice'),
+  });
+  if (!checked.ok) return { ok: false as const, error: checked.error };
+
+  let price = isPublisherProduct ? 0 : checked.data.price;
+  const electronicPrice = checked.data.electronicPrice ?? null;
+  const shortDescription = checked.data.shortDescription || '';
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
   const ownerType = formData.get('ownerType') as 'platform' | 'publisher';
@@ -66,7 +98,7 @@ export async function saveProduct(formData: FormData) {
   if (!isAdmin) {
     // مش إداري؟ يبقى لازم يكون ناشر، والمنتج لازم يكون بتاعه.
     const myPublisher = await getMyPublisher();
-    if (!myPublisher) throw new Error('غير مصرح لك بحفظ المنتجات');
+    if (!myPublisher) return { ok: false as const, error: 'غير مصرح لك بحفظ المنتجات' };
 
     // رقم الناشر بيتاخد من الحساب، مش من الفورم.
     effectivePublisherId = myPublisher.id;
@@ -77,7 +109,10 @@ export async function saveProduct(formData: FormData) {
     //    يوصل لصفحة «غير متاح للتخصيص». المنع هنا بيقفل الباب في
     //    الخادم، مش في القايمة وبس.
     if (!PUBLISHER_PRODUCT_CATEGORIES.includes(category)) {
-      throw new Error('التصنيف ده مش متاح للناشرين — منتجاتك بتتعرض في المكتبة.');
+      return {
+        ok: false as const,
+        error: 'التصنيف ده مش متاح للناشرين — منتجاتك بتتعرض في المكتبة.',
+      };
     }
 
     if (!isNew) {
@@ -88,13 +123,22 @@ export async function saveProduct(formData: FormData) {
         .maybeSingle();
 
       if (!existing || existing.publisher_id !== myPublisher.id) {
-        throw new Error('غير مصرح لك بتعديل هذا المنتج');
+        return { ok: false as const, error: 'غير مصرح لك بتعديل هذا المنتج' };
       }
     }
   }
   
-  // Basic slug generation
-  const slug = isNew ? `prod-${Date.now()}` : formData.get('slug') as string || `prod-${Date.now()}`;
+  // ── الرابط ────────────────────────────────────────────────
+  //
+  // ⚠️ **كان `prod-${Date.now()}`** — رقم توليد تلقائي بيظهر للعميل
+  //    في شريط العنوان وفي نتايج البحث وفي أي رابط بيتبعت على
+  //    واتساب. وفيه منتجان على الإنتاج بالشكل ده فعلًا.
+  //
+  // ⚠️ **والرابط بيتعمل للجديد وبس.** تغيير رابط منتج قائم بيكسر
+  //    كل رابط اتبعت له قبل كده، والزائر بيوصل لـ404 بلا سبب ظاهر.
+  const slug = isNew
+    ? slugFromName(checked.data.name)
+    : ((formData.get('slug') as string) || slugFromName(checked.data.name));
   
   // ── سعر العميل من نصيب الناشر ─────────────────────────────
   //
@@ -105,7 +149,10 @@ export async function saveProduct(formData: FormData) {
 
   if (ownerType === 'publisher') {
     if (publisherCost === null || !Number.isFinite(publisherCost) || publisherCost <= 0) {
-      throw new Error('اكتب نصيبك من النسخة الواحدة — رقم أكبر من صفر');
+      return {
+        ok: false as const,
+        error: 'اكتب نصيبك من النسخة الواحدة — رقم أكبر من صفر',
+      };
     }
 
     const { data: formulaRow } = await supabase
@@ -127,7 +174,7 @@ export async function saveProduct(formData: FormData) {
 
   const dbPayload = {
     slug,
-    name,
+    name: checked.data.name,
     category,
     price,
     publisher_cost: effectiveCost,
@@ -149,7 +196,7 @@ export async function saveProduct(formData: FormData) {
       
     if (error) {
       console.error('Error inserting product:', error);
-      throw new Error('Failed to create product');
+      return { ok: false as const, error: 'تعذّر إنشاء المنتج. جرّب تاني.' };
     }
     savedId = data.id;
   } else {
@@ -160,7 +207,7 @@ export async function saveProduct(formData: FormData) {
       
     if (error) {
       console.error('Error updating product:', error);
-      throw new Error('Failed to update product');
+      return { ok: false as const, error: 'تعذّر حفظ التعديلات. جرّب تاني.' };
     }
   }
 

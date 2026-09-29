@@ -1,7 +1,8 @@
 'use client';
 import { ImageField } from '@/components/dashboard/ImageField';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
+import { FormError } from '@/components/ui/FormError';
 import { Publisher, PersonalizedProduct, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
@@ -34,8 +35,23 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
     }
   }, [ownerType, basePrice, pricingSettings]);
 
+  const [busy, startTransition] = useTransition();
+  const [error, setError] = useState('');
+
+  // ⚠️ الأكشن كان بيرمي، وNext بيمسح نصّ الاستثناء في الإنتاج
+  //    (قاعدة «هـ») — فالإداري بيشوف صفحة خطأ عامة بدل ما يعرف
+  //    أي خانة هي السبب. دلوقتي الرسالة فوق النموذج والخانات
+  //    زيّ ما هي.
+  const submit = (formData: FormData) =>
+    startTransition(async () => {
+      setError('');
+      const result = await saveProduct(formData);
+      if (result && !result.ok) setError(result.error);
+    });
+
   return (
-    <form action={saveProduct} className="space-y-6">
+    <form action={submit} className="space-y-6">
+      <FormError message={error} />
       <input type="hidden" name="id" value={product.id} />
       <input type="hidden" name="slug" value={product.slug} />
       
@@ -139,8 +155,8 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
       />
       
       <div className="pt-6 border-t border-slate-100 flex justify-end">
-        <button type="submit" className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800">
-          حفظ التعديلات
+        <button type="submit" disabled={busy} className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50">
+          {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
         </button>
       </div>
     </form>

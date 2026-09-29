@@ -3,6 +3,7 @@ import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getPersonalizedProducts, getMyPublisher } from '@/data/domains/products';
 import { saveProduct } from '@/actions/products';
+import { ActionForm } from '@/components/dashboard/ActionForm';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { PublisherCostField } from '@/components/dashboard/PublisherCostField';
 import {
@@ -36,7 +37,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <DashboardPageHeader title="تعديل المنتج" backHref="/dashboard/publisher/products" />
       
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <form action={saveProduct} className="space-y-6">
+        <ActionForm action={saveProduct} className="space-y-6">
           <input type="hidden" name="id" value={target.id} />
           <input type="hidden" name="slug" value={target.slug} />
           <input type="hidden" name="ownerType" value="publisher" />
@@ -88,7 +89,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               حفظ التغييرات
             </button>
           </div>
-        </form>
+        </ActionForm>
       </div>
     </div>
   );
