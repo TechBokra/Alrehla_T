@@ -3,6 +3,7 @@ import { getPersonalizedProducts, getPublisherBySlug } from '@/data/domains/prod
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { optimizedImageUrl } from '@/lib/cloudinary';
@@ -62,27 +63,37 @@ export default async function PublisherPage({ params }: { params: Promise<{ slug
               <Card
                 key={product.id}
                 accentColor="rose"
-                className="group overflow-hidden relative p-0 hover:-translate-y-1"
+                interactive
+                // ⚠️ كان `hover:-translate-y-1` **بلا أي `transition`**
+                //    — يعني الكارت بينطّ نطّة فورية بدل ما يرتفع،
+                //    وبيتجاهل «تقليل الحركة» تمامًا. `interactive`
+                //    فيها الاتنين.
+                className="group overflow-hidden relative p-0"
               >
-                <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
+                {/* نفس علاج الكارت وصفحة التفاصيل: الغلاف مايتقصّش. */}
+                <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-rose-50 via-white to-slate-50">
                   {product.coverImageUrl ? (
                     <Image
                       src={optimizedImageUrl(product.coverImageUrl, 600)}
                       alt={product.name}
                       fill sizes="(max-width: 768px) 100vw, 300px"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-contain p-6 drop-shadow-lg transition-transform duration-[var(--dur-slow)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-[1.04]"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-400">
-                      لا توجد صورة
-                    </div>
+                    <ImagePlaceholder label={product.name} />
                   )}
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-bold text-slate-900 line-clamp-1">{product.name}</h3>
+                  {/* ⚠️ `line-clamp-1` بتقصّ اسم الكتاب من أول سطر —
+                      وأسماء الكتب العربية نادرًا بتخلص في سطر. بقت ٢. */}
+                  <h3 className="line-clamp-2 text-lg leading-snug font-bold text-slate-900">
+                    {product.name}
+                  </h3>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-lg font-black text-rose-500">
+                    {/* ⚠️ `rose-500` كنصّ على أبيض = 3.76:1 وبيسقط في
+                        المعيار (المطلوب 4.5:1). الرمز `-strong` = 700. */}
+                    <span className="text-enha-lak-strong text-lg font-black">
                       {formatPrice(product.price)}
                     </span>
                   </div>

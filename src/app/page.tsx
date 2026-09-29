@@ -36,8 +36,8 @@ export async function generateMetadata() {
  */
 function HighlightedTitle({ title }: { title: string }) {
   const accents: [string, string][] = [
-    ['الحكاية', 'text-amber-500'],
-    ['صوتك', 'text-emerald-500'],
+    ['الحكاية', 'text-brand-strong'],
+    ['صوتك', 'text-journey-strong'],
   ];
   const pattern = new RegExp(`(${accents.map(([w]) => w).join('|')})`, 'g');
   const parts = title.split(pattern);
@@ -372,7 +372,7 @@ export default async function Home() {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="h-full w-full rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center font-black text-xl">
+                  <div className="h-full w-full rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-black text-xl">
                     {publisher.name.charAt(0)}
                   </div>
                 )}

@@ -118,13 +118,30 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="mt-4 leading-relaxed text-slate-600 md:mt-6 md:text-lg">{product.shortDescription}</p>
           </div>
 
-          <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-lg sm:max-w-xs lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-w-none">
+          {/* ══ 🔴 الغلاف هنا كان بيتقصّ — وده أسوأ مكان يحصل فيه ══
+              قياس على المنشور: الصندوق 259×345 (نسبة 3/4) والصورة
+              242×241 (مربّعة) مع `object-cover` ⇦ **ربع الغلاف
+              بيتقصّ من فوق ومن تحت**.
+
+              ⚠️ وصفحة التفاصيل هي المكان اللي العميل بيبصّ فيه على
+                 الغلاف قبل ما يشتري. القصّ في شبكة المكتبة وحش؛
+                 القصّ هنا بيخلّي العميل يشتري حاجة شافها ناقصة.
+
+              الحل زيّ الكارت: `object-contain` ⇦ الغلاف بيبان كامل
+              مهما كانت نسبته، ومحدش هيعدّل كود لما الأغلفة الحقيقية
+              تترفع. */}
+          <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-rose-50 via-white to-slate-50 shadow-lg sm:max-w-xs lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-w-none">
             {product.coverImageUrl ? (
               <Image
                 src={optimizedImageUrl(product.coverImageUrl, 900)}
                 alt={product.name}
-                fill sizes="(max-width: 1024px) 100vw, 520px" priority
-                className="object-cover"
+                fill
+                // ⚠️ كانت `100vw` تحت 1024 — والصندوق أقصاه **260**
+                //    بكسل هناك. يعني الموبايل كان بيحمّل صورة بعرض
+                //    الشاشة كاملة عشان يحطّها في ربعها.
+                sizes="(max-width: 1024px) 280px, 520px"
+                priority
+                className="object-contain p-5 drop-shadow-lg"
                 referrerPolicy="no-referrer"
               />
             ) : (

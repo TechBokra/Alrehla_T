@@ -47,7 +47,7 @@ export function AnnouncementBarClient({ text }: { text: string }) {
             }
           }}
           aria-label="إغلاق التنبيه"
-          className="shrink-0 rounded-lg p-1 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
         >
           <X className="h-4 w-4" />
         </button>

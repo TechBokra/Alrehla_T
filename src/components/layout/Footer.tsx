@@ -57,7 +57,7 @@ export default async function Footer() {
             {settings.contactPhone && (
               <a
                 href={`tel:${settings.contactPhone.replace(/\s/g, '')}`}
-                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-amber-500"
+                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-brand-strong"
               >
                 <Phone className="h-4 w-4 shrink-0" />
                 <span dir="ltr">{settings.contactPhone}</span>
@@ -68,7 +68,7 @@ export default async function Footer() {
                 href={`https://wa.me/${settings.whatsappNumber.replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-amber-500"
+                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-brand-strong"
               >
                 <MessageCircle className="h-4 w-4 shrink-0" />
                 واتساب
@@ -77,7 +77,7 @@ export default async function Footer() {
             {settings.contactEmail && (
               <a
                 href={`mailto:${settings.contactEmail}`}
-                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-amber-500"
+                className="flex max-md:min-h-[44px] items-center gap-2 transition-colors hover:text-brand-strong"
               >
                 <Mail className="h-4 w-4 shrink-0" />
                 <span dir="ltr">{settings.contactEmail}</span>
@@ -106,37 +106,37 @@ export default async function Footer() {
             <div className="flex flex-col gap-2 text-sm font-medium text-slate-500">
               <Link
                 href="/about"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 رحلتنا
               </Link>
               <Link
                 href="/enha-lak"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 إنها لك
               </Link>
               <Link
                 href="/creative-writing"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 بداية الرحلة
               </Link>
               <Link
                 href="/blog"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 المدونة
               </Link>
               <Link
                 href="/join-us"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 انضم إلينا
               </Link>
               <Link
                 href="/support"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 الدعم والمساعدة
               </Link>
@@ -150,13 +150,13 @@ export default async function Footer() {
             <div className="flex flex-col gap-2 text-sm font-medium text-slate-500">
               <Link
                 href="/privacy"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 سياسة الخصوصية
               </Link>
               <Link
                 href="/terms"
-                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-amber-500 focus-visible:underline focus-visible:outline-none hover:text-amber-500"
+                className="inline-flex max-md:min-h-[44px] items-center transition-colors focus-visible:text-brand-strong focus-visible:underline focus-visible:outline-none hover:text-brand-strong"
               >
                 الشروط والأحكام
               </Link>

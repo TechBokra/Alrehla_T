@@ -98,8 +98,8 @@ export function NavLinksMobile() {
             aria-current={active ? 'page' : undefined}
             className={
               active
-                ? 'shrink-0 rounded-full bg-slate-900 px-4 py-2 text-white shadow-sm'
-                : 'shrink-0 rounded-full bg-white/70 px-4 py-2 shadow-sm backdrop-blur'
+                ? 'shrink-0 inline-flex min-h-[44px] items-center rounded-full bg-slate-900 px-4 text-white shadow-sm'
+                : 'shrink-0 inline-flex min-h-[44px] items-center rounded-full bg-white/70 px-4 shadow-sm backdrop-blur'
             }
           >
             {link.label}
