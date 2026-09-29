@@ -114,7 +114,7 @@ export function BookingConfirmClient({
 
   if (isSuccess) {
     return (
-      <div className="text-center animate-in fade-in slide-in-from-top-4">
+      <div className="text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-500">
           <CheckCircle2 className="h-10 w-10" />
         </div>

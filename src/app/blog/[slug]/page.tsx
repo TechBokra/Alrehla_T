@@ -7,6 +7,7 @@ import { getBlogPosts, getBlogPostBySlug } from '@/data/domains/content';
 import { notFound } from 'next/navigation';
 import { Section } from '@/components/ui/Section';
 import { Button } from '@/components/ui/Button';
+import { RichText } from '@/components/ui/RichText';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
@@ -107,15 +108,38 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </div>
 
         {/* Content */}
-        <article className="prose prose-slate prose-lg mx-auto prose-headings:font-black prose-a:text-brand-strong prose-img:rounded-2xl max-w-3xl">
-          <p className="lead text-xl text-slate-600 font-medium leading-relaxed mb-8">
+        {/* ══ 🔴 حاجتان كانتا مكسورتين هنا ═══════════════════════
+            **①** الأصناف `prose*` **ميتة**. إضافة `@tailwindcss/typography`
+            مثبَّتة في `package.json` لكنها **مش مسجَّلة** في `globals.css`
+            (Tailwind 4 محتاج `@plugin`)، ومافيش ولا سطر `@plugin` في
+            المشروع كله. اتأكّدت بالقياس على المنشور: المتغيّر
+            `--tw-prose-body` **فاضي** — يعني كل صنف `prose` هنا
+            مالوش أي أثر.
+
+            ⚠️ نفس المصيدة اللي مسكناها في `hide-scrollbar`: الصنف
+               اللي مالوش قاعدة **بيتجاهل في صمت**.
+
+            **②** المحتوى كان بيتعرض **نصًّا خامًا** في
+            `whitespace-pre-wrap`، والموقع كله بيستخدم `RichText`
+            (الرئيسية والشروط والخصوصية) اللي بيحوّل `## عنوان`
+            و`- نقطة` و`**عريض**` لعناصر حقيقية.
+
+            ⚠️ **ومش مكسور اليوم**: المقالات المنشورة التلاتة فقرات
+               عادية بلا أي تنسيق — قِستها. بيتكسر **أول ما حد يكتب
+               `## عنوان`**، وساعتها هيطبع حرفيًّا كده «## عنوان».
+               والفريق اللي هيكتب المحتوى بيستخدم نفس التنسيق ده في
+               باقي الموقع.
+
+            و`RichText` **مابيقبلش HTML خام عن قصد** — أي حد عنده
+            صلاحية تعديل المحتوى كان هيقدر يحقن سكربت. */}
+        <article className="mx-auto max-w-3xl">
+          <p className="mb-8 text-xl leading-relaxed font-medium text-slate-600">
             {post.excerpt}
           </p>
-          {/* The article's own body. Four invented paragraphs used to be printed
-              here for every post, and post.content was never rendered at all. */}
-          <div className="text-slate-700 leading-loose space-y-6 whitespace-pre-wrap">
-            {post.content}
-          </div>
+          <RichText
+            value={post.content}
+            className="space-y-6 leading-loose text-slate-700"
+          />
         </article>
 
         {/* Share Section */}
