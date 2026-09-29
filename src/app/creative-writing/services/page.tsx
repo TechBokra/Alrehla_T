@@ -16,6 +16,7 @@ import { getStandaloneServices, getProvidersForService } from '@/data/domains/se
 import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
+import { Button } from '@/components/ui/Button';
 import { getSiteContent } from '@/data/domains/content';
 
 
@@ -157,18 +158,29 @@ export default async function ServicesPage() {
                         </span>
                       </div>
                       
-                      <Link 
+                      {/* ⚠️ **الزرّ ده كان `bg-amber-500 text-white` مكتوبًا
+                          بالإيد — وقياسه على الموقع المنشور طلع 2.13:1**،
+                          أسوأ نتيجة في الموقع كله، وعلى زرّ الشراء نفسه.
+
+                          ودي **نفس الحالة اللي المرحلة ١ أصلحتها** (أبيض
+                          على amber-500 = 2.15) — بس الإصلاح وقتها اتعمل
+                          في مكوّن `Button`، والصفحة دي مكانتش بتستعمله.
+
+                          القاعدة المكتوبة عندنا: اللون الحيّ زيّ ما هو
+                          والنص داكن، والـhover **بيفتح لا بيغمّق** (مع
+                          النص الداكن، التغميق بينزّل التباين). كل ده
+                          موجود في `Button` — فالصفحة بقت تستعمله بدل ما
+                          تعيد كتابته. */}
+                      <Button
                         href={service.available ? service.ctaLink : '#'}
-                        aria-disabled={!service.available}
-                        className={`group flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold transition-colors ${
-                          service.priceType === 'starts_from' 
-                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
-                            : 'bg-amber-500 text-white shadow-md hover:bg-amber-600 hover:shadow-amber-500/20'
-                        }`}
+                        variant={service.priceType === 'starts_from' ? 'secondary' : 'primary'}
+                        accentColor="brand"
+                        disabled={!service.available}
+                        className="group w-full justify-center py-4"
                       >
                         {service.ctaText}
                         <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-                      </Link>
+                      </Button>
                     </div>
                   </div>
                 ))}

@@ -31,7 +31,7 @@ export default function SignInPage() {
 
           <div className="mt-8 text-center text-sm font-medium text-slate-600">
             ليس لديك حساب؟{' '}
-            <Link href="/sign-up" className="font-bold text-amber-600 hover:text-amber-700">
+            <Link href="/sign-up" className="font-bold text-amber-700 hover:text-amber-800 hover:underline">
               أنشئ حساباً جديداً
             </Link>
           </div>
