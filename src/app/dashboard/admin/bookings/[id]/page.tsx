@@ -9,6 +9,12 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { AssignInstructor } from './AssignInstructor';
+import { AddSession } from './AddSession';
+import { getSubscriptionSessionPlan } from '@/data/domains/session-admin';
+import { quotaNotice } from '@/lib/session-plan';
+import { formatCairo } from '@/lib/timezone';
+import { sessionStatusView } from '@/lib/session-status';
+import { StatusBadge } from '@/components/StatusBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,9 +40,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   const { id } = await params;
-  const [bookings, instructors] = await Promise.all([
+  const [bookings, instructors, plan] = await Promise.all([
     getCourseBookingsForAdmin(),
     getInstructors(),
+    getSubscriptionSessionPlan(id),
   ]);
   const target = bookings.find((b) => b.id === id);
   if (!target) notFound();
@@ -107,6 +114,54 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             .filter((i) => i.status === 'active')
             .map((i) => ({ id: i.id, name: i.displayName }))}
         />
+
+        {/* ── الجلسات ───────────────────────────────────── */}
+        {plan && (
+          <div className="mb-8">
+            <AddSession
+              subscriptionId={target.id}
+              nextNumber={plan.nextNumber}
+              quotaText={quotaNotice(plan.quota)}
+              isExtra={plan.quota.isExtra}
+              defaultInstructorId={plan.instructorId}
+              instructors={instructors
+                .filter((i) => i.status === 'active')
+                .map((i) => ({ id: i.id, name: i.displayName }))}
+            />
+
+            {plan.sessions.length > 0 && (
+              <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+                {plan.sessions.map((session) => {
+                  const view = sessionStatusView(session.status);
+                  return (
+                    <li
+                      key={session.id}
+                      className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                    >
+                      <span className="font-bold text-slate-800">
+                        جلسة {session.sessionNumber}
+                      </span>
+                      <span className="text-sm font-medium text-slate-600">
+                        {formatCairo(session.scheduledAt, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </span>
+                      <StatusBadge type={view.badge} label={view.label} />
+                      {/* ⚠️ الغرفة الناقصة معناها إن المدرب والطالب
+                          مالهمش مكان يتقابلوا فيه لما ييجي الميعاد. */}
+                      {session.hasRoom ? (
+                        <StatusBadge type="success" label="الغرفة جاهزة" />
+                      ) : (
+                        <StatusBadge type="danger" label="بلا غرفة" />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
         {target.status === 'awaiting_verification' && (
           <div className="mb-6">
