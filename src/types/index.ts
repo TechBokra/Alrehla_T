@@ -17,6 +17,15 @@ export type UserProfile = {
    * مصدرها `app_metadata` بتاع Supabase — انظر `src/lib/first-login.ts`.
    */
   mustSetPassword?: boolean;
+  /**
+   * موقوف عن **الشراء الجديد** من التاريخ ده — SQL 118.
+   *
+   * ⚠️ **الدخول مابيتمنعش.** منع الدخول بيقفل على الأهل الجلسات
+   *    اللي دفعوا تمنها ومعرض شغل ابنهم — عقاب على خلاف إداري
+   *    بيطول خدمة مدفوعة.
+   */
+  suspendedAt?: string | null;
+  suspensionReason?: string | null;
 };
 
 // الفئة العمرية للباقات

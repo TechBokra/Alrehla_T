@@ -4,7 +4,19 @@ import React, { useState } from 'react';
 import { KeyRound, Lock, CheckCircle2 } from 'lucide-react';
 import { setMyPassword } from '@/actions/set-password';
 
+/**
+ * تغيير كلمة المرور من إعدادات الحساب.
+ *
+ * ⚠️ **بتطلب الكلمة الحالية.** الجلسة وحدها مش إثبات كفاية: أي حد
+ *    يلاقي الجهاز مفتوح كان يقدر يغيّرها ويقفل صاحب الحساب برّه
+ *    حسابه — وده الإجراء الوحيد اللي بيخلّي الاستيلاء دائمًا.
+ *
+ * ⚠️ **والشرط متطبَّق في الأكشن لا هنا.** الخانة دي راحة للعين؛
+ *    الحاجز الحقيقي على الخادم، لأن الأكشن ممكن يتنادى من غير
+ *    الشاشة خالص (قاعدة «ع»).
+ */
 export function PasswordChangeForm() {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -26,9 +38,10 @@ export function PasswordChangeForm() {
 
     setSaving(true);
     try {
-      const res = await setMyPassword(newPassword);
+      const res = await setMyPassword(newPassword, currentPassword);
       if (res.ok) {
         setMessage({ ok: true, text: 'تم تحديث كلمة المرور بنجاح!' });
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
@@ -56,6 +69,28 @@ export function PasswordChangeForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="mb-2 block text-sm font-bold text-slate-700">كلمة المرور الحالية</label>
+          <input
+            type="password"
+            dir="ltr"
+            required
+            autoComplete="current-password"
+            placeholder="كلمة مرورك دلوقتي"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-800 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-hidden transition-colors"
+          />
+          <p className="mt-2 text-xs font-medium text-slate-500">
+            بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
+            نسيتها؟{' '}
+            <a href="/forgot-password" className="font-bold text-slate-800 underline">
+              اطلب رابط استرجاع
+            </a>
+            .
+          </p>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-bold text-slate-700">كلمة المرور الجديدة</label>
@@ -102,7 +137,7 @@ export function PasswordChangeForm() {
 
           <button
             type="submit"
-            disabled={saving || !newPassword}
+            disabled={saving || !newPassword || !currentPassword}
             className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-40 text-sm shadow-xs"
           >
             <Lock className="h-4 w-4" />

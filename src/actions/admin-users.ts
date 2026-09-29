@@ -365,3 +365,100 @@ export async function resetUserPassword(params: {
     isCustom: Boolean(typed),
   };
 }
+
+/**
+ * إيقاف حساب عن الشراء — أو فكّ الإيقاف.
+ *
+ * ── إيه اللي بيحصل بالظبط ───────────────────────────────────
+ *
+ * **الموقوف مش بيتمنع من الدخول.** بيفضل شايف جلساته اللي دفع
+ * تمنها ومعرض شغل ابنه وطلباته القديمة. اللي بيتمنع **الطلب
+ * الجديد** — في المتجر وفي الباقات وفي الخدمات الإبداعية.
+ *
+ * والسبب إن منع الدخول بيحوّل خلافًا إداريًّا لعقاب بيطول خدمة
+ * مدفوعة، وده ضرر على ولي الأمر وعلى المنصة في نفس الوقت.
+ *
+ * ── ومين بيمنع فعلًا ────────────────────────────────────────
+ *
+ * ⚠️ **المنع محفّز في القاعدة** (ملف 118) على `orders` و
+ *    `course_subscriptions` و`service_orders`. الفحص في الكود
+ *    بيدّي رسالة مفهومة قبل ما نوصل للقاعدة — مش بديلًا عنه.
+ *
+ * ⚠️ **والموقوف مايقدرش يفكّ إيقاف نفسه**: `guard_user_profile_fields`
+ *    بيجمّد العمودين. من غير ده كان بيفكّه بنداء واحد من متصفحه،
+ *    لأن سياسة «المستخدم يعدّل صفّه» بتسمح بالصف والصلاحيات
+ *    مابتحرسش الأعمدة (قاعدة «ب»).
+ *
+ * ⚠️ **والقاعدة بترفض إيقاف حساب إداري** — مدير النظام واحد،
+ *    وإيقافه بالغلط مشكلة مالهاش داعي.
+ */
+export async function setUserSuspension(params: {
+  userId: string;
+  suspend: boolean;
+  reason?: string;
+}): Promise<UserActionResult> {
+  let admin;
+  try {
+    admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإيقاف الحسابات');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بإيقاف الحسابات' };
+  }
+
+  // ⚠️ الإداري مايوقفش نفسه: الحساب ده بيعمل الإيقاف، ولو وقف نفسه
+  //    بالغلط بيبقى محتاج حد تاني يفكّه. والقاعدة بترفضه أصلًا
+  //    (الإداريون مستثنون)، بس الرسالة هنا أوضح من خطأ قاعدة.
+  if (params.userId === admin.id) {
+    return { ok: false, error: 'مينفعش توقف حسابك.' };
+  }
+
+  const reason = params.reason?.trim() ?? '';
+  // ⚠️ السبب مطلوب عند الإيقاف لا عند فكّه: ده الأثر الوحيد اللي
+  //    بيفضل لو حد سأل بعد شهور «ليه الحساب ده كان موقوف؟».
+  if (params.suspend && reason.length < 3) {
+    return { ok: false, error: 'اكتب سبب الإيقاف — بيتسجّل مع الحساب.' };
+  }
+
+  const supabase = await createClient();
+
+  // ⚠️ بـ`select()`: الكتابة على صفر صفوف بتنجح في صمت (قاعدة «و»).
+  //    من غيرها الشاشة بتقول «اتوقف» والحساب زيّ ما هو — وأخطر
+  //    حالة هنا إن المحفّز يرفض (حساب إداري) والإدارة تفتكر إنه
+  //    اتوقف فعلًا.
+  const { data: saved, error } = await supabase
+    .from('user_profiles')
+    .update({
+      suspended_at: params.suspend ? new Date().toISOString() : null,
+      suspension_reason: params.suspend ? reason : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', params.userId)
+    .select('id, suspended_at');
+
+  if (error) {
+    console.error('Error setting suspension', error);
+    return { ok: false, error: error.message || 'تعذّر تنفيذ الإجراء.' };
+  }
+  if (!saved || saved.length === 0) {
+    return { ok: false, error: 'الحساب مش موجود، أو القاعدة رفضت الإجراء.' };
+  }
+  // ⚠️ والفحص على **القيمة** لا على رجوع الصف: المحفّز ممكن يرجّع
+  //    القيمة القديمة والصف يرجع عادي — ودي اللي خلّت ٦ طلبات
+  //    بإجمالي صفر تعدّي ونحن فاكرين إن الكتابة نجحت.
+  const actuallySuspended = Boolean(saved[0].suspended_at);
+  if (actuallySuspended !== params.suspend) {
+    return { ok: false, error: 'القاعدة رفضت الإجراء — الحسابات الإدارية مش بتتوقف.' };
+  }
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: params.suspend ? 'إيقاف حساب عن الشراء' : 'فكّ إيقاف حساب',
+    entityType: 'UserProfile',
+    entityId: params.userId,
+    metadata: { reason: params.suspend ? reason : null },
+  });
+
+  revalidatePath(`/dashboard/admin/users/${params.userId}`);
+  revalidatePath('/dashboard/admin/users');
+  return { ok: true };
+}

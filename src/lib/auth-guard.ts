@@ -39,6 +39,40 @@ function blockIfPasswordPending(user: UserProfile) {
   }
 }
 
+/**
+ * الحساب موقوف عن الشراء؟
+ *
+ * ── ليه ده مش الحارس الوحيد ─────────────────────────────────
+ *
+ * ⚠️ **المنع الحقيقي محفّز في القاعدة** (ملف 118) على `orders`
+ *    و`course_subscriptions` و`service_orders`. السطر ده بيدّي
+ *    رسالة عربية مفهومة **قبل** ما الطلب يوصل للقاعدة، مش بديلًا
+ *    عن المحفّز.
+ *
+ *    والسبب إن الأكشن ممكن يتنادى من غير الشاشة (قاعدة «ع»)، وأي
+ *    حارس في الكود وحده بيتخطّى بنداء مباشر بمفتاح الموقع العام.
+ *
+ * ⚠️ **والإيقاف بيمنع الشراء وبس.** الموقوف بيفضل داخل حسابه
+ *    وشايف جلساته ومعرض شغل ابنه — منع الدخول بيقفل خدمة مدفوعة
+ *    على خلاف إداري.
+ */
+export function blockIfSuspended(user: UserProfile) {
+  if (user.suspendedAt) {
+    throw new Error(
+      user.suspensionReason
+        ? `الحساب موقوف عن الشراء: ${user.suspensionReason}`
+        : 'الحساب موقوف عن الشراء. تواصل مع الإدارة.',
+    );
+  }
+}
+
+/** مستخدم مسجَّل **ومسموح له يشتري**. */
+export async function requireBuyer(): Promise<UserProfile> {
+  const user = await requireUser();
+  blockIfSuspended(user);
+  return user;
+}
+
 /** المستخدم مسجَّل دخول؟ */
 export async function requireUser(): Promise<UserProfile> {
   const user = await getCurrentUser();

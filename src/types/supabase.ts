@@ -1796,6 +1796,9 @@ export type Database = {
           permissions: string[] | null
           created_at: string
           updated_at: string
+          /** موقوف عن الشراء من التاريخ ده — SQL 118. الدخول مابيتمنعش. */
+          suspended_at: string | null
+          suspension_reason: string | null
         }
         Insert: {
           id: string
@@ -1806,6 +1809,8 @@ export type Database = {
           permissions?: string[] | null
           created_at?: string
           updated_at?: string
+          suspended_at?: string | null
+          suspension_reason?: string | null
         }
         Update: {
           id?: string
@@ -1816,6 +1821,8 @@ export type Database = {
           permissions?: string[] | null
           created_at?: string
           updated_at?: string
+          suspended_at?: string | null
+          suspension_reason?: string | null
         }
         Relationships: []
       }

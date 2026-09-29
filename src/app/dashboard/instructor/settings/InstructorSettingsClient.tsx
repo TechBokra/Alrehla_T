@@ -44,6 +44,10 @@ export function InstructorSettingsClient({
   const [isPackageSaved, setIsPackageSaved] = useState(false);
 
   // إدارة كلمة المرور الشخصية للمدرب
+  // ⚠️ **الكلمة الحالية مطلوبة.** الجلسة وحدها مش إثبات كفاية:
+  //    أي حد يلاقي الجهاز مفتوح كان يقدر يغيّرها ويقفل المدرب برّه
+  //    حسابه. والشرط متطبَّق في الأكشن كمان (قاعدة «ع»).
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -66,11 +70,12 @@ export function InstructorSettingsClient({
 
     setIsChangingPassword(true);
     try {
-      const res = await setMyPassword(newPassword);
+      const res = await setMyPassword(newPassword, currentPassword);
       if (!res.ok) {
         setPasswordError(res.error);
       } else {
         setPasswordSuccess('تم تحديث كلمة المرور الخاصة بك بنجاح!');
+        setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => setPasswordSuccess(''), 5000);
@@ -351,6 +356,28 @@ export function InstructorSettingsClient({
         {passwordError && <FormError message={passwordError} />}
         {passwordSuccess && <FormSuccess message={passwordSuccess} />}
 
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700">كلمة المرور الحالية</label>
+          <input
+            type="password"
+            dir="ltr"
+            required
+            autoComplete="current-password"
+            placeholder="كلمة مرورك دلوقتي"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-mono text-slate-900 focus:border-slate-800 focus:outline-hidden"
+          />
+          <p className="text-xs font-medium text-slate-500">
+            بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
+            نسيتها؟{' '}
+            <a href="/forgot-password" className="font-bold text-slate-800 underline">
+              اطلب رابط استرجاع
+            </a>
+            .
+          </p>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">كلمة المرور الجديدة</label>
@@ -387,7 +414,7 @@ export function InstructorSettingsClient({
           </span>
           <button
             type="submit"
-            disabled={isChangingPassword}
+            disabled={isChangingPassword || !currentPassword || !newPassword}
             className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-xs text-sm"
           >
             <Lock className="h-4 w-4" />

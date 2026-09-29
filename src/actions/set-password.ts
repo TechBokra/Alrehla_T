@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { MUST_SET_PASSWORD, needsPasswordSetup } from '@/lib/first-login';
 
@@ -22,7 +23,14 @@ export type SetPasswordResult = { ok: true } | { ok: false; error: string };
  * ⚠️ **وشيل العلامة محتاج مفتاح الخدمة** لأنها في `app_metadata` —
  *    وده مقصود: لو المستخدم كان يقدر يشيلها، كان الحاجز بلا معنى.
  */
-export async function setMyPassword(newPassword: string): Promise<SetPasswordResult> {
+export async function setMyPassword(
+  newPassword: string,
+  /**
+   * الكلمة الحالية — **مطلوبة في التغيير العادي، لا في أول دخول
+   * ولا في الاسترجاع**. اقرا الشرح تحت.
+   */
+  currentPassword?: string,
+): Promise<SetPasswordResult> {
   const supabase = await createClient();
 
   const {
@@ -34,6 +42,52 @@ export async function setMyPassword(newPassword: string): Promise<SetPasswordRes
   const password = typeof newPassword === 'string' ? newPassword : '';
   if (password.length < 8) {
     return { ok: false, error: 'كلمة المرور لازم تكون ٨ حروف أو أرقام على الأقل.' };
+  }
+
+  // ── ⓪ الكلمة الحالية ─────────────────────────────────────
+  //
+  // ⚠️ **الجلسة وحدها مش إثبات كفاية لتغيير كلمة المرور.** أي حد
+  //    يلاقي الجهاز مفتوح — في البيت أو الشغل — كان يقدر يغيّرها
+  //    ويقفل صاحب الحساب **برّه حسابه هو**، من غير ما يعرف حاجة
+  //    عنه أصلًا. وتغيير كلمة المرور مش زيّ أي تعديل تاني: هو
+  //    الإجراء الوحيد اللي بيخلّي الاستيلاء **دائمًا**.
+  //
+  // ⚠️ **وحالتان مستثنيتان، والاستثناء بيتقرّر من الخادم:**
+  //
+  //      • **أول دخول** — الشخص لسه على رمز مؤقت
+  //      • **الاسترجاع** — هو ناسي كلمته، ودي المشكلة اللي جاي
+  //        يحلّها؛ طلبها منه بيقفل الطريق الوحيد المتاح له
+  //
+  //    الاتنين بيتعرفوا بعلامة `MUST_SET_PASSWORD` في
+  //    `app_metadata` — ومسار الاسترجاع بيحطّها في `/auth/callback`
+  //    بعد ما الكود يتبدّل بجلسة بنجاح.
+  //
+  //    ⚠️ **والقرار في الخادم لا في الشاشة**: لو كنا سيبنا الشاشة
+  //       هي اللي تقرّر، أي نداء مباشر للأكشن من غير الكلمة
+  //       الحالية كان بيعدّي (قاعدة «ع») — يعني الحاجز شكله حاجز
+  //       وهو مفتوح.
+  if (!needsPasswordSetup(user)) {
+    const current = typeof currentPassword === 'string' ? currentPassword : '';
+    if (!current) {
+      return { ok: false, error: 'اكتب كلمة المرور الحالية عشان تغيّرها.' };
+    }
+    if (!user.email) {
+      return { ok: false, error: 'الحساب ده مالوش بريد — كلّم الإدارة.' };
+    }
+
+    // ⚠️ **الفحص بعميل بلا كوكيز عن قصد.** `signInWithPassword`
+    //    على العميل العادي بتكتب جلسة جديدة في الكوكيز — يعني
+    //    محاولة فاشلة كانت ممكن تلخبط جلسة الشخص القايمة وهو
+    //    مجرّد غلط في الكتابة.
+    const { error: checkError } = await createPublicClient().auth.signInWithPassword({
+      email: user.email,
+      password: current,
+    });
+
+    if (checkError) {
+      console.error('Password change: wrong current password', user.id);
+      return { ok: false, error: 'كلمة المرور الحالية غلط.' };
+    }
   }
 
   // ① كلمة المرور الجديدة.

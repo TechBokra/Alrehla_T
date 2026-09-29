@@ -14,6 +14,7 @@ import {
   type UserChildRow,
   type UserTicketRow,
 } from './AdminUserDetailClient';
+import { SuspensionPanel } from './SuspensionPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,18 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <DashboardPageHeader
         title={`ملف المستخدم: ${targetUser.fullName}`}
         backHref="/dashboard/admin/users"
+      />
+
+      {/* ⚠️ الإيقاف بيمنع الشراء لا الدخول — الشاشة بتسرد المسموح
+          والممنوع بدل ما تسمّي الإجراء وخلاص. */}
+      <SuspensionPanel
+        userId={targetUser.id}
+        fullName={targetUser.fullName}
+        suspendedAt={targetUser.suspendedAt}
+        suspensionReason={targetUser.suspensionReason}
+        isAdminAccount={
+          targetUser.role === 'super_admin' || targetUser.role === 'general_supervisor'
+        }
       />
 
       <AdminUserDetailClient

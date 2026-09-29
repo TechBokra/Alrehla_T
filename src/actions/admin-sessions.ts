@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { notifyUser, getInstructorUserId } from '@/lib/notifications';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
-import { checkScheduleTime } from '@/lib/session-plan';
+import { checkScheduleTime, parseCairoInput } from '@/lib/session-plan';
 import { getSubscriptionSessionPlan } from '@/data/domains/session-admin';
 import { getSiteSettings } from '@/data/domains/content';
 import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
@@ -234,7 +234,17 @@ export async function updateSessionDetails(params: {
     throw new Error('الرابط لازم يبدأ بـ https://');
   }
 
-  const when = new Date(scheduledAt);
+  // ⚠️ **الموعد بيتقرا كساعة حيطة في القاهرة لا بتوقيت جهاز الإداري.**
+  //
+  //    خانة `datetime-local` بترجّع نصًّا بلا منطقة زمنية، و`new Date()`
+  //    كانت بتقراه بتوقيت الجهاز. يعني إداري بيشتغل من برّه مصر بيأجّل
+  //    جلسة لـ«٥ العصر» فتتسجّل ٤ بتوقيت القاهرة — **والشاشة كلها
+  //    بتعرض بتوقيت القاهرة فهو نفسه مش هيلاحظ**، والمدرب والطالب
+  //    يقعدوا مستنيين ساعة.
+  //
+  //    والإشعار اللي بيتبعت بيقول الموعد الغلط كمان، فالتأكيد نفسه
+  //    بيأكّد الغلط.
+  const when = parseCairoInput(scheduledAt) ?? new Date(scheduledAt);
   if (Number.isNaN(when.getTime())) throw new Error('الموعد غير صحيح');
 
   const supabase = await createClient();

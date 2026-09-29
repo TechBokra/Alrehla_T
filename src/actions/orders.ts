@@ -1,5 +1,5 @@
 'use server';
-import { requireUser, requireAdmin, requireNotDependent } from '@/lib/auth-guard';
+import { requireUser, requireAdmin, requireNotDependent, requireBuyer } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
 
@@ -64,8 +64,11 @@ export async function createOrder(
   shipping?: ShippingDetails,
 ): Promise<CreateOrderResult> {
   // حساب الطفل التابع ممنوع من الشراء المباشر — الطلب بيمر على ولي أمره.
+  // والحساب الموقوف ممنوع من الشراء الجديد — والمنع الحقيقي محفّز في
+  // القاعدة (ملف 118)؛ ده بيدّي الرسالة قبل ما نوصل لهناك.
   try {
     await requireNotDependent('الشراء');
+    await requireBuyer();
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
   }

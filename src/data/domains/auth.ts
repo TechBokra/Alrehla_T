@@ -109,6 +109,9 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
     avatarUrl: profile.avatar_url || undefined,
     createdAt: profile.created_at || user.created_at,
     mustSetPassword: needsPasswordSetup(user),
+    suspendedAt: (profile as { suspended_at?: string | null }).suspended_at ?? null,
+    suspensionReason:
+      (profile as { suspension_reason?: string | null }).suspension_reason ?? null,
     ...(permissions.length > 0 ? { permissions } : {})
   };
 };
@@ -144,5 +147,7 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     isGuardian: profile.is_guardian || false,
     avatarUrl: profile.avatar_url || undefined,
     createdAt: profile.created_at || new Date().toISOString(),
+    suspendedAt: profile.suspended_at ?? null,
+    suspensionReason: profile.suspension_reason ?? null,
   }));
 };

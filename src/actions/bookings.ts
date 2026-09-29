@@ -9,7 +9,7 @@ import { buildSessionSchedule } from '@/lib/session-schedule';
 import type { WeeklySlot } from '@/types';
 import { hasAdminPermission } from '@/lib/utils';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getDependentGuardian } from '@/lib/auth-guard';
+import { getDependentGuardian, requireBuyer } from '@/lib/auth-guard';
 import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
 import { getSiteSettings } from '@/data/domains/content';
 
@@ -72,6 +72,14 @@ export async function createCourseBooking(params: {
   const dependent = await getDependentGuardian();
   if (dependent) {
     return { ok: false, error: 'الحجز محتاج موافقة ولي أمرك. كلّمه يعمله من حسابه.' };
+  }
+
+  // والحساب الموقوف ممنوع من الحجز الجديد. المنع الحقيقي محفّز في
+  // القاعدة (ملف 118) — ده بيدّي الرسالة قبل ما نوصل لهناك.
+  try {
+    await requireBuyer();
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
   }
 
   // ── الموافقة شرط، والشرط بيتنفّذ هنا ──────────────────────
