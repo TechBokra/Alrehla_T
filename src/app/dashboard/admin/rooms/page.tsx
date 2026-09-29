@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Radio, Gauge, CalendarClock } from 'lucide-react';
+import { AlertTriangle, Radio, Gauge, CalendarClock, Clapperboard } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getSessionsForAdmin } from '@/data/domains/writing';
@@ -13,12 +13,20 @@ import { sessionStatusView } from '@/lib/session-status';
 import { retentionLabel } from '@/lib/session-recording';
 import {
   DAILY_FREE_MINUTES,
+  SESSION_ROOM_PREFIX,
   checkDailyKey,
+  expiredRecordings,
   getMonthUsage,
   getPresence,
   isDailyConfigured,
+  listRecordings,
 } from '@/lib/daily';
 import { RoomActions, JoinRoomButton } from './RoomsClient';
+import {
+  WatchRecordingButton,
+  DeleteRecordingButton,
+  PurgeNowButton,
+} from './RecordingsClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,12 +61,13 @@ export default async function Page() {
   // ⚠️ **الفحص بيتعمل أول حاجة.** لو المفتاح مرفوض، باقي النداءات
   //    هترجع نفس الخطأ تلات مرات في تلات أماكن مختلفة — والإدارة
   //    بتقرا «فيه مشكلة» تلاتة من غير ما تعرف إيه هي.
-  const [check, sessions, settings, presence, usage] = await Promise.all([
+  const [check, sessions, settings, presence, usage, recordings] = await Promise.all([
     checkDailyKey(),
     getSessionsForAdmin(),
     getSiteSettings(),
     ready ? getPresence() : Promise.resolve(null),
     ready ? getMonthUsage() : Promise.resolve(null),
+    ready ? listRecordings(100) : Promise.resolve(null),
   ]);
 
   const now = Date.now();
@@ -109,6 +118,67 @@ export default async function Page() {
         <StatusBadge type="danger" label="بلا غرفة" />
       ),
       joinDisplay: s.roomName ? <JoinRoomButton sessionId={s.id} /> : '—',
+    };
+  });
+
+  // ── التسجيلات ──────────────────────────────────────────────
+  //
+  // ⚠️ **بنعرض تسجيلات غرف الجلسات وبس.** أي تسجيل اسم غرفته
+  //    مابيبدأش بالبادئة مش بتاعنا — الحساب ممكن يتشارك مع مشروع
+  //    تاني، والشاشة دي مش بوابة على تسجيلاته.
+  const ourRecordings = (recordings?.ok ? recordings.data : []).filter((r) =>
+    r.roomName.startsWith(SESSION_ROOM_PREFIX),
+  );
+
+  // اللي هيتمسح في أول تشغيل للمهمة — بيتعلّم عشان الإدارة تشوفه
+  // **قبل** ما يروح، مش تكتشف غيابه بعدين.
+  const dueIds = new Set(
+    settings.sessionRecording.enabled
+      ? expiredRecordings(ourRecordings, settings.sessionRecording.retentionDays).map(
+          (r) => r.id,
+        )
+      : [],
+  );
+
+  const canDeleteRecordings = user?.role === 'super_admin';
+
+  const recordingRows = ourRecordings.map((r) => {
+    const session = sessions.find((s) => s.id === r.sessionId);
+    const label = session
+      ? `جلسة ${session.sessionNumber} · ${session.participantName}`
+      : 'جلسة محذوفة';
+    const when = r.startedAt
+      ? formatCairo(r.startedAt, { dateStyle: 'medium', timeStyle: 'short' })
+      : '—';
+
+    return {
+      id: r.id,
+      sessionDisplay: label,
+      instructorDisplay: session?.instructorName ?? '—',
+      whenDisplay: when,
+      lengthDisplay:
+        r.status === 'in-progress'
+          ? 'بيتسجّل دلوقتي'
+          : `${Math.round(r.durationSeconds / 60)} دقيقة`,
+      stateDisplay: dueIds.has(r.id) ? (
+        <StatusBadge type="warning" label="هيتمسح في أقرب تشغيل" />
+      ) : (
+        <StatusBadge type="success" label="محفوظ" />
+      ),
+      watchDisplay:
+        r.status === 'in-progress' ? (
+          <span className="text-xs font-medium text-slate-400">لسه شغّال</span>
+        ) : (
+          <WatchRecordingButton recordingId={r.id} roomName={r.roomName} />
+        ),
+      deleteDisplay: (
+        <DeleteRecordingButton
+          recordingId={r.id}
+          roomName={r.roomName}
+          label={`${label} — ${when}`}
+          canDelete={canDeleteRecordings}
+        />
+      ),
     };
   });
 
@@ -262,6 +332,74 @@ export default async function Page() {
             enablePagination={false}
             emptyMessage="مفيش حد في أي غرفة دلوقتي."
           />
+        )}
+      </section>
+
+      {/* ── التسجيلات ─────────────────────────────────────── */}
+      <section className="mb-10">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-black text-slate-800">
+          <Clapperboard className="h-5 w-5 text-slate-400" />
+          التسجيلات
+        </h2>
+        <p className="mb-4 text-sm font-medium text-slate-500">
+          {settings.sessionRecording.enabled ? (
+            <>
+              الاحتفاظ {retentionLabel(settings.sessionRecording.retentionDays)}، وبعدها
+              التسجيل بيتمسح تلقائيًّا. ده اللي مكتوب لولي الأمر في السياسات
+              وفي شاشة الحجز.
+            </>
+          ) : (
+            <>
+              التسجيل <strong>مقفول</strong> في الإعدادات — فمفيش تسجيلات جديدة،
+              ومفيش حذف تلقائي للقديم.
+            </>
+          )}
+        </p>
+
+        {/* ⚠️ **الرابط بيتولّد لحظة الضغط وبيموت بعد ساعة.**
+            دي تسجيلات فيها أطفال، والرابط الدائم بيتنسخ على واتساب
+            ويفضل شغّالًا بعد ما كل حد نسي إنه اتبعت — نفس سبب إن
+            غرف الجلسات `private` والدخول بتذكرة. */}
+        <p className="mb-4 flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-600">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-slate-400" />
+          <span>
+            رابط المشاهدة بيتولّد لحظة الضغط وبينتهي بعد ساعة، و
+            <strong className="text-slate-800"> كل فتحة بتتسجّل في التدقيق</strong> —
+            دي جلسات فيها أطفال.
+            {!canDeleteRecordings && ' والحذف لمدير النظام وحده.'}
+          </span>
+        </p>
+
+        {recordings && !recordings.ok ? (
+          <p className="text-sm font-bold text-rose-600">{recordings.error}</p>
+        ) : (
+          <SimpleDataTable
+            columns={[
+              { header: 'الجلسة', accessorKey: 'sessionDisplay' },
+              { header: 'المدرب', accessorKey: 'instructorDisplay' },
+              { header: 'اتسجّل', accessorKey: 'whenDisplay' },
+              { header: 'المدة', accessorKey: 'lengthDisplay' },
+              { header: 'الحالة', accessorKey: 'stateDisplay' },
+              { header: '', accessorKey: 'watchDisplay' },
+              { header: '', accessorKey: 'deleteDisplay' },
+            ]}
+            data={recordingRows}
+            pageSize={10}
+            searchPlaceholder="ابحث باسم المتدرب أو المدرب..."
+            emptyMessage={
+              settings.sessionRecording.enabled
+                ? 'مفيش تسجيلات لسه.'
+                : 'مفيش تسجيلات — التسجيل مقفول في الإعدادات.'
+            }
+          />
+        )}
+
+        {settings.sessionRecording.enabled && canDeleteRecordings && (
+          <div className="mt-4">
+            <PurgeNowButton
+              retentionLabel={retentionLabel(settings.sessionRecording.retentionDays)}
+            />
+          </div>
         )}
       </section>
 

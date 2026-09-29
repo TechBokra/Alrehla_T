@@ -398,3 +398,181 @@ export async function getMonthUsage(): Promise<DailyResult<DailyUsage>> {
 
 /** الحد المجاني الشهري عند Daily — بيتقارن بيه في اللوحة. */
 export const DAILY_FREE_MINUTES = 10_000;
+
+// ── التسجيلات ────────────────────────────────────────────────
+
+/**
+ * البادئة اللي غرف الجلسات بتتسمّى بيها (`createSessionRoom`).
+ *
+ * ⚠️ **وهي حارس الحذف.** أي تسجيل اسم غرفته مابيبدأش بالبادئة دي
+ *    **مابنلمسوش**: مش بنحذفه لا يدويًّا ولا تلقائيًّا.
+ *
+ *    السبب هو نفس سبب `FOLDER` في Cloudinary: الحساب ممكن يتشارك مع
+ *    مشروع تاني، والمهمة اليومية بتمسح بلا تراجع. القيد في الكود مش
+ *    خيارًا في الشاشة.
+ */
+export const SESSION_ROOM_PREFIX = 'alrehla-';
+
+export type DailyRecording = {
+  id: string;
+  roomName: string;
+  /** بداية التسجيل — **وهي أساس حساب المدة، لا عمود في قاعدتنا**. */
+  startedAt: string;
+  /** بالثواني. صفر للتسجيل اللي لسه شغّال. */
+  durationSeconds: number;
+  /** `finished` أو `in-progress`. */
+  status: string;
+  /** رقم الجلسة المستخرَج من اسم الغرفة — `null` لو الغرفة مش غرفة جلسة. */
+  sessionId: string | null;
+};
+
+type RawRecording = {
+  id: string;
+  room_name?: string;
+  s3key?: string;
+  start_ts?: number;
+  duration?: number;
+  status?: string;
+};
+
+/**
+ * اسم الغرفة من صفّ التسجيل.
+ *
+ * ⚠️ **`room_name` مش مضمون في كل رد.** توثيق Daily بيسرد `s3key` في
+ *    قايمة الحقول و`room_name` في المثال — والاتنين بيتغيّروا بين
+ *    إصدارات. و`s3key` شكله `<domain>/<room>/<ts>`.
+ *
+ *    والفرق مش شكلي: الاسم هو اللي بيربط التسجيل بالجلسة **وهو اللي
+ *    بيقرّر الحذف**. لو رجع فاضي، بنسيب التسجيل ومابنحذفوش — الحارس
+ *    بيفشل مقفولًا لا مفتوحًا.
+ */
+function roomNameOf(raw: RawRecording): string {
+  if (typeof raw.room_name === 'string' && raw.room_name) return raw.room_name;
+  if (typeof raw.s3key === 'string' && raw.s3key.includes('/')) {
+    const parts = raw.s3key.split('/');
+    return parts.length >= 2 ? parts[parts.length - 2] : '';
+  }
+  return '';
+}
+
+function toRecording(raw: RawRecording): DailyRecording {
+  const roomName = roomNameOf(raw);
+  return {
+    id: String(raw.id),
+    roomName,
+    startedAt: raw.start_ts ? new Date(raw.start_ts * 1000).toISOString() : '',
+    durationSeconds: Number(raw.duration ?? 0),
+    status: String(raw.status ?? ''),
+    sessionId: roomName.startsWith(SESSION_ROOM_PREFIX)
+      ? roomName.slice(SESSION_ROOM_PREFIX.length)
+      : null,
+  };
+}
+
+/**
+ * تسجيلات الحساب، من الأحدث للأقدم.
+ *
+ * ⚠️ **بنقرا على صفحات ونقف عند سقف.** الشاشة مش تقرير: أكتر من
+ *    بضع مئات بيعلّقها. والمهمة اليومية بتستعمل نفس الدالة بسقف
+ *    أعلى، لأن اللي مابيتقريش **مابيتحذفش** فيفضل مخزَّنًا للأبد.
+ */
+export async function listRecordings(max = 200): Promise<DailyResult<DailyRecording[]>> {
+  const out: DailyRecording[] = [];
+  let cursor: string | undefined;
+
+  for (let page = 0; page < 20; page++) {
+    const query = new URLSearchParams({ limit: '100' });
+    if (cursor) query.set('starting_after', cursor);
+
+    const result = await call<{ data?: RawRecording[] }>(`/recordings?${query}`);
+    if (!result.ok) return result;
+
+    const rows = result.data?.data ?? [];
+    if (rows.length === 0) break;
+
+    for (const raw of rows) out.push(toRecording(raw));
+
+    if (out.length >= max || rows.length < 100) break;
+    cursor = rows[rows.length - 1]?.id;
+    if (!cursor) break;
+  }
+
+  return { ok: true, data: out.slice(0, max) };
+}
+
+/**
+ * رابط مشاهدة **مؤقّت**.
+ *
+ * ⚠️ **ومؤقّت هنا مش تشدّدًا زايدًا.** دي تسجيلات فيها أطفال. الرابط
+ *    الدائم بيتنسخ على واتساب ويفضل شغّالًا للأبد بعد ما كل حد نسي
+ *    إنه اتبعت — وده نفس سبب إن غرف الجلسات `private` والدخول
+ *    بتذكرة.
+ *
+ * Daily بيقبل من ١٥ دقيقة لـ١٢ ساعة. بنطلب ساعة: تكفي للمراجعة
+ * ومابتعيشش لبكرة.
+ */
+export async function getRecordingLink(
+  recordingId: string,
+  validForSecs = 3600,
+): Promise<DailyResult<{ url: string; expiresAt: string }>> {
+  const result = await call<{ download_link?: string; expires?: number }>(
+    `/recordings/${encodeURIComponent(recordingId)}/access-link?valid_for_secs=${validForSecs}`,
+  );
+  if (!result.ok) return result;
+
+  if (!result.data.download_link) {
+    return { ok: false, error: 'Daily رد بلا رابط للتسجيل ده.' };
+  }
+
+  return {
+    ok: true,
+    data: {
+      url: result.data.download_link,
+      expiresAt: result.data.expires
+        ? new Date(result.data.expires * 1000).toISOString()
+        : new Date(Date.now() + validForSecs * 1000).toISOString(),
+    },
+  };
+}
+
+/** حذف تسجيل. **مالوش تراجع** — الحارس في `actions/recordings.ts`. */
+export async function deleteRecording(recordingId: string): Promise<DailyResult<unknown>> {
+  return call(`/recordings/${encodeURIComponent(recordingId)}`, { method: 'DELETE' });
+}
+
+/**
+ * التسجيلات اللي عدّت مدة الاحتفاظ.
+ *
+ * ── ليه الحساب من بيانات Daily لا من قاعدتنا ────────────────
+ *
+ * `sessions.recording_expires_at` موجود، لكن الاعتماد عليه بيخلّي
+ * الحذف يعتمد على صفّ **ممكن ما يكونش اتكتب**: غرفة اتعملت والكتابة
+ * فشلت، أو جلسة اتحذفت وتسجيلها فضل. والتسجيل اللي مالوش صفّ
+ * **مايتحذفش أبدًا** — وهو بالظبط التسجيل اللي محدّش فاكره.
+ *
+ * فالمدة بتتحسب من **بداية التسجيل نفسه** عند Daily. كل تسجيل ليه
+ * تاريخ، فمفيش تسجيل بيفلت.
+ *
+ * ⚠️ **والأثر الجانبي مقصود ومكتوب:** لو الإدارة نزّلت المدة من شهر
+ *    لأسبوع، التسجيلات اللي عدّى عليها أسبوع هتتمسح في أول تشغيل.
+ *    ده معنى «بنحتفظ أسبوع» — والاتجاه ده هو الآمن: الأقصر بيحذف
+ *    أكتر، والأطول مابيرجّعش اللي اتمسح.
+ */
+export function expiredRecordings(
+  recordings: DailyRecording[],
+  retentionDays: number,
+  now = Date.now(),
+): DailyRecording[] {
+  if (!(retentionDays > 0)) return [];
+  const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
+
+  return recordings.filter((r) => {
+    // ⚠️ اللي لسه بيتسجّل مابيتلمسش مهما كان تاريخه.
+    if (r.status === 'in-progress') return false;
+    // ⚠️ برّه بادئة غرف الجلسات = مش بتاعنا.
+    if (!r.roomName.startsWith(SESSION_ROOM_PREFIX)) return false;
+    // ⚠️ بلا تاريخ = بلا حذف. مانعرفش عمره، والشك بيمنع لا بيسمح.
+    if (!r.startedAt) return false;
+    return new Date(r.startedAt).getTime() < cutoff;
+  });
+}
