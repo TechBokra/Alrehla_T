@@ -63,13 +63,39 @@ export function Reveal({
       return;
     }
 
+    // ══ 🔴 الشرط ده اتكتب بعد عطل حقيقي على المنشور ═════════
+    //
+    // أول نسخة كانت بتظهّر العنصر على `isIntersecting` **وحدها**.
+    // والنتيجة اتقاست على الموقع المنشور: قفزة تمرير لآخر الصفحة
+    // مرة واحدة ⇦ الكتب فضلت `opacity: 0` **للأبد**.
+    //
+    // السبب إن العنصر اللي بيعدّي من تحت الشاشة لفوقها **في إطار
+    // واحد** المراقب بيحسبه «مش متقاطع» — فمابيتنادى بالظهور أبدًا.
+    //
+    // ⚠️ **ودي مش حالة نادرة ولا مصطنعة**، بتحصل مع:
+    //      • رابط بعلامة `#` بيوقّعك في نصّ الصفحة
+    //      • رجوع المتصفح لمكان التمرير القديم بعد Back أو تحديث
+    //      • `Ctrl+End` أو زرّ «تخطَّ إلى المحتوى»
+    //
+    // ⚠️ **ولاحظ إن `<noscript>` تحت مابيغطّيش الحالة دي**: هو
+    //    بيحمي من «الجافاسكريبت متعطّل»، والجافاسكريبت هنا شغّال
+    //    تمامًا — وبيخفي المحتوى.
+    //
+    // فالقاعدة بقت: **يظهر لو متقاطع، أو لو عدّى فوق خالص.**
+    const passed = (rect: DOMRectReadOnly | DOMRect) => rect.bottom <= 0;
+
+    const reveal = () => {
+      setShown(true);
+      observer.disconnect();
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setShown(true);
-            // مرة واحدة — مافيش تكرار مع كل تمرير.
-            observer.unobserve(entry.target);
+          // مرة واحدة — مافيش تكرار مع كل تمرير.
+          if (entry.isIntersecting || passed(entry.boundingClientRect)) {
+            reveal();
+            return;
           }
         }
       },
@@ -79,6 +105,15 @@ export function Reveal({
       //    متأخرة.
       { rootMargin: '0px 0px -80px 0px', threshold: 0.05 },
     );
+
+    // ⚠️ **وفحص فوري قبل المراقبة.** لو الصفحة فتحت وهي متمرّرة
+    //    أصلًا (رابط `#` أو رجوع من صفحة تانية)، العنصر اللي فوق
+    //    مكان التمرير مش هيدخل الشاشة تاني — فلازم يتظهّر دلوقتي
+    //    من غير ما ننتظر حدثًا مش جاي.
+    if (passed(node.getBoundingClientRect())) {
+      setShown(true);
+      return;
+    }
 
     observer.observe(node);
     return () => observer.disconnect();
