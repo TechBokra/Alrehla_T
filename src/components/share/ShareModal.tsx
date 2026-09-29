@@ -168,7 +168,7 @@ export function ShareModal({ isOpen, onClose, data, theme = 'brand' }: ShareModa
                       type="text"
                       readOnly
                       value={shareTargetUrl}
-                      className="w-full bg-transparent text-xs font-mono text-slate-700 outline-none select-all dir-ltr text-left"
+                      className="w-full bg-transparent text-base md:text-xs font-mono text-slate-700 outline-none select-all dir-ltr text-left"
                     />
                   </div>
                   <button

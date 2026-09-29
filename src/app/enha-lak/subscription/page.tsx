@@ -62,7 +62,7 @@ export default async function SubscriptionPage() {
               <Card
                 key={tier.id}
                 accentColor="rose"
-                className={`relative flex flex-col overflow-hidden p-8 transition-all hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-500/10 ${isPopular ? 'z-10 border-rose-300 shadow-xl shadow-rose-500/10 md:scale-105' : 'shadow-sm'}`}
+                className={`relative flex flex-col overflow-hidden p-8 transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-rose-300 hover:shadow-xl hover:shadow-rose-500/10 ${isPopular ? 'z-10 border-rose-300 shadow-xl shadow-rose-500/10 md:scale-105' : 'shadow-sm'}`}
               >
                 {isPopular && (
                   <div className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-rose-600 px-4 py-1 text-xs font-bold text-white shadow-sm">

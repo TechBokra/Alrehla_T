@@ -228,7 +228,7 @@ export function FamilyClient({
           <div className="w-40">
             <label className="block text-sm font-bold text-slate-700 mb-2">النوع</label>
             <select
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-emerald-500"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base md:text-sm font-medium text-slate-800 outline-none focus:border-emerald-500"
               value={formData.gender}
               onChange={(e) =>
                 setFormData({ ...formData, gender: e.target.value as 'male' | 'female' | '' })

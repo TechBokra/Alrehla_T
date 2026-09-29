@@ -85,7 +85,7 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition-all outline-none focus:border-amber-500"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm text-slate-700 transition-all outline-none focus:border-amber-500"
         >
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -102,7 +102,7 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="عنوان مختصر للمشكلة"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium transition-all outline-none focus:border-amber-500"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm transition-all outline-none focus:border-amber-500"
         />
       </div>
 
@@ -113,7 +113,7 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="اشرح مشكلتك أو استفسارك..."
-          className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium transition-all outline-none focus:border-amber-500"
+          className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm transition-all outline-none focus:border-amber-500"
         />
       </div>
 

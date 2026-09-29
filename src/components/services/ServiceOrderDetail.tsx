@@ -333,7 +333,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
                     السبب (يُسجَّل في سجل التدقيق)
                   </label>
                   <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base md:text-sm"
                     value={adminReason}
                     onChange={(e) => setAdminReason(e.target.value)}
                   />

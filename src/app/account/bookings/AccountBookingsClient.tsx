@@ -137,7 +137,7 @@ export function AccountBookingsClient({ initialRows }: { initialRows: BookingRow
             placeholder="بحث برقم الحجز، الباقة، أو الجلسة…"
             value={search}
             onChange={handleSearchChange}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pr-10 pl-4 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-colors"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pr-10 pl-4 py-2 text-base md:text-xs font-medium text-slate-800 focus:bg-white focus:border-slate-800 focus:outline-hidden transition-colors"
           />
         </div>
 

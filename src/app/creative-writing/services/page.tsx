@@ -135,7 +135,7 @@ export default async function ServicesPage() {
                 {category.services.map((service) => (
                   <div 
                     key={service.id} 
-                    className={`flex flex-col rounded-3xl border-2 ${category.borderColor} bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg`}
+                    className={`flex flex-col rounded-3xl border-2 ${category.borderColor} bg-white p-8 shadow-sm transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:shadow-lg`}
                   >
                     <div className="mb-6 flex-1">
                       <div className="mb-3">

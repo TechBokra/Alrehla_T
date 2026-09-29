@@ -135,8 +135,8 @@ export default async function EnhaLakPage() {
             href="/enha-lak/custom"
             className="group block h-full"
           >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-all duration-300 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 transition-transform group-hover:scale-110 md:mx-0">
+            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 md:text-right">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
                 <PenTool className="h-8 w-8" />
               </div>
               <h3 className="mb-3 text-2xl font-bold text-slate-800">
@@ -151,8 +151,8 @@ export default async function EnhaLakPage() {
             href="/enha-lak/library"
             className="group block h-full"
           >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-all duration-300 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-transform group-hover:scale-110 md:mx-0">
+            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 md:text-right">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
                 <BookOpen className="h-8 w-8" />
               </div>
               <h3 className="mb-3 text-2xl font-bold text-slate-800">
@@ -167,8 +167,8 @@ export default async function EnhaLakPage() {
             href="/enha-lak/subscription"
             className="group block h-full"
           >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-all duration-300 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-transform group-hover:scale-110 md:mx-0">
+            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-500/10 md:text-right">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
                 <Package className="h-8 w-8" />
               </div>
               <h3 className="mb-3 text-2xl font-bold text-slate-800">

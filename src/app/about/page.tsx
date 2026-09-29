@@ -132,7 +132,7 @@ export default async function AboutPage() {
               <Card
                 key={index}
                 accentColor="amber"
-                className={`p-6 transition-all hover:shadow-md ${index > 2 ? 'md:col-span-1.5' : ''}`}
+                className={`p-6 transition-shadow duration-[var(--dur-ui)] ease-[var(--ease-ui)] hover:shadow-md ${index > 2 ? 'md:col-span-1.5' : ''}`}
               >
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-xl ${value.bg} ${value.color} mb-4`}
