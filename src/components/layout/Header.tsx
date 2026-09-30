@@ -5,6 +5,7 @@ import React from 'react';
 import { CartHeaderButton } from '@/components/cart/CartHeaderButton';
 import { HeaderAccount } from '@/components/layout/HeaderAccount';
 import { NavLinks, NavLinksMobile } from '@/components/layout/NavLinks';
+import { NavCollapseOnScroll } from '@/components/layout/NavCollapseOnScroll';
 import { getSiteSettings } from '@/data/domains/content';
 import { slotImageUrl } from '@/lib/cloudinary';
 
@@ -67,8 +68,17 @@ export default async function Header() {
       </header>
 
       {/* القائمة كانت مخفية تمامًا تحت 1024 بكسل، ومفيش زرار يفتحها —
-          الزائر على التليفون مكانش يقدر يتنقّل بين الأقسام من الهيدر. */}
-      <NavLinksMobile />
+          الزائر على التليفون مكانش يقدر يتنقّل بين الأقسام من الهيدر.
+
+          ⚠️ والصفّ ده بيتطوى وإنت نازل ويرجع وإنت طالع: كان بيعمل
+             طبقة رابعة قبل أول كلمة محتوى على الشاشات الضيّقة.
+             التنسيق في `globals.css` تحت `.nav-collapsible`،
+             والمراقب مكوّن عميل صغير مابيرسمش حاجة — فالهيدر
+             بيفضل **مكوّن خادم** زي ما هو. */}
+      <div className="nav-collapsible">
+        <NavLinksMobile />
+      </div>
+      <NavCollapseOnScroll />
     </div>
   );
 }

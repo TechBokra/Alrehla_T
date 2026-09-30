@@ -93,12 +93,35 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                 </div>
               </div>
               <div className="mb-2 shrink-0">
+                {/* ══ 🔴 الزرّ ده كان بيرمي العميل في أول المعالج ══
+                    كان `href="/creative-writing/booking"` — **بلا رقم
+                    المدرب**. فاللي بيقرا بروفايل مدرب بعينه ويضغط
+                    «احجز» بيلاقي نفسه في قايمة المدربين كلهم من الأول،
+                    ولازم يدوّر على نفس المدرب تاني ويفتكر اسمه.
+
+                    ⚠️ **والمعالج كان بيدعم التمرير من الأصل**:
+                       `presetInstructorId` موجودة فيه وبتختار المدرب
+                       سلفًا لو كان مفعّلًا — الرابط هو اللي كان ناقصًا.
+                       يعني الميزة كانت مبنية ومش موصولة.
+
+                    واسم الزرّ اتغيّر كمان: «احجز جلسة الآن» وعد عام،
+                    و«احجز مع هذا المدرب» بيقول اللي هيحصل بالظبط. */}
                 <Button
-                  href="/creative-writing/booking"
-                  accentColor="emerald"
-                  className="w-full sm:w-auto !bg-slate-900 !text-white hover:!bg-emerald-600"
+                  href={`/creative-writing/booking?instructor=${instructor.id}`}
+                  variant="neutral"
+                  accentColor="journey"
+                  // ⚠️ `variant="neutral"` بدل `!bg-slate-900 !text-white`:
+                  //    التجاوز بـ`!important` بيتخطّى الخلفية **ويسيب
+                  //    لون النصّ للمكوّن** — وده اللي خلّى زرّ «تصفح
+                  //    المدونة» يختفي تمامًا لما النصّ بقى داكنًا
+                  //    (خلفية slate-900 + نصّ slate-900 = 1:1).
+                  //    وكان فيه `hover:!bg-emerald-600` كمان — وده
+                  //    **نصّ أبيض على أخضر = 2.46:1**، يعني الزرّ
+                  //    بيسقط في التباين وقت المرور عليه بالظبط. اتشال،
+                  //    والـhover بقى من المكوّن (slate-800).
+                  className="w-full sm:w-auto"
                 >
-                  احجز جلسة الآن
+                  احجز مع هذا المدرب
                   <MessageCircle className="h-5 w-5" />
                 </Button>
               </div>

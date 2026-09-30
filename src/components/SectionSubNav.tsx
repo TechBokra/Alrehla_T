@@ -48,7 +48,11 @@ export function SectionSubNav({
   return (
     <nav
       aria-label="القائمة الفرعية"
-      className="sticky top-[8.5rem] z-40 w-full border-b border-slate-200/40 bg-white/50 backdrop-blur-xl lg:top-[5.5rem]"
+      // ⚠️ الارتفاع من `--subnav-top` لا من رقم مكتوب: الرقم ده مجموع
+      //    الهيدر + صفّ قائمة الموقع، والصفّ ده بيتطوى عند النزول.
+      //    لو فضل رقمًا ثابتًا، الطيّ كان هيسيب **فراغًا أبيض معلّقًا**
+      //    مكان الصفّ المطويّ.
+      className="sticky top-[var(--subnav-top)] z-40 w-full border-b border-slate-200/40 bg-white/50 backdrop-blur-xl"
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div
