@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { productOrderStatus } from '@/lib/order-status';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
@@ -13,17 +14,7 @@ import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 
 export const dynamic = 'force-dynamic';
 
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  pending: 'بانتظار الدفع',
-  awaiting_verification: 'بانتظار تأكيد الدفع',
-  paid: 'تم الدفع',
-  preparing: 'قيد التجهيز',
-  shipped: 'تم الشحن',
-  delivered: 'تم التسليم',
-  cancelled: 'ملغي',
-  refunded: 'مسترجع',
-  failed: 'فشل الدفع',
-};
+// الأسماء اتنقلت لـ`@/lib/order-status` (مصدر واحد للاسم واللون).
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
@@ -73,7 +64,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
           <div>
             <div className="text-sm text-slate-500 mb-1">تاريخ الطلب: {formatDate(target.createdAt)}</div>
-            <div className="text-sm text-slate-500 mb-1">حالة الطلب: {ORDER_STATUS_LABEL[target.status] ?? target.status}</div>
+            <div className="text-sm text-slate-500 mb-1">حالة الطلب: {productOrderStatus(target.status).label}</div>
             {target.paymentReference && (
               <div dir="ltr" className="text-right font-mono text-sm font-bold text-blue-600">
                 {target.paymentReference}

@@ -7,21 +7,17 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import Link from 'next/link';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { formatDate } from '@/lib/utils';
+import { serviceOrderStatus } from '@/lib/order-status';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { dueLabel, isOverdue, OPEN_SERVICE_STATUSES } from '@/lib/service-delivery';
 
 export const dynamic = 'force-dynamic';
 
-const ORDER_STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
-  pending: { label: 'بانتظار الدفع', type: 'pending' },
-  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'pending' },
-  paid: { label: 'مدفوع', type: 'success' },
-  in_progress: { label: 'جاري التنفيذ', type: 'warning' },
-  delivered: { label: 'تم التسليم', type: 'warning' },
-  completed: { label: 'مكتمل', type: 'success' },
-  refunded: { label: 'مسترجع', type: 'neutral' },
-  cancelled: { label: 'ملغي', type: 'neutral' },
-};
+// ⚠️ الخريطة اتنقلت لـ`@/lib/order-status`: نفس الحالات كانت
+//    مكتوبة هنا وفي صفحة الطلب وفي تفاصيل المستخدم بتلات
+//    أشكال — والتالتة كانت بتعرض القيمة الخام الإنجليزية.
+//    و`in_progress`/`delivered` كانوا `warning`، والتقدّم
+//    الطبيعي مش تحذير.
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -59,8 +55,8 @@ export default async function Page() {
     ),
     statusDisplay: (
       <StatusBadge
-        type={ORDER_STATUS[order.status]?.type ?? 'warning'}
-        label={ORDER_STATUS[order.status]?.label ?? order.status}
+        type={serviceOrderStatus(order.status).type}
+        label={serviceOrderStatus(order.status).label}
       />
     )
   }));

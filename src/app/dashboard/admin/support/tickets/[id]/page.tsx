@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/data/domains/auth';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { Paperclip, Send, CheckCircle, Clock, Archive } from 'lucide-react';
+import { ticketStatus } from '@/lib/ticket-status';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TicketReplyBox, CloseTicketButton } from './TicketActions';
 
@@ -41,10 +42,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
         <div className="flex flex-col gap-3 items-end">
-          <StatusBadge 
-            type={target.status === 'open' ? 'warning' : target.status === 'answered' ? 'success' : 'neutral'}
-            label={target.status === 'open' ? 'مفتوحة (تحتاج لرد)' : target.status === 'answered' ? 'تم الرد' : 'مغلقة'}
-          />
+          {/* ⚠️ الاسم واللون من `ticketStatus` لا مكتوبين هنا:
+              نفس الحالة كانت في تلات أماكن بتلات أشكال. */}
+          <StatusBadge {...ticketStatus(target.status)} />
           {target.status !== 'closed' && (
             <CloseTicketButton ticketId={target.id} />
           )}

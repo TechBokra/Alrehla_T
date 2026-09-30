@@ -6,6 +6,7 @@ import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
+import { ticketStatus } from '@/lib/ticket-status';
 import { StatusBadge } from '@/components/StatusBadge';
 
 export const dynamic = 'force-dynamic';
@@ -22,12 +23,11 @@ export default async function Page() {
     ...t,
     idDisplay: <Link href={`/dashboard/admin/support/tickets/${t.id}`} className="font-bold text-blue-600 hover:underline">#{t.id.split('-')[1]}</Link>,
     dateDisplay: formatDate(t.createdAt),
-    statusDisplay: (
-      <StatusBadge
-          type={t.status === 'open' ? 'warning' : t.status === 'answered' ? 'neutral' : 'neutral'}
-          label={t.status === 'open' ? 'مفتوحة' : t.status === 'answered' ? 'مُجاب عليها' : 'مغلقة'}
-        />
-    )
+    // ⚠️ كانت «مُجاب عليها» هنا و«تم الرد» في صفحة التذكرة،
+    //    و`neutral` هنا و`success` هناك — لنفس الحالة.
+    statusDisplay: <StatusBadge {...ticketStatus(t.status)} />,
+    // النصّ الخام عشان البحث يلاقيه — المكوّن بيتخطّى عناصر React.
+    statusText: ticketStatus(t.status).label
   }));
 
   const columns = [

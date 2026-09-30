@@ -1,6 +1,11 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
+import { ticketStatus } from '@/lib/ticket-status';
+import { productOrderStatus, serviceOrderStatus } from '@/lib/order-status';
+import { sessionStatusView } from '@/lib/session-status';
+import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -690,44 +695,42 @@ export function AdminUserDetailClient({
             paginatedOrders.length > 0 ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                      <tr>
-                        <th className="p-3.5">رقم الطلب</th>
-                        <th className="p-3.5">التاريخ</th>
-                        <th className="p-3.5">عدد المنتجات</th>
-                        <th className="p-3.5">الإجمالي</th>
-                        <th className="p-3.5">الحالة</th>
-                        <th className="p-3.5">رقم التتبع</th>
-                        <th className="p-3.5 text-center">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {paginatedOrders.map((o) => (
-                        <tr key={o.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="p-3.5 font-bold font-mono text-slate-900">{o.id}</td>
-                          <td className="p-3.5 text-slate-600">{formatDate(o.createdAt)}</td>
-                          <td className="p-3.5 text-slate-800">{o.itemsCount} منتج</td>
-                          <td className="p-3.5 font-bold text-slate-900">{formatPrice(o.totalAmount)}</td>
-                          <td className="p-3.5">
-                            <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-700">
-                              {o.status}
-                            </span>
-                          </td>
-                          <td className="p-3.5 font-mono text-slate-600">{o.trackingReference || '—'}</td>
-                          <td className="p-3.5 text-center">
-                            <Link
-                              href={`/dashboard/admin/orders/${o.id}`}
-                              className="text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1"
-                            >
-                              <span>عرض</span>
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {/* ⚠️ الحالة كانت خامًا (`{o.status}`) — الإداري بيشوف
+                      «awaiting_verification» إنجليزي. الأسماء من
+                      `productOrderStatus`، نفس المصدر اللي صفحة الطلب
+                      بتقرا منه. */}
+                  <SimpleDataTable
+                    enableSearch={false}
+                    enablePagination={false}
+                    emptyMessage="لا توجد طلبات."
+                    columns={[
+                      { header: 'رقم الطلب', accessorKey: 'idDisplay' },
+                      { header: 'التاريخ', accessorKey: 'date' },
+                      { header: 'عدد المنتجات', accessorKey: 'items' },
+                      { header: 'الإجمالي', accessorKey: 'total' },
+                      { header: 'الحالة', accessorKey: 'statusDisplay' },
+                      { header: 'رقم التتبع', accessorKey: 'tracking' },
+                      { header: 'إجراء', accessorKey: 'action' },
+                    ]}
+                    data={paginatedOrders.map((o) => ({
+                      id: o.id,
+                      idDisplay: <span className="font-mono font-bold text-slate-900">{o.id}</span>,
+                      date: formatDate(o.createdAt),
+                      items: `${o.itemsCount} منتج`,
+                      total: formatPrice(o.totalAmount),
+                      statusDisplay: <StatusBadge {...productOrderStatus(o.status)} />,
+                      tracking: o.trackingReference || '—',
+                      action: (
+                        <Link
+                          href={`/dashboard/admin/orders/${o.id}`}
+                          className="text-info inline-flex items-center gap-1 font-bold hover:underline"
+                        >
+                          <span>عرض</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ),
+                    }))}
+                  />
                 </div>
 
                 {Math.ceil(filteredOrders.length / PAGE_SIZE) > 1 && (
@@ -752,44 +755,40 @@ export function AdminUserDetailClient({
             paginatedServiceOrders.length > 0 ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                  <table className="w-full text-right text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                      <tr>
-                        <th className="p-3.5">رقم الطلب</th>
-                        <th className="p-3.5">اسم الخدمة</th>
-                        <th className="p-3.5">المدرب</th>
-                        <th className="p-3.5">المبلغ</th>
-                        <th className="p-3.5">الحالة</th>
-                        <th className="p-3.5">التاريخ</th>
-                        <th className="p-3.5 text-center">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {paginatedServiceOrders.map((so) => (
-                        <tr key={so.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="p-3.5 font-bold font-mono text-slate-900">{so.id}</td>
-                          <td className="p-3.5 font-bold text-slate-800">{so.serviceName}</td>
-                          <td className="p-3.5 text-slate-600">{so.instructorName || '—'}</td>
-                          <td className="p-3.5 font-bold text-slate-900">{formatPrice(so.amount)}</td>
-                          <td className="p-3.5">
-                            <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-700">
-                              {so.status}
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-slate-600">{formatDate(so.createdAt)}</td>
-                          <td className="p-3.5 text-center">
-                            <Link
-                              href={`/account/orders/creative-writing/${so.id}`}
-                              className="text-indigo-600 hover:text-indigo-800 font-bold inline-flex items-center gap-1"
-                            >
-                              <span>عرض</span>
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  {/* نفس العلاج: الحالة كانت خامًا، والأسماء من
+                      `serviceOrderStatus`. */}
+                  <SimpleDataTable
+                    enableSearch={false}
+                    enablePagination={false}
+                    emptyMessage="لا توجد طلبات خدمات."
+                    columns={[
+                      { header: 'رقم الطلب', accessorKey: 'idDisplay' },
+                      { header: 'اسم الخدمة', accessorKey: 'serviceName' },
+                      { header: 'المدرب', accessorKey: 'instructorName' },
+                      { header: 'المبلغ', accessorKey: 'amount' },
+                      { header: 'الحالة', accessorKey: 'statusDisplay' },
+                      { header: 'التاريخ', accessorKey: 'date' },
+                      { header: 'إجراء', accessorKey: 'action' },
+                    ]}
+                    data={paginatedServiceOrders.map((so) => ({
+                      id: so.id,
+                      idDisplay: <span className="font-mono font-bold text-slate-900">{so.id}</span>,
+                      serviceName: so.serviceName,
+                      instructorName: so.instructorName || '—',
+                      amount: formatPrice(so.amount),
+                      statusDisplay: <StatusBadge {...serviceOrderStatus(so.status)} />,
+                      date: formatDate(so.createdAt),
+                      action: (
+                        <Link
+                          href={`/account/orders/creative-writing/${so.id}`}
+                          className="text-info inline-flex items-center gap-1 font-bold hover:underline"
+                        >
+                          <span>عرض</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ),
+                    }))}
+                  />
                 </div>
 
                 {Math.ceil(filteredServiceOrders.length / PAGE_SIZE) > 1 && (
@@ -854,46 +853,42 @@ export function AdminUserDetailClient({
 
           {paginatedSessions.length > 0 ? (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                    <tr>
-                      <th className="p-3.5">الجلسة</th>
-                      <th className="p-3.5">الباقة</th>
-                      <th className="p-3.5">المدرب</th>
-                      <th className="p-3.5">الموعد</th>
-                      <th className="p-3.5">الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedSessions.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="p-3.5 font-bold text-slate-900">جلسة #{s.sessionNumber}</td>
-                        <td className="p-3.5 font-medium text-slate-800">{s.packageName || '—'}</td>
-                        <td className="p-3.5 text-slate-600">{s.instructorName || '—'}</td>
-                        <td className="p-3.5 text-slate-700 font-mono">
-                          {formatCairo(s.scheduledAt, { dateStyle: 'medium', timeStyle: 'short' })}
-                        </td>
-                        <td className="p-3.5">
-                          <span
-                            className={`inline-block rounded-full px-2.5 py-0.5 font-bold text-xs ${
-                              s.status === 'confirmed'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : s.status === 'completed'
-                                ? 'bg-slate-100 text-slate-700'
-                                : s.status === 'cancelled'
-                                ? 'bg-rose-100 text-rose-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {s.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* ⚠️ **الحالة كانت بتتعرض خامًا** (`{s.status}`) — الإداري
+                  بيشوف «confirmed» إنجليزي، والمشروع فيه
+                  `sessionStatusView` بأسماء عربية **وبنوع الشارة**
+                  مستعملة في شاشات تانية. الشاشة دي كانت بتخترع
+                  ألوانها وتتجاهلها.
+
+                  ⚠️ والترقيم بره الجدول عن قصد: الشاشة دي عندها
+                     فلاتر وترقيم خاصين بيها، فـ`enablePagination`
+                     مقفول عشان مايبقاش فيه ترقيمان فوق بعض. */}
+              <SimpleDataTable
+                enableSearch={false}
+                enablePagination={false}
+                emptyMessage="لا توجد جلسات."
+                columns={[
+                  { header: 'الجلسة', accessorKey: 'sessionLabel' },
+                  { header: 'الباقة', accessorKey: 'packageName' },
+                  { header: 'المدرب', accessorKey: 'instructorName' },
+                  { header: 'الموعد', accessorKey: 'when' },
+                  { header: 'الحالة', accessorKey: 'statusDisplay' },
+                ]}
+                data={paginatedSessions.map((s) => ({
+                  sessionLabel: `جلسة #${s.sessionNumber}`,
+                  packageName: s.packageName || '—',
+                  instructorName: s.instructorName || '—',
+                  when: formatCairo(s.scheduledAt, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  }),
+                  statusDisplay: (
+                    <StatusBadge
+                      label={sessionStatusView(s.status).label}
+                      type={sessionStatusView(s.status).badge}
+                    />
+                  ),
+                }))}
+              />
 
               {Math.ceil(filteredSessions.length / PAGE_SIZE) > 1 && (
                 <div className="flex items-center justify-between border-t border-slate-100 pt-4 px-2">
@@ -978,32 +973,30 @@ export function AdminUserDetailClient({
           </div>
 
           {tickets.length > 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                  <tr>
-                    <th className="p-3.5">الموضوع</th>
-                    <th className="p-3.5">القسم</th>
-                    <th className="p-3.5">الحالة</th>
-                    <th className="p-3.5">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {tickets.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="p-3.5 font-bold text-slate-900">{t.subject}</td>
-                      <td className="p-3.5 text-slate-600">{t.category}</td>
-                      <td className="p-3.5">
-                        <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-700">
-                          {t.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-slate-600">{formatDate(t.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            /* ⚠️ **الحالة كانت بتتعرض خامًا من القاعدة** (`{t.status}`)
+                — يعني الإداري بيشوف «answered» إنجليزي في شاشة
+                عربية. الأسماء بقت من `ticketStatus`، وهو نفس المصدر
+                اللي قايمة التذاكر وصفحة التذكرة بيقروا منه.
+
+                والجدول اتحوّل لـ`SimpleDataTable` عشان يبقى له عرض
+                بطاقات على الموبايل. */
+            <SimpleDataTable
+              enableSearch={false}
+              enablePagination={tickets.length > 10}
+              emptyMessage="لا توجد تذاكر."
+              columns={[
+                { header: 'الموضوع', accessorKey: 'subject' },
+                { header: 'القسم', accessorKey: 'category' },
+                { header: 'الحالة', accessorKey: 'statusDisplay' },
+                { header: 'التاريخ', accessorKey: 'date' },
+              ]}
+              data={tickets.map((t) => ({
+                subject: t.subject,
+                category: t.category,
+                statusDisplay: <StatusBadge {...ticketStatus(t.status)} />,
+                date: formatDate(t.createdAt),
+              }))}
+            />
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
               لا توجد تذاكر دعم فني مقدمة من هذا المستخدم.
