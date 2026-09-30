@@ -236,7 +236,20 @@ export async function saveProduct(formData: FormData) {
     action: isNew ? 'product_created' : 'product_updated',
     entityType: 'PersonalizedProduct',
     entityId: savedId,
-    metadata: { name }
+    // 🔴 كان `metadata: { name }` — **ومافيش متغيّر اسمه `name` في
+    //    الدالة خالص**. TypeScript قبلها لأن `lib.dom` بتعرّف
+    //    `declare const name: void` (خاصية `window.name` القديمة)،
+    //    فالمترجم شافها متغيّرًا موجودًا. وعلى الخادم — نود مش
+    //    متصفح — الاسم ده مش معرَّف، فبيرمي `ReferenceError`.
+    //
+    // ⚠️ **والرمية بتحصل بعد ما القاعدة تحفظ التعديل.** يعني
+    //    الإداري بيعدّل، والتعديل **بيتحفظ فعلًا**، وNext بيمسح نصّ
+    //    الاستثناء في الإنتاج (قاعدة «هـ») فبيشوف «حدث خطأ غير
+    //    متوقع» — ويفتكر إن التعديل ضاع، فيعيده أو يسيبه.
+    //
+    //    ودي أوحش حالة ممكنة: **البيانات اتغيّرت والشاشة بتقول
+    //    إنها ما اتغيّرتش.**
+    metadata: { name: checked.data.name },
   });
 
   revalidatePath('/dashboard/admin/products');
