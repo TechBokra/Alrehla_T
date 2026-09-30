@@ -10,7 +10,7 @@ import {
   isProductCategory,
   PUBLISHER_PRODUCT_CATEGORIES,
 } from '@/lib/product-categories';
-import { validateProductInput, slugFromName } from '@/lib/product-input';
+import { validateProductInput, slugFromName, parseFeatures } from '@/lib/product-input';
 import {
   customerPriceFromCost,
   NEUTRAL_FORMULA,
@@ -87,6 +87,21 @@ export async function saveProduct(formData: FormData) {
   let price = isPublisherProduct ? 0 : checked.data.price;
   const electronicPrice = checked.data.electronicPrice ?? null;
   const shortDescription = checked.data.shortDescription || '';
+  // ── تفاصيل المنتج ─────────────────────────────────────────
+  //
+  // 🔴 **العمود `features` كان في القاعدة، ومعروضًا في صفحة المنتج
+  //    وفي كارت المكتبة — ومافيش مكان يتكتب فيه.** لا في نموذج
+  //    الإضافة ولا في نموذج التعديل ولا في الأكشن ده. يعني خانة
+  //    معروضة للعميل **ومستحيل تتملى**.
+  //
+  // ⚠️ ودي أوحش من خانة ناقصة: الشاشة بتوعد بتفاصيل، والفريق
+  //    بيدوّر على مكان يكتبها فيه ومايلاقيش، فيفتكر إن الموقع باظ.
+  //
+  // **سطر لكل بند** — أبسط شكل للكتابة بالعربي، وأقل من أي محرّر
+  // شرائح في احتمالات الخطأ. والفاضي بيتشال، والمكرّر بيتشال،
+  // والسقف ٨ عشان الكارت مايتحوّلش لقايمة.
+  const features = parseFeatures(formData.get('features') as string | null);
+
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
   const ownerType = formData.get('ownerType') as 'platform' | 'publisher';
@@ -180,6 +195,10 @@ export async function saveProduct(formData: FormData) {
     publisher_cost: effectiveCost,
     electronic_price: electronicPrice,
     short_description: shortDescription,
+    // ⚠️ `null` لو فاضية لا `[]`: القاعدة بتفرّق بين «مفيش تفاصيل»
+    //    و«قايمة فاضية»، والشاشات بتفحص `array_length` اللي بترجّع
+    //    `null` للاتنين — فالتوحيد هنا بيمنع فرقًا مالوش معنى.
+    features: features.length > 0 ? features : null,
     cover_image_url: coverImageUrl,
     publisher_id: effectivePublisherId,
     owner_type: ownerType,

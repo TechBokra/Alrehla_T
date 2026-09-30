@@ -153,6 +153,31 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
         <textarea name="shortDescription" rows={3} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none"></textarea>
       </div>
       
+
+      {/* ══ 🔴 الخانة دي كانت ناقصة من النموذجين ══════════════
+          عمود `features` موجود في القاعدة، **ومعروض في صفحة المنتج
+          وفي كارت المكتبة** — ومافيش مكان يتكتب فيه. يعني الشاشة
+          بتوعد العميل بتفاصيل، والفريق بيدوّر على مكان يكتبها فيه
+          ومايلاقيش فيفتكر إن الموقع باظ.
+
+          **سطر لكل بند** عن قصد: أبسط شكل للكتابة بالعربي، وأقل من
+          أي محرّر شرائح في احتمالات الخطأ. والخادم بيشيل الفاضي
+          والمكرّر ويسقّف عند ٨. */}
+      <div>
+        <label className="mb-2 block text-sm font-bold text-slate-700">
+          تفاصيل المنتج{' '}
+          <span className="font-medium text-slate-500">(بند في كل سطر — اختياري)</span>
+        </label>
+        <textarea
+          name="features"
+          rows={4}
+          placeholder={'٣٢ صفحة ملوّنة\nغلاف مقوّى\nمن ٤ لـ٨ سنين'}
+          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm"
+        ></textarea>
+        <p className="mt-1 text-xs font-medium text-slate-500">
+          أول بندين بيظهروا على الكارت في المكتبة، والباقي في صفحة المنتج.
+        </p>
+      </div>
       {/* كان بيرفع على Supabase Storage — مسار تاني بالكامل عن باقي
           الموقع اللي على Cloudinary. التوحيد بيخلي الصورة تتحسن وتتضغط
           تلقائيًا زي كل صور الموقع. */}
