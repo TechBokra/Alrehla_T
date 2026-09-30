@@ -6,6 +6,7 @@ import { logAuditAction } from '@/lib/audit';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getMyPublisher } from '@/data/domains/products';
 import { hasAdminPermission } from '@/lib/utils';
+import { requireAdmin } from '@/lib/auth-guard';
 import {
   isProductCategory,
   PUBLISHER_PRODUCT_CATEGORIES,
@@ -242,14 +243,35 @@ export async function saveProduct(formData: FormData) {
     }
     savedId = data.id;
   } else {
-    const { error } = await supabase
+    // ══ 🔴 `.select()` — وده مش تجميل ═══════════════════
+    //
+    // كان `.update(...).eq('id', id)` وفحص `error` وبس. والصلاحيات
+    // اللي بترفض **مابترجّعش خطأ** — بترجّع **صفر صفوف بلا خطأ**
+    // (قاعدة «ك»).
+    //
+    // ⚠️ وتشخيص 129 كشف إن مكانش فيه ولا سياسة بتسمح للناشر يكتب
+    //    على الجدول. يعني الناشر كان بيعدّل منتجه، والصلاحيات
+    //    ترفض بصمت، **والشاشة تقول «اتحفظ»** ومفيش حاجة اتغيّرت.
+    //
+    // ⚠️ **والفحص ده بيفضل لازمًا حتى بعد ملف 130** اللي فتح
+    //    الكتابة للناشر: أي سياسة تتضيّق بعدين هتفشل بنفس الصمت،
+    //    والفحص هو اللي بيخلّيها تتكلم.
+    const { data: updated, error } = await supabase
       .from('personalized_products')
       .update(dbPayload)
-      .eq('id', id);
-      
+      .eq('id', id)
+      .select('id')
+      .maybeSingle();
+
     if (error) {
       console.error('Error updating product:', error);
       return { ok: false as const, error: 'تعذّر حفظ التعديلات. جرّب تاني.' };
+    }
+    if (!updated) {
+      return {
+        ok: false as const,
+        error: 'التعديل ما اتحفظش — المنتج مش موجود أو مش مصرّح لك بتعديله.',
+      };
     }
   }
 
@@ -352,4 +374,77 @@ export async function setProductActive(
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');
   return { ok: true };
+}
+
+/**
+ * مراجعة منتج — اعتماد أو رفض (ملف 130).
+ *
+ * ⚠️ **الشاشة دي هي اللي بتخلّي «الموافقة» حقيقية.** من غيرها
+ *    المنتج بيدخل «في الانتظار» ويفضل واقفًا عن البيع للأبد،
+ *    والناشر يفتكر إن الموقع باظ.
+ */
+export async function reviewProduct(formData: FormData) {
+  let actorName = 'إداري';
+  let actorId: string | undefined;
+  try {
+    const admin = await requireAdmin('canManageCatalog');
+    actorName = admin.fullName ?? 'إداري';
+    actorId = admin.id;
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : 'غير مصرح' };
+  }
+
+  const id = String(formData.get('id') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+
+  if (!id) return { ok: false as const, error: 'المنتج غير محدد' };
+  if (decision !== 'approved' && decision !== 'rejected') {
+    return { ok: false as const, error: 'القرار غير معروف' };
+  }
+  // ⚠️ الرفض بلا سبب بيسيب الناشر يعيد نفس المنتج — ومحدش مستفيد.
+  if (decision === 'rejected' && note.length < 3) {
+    return { ok: false as const, error: 'اكتب سبب الرفض عشان الناشر يعرف يصلّح إيه' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('personalized_products')
+    .update({
+      review_status: decision,
+      review_note: decision === 'rejected' ? note : null,
+    })
+    .eq('id', id)
+    // ⚠️ **المعلَّق وحده.** من غير الشرط ده، ضغطتان على «اعتماد»
+    //    من تبويبين مفتوحين بتعدّي الاتنين، والتانية بتعيد اعتماد
+    //    منتج الناشر غيّره بعد الأولى — فالمحتوى الجديد بيتنشر
+    //    بموافقة على القديم.
+    .eq('review_status', 'pending')
+    .select('id, name, slug')
+    .maybeSingle();
+
+  if (error) {
+    console.error('تعذّر مراجعة المنتج', error);
+    return { ok: false as const, error: 'تعذّر حفظ القرار' };
+  }
+  if (!data) {
+    return { ok: false as const, error: 'تم البتّ في المنتج ده من قبل — حدّث الصفحة' };
+  }
+
+  await logAuditAction({
+    actorProfileId: actorId,
+    actorName,
+    action: decision === 'approved' ? 'product_approved' : 'product_rejected',
+    entityType: 'PersonalizedProduct',
+    entityId: id,
+    metadata: { name: data.name },
+  });
+
+  revalidatePath('/dashboard/admin/products');
+  revalidatePath('/dashboard/admin/products/review');
+  revalidatePath('/dashboard/publisher/products');
+  revalidatePath('/enha-lak/library');
+  revalidatePath('/enha-lak/custom');
+  revalidatePath(`/enha-lak/product/${data.slug}`);
+  return { ok: true as const };
 }

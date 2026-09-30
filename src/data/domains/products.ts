@@ -385,3 +385,75 @@ export async function getMyPublisher(): Promise<Publisher | null> {
     status: data.status,
   };
 }
+
+/**
+ * المنتجات المستنية مراجعة — لشاشة الإدارة (ملف 130).
+ *
+ * ── ⚠️ ليه بعميل الجلسة لا العميل العام ─────────────────────
+ *
+ * `createPublicClient` بيقرا بلا كوكيز — يعني **بدور الزائر**،
+ * وسياسة الزائر بترجّع المعتمد المفعّل وبس. فلو قريت بيه هنا،
+ * الشاشة هتبان **فاضية دايمًا وبلا أي خطأ**، والإداري يفتكر إن
+ * مفيش حاجة مستنية بينما فيه منتجات واقفة عن البيع.
+ *
+ * ⚠️ ودي مصيدة «ك» بالظبط: الصفوف الممنوعة بترجع فاضية لا بخطأ.
+ */
+export async function getPendingProducts(): Promise<
+  (PersonalizedProduct & { publisherName?: string })[]
+> {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('personalized_products')
+    .select('*')
+    .eq('review_status', 'pending')
+    // الأقدم أولًا: اللي مستني من أسبوع يتشاف قبل اللي اتبعت النهارده.
+    .order('updated_at', { ascending: true });
+
+  if (error) {
+    console.error('تعذّر قراءة المنتجات المستنية', error);
+    return [];
+  }
+
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  if (rows.length === 0) return [];
+
+  // اسم الناشر معاه: شاشة مراجعة بتعرض منتجات بلا أسماء بتخلّي
+  // الإداري يفتح تبويبًا تاني لكل واحد عشان يعرف بتاع مين.
+  const publisherIds = [
+    ...new Set(rows.map((r) => r.publisher_id).filter(Boolean)),
+  ] as string[];
+  const names = new Map<string, string>();
+  if (publisherIds.length > 0) {
+    const { data: pubs } = await supabase
+      .from('publishers')
+      .select('id, name')
+      .in('id', publisherIds);
+    for (const pub of pubs ?? []) names.set(pub.id, pub.name);
+  }
+
+  return rows.map((p) => ({
+    id: p.id as string,
+    slug: p.slug as string,
+    name: p.name as string,
+    category: p.category as PersonalizedProduct['category'],
+    price: p.price as number,
+    electronicPrice: (p.electronic_price as number) || undefined,
+    shortDescription: (p.short_description as string) ?? '',
+    coverImageUrl: (p.cover_image_url as string) || undefined,
+    publisherId: (p.publisher_id as string) || undefined,
+    ownerType: p.owner_type as PersonalizedProduct['ownerType'],
+    publisherCost: (p.publisher_cost as number) ?? undefined,
+    features: (p.features as string[]) || undefined,
+    longDescription: (p.long_description as string) || undefined,
+    galleryImageUrls: (p.gallery_image_urls as string[]) || undefined,
+    reviewStatus: 'pending' as const,
+    reviewNote: (p.review_note as string) || undefined,
+    isActive: (p.is_active as boolean) ?? true,
+    createdAt: (p.created_at as string) ?? undefined,
+    publisherName: p.publisher_id
+      ? (names.get(p.publisher_id as string) ?? 'ناشر غير معروف')
+      : undefined,
+  }));
+}

@@ -28,6 +28,9 @@ const GROUPS: RawGroup[] = [
       // مقصود: أحسن من رابط مختفي محدش يعرف إنه موجود.
       { label: 'الصلاحيات', href: '/dashboard/admin/users/permissions', icon: 'ShieldAlert', permission: 'canManageUsers' },
       { label: 'المدربون', href: '/dashboard/admin/instructors', icon: 'UserCheck', permission: 'canManageInstructors' },
+      // ⚠️ من غير المدخل ده، المنتج المعلَّق بيفضل **واقفًا عن
+      //    البيع للأبد** ومافيش مكان في اللوحة يعرضه.
+      { label: 'مراجعة المنتجات', href: '/dashboard/admin/products/review', icon: 'ClipboardList', permission: 'canManageCatalog' },
       // ⚠️ الشاشة دي هي اللي بتخلّي الموافقة على الصور حقيقية.
       //    من غير مدخل في القايمة، الصور بتفضل معلَّقة للأبد
       //    والمدرب يفتكر إن الموقع باظ.
