@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { getMyProvider, getServiceOrdersByProvider } from '@/data/domains/providers';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { dueLabel, isOverdue, OPEN_SERVICE_STATUSES } from '@/lib/service-delivery';
@@ -17,9 +17,9 @@ export const dynamic = 'force-dynamic';
  * وماينفعش يدخل لوحة المدربين. المدرب ليه لوحته الأصلية كمان، والاتنين
  * بيوصلوا لنفس الطلبات.
  */
-const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' }> = {
-  pending: { label: 'بانتظار الدفع', type: 'warning' },
-  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'warning' },
+const ORDER_STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
+  pending: { label: 'بانتظار الدفع', type: 'pending' },
+  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'pending' },
   paid: { label: 'مدفوع — ابدأ التنفيذ', type: 'success' },
   in_progress: { label: 'جاري التنفيذ', type: 'warning' },
   delivered: { label: 'تم التسليم', type: 'warning' },

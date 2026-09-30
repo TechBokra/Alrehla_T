@@ -7,14 +7,14 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import Link from 'next/link';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { formatDate } from '@/lib/utils';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { dueLabel, isOverdue, OPEN_SERVICE_STATUSES } from '@/lib/service-delivery';
 
 export const dynamic = 'force-dynamic';
 
-const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' }> = {
-  pending: { label: 'بانتظار الدفع', type: 'warning' },
-  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'warning' },
+const ORDER_STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
+  pending: { label: 'بانتظار الدفع', type: 'pending' },
+  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'pending' },
   paid: { label: 'مدفوع', type: 'success' },
   in_progress: { label: 'جاري التنفيذ', type: 'warning' },
   delivered: { label: 'تم التسليم', type: 'warning' },

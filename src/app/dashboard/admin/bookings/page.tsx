@@ -6,13 +6,13 @@ import { hasAdminPermission, formatDate, formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 
 export const dynamic = 'force-dynamic';
 
-const STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' }> = {
-  pending: { label: 'بانتظار الدفع', type: 'warning' },
-  awaiting_verification: { label: 'بانتظار مراجعة التحويل', type: 'warning' },
+const STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
+  pending: { label: 'بانتظار الدفع', type: 'pending' },
+  awaiting_verification: { label: 'بانتظار مراجعة التحويل', type: 'pending' },
   active: { label: 'نشط', type: 'success' },
   completed: { label: 'مكتمل', type: 'neutral' },
   cancelled: { label: 'ملغي', type: 'neutral' },

@@ -21,7 +21,7 @@ import {
   ExternalLink,
   RotateCcw,
 } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 interface Props {
@@ -33,10 +33,10 @@ type SortOption = 'closest' | 'newest' | 'oldest';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; type: 'success' | 'warning' | 'neutral' }
+  { label: string; type: StatusBadgeType }
 > = {
   confirmed: { label: 'مؤكدة', type: 'success' },
-  pending: { label: 'بانتظار التأكيد', type: 'warning' },
+  pending: { label: 'بانتظار التأكيد', type: 'pending' },
   completed: { label: 'مكتملة', type: 'neutral' },
   cancelled: { label: 'ملغاة', type: 'neutral' },
 };

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { resolveDeletionRequest } from '@/actions/account-deletion';
 
 type Row = {
@@ -16,8 +16,8 @@ type Row = {
   createdAt: string;
 };
 
-const STATUS: Record<Row['status'], { label: string; type: 'warning' | 'success' | 'neutral' }> = {
-  pending: { label: 'قيد المراجعة', type: 'warning' },
+const STATUS: Record<Row['status'], { label: string; type: StatusBadgeType }> = {
+  pending: { label: 'قيد المراجعة', type: 'pending' },
   done: { label: 'تم الحذف', type: 'success' },
   rejected: { label: 'مرفوض', type: 'neutral' },
 };

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Clock, CheckCircle2, XCircle, Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImageField } from '@/components/dashboard/ImageField';
@@ -31,36 +32,24 @@ import type { InstructorMedia } from '@/data/domains/instructor-media';
  * يكتشفه بنفسه.
  */
 
-const STATUS = {
-  pending: {
-    label: 'في انتظار المراجعة',
-    icon: Clock,
-    cls: 'bg-pending-soft text-pending border-slate-200',
-  },
-  approved: {
-    label: 'ظاهرة في بروفايلك',
-    icon: CheckCircle2,
-    cls: 'bg-success-soft text-success border-emerald-200',
-  },
-  rejected: {
-    label: 'مرفوضة',
-    icon: XCircle,
-    cls: 'bg-danger-soft text-danger border-red-200',
-  },
-} as const;
-
-function StatusBadge({ status }: { status: InstructorMedia['status'] }) {
-  const s = STATUS[status];
-  const Icon = s.icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${s.cls}`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {s.label}
-    </span>
-  );
-}
+/**
+ * ⚠️ **الشارة دي كانت مكتوبة محليًّا هنا، واتشالت.**
+ *
+ * المشروع فيه `StatusBadge` مشتركة مستعملة في **٤١ شاشة**. كتابة
+ * نسخة تانية هنا كانت هتخلّي «في انتظار المراجعة» شكلها مختلف عن
+ * «بانتظار الدفع» في شاشة الطلبات — ونفس القاعدة المسجَّلة عندنا:
+ * **الحاجة اللي بتتوصف في مكانين بتتناقض.**
+ *
+ * الشارة المشتركة اتضاف لها `pending` عشان تغطّي الحالة دي.
+ */
+const MEDIA_STATUS: Record<
+  InstructorMedia['status'],
+  { label: string; type: StatusBadgeType }
+> = {
+  pending: { label: 'في انتظار المراجعة', type: 'pending' },
+  approved: { label: 'ظاهرة في بروفايلك', type: 'success' },
+  rejected: { label: 'مرفوضة', type: 'danger' },
+};
 
 function MediaTile({ item }: { item: InstructorMedia }) {
   return (
@@ -79,7 +68,10 @@ function MediaTile({ item }: { item: InstructorMedia }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <StatusBadge status={item.status} />
+        <StatusBadge
+          label={MEDIA_STATUS[item.status].label}
+          type={MEDIA_STATUS[item.status].type}
+        />
 
         {item.title && (
           <p className="text-sm font-bold text-slate-800">{item.title}</p>

@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Clock, Video, Search, ChevronRight, ChevronLeft } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 export type SessionRow = {
@@ -23,9 +23,9 @@ interface SessionsListProps {
   enablePagination?: boolean;
 }
 
-const STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' }> = {
+const STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
   confirmed: { label: 'مؤكدة', type: 'success' },
-  pending: { label: 'بانتظار التأكيد', type: 'warning' },
+  pending: { label: 'بانتظار التأكيد', type: 'pending' },
   completed: { label: 'تمّت', type: 'neutral' },
   cancelled: { label: 'ملغاة', type: 'neutral' },
 };

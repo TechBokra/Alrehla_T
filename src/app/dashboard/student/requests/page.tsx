@@ -27,7 +27,7 @@ export const dynamic = 'force-dynamic';
  * بترجّع للطالب طلباته هو وبس.
  */
 const STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
-  pending: { label: 'في انتظار ولي الأمر', type: 'warning' },
+  pending: { label: 'في انتظار ولي الأمر', type: 'pending' },
   approved: { label: 'تمت الموافقة', type: 'success' },
   rejected: { label: 'مرفوض', type: 'danger' },
   cancelled: { label: 'ملغي', type: 'neutral' },
