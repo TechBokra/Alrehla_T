@@ -122,7 +122,8 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
         onClick={submit}
         disabled={busy}
         accentColor="amber"
-        className="!hover:bg-slate-800 mt-2 w-full !bg-slate-900 shadow-md"
+        variant="neutral"
+        className="mt-2 w-full shadow-md"
       >
         {busy ? 'جارٍ الإرسال…' : 'إرسال التذكرة'}
       </Button>

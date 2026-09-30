@@ -160,7 +160,8 @@ export function JoinForm() {
         onClick={submit}
         disabled={busy}
         accentColor="amber"
-        className="!hover:bg-slate-800 w-full !bg-slate-900"
+        variant="neutral"
+        className="w-full"
       >
         {busy ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
       </Button>

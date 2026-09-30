@@ -196,7 +196,7 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
               راسلنا عبر واتساب
             </p>
             <Button
-              className="w-full !bg-green-500 !hover:bg-green-600 shadow-md"
+              className="w-full !bg-green-600 shadow-md hover:!bg-green-700"
               accentColor="amber"
             >
               ابدأ المحادثة
@@ -217,7 +217,7 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
               href="mailto:Alrehla@tech-bokra.com"
               variant="secondary"
               accentColor="amber"
-              className="w-full !bg-slate-100 !text-slate-700 !border-0 !hover:bg-slate-200"
+              className="w-full !border-0 !bg-slate-100 !text-slate-700 hover:!bg-slate-200"
             >
               Alrehla@tech-bokra.com
             </Button>

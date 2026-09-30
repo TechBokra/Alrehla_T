@@ -101,7 +101,8 @@ export default function CartClient() {
                 <Button
                   href="/enha-lak/checkout"
                   accentColor="amber"
-                  className="w-full !bg-slate-900 !hover:bg-slate-800 shadow-md gap-2"
+                  variant="neutral"
+                  className="w-full gap-2 shadow-md"
                 >
                   إتمام الطلب
                   <ShoppingCart className="h-5 w-5" />
