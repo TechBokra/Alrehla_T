@@ -941,6 +941,10 @@ export type Database = {
           unit_price: number
           customization_data: Json | null
           created_at: string
+          /** الناشر لحظة الشراء — بيكتبه محفّز (ملف 134). */
+          publisher_id_snapshot: string | null
+          /** نصيب الناشر لحظة الشراء — المستحق بيتحسب منه (ملف 134). */
+          publisher_cost_snapshot: number | null
         }
         Insert: {
           id?: string
@@ -950,6 +954,9 @@ export type Database = {
           unit_price: number
           customization_data?: Json | null
           created_at?: string
+          /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
+          publisher_id_snapshot?: string | null
+          publisher_cost_snapshot?: number | null
         }
         Update: {
           id?: string
@@ -959,6 +966,9 @@ export type Database = {
           unit_price?: number
           customization_data?: Json | null
           created_at?: string
+          /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
+          publisher_id_snapshot?: string | null
+          publisher_cost_snapshot?: number | null
         }
         Relationships: []
       }
