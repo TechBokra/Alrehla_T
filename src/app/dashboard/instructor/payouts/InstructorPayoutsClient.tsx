@@ -1,5 +1,7 @@
 'use client';
 import { formatPrice } from '@/lib/utils';
+import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
+import { StatusBadge } from '@/components/StatusBadge';
 
 import React, { useState } from 'react';
 import { InstructorPayout } from '@/types';
@@ -54,30 +56,34 @@ export function InstructorPayoutsClient({ payouts }: Props) {
         <div className="p-6 border-b border-slate-100 bg-slate-50">
           <h3 className="font-bold text-slate-800">سجل المستحقات</h3>
         </div>
-        <table className="w-full text-right text-sm">
-          <thead className="bg-white text-slate-500 border-b border-slate-100">
-            <tr>
-              <th className="p-4 font-bold">الفترة</th>
-              <th className="p-4 font-bold">المبلغ</th>
-              <th className="p-4 font-bold">الحالة</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {payouts.map(payout => (
-              <tr key={payout.id}>
-                <td className="p-4 font-medium text-slate-800">{payout.period}</td>
-                <td className="p-4 font-black text-blue-600">{formatPrice(payout.amount)}</td>
-                <td className="p-4">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                    payout.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                  }`}>
-                    {payout.status === 'paid' ? 'مدفوع' : 'قيد الانتظار'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* ⚠️ كان `<table>` خامًا بيتمرّر أفقيًّا على الموبايل.
+            `SimpleDataTable` فيه عرض بطاقات جاهز — والمدرب بيفتح
+            مستحقاته من تليفونه أكتر من أي شاشة تانية.
+
+            ⚠️ والشارة كانت مرسومة محليًّا، و«قيد الانتظار» بلون
+               التحذير. الانتظار مش تحذير. */}
+        <SimpleDataTable
+          enableSearch={false}
+          emptyMessage="مفيش مستحقات لسه."
+          columns={[
+            { header: 'الفترة', accessorKey: 'period' },
+            { header: 'المبلغ', accessorKey: 'amountDisplay' },
+            { header: 'الحالة', accessorKey: 'statusDisplay' },
+          ]}
+          data={payouts.map((payout) => ({
+            period: payout.period,
+            amount: payout.amount,
+            amountDisplay: (
+              <span className="font-black text-blue-700">{formatPrice(payout.amount)}</span>
+            ),
+            statusDisplay: (
+              <StatusBadge
+                label={payout.status === 'paid' ? 'مدفوع' : 'قيد الانتظار'}
+                type={payout.status === 'paid' ? 'success' : 'pending'}
+              />
+            ),
+          }))}
+        />
       </div>
     </div>
   );

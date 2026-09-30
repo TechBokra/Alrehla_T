@@ -1,4 +1,5 @@
 import React from 'react';
+import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
@@ -258,39 +259,36 @@ export default async function AdminDashboard() {
             <Empty text="مفيش طلبات لحد دلوقتي." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-sm">
-                <thead className="border-y border-slate-100 bg-slate-50 text-xs text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-bold">الرقم المرجعي</th>
-                    <th className="px-4 py-3 font-bold">العميل</th>
-                    <th className="px-4 py-3 font-bold">المبلغ</th>
-                    <th className="px-4 py-3 font-bold">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-4 font-bold text-slate-700">
-                        <Link
-                          href={`/dashboard/admin/orders/${order.id}`}
-                          className="font-mono hover:text-blue-600 hover:underline"
-                        >
-                          {order.paymentReference ?? order.id.slice(0, 8)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-4 font-medium text-slate-600">
-                        {buyerNames.get(order.userId) ?? '—'}
-                      </td>
-                      <td className="px-4 py-4 font-bold text-slate-600">
-                        {formatPrice(order.totalAmount)}
-                      </td>
-                      <td className="px-4 py-4 font-medium text-slate-500">
-                        {formatDate(order.createdAt)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* ⚠️ كان `<table>` خامًا بلا عرض موبايل — والشاشة دي
+                  أول حاجة الإدارة بتفتحها من التليفون.
+                  `SimpleDataTable` فيه عرض بطاقات جاهز.
+
+                  والبحث مقفول عن قصد: دي «آخر الطلبات» لا قايمة
+                  الطلبات — البحث مكانه صفحة الطلبات نفسها. */}
+              <SimpleDataTable
+                enableSearch={false}
+                enablePagination={false}
+                emptyMessage="مفيش طلبات لسه."
+                columns={[
+                  { header: 'الرقم المرجعي', accessorKey: 'refDisplay' },
+                  { header: 'العميل', accessorKey: 'buyer' },
+                  { header: 'المبلغ', accessorKey: 'amount' },
+                  { header: 'التاريخ', accessorKey: 'date' },
+                ]}
+                data={recentOrders.map((order) => ({
+                  refDisplay: (
+                    <Link
+                      href={`/dashboard/admin/orders/${order.id}`}
+                      className="font-mono font-bold text-slate-700 hover:text-info hover:underline"
+                    >
+                      {order.paymentReference ?? order.id.slice(0, 8)}
+                    </Link>
+                  ),
+                  buyer: buyerNames.get(order.userId) ?? '—',
+                  amount: formatPrice(order.totalAmount),
+                  date: formatDate(order.createdAt),
+                }))}
+              />
             </div>
           )}
         </Card>

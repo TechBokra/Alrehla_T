@@ -1,4 +1,5 @@
 import { formatPrice } from '@/lib/utils';
+import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { BookOpen, DollarSign, ShoppingBag, Star, User } from 'lucide-react';
@@ -54,28 +55,36 @@ export default async function PublisherDashboard() {
         <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold text-slate-800 mb-6">أحدث المبيعات</h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right">
-              <thead className="text-slate-500 border-b border-slate-100">
-                <tr>
-                  <th className="pb-3 font-bold">المنتج</th>
-                  <th className="pb-3 font-bold">التاريخ</th>
-                  <th className="pb-3 font-bold">الكمية</th>
-                  <th className="pb-3 font-bold">إجمالي البيع</th>
-                  <th className="pb-3 font-bold text-emerald-600">أرباحك</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {orders.map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-4 font-medium text-slate-800">{order.productName}</td>
-                    <td className="py-4 text-slate-500">{new Date(order.createdAt).toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE })}</td>
-                    <td className="py-4 text-slate-600">{order.quantity}</td>
-                    <td className="py-4 text-slate-600">{formatPrice(order.totalAmount)}</td>
-                    <td className="py-4 font-bold text-emerald-600">{formatPrice(order.publisherShare)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* ⚠️ **خمسة أعمدة على شاشة 375 بكسل** — «إجمالي البيع»
+                و«أرباحك» كانا بره الشاشة، وهما أهم عمودين للناشر.
+                `SimpleDataTable` فيه عرض بطاقات جاهز.
+
+                ⚠️ و`text-emerald-600` على أبيض = **3.60:1** وبيسقط
+                   في المعيار (المطلوب 4.5). بقى 700. */}
+            <SimpleDataTable
+              searchPlaceholder="ابحث باسم المنتج…"
+              emptyMessage="مفيش مبيعات لسه."
+              columns={[
+                { header: 'المنتج', accessorKey: 'productName' },
+                { header: 'التاريخ', accessorKey: 'date' },
+                { header: 'الكمية', accessorKey: 'quantity' },
+                { header: 'إجمالي البيع', accessorKey: 'total' },
+                { header: 'أرباحك', accessorKey: 'shareDisplay' },
+              ]}
+              data={orders.map((order) => ({
+                productName: order.productName,
+                date: new Date(order.createdAt).toLocaleDateString('ar-EG', {
+                  timeZone: PLATFORM_TIMEZONE,
+                }),
+                quantity: order.quantity,
+                total: formatPrice(order.totalAmount),
+                shareDisplay: (
+                  <span className="font-bold text-emerald-700">
+                    {formatPrice(order.publisherShare)}
+                  </span>
+                ),
+              }))}
+            />
           </div>
         </div>
 
