@@ -41,7 +41,11 @@ export function Step2CoverDetails({ onNext, onPrev }: { onNext: () => void, onPr
       </div>
 
       <div className="space-y-2 pt-4 border-t border-slate-100">
-        <label className="text-sm font-bold text-slate-700">صورة الطفل للغلاف (اختياري)</label>
+        {/* ⚠️ «(اختياري)» اتشالت: التخصيص **هو** الصورة. الكلمة دي
+            كانت بتخلّي العميل يعدّي الخطوة ويستلم نسخة عادية. */}
+        <label className="text-sm font-bold text-slate-700">
+          صورة الطفل للغلاف <span className="text-danger">*</span>
+        </label>
         <p className="text-xs text-slate-500 mb-2">يمكنك إرفاق صورة ليتم إدراجها في الغلاف الداخلي أو الخارجي.</p>
         <input 
           type="file" 

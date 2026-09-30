@@ -27,7 +27,15 @@ const librarySchema = z.object({
   newChildGender: z.string().optional(),
   
   dedicationText: z.string().optional(),
-  coverPhotoFile: z.any().optional(),
+  // ⚠️ **الصورة إجبارية — وكانت اختيارية.**
+  //
+  //    المنتج ده اسمه «تخصيص الغلاف»، والتخصيص **هو الصورة**. من
+  //    غيرها العميل بيدفع تمن كتاب مخصّص وبيستلم النسخة العادية،
+  //    والمنصة بتطبع طلبًا مالوش أي تخصيص.
+  //
+  //    وكانت `optional()` فالطلب بيعدّي بلا صورة، ومحدش بيلاحظ إلا
+  //    عند الطباعة — بعد الدفع.
+  coverPhotoFile: z.any(),
 
   // ⚠️ **نفس أسماء حقول المعالج المخصّص بالظبط.** السلة والقاعدة
   //    بيقروا `addonIds` و`customizedAddonIds`، ولو المكتبة سمّتهم
@@ -41,6 +49,13 @@ const librarySchema = z.object({
 }).refine(data => data.familyMemberId || data.newChildName, {
   message: 'يجب اختيار طفل من العائلة أو إضافة طفل جديد',
   path: ['newChildName'],
+// ⚠️ **الشرط على الكائن لا على الحقل** عن قصد: `refine` على الحقل
+//    بيخلّي النوع الخارج `File` والداخل `undefined`، فمحلّل النموذج
+//    بيرفض التطابق — نفس المصيدة اللي وقعت فيها مع `.default([])`.
+//    والشكل ده هو نفسه المستعمل لشرط الطفل فوق.
+}).refine(data => data.coverPhotoFile instanceof File, {
+  message: 'اختار صورة الطفل للغلاف',
+  path: ['coverPhotoFile'],
 });
 
 type LibraryFormValues = z.infer<typeof librarySchema>;

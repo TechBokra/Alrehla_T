@@ -208,28 +208,45 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
 
   if (error || !data) return null;
 
-  // Ensure ownerType matches if the original logic required 'platform'
-  // We'll keep the original logic for fallback, but for DB we can return any found product.
-  if (data.owner_type === 'platform') {
-    return {
-      id: data.id,
-      slug: data.slug,
-      name: data.name,
-      category: data.category,
-      price: data.price,
-      electronicPrice: data.electronic_price || undefined,
-      shortDescription: data.short_description ?? '',
-      coverImageUrl: data.cover_image_url || undefined,
-      publisherId: data.publisher_id || undefined,
-      ownerType: data.owner_type,
-      publisherCost: data.publisher_cost ?? undefined,
-      features: data.features || undefined,
-      isActive: data.is_active ?? true,
-      createdAt: data.created_at ?? undefined
-    };
-  }
-  
-  return null;
+  // ══ 🔴 هنا كان فيه شرط بيقتل نصّ الكتالوج ══════════════
+  //
+  // كان:
+  //
+  //     if (data.owner_type === 'platform') { return {...}; }
+  //     return null;
+  //
+  // يعني **أي منتج ملك ناشر بيرجع «مش موجود»** — والتعليق اللي
+  // كان فوقه بيعترف إنه بقايا من أيام البيانات الوهمية
+  // («we'll keep the original logic for fallback»).
+  //
+  // ⚠️ **والمكتبة بطبيعتها إصدارات ناشرين.** يعني أول ما تربط
+  //    كتابًا بناشر من لوحة الإدارة، صفحة تخصيصه بتموت بـ404 —
+  //    والكتاب فاضل ظاهرًا في الشبكة وبزرّ «تخصيص الغلاف» شغّال
+  //    شكلًا. العميل بيضغط فيلاقي «الصفحة غير موجودة».
+  //
+  // ⚠️ **والعطل كان صامتًا تمامًا**: الدالة بترجّع `null`، والصفحة
+  //    بتقرا `null` على إنه «المنتج مش موجود» وتعمل `notFound()`.
+  //    مافيش خطأ في أي سجلّ، ومافيش فرق بين «منتج اتحذف» و«منتج
+  //    ملك ناشر».
+  //
+  // **ومالوش أي مبرّر**: كل الأعمدة اللي بتتقري موجودة في
+  // النوعين، والصفحات اللي بتستعملها بتفلتر بالتصنيف لا بالملكية.
+  return {
+    id: data.id,
+    slug: data.slug,
+    name: data.name,
+    category: data.category,
+    price: data.price,
+    electronicPrice: data.electronic_price || undefined,
+    shortDescription: data.short_description ?? '',
+    coverImageUrl: data.cover_image_url || undefined,
+    publisherId: data.publisher_id || undefined,
+    ownerType: data.owner_type,
+    publisherCost: data.publisher_cost ?? undefined,
+    features: data.features || undefined,
+    isActive: data.is_active ?? true,
+    createdAt: data.created_at ?? undefined,
+  };
 };
 
 
