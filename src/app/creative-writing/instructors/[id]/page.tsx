@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { PageContainer } from '@/components/PageContainer';
 import { ArrowLeft, User, Star, Award, BookOpen, MessageCircle } from 'lucide-react';
 import { getPublicInstructors } from '@/data/domains/writing';
+import { getPublicInstructorMedia } from '@/data/domains/instructor-media';
 import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/reviews';
 import { formatDate } from '@/lib/utils';
 import { notFound } from 'next/navigation';
@@ -39,10 +40,13 @@ export default async function InstructorProfilePage({ params }: { params: Promis
     notFound();
   }
 
-  const [rating, reviews] = await Promise.all([
+  const [rating, reviews, media] = await Promise.all([
     getInstructorRatingSummary(instructor.id),
     getReviewsForInstructor(instructor.id),
+    // المعتمَد وحده — والسياسة بتفلتر كمان، فالاتنين بيغطّيا بعض.
+    getPublicInstructorMedia(instructor.id),
   ]);
+  const { cover, works } = media;
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -75,7 +79,29 @@ export default async function InstructorProfilePage({ params }: { params: Promis
 
         {/* Profile Card */}
         <Card accentColor="emerald" className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50 p-0">
-          <div className="h-48 w-full bg-gradient-to-r from-emerald-100 via-teal-50 to-sky-100"></div>
+          {/* ══ غلاف البروفايل ══════════════════════════════
+              ⚠️ **هنا `object-cover` صح — وده مش تناقض مع أغلفة
+                 الكتب.** غلاف الكتاب **مستند**: قصّه بيشيل العنوان
+                 واسم المؤلف. والبانر ده **زينة**: عرضه بيتغيّر مع
+                 الشاشة، والمقصود منه اللون والجوّ لا التفاصيل.
+
+              ⚠️ **ونسبة أبعاد لا ارتفاع ثابت**: `h-48` كانت بتخلّي
+                 القصّ غير متوقّع لأن العرض متغيّر والارتفاع لأ. */}
+          {cover ? (
+            <div className="relative aspect-[21/9] max-h-64 w-full overflow-hidden bg-slate-100">
+              <Image
+                src={optimizedImageUrl(cover.imageUrl, 1600)}
+                alt=""
+                fill
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="object-cover"
+                referrerPolicy="no-referrer"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="h-48 w-full bg-gradient-to-r from-emerald-100 via-teal-50 to-sky-100"></div>
+          )}
           
           <div className="relative px-8 pb-12 sm:px-12">
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
@@ -141,6 +167,52 @@ export default async function InstructorProfilePage({ params }: { params: Promis
                     {instructor.bio || 'لم تُضف نبذة بعد.'}
                   </p>
                 </section>
+
+                {/* ══ الإصدارات والأعمال ═══════════════════════
+                    ⚠️ القسم **مابيظهرش خالص لو مفيش أعمال معتمدة**.
+                       عنوان فوق فراغ بيقري «الموقع باظ» لا «المدرب
+                       ما ضافش حاجة» — والزائر مش هيفرّق.
+
+                    ⚠️ و`object-contain`: دي **أغلفة كتب**، وقصّها
+                       بيشيل العنوان واسم المؤلف. */}
+                {works.length > 0 && (
+                  <section>
+                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-black text-slate-800">
+                      <BookOpen className="h-6 w-6 text-emerald-500" />
+                      إصداراته وأعماله
+                    </h2>
+                    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3">
+                      {works.map((work) => (
+                        <figure key={work.id} className="space-y-2">
+                          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-emerald-50 via-white to-slate-50">
+                            <Image
+                              src={optimizedImageUrl(work.imageUrl, 600)}
+                              alt={work.title ?? 'عمل للمدرب'}
+                              fill
+                              sizes="(max-width: 640px) 45vw, 220px"
+                              className="object-contain p-4 drop-shadow-md"
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          {(work.title || work.contribution) && (
+                            <figcaption className="space-y-0.5">
+                              {work.title && (
+                                <p className="text-sm leading-snug font-bold text-slate-800">
+                                  {work.title}
+                                </p>
+                              )}
+                              {work.contribution && (
+                                <p className="text-xs font-medium text-slate-600">
+                                  {work.contribution}
+                                </p>
+                              )}
+                            </figcaption>
+                          )}
+                        </figure>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
                 <section>
                   <h2 className="mb-4 text-2xl font-black text-slate-800 flex items-center gap-2">

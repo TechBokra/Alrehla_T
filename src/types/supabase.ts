@@ -728,6 +728,54 @@ export type Database = {
        *    الأعمدة (قاعدة «ب»). فالأعمدة اتنقلت لصفّ تقدر السياسة
        *    تحميه: الإدارة والمدرب نفسه وبس.
        */
+      instructor_media: {
+        /**
+         * صور بروفايل المدرب (غلاف وأعمال) بموافقة الإدارة — ملف 127.
+         *
+         * ⚠️ `status` نصّ بـ`CHECK` لا نوع enum: إضافة قيمة لنوع enum
+         *    في Postgres عملية مزعجة، والـ`CHECK` بيتعدّل بسطر.
+         */
+        Row: {
+          id: string
+          instructor_id: string
+          kind: string
+          image_url: string
+          title: string | null
+          contribution: string | null
+          sort_order: number
+          status: string
+          admin_feedback: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          instructor_id: string
+          kind: string
+          image_url: string
+          title?: string | null
+          contribution?: string | null
+          sort_order?: number
+          status?: string
+          admin_feedback?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          instructor_id?: string
+          kind?: string
+          image_url?: string
+          title?: string | null
+          contribution?: string | null
+          sort_order?: number
+          status?: string
+          admin_feedback?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instructor_pricing: {
         Row: {
           instructor_id: string
