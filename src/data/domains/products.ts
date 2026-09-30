@@ -21,26 +21,68 @@ import { createClient } from '@/lib/supabase/server';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 
 /**
- * منتجات المتجر.
+ * صفّ المنتج من القاعدة ← شكل الكود. **مكان واحد للتلات دوال.**
  *
- * ⚠️ **الافتراضي: المعروض بس.** الدالة دي بتتنادى من صفحات عامة
- *    (المكتبة، صفحة الناشر، خريطة الموقع) **ومن لوحة الإدارة** —
- *    والافتراضي لازم يكون الآمن.
- *
- *    لو كان الافتراضي «الكل» وموضع واحد نسي يفلتر، المنتج الموقوف
- *    بيفضل معروضًا للعميل — والعَرَض الوحيد إن الإدارة بتوقفه
- *    وبيفضل مكانه، وده اللي بيتقري «الزرّ مش شغّال» مش «فيه موضع
- *    ناسي الفلتر».
- *
- *    فاللوحة بتطلب `includeInactive` صراحةً، والصفحات العامة
- *    مابتعملش حاجة.
+ * ⚠️ كانت التحويلة مكتوبة تلات مرات (القايمة، المنتج الواحد،
+ *    المراجعة)، وكل عمود جديد لازم يتضاف في التلاتة. ملف 130 أضاف
+ *    عمودين فاتضافوا في التلاتة — **صدفة لا ضمان**. وعمود السنّ (ملف
+ *    132) كان هيبقى الرابع: يتضاف في القايمة وينسى صفحة المنتج،
+ *    فالكارت يقول «٦–٩» والصفحة ماتقولش حاجة.
  */
-export const getPersonalizedProducts = async (
-  options: { includeInactive?: boolean } = {},
-): Promise<PersonalizedProduct[]> => {
+function mapProductRow(p: any): PersonalizedProduct {
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    electronicPrice: p.electronic_price || undefined,
+    shortDescription: p.short_description ?? '',
+    coverImageUrl: p.cover_image_url || undefined,
+    publisherId: p.publisher_id || undefined,
+    ownerType: p.owner_type,
+    publisherCost: p.publisher_cost ?? undefined,
+    features: p.features || undefined,
+    longDescription: p.long_description || undefined,
+    galleryImageUrls: p.gallery_image_urls || undefined,
+    // ⚠️ `??` لا `||`: السنّ صفر رقم حقيقي، و`||` كانت هتقراه «مفيش».
+    minAge: p.min_age ?? undefined,
+    maxAge: p.max_age ?? undefined,
+    // ⚠️ العمود في القاعدة `text` بـ`CHECK` (قرار ملف 130: الـenum
+    //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات
+    //    بتتعامل معاه. وأي قيمة غريبة بتتقري «في الانتظار» — الأأمن:
+    //    المنتج يفضل مستخبي لحد ما حد يبصّ.
+    reviewStatus: (['pending', 'approved', 'rejected'] as const).includes(p.review_status)
+      ? p.review_status
+      : 'pending',
+    reviewNote: p.review_note || undefined,
+    isActive: p.is_active ?? true,
+    createdAt: p.created_at ?? undefined,
+  };
+}
+
+/**
+ * منتجات المتجر — **للصفحات العامة وحدها**.
+ *
+ * بتقرا بعميل الزائر (عشان الصفحات تتخزّن)، فبترجّع المعتمد
+ * المعروض بس — والفلترة دي **في سياسة القاعدة** (ملف 130)، مش هنا.
+ *
+ * ⚠️ **كان ليها خيار `includeInactive` واتشال.** من ملف 130 الخيار
+ *    ماكانش بيعمل حاجة: سياسة الزائر بتشيل الموقوف قبل ما الطلب
+ *    يوصل. واللوحات اللي كانت بتطلبه كانت فاكرة إنها شايفة كله —
+ *    شوف `getManagedProducts` تحت. خيار بيوعد بحاجة مش بيعملها
+ *    أوحش من غيابه، لأن اللي بعدنا هيستعمله.
+ *
+ * ⚠️ و`.eq('is_active', true)` باقي رغم إن السياسة بتعمله: لو
+ *    السياسة اتوسّعت بعدين لأي سبب، الصفحات العامة تفضل آمنة.
+ */
+export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> => {
   const supabase = createPublicClient();
-  let query = supabase.from('personalized_products').select('*');
-  if (!options.includeInactive) query = query.eq('is_active', true);
+  const query = supabase
+    .from('personalized_products')
+    .select('*')
+    .eq('is_active', true)
+    .eq('review_status', 'approved');
   const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error || !data || data.length === 0) {
@@ -50,27 +92,60 @@ export const getPersonalizedProducts = async (
     return [];
   }
 
-  return data.map((p: any) => ({
-    id: p.id,
-    slug: p.slug,
-    name: p.name,
-    category: p.category,
-    price: p.price,
-    electronicPrice: p.electronic_price || undefined,
-    shortDescription: p.short_description,
-    coverImageUrl: p.cover_image_url || undefined,
-    publisherId: p.publisher_id || undefined,
-    ownerType: p.owner_type,
-    publisherCost: p.publisher_cost ?? undefined,
-    features: p.features || undefined,
-    longDescription: p.long_description || undefined,
-    galleryImageUrls: p.gallery_image_urls || undefined,
-    reviewStatus: p.review_status ?? 'approved',
-    reviewNote: p.review_note || undefined,
-    isActive: p.is_active ?? true,
-    createdAt: p.created_at ?? undefined,
-  }));
+  return data.map(mapProductRow);
 };
+
+/**
+ * منتجات لوحات التحكم — **بجلسة الداخل، لا بصلاحية الزائر**.
+ *
+ * ═══════════════════════════════════════════════════════════
+ * 🔴 ليه دالة منفصلة — عطل كان قاعد مستني
+ * ═══════════════════════════════════════════════════════════
+ *
+ * شاشة «المنتجات» في الإدارة، و«منتجاتي» عند الناشر، وصفحة تعديل
+ * الناشر كانوا بينادوا `getPersonalizedProducts({ includeInactive:
+ * true })`. والدالة دي بتقرا **بعميل الزائر** (`createPublicClient` —
+ * من غير كوكيز، عشان الصفحات العامة تتخزّن).
+ *
+ * ومن ملف 130، سياسة الزائر:
+ *     USING ( review_status = 'approved' AND is_active )
+ *
+ * يعني `includeInactive` **بقت ما بتعملش حاجة** — الفلتر بيحصل في
+ * القاعدة قبل ما الكود يطلب. والنتيجة:
+ *
+ *   • الإدارة توقف منتج ← **يختفي من شاشة المنتجات**، ومفيش مكان
+ *     ترجّعه منه. وعمود «موقوف» في الجدول مستحيل يظهر.
+ *   • الناشر يعدّل منتجه ← الحارس بيرجّعه «في الانتظار» ← **يختفي من
+ *     «منتجاتي»**، وصفحة تعديله بتقول «غير موجود».
+ *
+ * كل ده **بلا أي خطأ** — مصيدة «ك» بالحرف. وتشخيص 131 قال إن صفر
+ * منتجات متأثرة **لحد النهارده**: العطل كان مستني أول إيقاف.
+ *
+ * ⚠️ **وشاشة المراجعة كانت عارفة المصيدة دي** (`getPendingProducts`
+ *    تحت بتقرا بالجلسة وبتشرح ليه). الإصلاح اتعمل في الشاشة الجديدة
+ *    وما وصلش للقديمة — درس ٢٠ بشكل تاني.
+ *
+ * ── ومين بيشوف إيه ──────────────────────────────────────────
+ *
+ * السياسات هي اللي بتقرّر، لا الدالة: الإداري بيشوف كله (`is_admin()`)،
+ * والناشر بيشوف بتاعه بأي حالة + المعتمد العام. والشاشة بتفلتر بالناشر
+ * بعد كده — **الفلترة دي عرض، مش حماية**.
+ */
+export async function getManagedProducts(): Promise<PersonalizedProduct[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('personalized_products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // ⚠️ بيترمي ولا بيرجّع فاضي: الفاضي هنا بيتقري «مفيش منتجات»،
+    //    والإداري يفتكر إن الكتالوج اتمسح. الشاشة بتعرض صفحة الخطأ.
+    console.error('تعذّر قراءة منتجات اللوحة', error);
+    throw new Error('تعذّر تحميل المنتجات');
+  }
+  return (data ?? []).map(mapProductRow);
+}
 
 /**
  * Add-on products have no table in the database yet — the shape and business
@@ -235,34 +310,7 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
   //
   // **ومالوش أي مبرّر**: كل الأعمدة اللي بتتقري موجودة في
   // النوعين، والصفحات اللي بتستعملها بتفلتر بالتصنيف لا بالملكية.
-  return {
-    id: data.id,
-    slug: data.slug,
-    name: data.name,
-    category: data.category,
-    price: data.price,
-    electronicPrice: data.electronic_price || undefined,
-    shortDescription: data.short_description ?? '',
-    coverImageUrl: data.cover_image_url || undefined,
-    publisherId: data.publisher_id || undefined,
-    ownerType: data.owner_type,
-    publisherCost: data.publisher_cost ?? undefined,
-    features: data.features || undefined,
-    longDescription: data.long_description || undefined,
-    galleryImageUrls: data.gallery_image_urls || undefined,
-    // ⚠️ العمود في القاعدة `text` بـ`CHECK` (قرار ملف 130: الـenum
-    //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات
-    //    بتتعامل معاه. وأي قيمة غريبة بتتقري «في الانتظار» — الأأمن:
-    //    المنتج يفضل مستخبي لحد ما حد يبصّ.
-    reviewStatus: (['pending', 'approved', 'rejected'] as const).includes(
-      data.review_status as 'pending',
-    )
-      ? (data.review_status as 'pending' | 'approved' | 'rejected')
-      : 'pending',
-    reviewNote: data.review_note || undefined,
-    isActive: data.is_active ?? true,
-    createdAt: data.created_at ?? undefined,
-  };
+  return mapProductRow(data);
 };
 
 
@@ -434,24 +482,8 @@ export async function getPendingProducts(): Promise<
   }
 
   return rows.map((p) => ({
-    id: p.id as string,
-    slug: p.slug as string,
-    name: p.name as string,
-    category: p.category as PersonalizedProduct['category'],
-    price: p.price as number,
-    electronicPrice: (p.electronic_price as number) || undefined,
-    shortDescription: (p.short_description as string) ?? '',
-    coverImageUrl: (p.cover_image_url as string) || undefined,
-    publisherId: (p.publisher_id as string) || undefined,
-    ownerType: p.owner_type as PersonalizedProduct['ownerType'],
-    publisherCost: (p.publisher_cost as number) ?? undefined,
-    features: (p.features as string[]) || undefined,
-    longDescription: (p.long_description as string) || undefined,
-    galleryImageUrls: (p.gallery_image_urls as string[]) || undefined,
+    ...mapProductRow(p),
     reviewStatus: 'pending' as const,
-    reviewNote: (p.review_note as string) || undefined,
-    isActive: (p.is_active as boolean) ?? true,
-    createdAt: (p.created_at as string) ?? undefined,
     publisherName: p.publisher_id
       ? (names.get(p.publisher_id as string) ?? 'ناشر غير معروف')
       : undefined,

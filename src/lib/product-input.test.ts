@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateProductInput, slugFromName } from './product-input';
+import { validateProductInput, slugFromName, onlySentFields } from './product-input';
 
 const base = { name: 'قصة البحر', shortDescription: 'وصف', price: '500' };
 
@@ -83,5 +83,33 @@ describe('رابط المنتج من اسمه', () => {
 
   it('والرابط الطويل بيتقصّ', () => {
     expect(slugFromName('ا'.repeat(200)).length).toBeLessThanOrEqual(60);
+  });
+});
+
+describe('🔴 الخانة اللي ما وصلتش ماتمسحش القديم', () => {
+  // نموذج الناشر ماكانش فيه المعرض ولا الوصف الكامل، والحفظ كان
+  // بيكتبهم `null` — فتصحيح حرف واحد منه كان بيمسح صور الإدارة.
+  const fields = {
+    galleryImageUrls: { gallery_image_urls: null },
+    longDescription: { long_description: null },
+    minAge: { min_age: 6, max_age: 9 },
+  };
+
+  it('نموذج مافيهوش الخانات = مفيش أعمدة تتكتب', () => {
+    const form = new FormData();
+    form.append('name', 'كتاب');
+    expect(onlySentFields(form, fields)).toEqual({});
+  });
+
+  it('⚠️ الخانة موجودة وفاضية = مسح مقصود، بيتكتب `null`', () => {
+    const form = new FormData();
+    form.append('galleryImageUrls', '');
+    expect(onlySentFields(form, fields)).toEqual({ gallery_image_urls: null });
+  });
+
+  it('خانتا السنّ بيتكتبوا مع بعض', () => {
+    const form = new FormData();
+    form.append('minAge', '6');
+    expect(onlySentFields(form, fields)).toEqual({ min_age: 6, max_age: 9 });
   });
 });

@@ -1086,6 +1086,10 @@ export type Database = {
           reviewed_at: string | null
           gallery_image_urls: string[] | null
           long_description: string | null
+          /** أصغر سنّ مناسب — ملف 132. فاضي = مفيش سنّ مكتوب. */
+          min_age: number | null
+          /** أكبر سنّ مناسب — ملف 132. فاضي مع min_age = «فأكبر». */
+          max_age: number | null
         }
         Insert: {
           id?: string
@@ -1108,6 +1112,8 @@ export type Database = {
           reviewed_at?: string | null
           gallery_image_urls?: string[] | null
           long_description?: string | null
+          min_age?: number | null
+          max_age?: number | null
         }
         Update: {
           id?: string
@@ -1130,6 +1136,8 @@ export type Database = {
           reviewed_at?: string | null
           gallery_image_urls?: string[] | null
           long_description?: string | null
+          min_age?: number | null
+          max_age?: number | null
         }
         Relationships: []
       }

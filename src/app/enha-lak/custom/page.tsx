@@ -14,7 +14,7 @@ import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/produc
 import { PenTool, Plus } from 'lucide-react';
 
 import { PageContainer } from '@/components/PageContainer';
-import { SectionHeader } from '@/components/SectionHeader';
+import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -29,30 +29,29 @@ export default async function CustomPage() {
 
   return (
     <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
-      <div className="relative">
-        <SectionHeader
-          title="أنت البطل هنا"
-          icon={<PenTool className="h-8 w-8" />}
-          iconClassName="bg-rose-50 text-rose-600"
-          description="نصنع محتوى مخصصاً لطفلك من الصفر بعد إتمام الطلب، ليكون هو محور القصة بأدق تفاصيلها."
-        />
-
-      </div>
+      {/* ⚠️ كان `SectionHeader` العام — نفس رأس المدونة والدعم. بقى رأس
+          القسم الطفولي، ونفس اللي في المكتبة. */}
+      <ShelfHeader
+        title="أنت البطل هنا"
+        eyebrow="قصة بتتكتب لطفلك من الصفر"
+        icon={<PenTool className="h-8 w-8" />}
+        description="اختار المنتج، وشاركنا اللي فريقنا محتاجه للتخصيص. بنبدأ نكتب بعد تأكيد الطلب، وطفلك يبقى بطل الحكاية باسمه وصورته واهتماماته."
+      />
 
       {/* Custom Products */}
-      <Section containerClassName="max-w-6xl">
+      <Section className="w-full pt-4 md:pt-6" containerClassName="max-w-6xl">
         {/* ⚠️ الكارت بقى مكوّنًا مشتركًا مع المكتبة. كان متكرّرًا
             في الصفحتين بنسختين بدأوا متشابهين وبعدوا، وكل إصلاح
             كان بيتعمل في واحدة وينسى التانية. */}
         {customProducts.length > 0 ? (
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {customProducts.map((product, i) => (
               <Reveal key={product.id} delay={Math.min(i, 5) * 60} className="h-full">
                 <ProductCard
                   product={product}
                   actionLabel="ابدأ التخصيص"
                   actionHref={`/enha-lak/custom/${product.slug}`}
+                  cardHref={`/enha-lak/product/${product.slug}`}
                   detailsHref={`/enha-lak/product/${product.slug}`}
                 />
               </Reveal>
@@ -63,11 +62,11 @@ export default async function CustomPage() {
              والزائر بيقرا الفراغ على إن الصفحة باظت. */
           <Card
             accentColor="rose"
-            className="flex flex-col items-center justify-center py-20 text-center"
+            className="flex flex-col items-center justify-center rounded-[1.75rem] py-20 text-center"
           >
-            <h3 className="mb-2 text-2xl font-black text-slate-800">
+            <h2 className="mb-2 text-2xl font-black text-slate-800">
               القصص المخصصة لسه بتتجهّز
-            </h3>
+            </h2>
             <p className="font-medium text-slate-600">
               بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.
             </p>

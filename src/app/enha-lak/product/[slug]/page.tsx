@@ -1,5 +1,5 @@
 import { formatPrice } from '@/lib/utils';
-import { getProductBySlug } from '@/data/domains/products';
+import { getProductBySlug, getPublishers } from '@/data/domains/products';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
@@ -16,7 +16,8 @@ import { pageMetadata } from '@/lib/seo';
 import { productSchema, breadcrumbSchema } from '@/lib/structured-data';
 import { getSiteSettings } from '@/data/domains/content';
 import { ShareSection } from '@/components/share/ShareSection';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Building2, Palette } from 'lucide-react';
+import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
 
 
@@ -52,6 +53,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);
+
+  // الناشر باسمه ورابط صفحته — «الكتاب ده من دار أعرفها» معلومة بتبيع.
+  // ⚠️ من القايمة العامة وبالحالة: ناشر موقوف مايتعرضش رابطه.
+  const publisher = product.publisherId
+    ? (await getPublishers()).find((p) => p.id === product.publisherId && p.status === 'active')
+    : undefined;
 
   const settings = await getSiteSettings();
   const siteName = settings.siteName?.trim() || 'الرحلة';
@@ -117,6 +124,29 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
           <div className="lg:col-start-2 lg:row-start-1 lg:self-end">
             <h1 className="text-3xl leading-tight font-black text-slate-900 md:text-4xl">{product.name}</h1>
+
+            {/* ══ أول تلات أسئلة عند الأب — قبل الوصف ══════════════
+                ينفع لسنّ ابني؟ · من أنهي دار؟ · إيه اللي بيتخصّص؟
+                كانوا مش موجودين في الصفحة خالص (السنّ مكانش ليه عمود). */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <AgeBadge minAge={product.minAge} maxAge={product.maxAge} size="md" />
+              {publisher && (
+                <Link
+                  href={`/enha-lak/publisher/${publisher.slug}`}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border-2 border-slate-200 bg-white px-3.5 text-sm font-bold text-slate-700 transition-colors hover:border-rose-300"
+                >
+                  <Building2 className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                  {publisher.name}
+                </Link>
+              )}
+              {product.category === 'library' && (
+                <span className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full bg-rose-50 px-3.5 text-sm font-bold text-rose-800 ring-1 ring-rose-100">
+                  <Palette className="h-4 w-4" aria-hidden="true" />
+                  غلاف مخصص فقط — القصة زي ما هي
+                </span>
+              )}
+            </div>
+
             <p className="mt-4 leading-relaxed text-slate-600 md:mt-6 md:text-lg">{product.shortDescription}</p>
           </div>
 
@@ -162,7 +192,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
             {product.features && product.features.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-bold text-slate-800">ميزات المنتج:</h3>
+                <h2 className="text-xl font-bold text-slate-800">تفاصيل الكتاب</h2>
                 <ul className="space-y-2">
                   {product.features.map((feature: string, idx: number) => (
                     <li key={idx} className="flex items-center gap-2 text-slate-600">
@@ -178,7 +208,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             
             <Card accentColor="rose" className="p-6">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-3xl font-black text-rose-500">{formatPrice(product.price)}</span>
+                <span className="text-enha-lak-strong text-3xl font-black">{formatPrice(product.price)}</span>
               </div>
               
               <div className="mt-6">

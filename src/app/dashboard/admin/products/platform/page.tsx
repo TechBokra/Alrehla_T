@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getPersonalizedProducts } from '@/data/domains/products';
+import { getManagedProducts } from '@/data/domains/products';
 import { hasAdminPermission , formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
@@ -19,7 +19,7 @@ export default async function Page() {
 
   // منتجات المنصة = اللي مالهاش ناشر. بقت شاشة مستقلة في القايمة بدل
   // تبويب مدفون جوّه شاشة المنتجات.
-  const allProducts = await getPersonalizedProducts({ includeInactive: true });
+  const allProducts = await getManagedProducts();
   const platformProducts = allProducts.filter(p => !p.publisherId);
   
   const formattedProducts = platformProducts.map(p => ({

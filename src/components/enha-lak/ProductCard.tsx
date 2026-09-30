@@ -1,13 +1,16 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Building2 } from 'lucide-react';
+import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
 import type { PersonalizedProduct } from '@/types';
+import { AgeBadge } from '@/components/enha-lak/AgeBadge';
+import { primaryAgeBand } from '@/lib/age-bands';
+import { cn } from '@/lib/utils';
 
 /**
  * كارت المنتج — **واحد لصفحتَي المكتبة و«أنت البطل»**.
@@ -68,6 +71,7 @@ export function ProductCard({
   actionHref,
   /** رابط تانٍ اختياري لصفحة تفاصيل المنتج. */
   detailsHref,
+  detailsLabel = 'عرض التفاصيل',
   /** الكارت كله رابط لصفحة المنتج (شبكة المكتبة). */
   cardHref,
 }: {
@@ -76,8 +80,15 @@ export function ProductCard({
   actionLabel: string;
   actionHref: string;
   detailsHref?: string;
+  detailsLabel?: string;
   cardHref?: string;
 }) {
+  // لون خلفية الغلاف من الفئة العمرية — فالرفّ بيتقري بالعين قبل
+  // الكلام: الأصفر للصغار، والسماوي بعدهم، وهكذا. ومن غير سنّ بيفضل
+  // لون القسم.
+  const band = primaryAgeBand(product);
+  const isLibrary = product.category === 'library';
+
   return (
     <Card
       accentColor="rose"
@@ -85,7 +96,9 @@ export function ProductCard({
       // `h-full` عشان الكارت ياخد ارتفاع خانة الشبكة كاملًا حتى
       // وهو ملفوف في `Reveal` — فالأسعار والأزرار بتتراصّ على خط
       // واحد عبر الصف مهما اختلفت أطوال الأسماء.
-      className="group relative flex h-full flex-col overflow-hidden p-0 hover:shadow-xl hover:shadow-rose-500/10"
+      // ⚠️ `rounded-[1.75rem]` وحدّ أعرض: الزوايا المدوّرة أكتر هي أرخص
+      //    طريقة لشكل «كتاب أطفال» من غير ما نغيّر المكوّن العام `Card`.
+      className="group relative flex h-full flex-col overflow-hidden rounded-[1.75rem] border-2 p-0 hover:shadow-xl hover:shadow-rose-500/10"
     >
       {/* ⚠️ الكارت كله رابط، والأزرار جواه `pointer-events-auto`.
           الترتيب ده بيخلّي أي ضغطة على الكارت تروح لصفحة المنتج
@@ -101,7 +114,12 @@ export function ProductCard({
       {/* ══ لوح الغلاف ══════════════════════════════════════
           نسبة أبعاد لا ارتفاع ثابت: الارتفاع بيتحسب من العرض،
           فالكارت بيتصرّف بنفس الشكل في شبكة ٢ و٣ و٤ أعمدة. */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-rose-50 via-white to-slate-50">
+      <div
+        className={cn(
+          'relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b',
+          band ? band.tone.soft : 'from-rose-50 via-white to-slate-50',
+        )}
+      >
         {product.coverImageUrl ? (
           <Image
             src={optimizedImageUrl(product.coverImageUrl, 600)}
@@ -123,10 +141,30 @@ export function ProductCard({
           <ImagePlaceholder label={product.name} />
         )}
 
+        {/* ══ الملصقات على الغلاف ═══════════════════════════════
+            ⚠️ **شارة الناشر اتشالت من هنا قبل كده** لأن الشارة فوق
+               الصورة بتتقري زخرفة. السنّ مختلف: هو أول سؤال عند الأب
+               («ينفع لابني؟»)، ومكانه على الغلاف بيجاوبه قبل ما يقرا
+               الاسم. ومكتوب نصًّا، مش لون وبس. */}
+        <AgeBadge
+          minAge={product.minAge}
+          maxAge={product.maxAge}
+          className="pointer-events-none absolute top-3 right-3 -rotate-3"
+        />
+
+        {/* «غلاف مخصص فقط» — المصفوفة التنفيذية §3.3 بتطلبها بالاسم:
+            «مهمة جدًّا لمنع الالتباس». من غيرها الأب ممكن يفتكر إن
+            كتاب المكتبة بيتكتب باسم ابنه زي «أنت البطل هنا». */}
+        {isLibrary && (
+          <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-rose-800 shadow-sm ring-1 ring-rose-100">
+            <Palette className="h-3.5 w-3.5" aria-hidden="true" />
+            غلاف مخصص فقط
+          </span>
+        )}
       </div>
 
       <div className="z-10 flex flex-1 flex-col p-5">
-        <h3 className="pointer-events-none mb-1 text-lg leading-snug font-bold text-slate-800">
+        <h3 className="pointer-events-none mb-1 text-xl leading-snug font-bold text-slate-800">
           {product.name}
         </h3>
 
@@ -211,7 +249,7 @@ export function ProductCard({
             href={detailsHref}
             className="group/details text-enha-lak-strong pointer-events-auto relative z-20 mt-3 inline-flex min-h-[44px] items-center justify-center gap-1.5 text-sm font-bold"
           >
-            عرض التفاصيل
+            {detailsLabel}
             <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--dur-fast)] ease-[var(--ease-ui)] motion-safe:group-hover/details:-translate-x-1" />
           </Link>
         )}

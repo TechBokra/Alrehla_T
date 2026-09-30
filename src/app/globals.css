@@ -31,6 +31,16 @@
     var(--font-cairo), ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+  /* ── خط العناوين في «إنها لك» ────────────────────────────
+     Baloo Bhaijaan 2 — عربي مدوّر ومرح، بيتحمّل في قسم «إنها لك»
+     وحده (`app/enha-lak/layout.tsx`)، فباقي الموقع مابيدفعش وزنه.
+
+     ⚠️ **للعناوين بس**: النصوص الطويلة بـCairo زي ما هي. الخط المرح
+        في فقرة كاملة بيتعب العين — واللي بيقرا الوصف ويدفع ولي الأمر.
+     ⚠️ و`var(--font-cairo)` بعده: لو الخط ماتحمّلش، العنوان بيرجع
+        لخط الموقع لا لخط الجهاز. */
+  --font-kids: var(--font-baloo), var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+
   /* ── الهوية ───────────────────────────────────────────────
      اللون الأساسي للمنصة. دلوقتي `amber` — وده اللي هيتغيّر
      لكورال الدليل في المرحلة ٢، **من السطر ده وبس**.
@@ -290,4 +300,18 @@ body {
     max-height: none;
     opacity: 1;
   }
+}
+
+
+/* ── «إنها لك»: عناوين بخط مرح + حركة الزينة ─────────────────
+   ⚠️ `:where` عشان الخصوصية تفضل صفر: أي عنوان عليه صنف خط صريح
+      بيغلب القاعدة دي من غير `!important`. */
+.enha-lak-theme :where(h1, h2, h3) {
+  font-family: var(--font-kids);
+}
+
+/* حركة الرسومات في `KidsDoodles` — بتتستعمل جوّه `motion-safe:` بس. */
+@keyframes kids-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(4deg); }
 }

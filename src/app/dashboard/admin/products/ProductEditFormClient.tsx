@@ -1,5 +1,5 @@
 'use client';
-import { GalleryField } from '@/components/dashboard/GalleryField';
+import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 
 import React, { useState, useEffect, useTransition } from 'react';
@@ -146,50 +146,13 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
       
 
 
-      {/* الوصف الكامل لصفحة المنتج — `الوصف` فوق سطر للكارت. */}
-      <div>
-        <label className="mb-2 block text-sm font-bold text-slate-700">
-          الوصف الكامل{' '}
-          <span className="font-medium text-slate-500">(اختياري — بيظهر في صفحة المنتج)</span>
-        </label>
-        <textarea
-          name="longDescription"
-          defaultValue={product.longDescription ?? ''}
-          rows={6}
-          placeholder={'## عن القصة\nنصّ الفقرة…\n\n- نقطة\n- نقطة تانية'}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm"
-        ></textarea>
-        <p className="mt-1 text-xs font-medium text-slate-500">
-          يدعم <code>## عنوان</code> و<code>- نقطة</code> و<code>**عريض**</code>.
-        </p>
-      </div>
-
-      <GalleryField name="galleryImageUrls" folder="alrehla/products/gallery" value={product.galleryImageUrls ?? []} />
-      {/* ══ 🔴 الخانة دي كانت ناقصة من النموذجين ══════════════
-          عمود `features` موجود في القاعدة، **ومعروض في صفحة المنتج
-          وفي كارت المكتبة** — ومافيش مكان يتكتب فيه. يعني الشاشة
-          بتوعد العميل بتفاصيل، والفريق بيدوّر على مكان يكتبها فيه
-          ومايلاقيش فيفتكر إن الموقع باظ.
-
-          **سطر لكل بند** عن قصد: أبسط شكل للكتابة بالعربي، وأقل من
-          أي محرّر شرائح في احتمالات الخطأ. والخادم بيشيل الفاضي
-          والمكرّر ويسقّف عند ٨. */}
-      <div>
-        <label className="mb-2 block text-sm font-bold text-slate-700">
-          تفاصيل المنتج{' '}
-          <span className="font-medium text-slate-500">(بند في كل سطر — اختياري)</span>
-        </label>
-        <textarea
-          name="features"
-          defaultValue={(product.features ?? []).join('\n')}
-          rows={4}
-          placeholder={'٣٢ صفحة ملوّنة\nغلاف مقوّى\nمن ٤ لـ٨ سنين'}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm"
-        ></textarea>
-        <p className="mt-1 text-xs font-medium text-slate-500">
-          أول بندين بيظهروا على الكارت في المكتبة، والباقي في صفحة المنتج.
-        </p>
-      </div>
+      <ProductContentFields
+        longDescription={product.longDescription}
+        galleryImageUrls={product.galleryImageUrls}
+        features={product.features}
+        minAge={product.minAge}
+        maxAge={product.maxAge}
+      />
       {/* كان خانة نص بتطلب من الإدارة ترفع الصورة في مكان تاني وتنسخ
           الرابط بالإيد. بقى رفعًا مباشرًا زي كل صور الموقع. */}
       <ImageField

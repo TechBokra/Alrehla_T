@@ -1,5 +1,21 @@
 import React from 'react';
+import { Baloo_Bhaijaan_2 } from 'next/font/google';
 import { SectionSubNav } from '@/components/SectionSubNav';
+
+/**
+ * خط العناوين المرح — **للقسم ده وحده** (طلب: «شكل طفولي أكتر»).
+ *
+ * ⚠️ متحمّل هنا لا في `app/layout.tsx`: لو اتحمّل في الجذر، كل صفحات
+ *    الموقع (المدونة، لوحات التحكم، بداية الرحلة) بتدفع وزن خط
+ *    مابتستعملوش. هنا بيتحمّل لما الزائر يدخل «إنها لك» بس.
+ * ⚠️ و`display: 'swap'`: العنوان بيظهر بخط الموقع فورًا وبيتبدّل لما
+ *    الخط يوصل — بدل ما يفضل مستخبي على شبكة موبايل بطيئة.
+ */
+const baloo = Baloo_Bhaijaan_2({
+  subsets: ['arabic'],
+  display: 'swap',
+  variable: '--font-baloo',
+});
 
 const enhaLakTabs = [
   { name: 'نظرة عامة', href: '/enha-lak' },
@@ -13,7 +29,9 @@ const enhaLakTabs = [
 export default async function EnhaLakLayout({ children }: { children: React.ReactNode }) {
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#FFFBFD] to-[#FDF5F7] selection:bg-rose-200 selection:text-rose-900">
+    <div
+      className={`${baloo.variable} enha-lak-theme relative min-h-screen bg-gradient-to-br from-[#FFFBFD] to-[#FDF5F7] selection:bg-rose-200 selection:text-rose-900`}
+    >
       {/* Decorative Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-tr from-rose-200/40 to-fuchsia-200/40 blur-[100px]" />

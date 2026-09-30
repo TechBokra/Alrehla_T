@@ -11,7 +11,13 @@ import {
   isProductCategory,
   PUBLISHER_PRODUCT_CATEGORIES,
 } from '@/lib/product-categories';
-import { validateProductInput, slugFromName, parseFeatures } from '@/lib/product-input';
+import {
+  validateProductInput,
+  slugFromName,
+  parseFeatures,
+  onlySentFields,
+} from '@/lib/product-input';
+import { parseAgeInput } from '@/lib/age-bands';
 import {
   customerPriceFromCost,
   NEUTRAL_FORMULA,
@@ -124,6 +130,13 @@ export async function saveProduct(formData: FormData) {
     ),
   ].slice(0, 8);
 
+  // ── السنّ المناسب (ملف 132) ───────────────────────────────
+  //
+  // نفس قيود القاعدة بالحرف، عشان الرسالة تبقى مفهومة بدل رفض
+  // القاعدة الخام («violates check constraint …»).
+  const age = parseAgeInput(formData.get('minAge'), formData.get('maxAge'));
+  if (!age.ok) return { ok: false as const, error: age.error };
+
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
   const ownerType = formData.get('ownerType') as 'platform' | 'publisher';
@@ -209,6 +222,27 @@ export async function saveProduct(formData: FormData) {
     price = customerPriceFromCost(effectiveCost, formula);
   }
 
+  // ══ 🔴 الخانة اللي ما جاتش من النموذج **ماتتكتبش** ══════════
+  //
+  // كانت التفاصيل والوصف الكامل والمعرض بيتكتبوا في كل حفظة — واللي
+  // مش في النموذج بيتكتب `null`. ونموذج الناشر ماكانش فيه الخانات
+  // دي، فأي تصحيح منه كان **بيمسح صور الإدارة ووصفها في صمت**.
+  // التفصيل في `onlySentFields`.
+  //
+  // ⚠️ **ونموذج الناشر بقى فيه الخانات** — والحارس ده مش بديل عنها
+  //    ولا هي بديل عنه: أي نموذج تالت يتعمل بعدين (أو خانة تتشال من
+  //    نموذج) هيمسح بنفس الصمت لولاه.
+  const optionalColumns = onlySentFields(formData, {
+    // ⚠️ `null` لو فاضية لا `[]`: القاعدة بتفرّق بين «مفيش تفاصيل»
+    //    و«قايمة فاضية»، والشاشات بتفحص `array_length` اللي بترجّع
+    //    `null` للاتنين — فالتوحيد هنا بيمنع فرقًا مالوش معنى.
+    features: { features: features.length > 0 ? features : null },
+    longDescription: { long_description: longDescription },
+    galleryImageUrls: { gallery_image_urls: gallery.length > 0 ? gallery : null },
+    // خانتا السنّ بيتكتبوا مع بعض دايمًا: قيد القاعدة بيربطهم.
+    minAge: { min_age: age.minAge, max_age: age.maxAge },
+  });
+
   const dbPayload = {
     slug,
     name: checked.data.name,
@@ -217,12 +251,7 @@ export async function saveProduct(formData: FormData) {
     publisher_cost: effectiveCost,
     electronic_price: electronicPrice,
     short_description: shortDescription,
-    // ⚠️ `null` لو فاضية لا `[]`: القاعدة بتفرّق بين «مفيش تفاصيل»
-    //    و«قايمة فاضية»، والشاشات بتفحص `array_length` اللي بترجّع
-    //    `null` للاتنين — فالتوحيد هنا بيمنع فرقًا مالوش معنى.
-    features: features.length > 0 ? features : null,
-    long_description: longDescription,
-    gallery_image_urls: gallery.length > 0 ? gallery : null,
+    ...optionalColumns,
     cover_image_url: coverImageUrl,
     publisher_id: effectivePublisherId,
     owner_type: ownerType,

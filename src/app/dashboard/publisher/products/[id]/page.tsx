@@ -1,11 +1,13 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getPersonalizedProducts, getMyPublisher } from '@/data/domains/products';
+import { getManagedProducts, getMyPublisher } from '@/data/domains/products';
 import { saveProduct } from '@/actions/products';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { PublisherCostField } from '@/components/dashboard/PublisherCostField';
+import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
+import { ImageField } from '@/components/dashboard/ImageField';
 import {
   PUBLISHER_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
@@ -20,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const myPublisher = await getMyPublisher();
   if (!myPublisher) notFound();
 
-  const allProducts = await getPersonalizedProducts({ includeInactive: true });
+  const allProducts = await getManagedProducts();
   const target = allProducts.find(p => p.id === id);
   // مفيش سجل بالرقم ده: بنعرض صفحة «غير موجود».
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح
@@ -79,11 +81,34 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <textarea name="shortDescription" defaultValue={target.shortDescription} rows={3} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none"></textarea>
           </div>
           
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">رابط صورة الغلاف (اختياري)</label>
-            <input type="text" name="coverImageUrl" defaultValue={target.coverImageUrl || ''} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none text-left" dir="ltr" />
-          </div>
-          
+          {/* ══ 🔴 النموذج ده كان ناقصه نص صفحة المنتج ══════════════
+              مافيهوش الوصف الكامل ولا المعرض ولا التفاصيل — والحفظ كان
+              بيكتبهم فاضيين **فوق اللي الإدارة كتبته**. الخادم اتقفل
+              (`onlySentFields`)، والخانات بقت هنا من نفس مكوّن الإدارة.
+
+              وخانة الغلاف كانت «الصق رابط» — يعني الناشر يرفع الصورة في
+              مكان تاني وينسخ الرابط بالإيد. بقت رفعًا مباشرًا. */}
+          <ProductContentFields
+            longDescription={target.longDescription}
+            galleryImageUrls={target.galleryImageUrls}
+            features={target.features}
+            minAge={target.minAge}
+            maxAge={target.maxAge}
+          />
+
+          <ImageField
+            name="coverImageUrl"
+            label="صورة الغلاف"
+            folder="alrehla/products"
+            value={target.coverImageUrl || ''}
+            aspect="cover"
+            hint="غلاف الكتاب — يفضّل طولي (3:4) وبعرض ١٢٠٠ بكسل على الأقل"
+          />
+
+          <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed font-medium text-amber-900">
+            أي تعديل بيرجّع المنتج لمراجعة الإدارة، وبيقف عن البيع لحد ما يتوافق عليه.
+          </p>
+
           <div className="pt-6 border-t border-slate-100 flex justify-end">
             <button type="submit" className="rounded-xl bg-amber-500 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-amber-600">
               حفظ التغييرات

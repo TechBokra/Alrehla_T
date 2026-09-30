@@ -4,14 +4,14 @@ import { pageMetadata } from '@/lib/seo';
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: 'المكتبة العامة',
-    description: 'تصفّح إصدارات دور النشر وكتب الأطفال المتاحة في مكتبة منصة الرحلة.',
+    description: 'تصفّح إصدارات دور النشر وكتب الأطفال المتاحة في مكتبة منصة الرحلة، واختار حسب سنّ طفلك.',
     path: '/enha-lak/library',
   });
 }
 
 import { BookOpen } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
-import { SectionHeader } from '@/components/SectionHeader';
+import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
 import { LibraryClient } from './LibraryClient';
 
@@ -23,22 +23,17 @@ export default async function LibraryPage() {
 
   return (
     <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
-      <div className="relative">
-        <SectionHeader
-          title="المكتبة العامة"
-          icon={<BookOpen className="h-8 w-8" />}
-          iconClassName="bg-rose-50 text-rose-600"
-          description="اختر قصة جاهزة من المكتبة وخصص غلافها فقط، محتوى القصة الأصلي يبقى كما هو. خيار مثالي لمن يبحث عن محتوى قيم بلمسة شخصية بسيطة."
-        />
+      {/* ⚠️ **نفس رأس «أنت البطل هنا»** (`ShelfHeader`) — الطلب: المكتبة
+          بنفس الشكل. والعنوان الفرعي من المصفوفة التنفيذية §3.3: «قصة
+          جاهزة… وغلاف يحمل اسم طفلك» — أوضح فرق عن «أنت البطل هنا». */}
+      <ShelfHeader
+        title="المكتبة العامة"
+        eyebrow="قصة جاهزة… وغلاف يحمل اسم طفلك"
+        icon={<BookOpen className="h-8 w-8" />}
+        description="تصفّح القصص واختار اللي يناسب طفلك. محتوى القصة يفضل زي ما هو، والتخصيص على الغلاف والخيارات المتاحة بس."
+      />
 
-      </div>
-
-      {/* Library Products with Filters */}
       <LibraryClient initialProducts={libraryProducts} publishers={publishers} />
-
-
     </PageContainer>
   );
 }
-

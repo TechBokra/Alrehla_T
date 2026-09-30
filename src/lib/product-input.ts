@@ -177,3 +177,34 @@ export function parseFeatures(raw: string | null | undefined): string[] {
     ),
   ].slice(0, MAX_FEATURES);
 }
+
+/**
+ * الأعمدة اللي خانتها **وصلت فعلًا** من النموذج — وبس.
+ *
+ * ── العطل اللي بيقفله ───────────────────────────────────────
+ *
+ * `saveProduct` كانت بتكتب التفاصيل والوصف الكامل والمعرض في كل
+ * حفظة. والخانة اللي مش في النموذج `formData.get()` بترجّعها `null`،
+ * فكانت بتتكتب `null` **فوق القيمة الموجودة**.
+ *
+ * ونموذج الناشر ماكانش فيه الخانات دي. يعني الإدارة تضيف صورًا
+ * ووصفًا للكتاب، والناشر يصلّح حرفًا في الوصف القصير، **فكل ده
+ * يتمسح في صمت** — والشاشة تقول «اتحفظ».
+ *
+ * ⚠️ **والفرق اللي لازم يفضل واضح:**
+ *      • الخانة مش في النموذج       ← العمود ماينكتبش، القديم يفضل
+ *      • الخانة في النموذج وفاضية    ← اتمسحت عن قصد، تتكتب `null`
+ *    `formData.has()` بتفرّق بينهم؛ `formData.get() || null` لأ.
+ *
+ * `fields`: اسم الخانة في النموذج ← الأعمدة اللي بتتكتب لو وصلت.
+ */
+export function onlySentFields(
+  form: { has(name: string): boolean },
+  fields: Record<string, Record<string, unknown>>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [field, columns] of Object.entries(fields)) {
+    if (form.has(field)) Object.assign(out, columns);
+  }
+  return out;
+}

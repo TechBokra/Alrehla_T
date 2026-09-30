@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
+import { getManagedProducts, getPublishers } from '@/data/domains/products';
 import { hasAdminPermission , formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
@@ -24,7 +24,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
   
-  const allProducts = await getPersonalizedProducts({ includeInactive: true });
+  const allProducts = await getManagedProducts();
   const publisherProducts = allProducts.filter(p => p.publisherId === target.id);
 
   const formattedProducts = publisherProducts.map(p => ({

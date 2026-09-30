@@ -1,4 +1,5 @@
 import type { PersonalizedProduct } from '@/types';
+import { isAgeBandId, productMatchesAgeBand, type AgeBandId } from '@/lib/age-bands';
 
 /**
  * فلترة وترتيب منتجات المكتبة — **حساب نقي، بلا شاشة**.
@@ -56,17 +57,32 @@ export function sortProducts(
  *    بيرجّع صفر على بحث سليم، والصفر بيتقري «مش عندكم» لا «دوّر
  *    بطريقة تانية».
  */
+export type ProductFilter = {
+  query?: string;
+  publisherId?: string;
+  /**
+   * الفئة العمرية (`lib/age-bands.ts`). `all` أو فاضي = كل الأعمار.
+   *
+   * ⚠️ **القيمة جاية من الرابط** (`?age=`)، وأي حد يقدر يكتب فيه اللي
+   *    هو عايزه. القيمة الغريبة بتتعامل «كل الأعمار» لا «صفر نتايج» —
+   *    الرابط المكسور مايستاهلش رفًّا فاضيًا.
+   */
+  ageBand?: AgeBandId | 'all' | string;
+};
+
 export function filterProducts(
   products: PersonalizedProduct[],
-  options: { query?: string; publisherId?: string },
+  options: ProductFilter,
 ): PersonalizedProduct[] {
   const query = options.query?.trim().toLowerCase() ?? '';
   const publisherId = options.publisherId && options.publisherId !== 'all'
     ? options.publisherId
     : null;
+  const ageBand = isAgeBandId(options.ageBand) ? options.ageBand : null;
 
   return products.filter((p) => {
     if (publisherId && p.publisherId !== publisherId) return false;
+    if (ageBand && !productMatchesAgeBand(p, ageBand)) return false;
     if (!query) return true;
     const haystack = `${p.name} ${p.shortDescription ?? ''}`.toLowerCase();
     return haystack.includes(query);
@@ -86,9 +102,31 @@ export function resultLabel(shown: number, total: number): string {
 }
 
 /** فيه فلتر شغّال دلوقتي؟ — بيفرّق بين «مفيش نتايج» و«مفيش منتجات». */
-export function hasActiveFilter(options: { query?: string; publisherId?: string }): boolean {
+export function hasActiveFilter(options: ProductFilter): boolean {
   return Boolean(
     (options.query && options.query.trim()) ||
-      (options.publisherId && options.publisherId !== 'all'),
+      (options.publisherId && options.publisherId !== 'all') ||
+      isAgeBandId(options.ageBand),
   );
+}
+
+/**
+ * حالة المنتج **كما يراها العميل** — للوحتَي الإدارة والناشر.
+ *
+ * ⚠️ **عمودين بيقرّروا لا واحد**: `is_active` (قرار إيقاف إداري) و
+ *    `review_status` (مسار المراجعة، ملف 130). والمنتج بيظهر للعميل
+ *    لما **الاتنين** يبقوا تمام. شاشة المنتجات كانت بتعرض «معروض» من
+ *    `isActive` وحده — فمنتج مستني المراجعة كان مكتوب عليه «معروض»
+ *    وهو مستخبي عن الموقع.
+ *
+ * والترتيب مقصود: الموقوف أولًا، لأن الإيقاف قرار الإدارة ويغلب أي
+ * حالة مراجعة.
+ */
+export type ProductState = 'stopped' | 'pending' | 'rejected' | 'live';
+
+export function productState(p: Pick<PersonalizedProduct, 'isActive' | 'reviewStatus'>): ProductState {
+  if (!p.isActive) return 'stopped';
+  if (p.reviewStatus === 'rejected') return 'rejected';
+  if (p.reviewStatus !== 'approved') return 'pending';
+  return 'live';
 }

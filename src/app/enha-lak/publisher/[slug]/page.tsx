@@ -1,13 +1,13 @@
-import { formatPrice } from '@/lib/utils';
 import { getPersonalizedProducts, getPublisherBySlug } from '@/data/domains/products';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
-import { Card } from '@/components/ui/Card';
-import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { optimizedImageUrl } from '@/lib/cloudinary';
+import { ArrowLeft } from 'lucide-react';
 import { pageMetadata } from '@/lib/seo';
+import { ProductCard } from '@/components/enha-lak/ProductCard';
+import { customizationPath } from '@/lib/product-categories';
 
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -56,50 +56,40 @@ export default async function PublisherPage({ params }: { params: Promise<{ slug
       </Section>
 
       <Section containerClassName="pb-24">
-        <h2 className="text-2xl font-black text-slate-900 mb-8 border-b-2 border-slate-100 pb-4 inline-block">إصدارات الناشر</h2>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b-2 border-slate-100 pb-4">
+          <h2 className="text-2xl font-black text-slate-900">إصدارات الناشر</h2>
+          {/* الرابط بيفتح المكتبة على الدار دي بالظبط — ومن هناك الأب
+              يضيّق بالسنّ. نفس الرابط اللي بيتبعت على واتساب. */}
+          {publisherProducts.some((p) => p.category === 'library') && (
+            <Link
+              href={`/enha-lak/library?publisher=${encodeURIComponent(publisher.slug)}`}
+              className="text-enha-lak-strong inline-flex min-h-[44px] items-center gap-1.5 text-sm font-bold"
+            >
+              كتب الدار في المكتبة، حسب السنّ
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          )}
+        </div>
         {publisherProducts.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {publisherProducts.map((product) => (
-              <Card
-                key={product.id}
-                accentColor="rose"
-                interactive
-                // ⚠️ كان `hover:-translate-y-1` **بلا أي `transition`**
-                //    — يعني الكارت بينطّ نطّة فورية بدل ما يرتفع،
-                //    وبيتجاهل «تقليل الحركة» تمامًا. `interactive`
-                //    فيها الاتنين.
-                className="group overflow-hidden relative p-0"
-              >
-                {/* نفس علاج الكارت وصفحة التفاصيل: الغلاف مايتقصّش. */}
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-rose-50 via-white to-slate-50">
-                  {product.coverImageUrl ? (
-                    <Image
-                      src={optimizedImageUrl(product.coverImageUrl, 600)}
-                      alt={product.name}
-                      fill sizes="(max-width: 768px) 100vw, 300px"
-                      className="object-contain p-6 drop-shadow-lg transition-transform duration-[var(--dur-slow)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-[1.04]"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <ImagePlaceholder label={product.name} />
-                  )}
-                </div>
-                <div className="p-5">
-                  {/* ⚠️ `line-clamp-1` بتقصّ اسم الكتاب من أول سطر —
-                      وأسماء الكتب العربية نادرًا بتخلص في سطر. بقت ٢. */}
-                  <h3 className="line-clamp-2 text-lg leading-snug font-bold text-slate-900">
-                    {product.name}
-                  </h3>
-                  <div className="mt-4 flex items-center justify-between">
-                    {/* ⚠️ `rose-500` كنصّ على أبيض = 3.76:1 وبيسقط في
-                        المعيار (المطلوب 4.5:1). الرمز `-strong` = 700. */}
-                    <span className="text-enha-lak-strong text-lg font-black">
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            ))}
+          // ⚠️ **كان كارتًا تالتًا مكتوبًا يدويًّا هنا** — نسخة من كارت
+          //    المكتبة قبل ما تتصلّح: من غير سنّ ولا «غلاف مخصص فقط» ولا
+          //    زرار تخصيص. نفس درس ٢٠: الإصلاح في المكوّن المشترك ما
+          //    وصلش للمكان اللي بيعيد كتابة نفس الشكل. بقى `ProductCard`.
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {publisherProducts.map((product) => {
+              const custom = customizationPath(product.category, product.slug);
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  cardHref={`/enha-lak/product/${product.slug}`}
+                  actionLabel={custom?.label ?? 'عرض التفاصيل'}
+                  actionHref={custom?.href ?? `/enha-lak/product/${product.slug}`}
+                  detailsHref={custom ? `/enha-lak/product/${product.slug}` : undefined}
+                  detailsLabel="عرض تفاصيل القصة"
+                />
+              );
+            })}
           </div>
         ) : (
           <p className="text-slate-500">لا توجد إصدارات حالية لهذا الناشر.</p>

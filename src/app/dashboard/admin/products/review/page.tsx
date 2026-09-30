@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
+import { ageLabel } from '@/lib/age-bands';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +107,13 @@ export default async function ProductReviewPage() {
                         {product.publisherName}
                       </p>
                     )}
+
+                    {/* السنّ بيقرّر المنتج يظهر تحت أنهي فلتر — والإداري لازم
+                        يشوفه وهو بيوافق: كتاب رعب «من ٦ سنين» غلطة لازم
+                        تتمسك هنا مش بعد ما تتنشر. */}
+                    <p className="text-sm font-bold text-slate-700">
+                      السنّ: {ageLabel(product.minAge, product.maxAge) || '— مش مكتوب (مش هيظهر في فلتر السنّ) —'}
+                    </p>
 
                     <p className="text-sm font-medium text-slate-600">
                       {product.shortDescription || '— مفيش وصف مختصر —'}

@@ -6,6 +6,8 @@ import { saveProduct } from '@/actions/products';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { PublisherCostField } from '@/components/dashboard/PublisherCostField';
+import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
+import { ImageField } from '@/components/dashboard/ImageField';
 import {
   PUBLISHER_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
@@ -71,11 +73,28 @@ export default async function Page() {
             <textarea name="shortDescription" rows={3} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none"></textarea>
           </div>
           
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">رابط صورة الغلاف (اختياري)</label>
-            <input type="text" name="coverImageUrl" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none text-left" dir="ltr" />
-          </div>
-          
+          {/* ══ 🔴 النموذج ده كان ناقصه نص صفحة المنتج ══════════════
+              مافيهوش الوصف الكامل ولا المعرض ولا التفاصيل — والحفظ كان
+              بيكتبهم فاضيين **فوق اللي الإدارة كتبته**. الخادم اتقفل
+              (`onlySentFields`)، والخانات بقت هنا من نفس مكوّن الإدارة.
+
+              وخانة الغلاف كانت «الصق رابط» — يعني الناشر يرفع الصورة في
+              مكان تاني وينسخ الرابط بالإيد. بقت رفعًا مباشرًا. */}
+          <ProductContentFields />
+
+          <ImageField
+            name="coverImageUrl"
+            label="صورة الغلاف"
+            folder="alrehla/products"
+            value=''
+            aspect="cover"
+            hint="غلاف الكتاب — يفضّل طولي (3:4) وبعرض ١٢٠٠ بكسل على الأقل"
+          />
+
+          <p className="rounded-xl bg-amber-50 p-4 text-sm leading-relaxed font-medium text-amber-900">
+            أي تعديل بيرجّع المنتج لمراجعة الإدارة، وبيقف عن البيع لحد ما يتوافق عليه.
+          </p>
+
           <div className="pt-6 border-t border-slate-100 flex justify-end">
             <button type="submit" className="rounded-xl bg-amber-500 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-amber-600">
               إضافة المنتج

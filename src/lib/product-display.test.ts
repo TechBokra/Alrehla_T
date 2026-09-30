@@ -4,6 +4,7 @@ import {
   filterProducts,
   resultLabel,
   hasActiveFilter,
+  productState,
 } from './product-display';
 import type { PersonalizedProduct } from '@/types';
 
@@ -81,6 +82,32 @@ describe('الفلترة', () => {
     const b = product({ id: 'b', publisherId: 'pub-2' });
     expect(filterProducts([a, b], { publisherId: 'pub-1' }).map((p) => p.id)).toEqual(['a']);
   });
+
+  it('الفلترة بالفئة العمرية — بالتداخل', () => {
+    const young = product({ id: 'young', minAge: 6, maxAge: 9 });
+    const bridge = product({ id: 'bridge', minAge: 8, maxAge: 11 });
+    const teen = product({ id: 'teen', minAge: 13 });
+    const none = product({ id: 'none' });
+    const all = [young, bridge, teen, none];
+    expect(filterProducts(all, { ageBand: '10-12' }).map((p) => p.id)).toEqual(['bridge']);
+    expect(filterProducts(all, { ageBand: '6-9' }).map((p) => p.id)).toEqual(['young', 'bridge']);
+  });
+
+  it('⚠️ فئة غريبة من الرابط = كل الأعمار، مش رف فاضي', () => {
+    // `?age=3-5` أو رابط اتقصّ في واتساب — مايستاهلش «مفيش نتايج».
+    const all = [product({ id: 'a', minAge: 6 }), product({ id: 'b' })];
+    expect(filterProducts(all, { ageBand: '3-5' })).toHaveLength(2);
+    expect(hasActiveFilter({ ageBand: '3-5' })).toBe(false);
+  });
+
+  it('الناشر والسن مع بعض', () => {
+    const a = product({ id: 'a', publisherId: 'pub-1', minAge: 6, maxAge: 9 });
+    const b = product({ id: 'b', publisherId: 'pub-2', minAge: 6, maxAge: 9 });
+    const c = product({ id: 'c', publisherId: 'pub-1', minAge: 13 });
+    expect(
+      filterProducts([a, b, c], { publisherId: 'pub-1', ageBand: '6-9' }).map((p) => p.id),
+    ).toEqual(['a']);
+  });
 });
 
 describe('جملة العدد وحالة الفلتر', () => {
@@ -106,5 +133,28 @@ describe('جملة العدد وحالة الفلتر', () => {
     expect(hasActiveFilter({ query: '   ' })).toBe(false);
     expect(hasActiveFilter({ query: 'بحر' })).toBe(true);
     expect(hasActiveFilter({ publisherId: 'pub-1' })).toBe(true);
+    expect(hasActiveFilter({ ageBand: '6-9' })).toBe(true);
+    expect(hasActiveFilter({ ageBand: 'all' })).toBe(false);
+  });
+});
+
+describe('حالة المنتج في اللوحات', () => {
+  it('🔴 «معروض» محتاج الاتنين: مفعّل ومعتمد', () => {
+    // كان بيتقري من `isActive` وحده — فالمستني كان مكتوب عليه «معروض».
+    expect(productState({ isActive: true, reviewStatus: 'pending' })).toBe('pending');
+    expect(productState({ isActive: true, reviewStatus: 'approved' })).toBe('live');
+  });
+
+  it('الإيقاف بيغلب أي حالة مراجعة', () => {
+    expect(productState({ isActive: false, reviewStatus: 'approved' })).toBe('stopped');
+    expect(productState({ isActive: false, reviewStatus: 'rejected' })).toBe('stopped');
+  });
+
+  it('المرفوض بيتقال مرفوض', () => {
+    expect(productState({ isActive: true, reviewStatus: 'rejected' })).toBe('rejected');
+  });
+
+  it('⚠️ حالة مش معروفة = مستني، مش معروض', () => {
+    expect(productState({ isActive: true, reviewStatus: undefined })).toBe('pending');
   });
 });
