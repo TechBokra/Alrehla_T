@@ -114,7 +114,7 @@ export function PricingSettingsClient({ settings }: { settings: PricingFormulaSe
                 return (
                   <tr key={base}>
                     <td className="py-3 px-4 font-bold text-slate-800">{base} ج.م</td>
-                    <td className="py-3 px-4 font-bold text-emerald-600">{finalPrice} ج.م</td>
+                    <td className="py-3 px-4 font-bold text-emerald-700">{finalPrice} ج.م</td>
                     <td className="py-3 px-4 text-slate-600">{platformProfit} ج.م</td>
                   </tr>
                 );

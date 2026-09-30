@@ -7,13 +7,15 @@ import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PersonalizedProduct } from '@/types';
+import { PersonalizedProduct, AddonProduct } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 
 import { WizardStepper } from './wizard-steps/WizardStepper';
 import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
 import { Step2CoverDetails } from './wizard-steps/Step2CoverDetails';
+import { Step3Addons } from './wizard-steps/Step3Addons';
+import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step3LibraryReview } from './wizard-steps/Step3LibraryReview';
 import Image from 'next/image';
 import { resolveWizardChild } from '@/app/actions/family';
@@ -26,6 +28,16 @@ const librarySchema = z.object({
   
   dedicationText: z.string().optional(),
   coverPhotoFile: z.any().optional(),
+
+  // ⚠️ **نفس أسماء حقول المعالج المخصّص بالظبط.** السلة والقاعدة
+  //    بيقروا `addonIds` و`customizedAddonIds`، ولو المكتبة سمّتهم
+  //    بأسماء تانية كانت الإضافات هتتحفظ في مكان محدّش بيقرا منه —
+  //    الطلب بيعدّي والعميل بيدفع ومحدش بيشحنله الإضافة.
+  // ⚠️ **بلا `.default([])`**: `default` بتخلّي النوع الداخل اختياريًّا
+  //    والخارج إجباريًّا، فمحلّل النموذج بيرفض التطابق. ونفس الشكل
+  //    المستعمل في مخطط المسار المخصّص بالظبط.
+  selectedAddonIds: z.array(z.string()),
+  customizedAddonIds: z.array(z.string()).optional(),
 }).refine(data => data.familyMemberId || data.newChildName, {
   message: 'يجب اختيار طفل من العائلة أو إضافة طفل جديد',
   path: ['newChildName'],
@@ -41,9 +53,23 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   newChildGender: { step: 1, label: 'نوع الطفل' },
   dedicationText: { step: 2, label: 'الإهداء' },
   coverPhotoFile: { step: 2, label: 'صورة الغلاف' },
+  selectedAddonIds: { step: 3, label: 'الإضافات' },
+  customizedAddonIds: { step: 3, label: 'تخصيص الإضافات' },
 };
 
-export function LibraryCustomizationWizard({ product }: { product: PersonalizedProduct }) {
+export function LibraryCustomizationWizard({
+  product,
+  addons = [],
+}: {
+  product: PersonalizedProduct;
+  /**
+   * ⚠️ **الخطوة دي كانت غايبة من مسار المكتبة كله.** العميل اللي
+   *    بيطلب كتابًا من المكتبة مكانش بيتعرض عليه ولا إضافة — لا
+   *    بيشوفها ولا يقدر يشتريها — بينما اللي بيطلب كتابًا مخصّصًا
+   *    بيشوفها. نفس المنصة ونفس السلة، ومسارين مختلفين.
+   */
+  addons?: AddonProduct[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -61,6 +87,8 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
       newChildGender: '',
       dedicationText: '',
       coverPhotoFile: undefined,
+      selectedAddonIds: [],
+      customizedAddonIds: [],
     }
   });
 
@@ -184,7 +212,16 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
         childName,
         dedicationText: data.dedicationText,
         coverPhotoUrl,
-      }
+        selectedAddonIds: data.selectedAddonIds,
+        customizedAddonIds: data.customizedAddonIds ?? [],
+      },
+      // ⚠️ **بره `customizationData` كمان** — دي مش تكرار: القاعدة
+      //    بتقرا `addonIds` من جذر البند عشان تسعّرها وتضيفها
+      //    للطلب، و`customizationData` بيانات وصفية بتتعرض وبس.
+      //    لو اتحطّت في الوصف بس، العميل كان هيختار إضافة ومايتحسبش
+      //    عليه تمنها ومحدش يشحنهاله.
+      addonIds: data.selectedAddonIds,
+      customizedAddonIds: data.customizedAddonIds ?? [],
     });
 
     sessionStorage.removeItem(`library_wizard_${product.id}`);
@@ -197,7 +234,7 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
     <div className="mx-auto w-full max-w-6xl py-8">
       <div className="mb-8 flex flex-col items-center gap-4 text-center">
         <h1 className="text-3xl font-black text-slate-800">تخصيص الغلاف: {product.name}</h1>
-        <p className="text-slate-600">ثلاث خطوات بسيطة لإضافة لمسة شخصية للكتاب</p>
+        <p className="text-slate-600">أربع خطوات بسيطة لإضافة لمسة شخصية للكتاب</p>
       </div>
 
       <div className="mb-12 px-4 md:px-12">
@@ -205,7 +242,8 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
           {[
             { step: 1, label: 'بيانات الطفل' },
             { step: 2, label: 'تخصيص الغلاف' },
-            { step: 3, label: 'المراجعة' },
+            { step: 3, label: 'الإضافات' },
+            { step: 4, label: 'المراجعة' },
           ].map((s, idx) => {
             const isCompleted = currentStep > s.step;
             const isCurrent = currentStep === s.step;
@@ -227,7 +265,7 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
                   {s.label}
                 </span>
                 
-                {idx !== 2 && (
+                {idx !== 3 && (
                   <div className={`absolute top-5 left-[-50%] w-full h-[2px] -z-10
                     ${currentStep > s.step ? 'bg-emerald-500' : 'bg-slate-200'}`} 
                   />
@@ -250,7 +288,13 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
               <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)}>
                 {currentStep === 1 && <Step1ChildInfo onNext={onNext} />}
                 {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} />}
+                {/* نفس مكوّن الإضافات بتاع المسار المخصّص — مش نسخة
+                    تانية: النسخة التانية كانت هتفترق عنه أول ما حد
+                    يعدّل في واحد منهم. */}
                 {currentStep === 3 && (
+                  <Step3Addons addons={addons} onNext={onNext} onPrev={onPrev} />
+                )}
+                {currentStep === 4 && (
                   <Step3LibraryReview
                     onPrev={onPrev}
                     product={product}
@@ -262,27 +306,25 @@ export function LibraryCustomizationWizard({ product }: { product: PersonalizedP
           </div>
         </div>
 
-        <div className="lg:col-span-1">
-          <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200 sticky top-24">
-            <h3 className="text-xl font-black text-slate-800 mb-6">ملخص الطلب</h3>
-            
-            <div className="flex gap-4 mb-6 pb-6 border-b border-slate-100">
-              <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                {product.coverImageUrl ? (
-                  <Image src={optimizedImageUrl(product.coverImageUrl, 600)} alt={product.name} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" referrerPolicy="no-referrer" />
-                ) : null}
-              </div>
-              <div>
-                <h4 className="font-bold text-slate-800">{product.name}</h4>
-                <p className="text-sm text-slate-500 mt-1">{formatPrice(product.price)}</p>
-              </div>
-            </div>
+        {/* ══ 🔴 الملخّص كان مكتوبًا هنا بإيده — وبيكدب ══════════
+            كان بيعرض `product.price` **وحده** كإجمالي. ومع خطوة
+            الإضافات الجديدة، العميل كان هيختار إضافة بتمن، ويشوف
+            إجماليًّا **مش شاملها**، ويوصل السلة يلاقي رقمًا تاني.
 
-            <div className="flex justify-between items-center text-lg font-black text-slate-800 mt-4">
-              <span>الإجمالي:</span>
-              <span className="text-emerald-500">{formatPrice(product.price)}</span>
-            </div>
-          </div>
+            ⚠️ **ودي مش غلطة عرض، دي وعد بسعر**: الرقم اللي في
+               الملخّص هو اللي العميل بيقرّر على أساسه.
+
+            و`OrderSummarySidebar` المشترك بيقرا الإضافات المختارة من
+            النموذج وبيحسب الإجمالي الحقيقي — وهو نفسه اللي المسار
+            المخصّص بيستعمله. نسخة تانية هنا كانت هتفترق عنه أول ما
+            حد يعدّل في واحد منهم.
+
+            (وكان فيه `text-emerald-500` للإجمالي = 2.62:1 على أبيض
+             — راسب في المعيار. المكوّن المشترك ماشي على الرموز.) */}
+        <div className="lg:col-span-1">
+          <FormProvider {...methods}>
+            <OrderSummarySidebar product={product} addons={addons} />
+          </FormProvider>
         </div>
       </div>
     </div>

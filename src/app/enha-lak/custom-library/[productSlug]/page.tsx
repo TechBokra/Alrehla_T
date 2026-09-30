@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { notFound } from 'next/navigation';
-import { getProductBySlug } from '@/data/domains/products';
+import { getProductBySlug, getAddonProducts } from '@/data/domains/products';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
@@ -24,7 +24,12 @@ interface PageProps {
 
 export default async function CustomLibraryPage({ params }: PageProps) {
   const { productSlug } = await params;
-  const product = await getProductBySlug(productSlug);
+  // ⚠️ الاتنين على التوازي: التسلسل هنا كان بيزوّد زمن فتح الصفحة
+  //    بلا سبب — الإضافات مش متوقّفة على المنتج.
+  const [product, addons] = await Promise.all([
+    getProductBySlug(productSlug),
+    getAddonProducts(),
+  ]);
 
   if (!product || product.category !== 'library') {
     notFound();
@@ -33,7 +38,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   return (
     <PageContainer className="!py-0 !space-y-0">
       <Section>
-        <LibraryCustomizationWizard product={product} />
+        <LibraryCustomizationWizard product={product} addons={addons} />
       </Section>
     </PageContainer>
   );

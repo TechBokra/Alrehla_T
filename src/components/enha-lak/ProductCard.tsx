@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Building2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
@@ -123,22 +123,59 @@ export function ProductCard({
           <ImagePlaceholder label={product.name} />
         )}
 
-        {publisherName && (
-          <div className="pointer-events-none absolute top-4 right-4 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-sm">
-            {publisherName}
-          </div>
-        )}
       </div>
 
       <div className="z-10 flex flex-1 flex-col p-5">
-        <h3 className="pointer-events-none mb-2 text-lg leading-snug font-bold text-slate-800">
+        <h3 className="pointer-events-none mb-1 text-lg leading-snug font-bold text-slate-800">
           {product.name}
         </h3>
 
+        {/* ══ الناشر ═══════════════════════════════════════
+            ⚠️ **كان شارة عائمة فوق الغلاف.** والشارة اللي فوق صورة
+               تُقرأ زخرفةً لا معلومة: العين بتعدّي عليها وهي بتبصّ
+               على الغلاف، وعلى غلاف فاتح كانت بتتوه فيه.
+
+               واسم الناشر في المكتبة **مش تفصيلة**: هو اللي بيقول
+               للأب إن الكتاب ده من دار يعرفها. مكانه تحت الاسم،
+               في سطر بيتقري. */}
+        {publisherName && (
+          <p className="pointer-events-none mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-600">
+            <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+            <span className="truncate">{publisherName}</span>
+          </p>
+        )}
+
         {product.shortDescription && (
-          <p className="pointer-events-none mb-4 line-clamp-2 text-sm leading-relaxed font-medium text-slate-600">
+          <p className="pointer-events-none mb-3 line-clamp-2 text-sm leading-relaxed font-medium text-slate-600">
             {product.shortDescription}
           </p>
+        )}
+
+        {/* ══ تفاصيل الكتاب ════════════════════════════════
+            ⚠️ **الحقل ده كان موجود في القاعدة ومعروض في صفحة
+               التفاصيل وحدها.** يعني العميل في شبكة المكتبة
+               مابيشوفش أي فرق بين كتاب وكتاب غير الاسم والصورة —
+               ولازم يفتح كل واحد عشان يعرف.
+
+            ⚠️ **واتنين بس عن قصد**: التلاتة بتخلّي الكروت أطوال
+               مختلفة، والعشرة بتحوّل الكارت لقايمة. والباقي في
+               صفحة التفاصيل. */}
+        {product.features && product.features.length > 0 && (
+          <ul className="pointer-events-none mb-3 flex flex-wrap gap-1.5">
+            {product.features.slice(0, 2).map((feature, i) => (
+              <li
+                key={i}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600"
+              >
+                {feature}
+              </li>
+            ))}
+            {product.features.length > 2 && (
+              <li className="px-1 py-0.5 text-[11px] font-bold text-slate-500">
+                +{product.features.length - 2}
+              </li>
+            )}
+          </ul>
         )}
 
         {/* ══ السعر ═════════════════════════════════════════
