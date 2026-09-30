@@ -1080,6 +1080,12 @@ export type Database = {
           is_active: boolean
           created_at: string
           updated_at: string
+          /** حالة مراجعة الإدارة — ملف 130. منفصل عن is_active. */
+          review_status: string
+          review_note: string | null
+          reviewed_at: string | null
+          gallery_image_urls: string[] | null
+          long_description: string | null
         }
         Insert: {
           id?: string
@@ -1097,6 +1103,11 @@ export type Database = {
           publisher_cost?: number | null
           created_at?: string
           updated_at?: string
+          review_status?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
         }
         Update: {
           id?: string
@@ -1114,6 +1125,11 @@ export type Database = {
           is_active?: boolean
           created_at?: string
           updated_at?: string
+          review_status?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
         }
         Relationships: []
       }

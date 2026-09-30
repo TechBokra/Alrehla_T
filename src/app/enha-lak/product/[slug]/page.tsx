@@ -8,6 +8,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AddToCartButton } from '@/components/cart/AddToCartButton';
 import { optimizedImageUrl } from '@/lib/cloudinary';
+import { RichText } from '@/components/ui/RichText';
+import { ProductGallery } from '@/components/enha-lak/ProductGallery';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
@@ -118,38 +120,46 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="mt-4 leading-relaxed text-slate-600 md:mt-6 md:text-lg">{product.shortDescription}</p>
           </div>
 
-          {/* ══ 🔴 الغلاف هنا كان بيتقصّ — وده أسوأ مكان يحصل فيه ══
-              قياس على المنشور: الصندوق 259×345 (نسبة 3/4) والصورة
-              242×241 (مربّعة) مع `object-cover` ⇦ **ربع الغلاف
-              بيتقصّ من فوق ومن تحت**.
+          {/* ══ المعرض ═══════════════════════════════════════
+              كان صورة واحدة ثابتة. بقى الغلاف ومعاه الصور الإضافية
+              (`gallery_image_urls` — ملف 130).
 
-              ⚠️ وصفحة التفاصيل هي المكان اللي العميل بيبصّ فيه على
-                 الغلاف قبل ما يشتري. القصّ في شبكة المكتبة وحش؛
-                 القصّ هنا بيخلّي العميل يشتري حاجة شافها ناقصة.
-
-              الحل زيّ الكارت: `object-contain` ⇦ الغلاف بيبان كامل
-              مهما كانت نسبته، ومحدش هيعدّل كود لما الأغلفة الحقيقية
-              تترفع. */}
-          <div className="relative mx-auto aspect-[3/4] w-full max-w-[260px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-b from-rose-50 via-white to-slate-50 shadow-lg sm:max-w-xs lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:max-w-none">
-            {product.coverImageUrl ? (
-              <Image
-                src={optimizedImageUrl(product.coverImageUrl, 900)}
-                alt={product.name}
-                fill
-                // ⚠️ كانت `100vw` تحت 1024 — والصندوق أقصاه **260**
-                //    بكسل هناك. يعني الموبايل كان بيحمّل صورة بعرض
-                //    الشاشة كاملة عشان يحطّها في ربعها.
-                sizes="(max-width: 1024px) 280px, 520px"
-                priority
-                className="object-contain p-5 drop-shadow-lg"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <ImagePlaceholder label={product.name} />
-            )}
+              ⚠️ **`object-contain` زيّ ما هو**: دي أغلفة كتب
+                 وصفحات، والقصّ بيشيل العنوان أو نصّ الصفحة. (كان
+                 `cover` وقِست إنه بيقصّ ربع الغلاف.) */}
+          <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            <ProductGallery
+              // ⚠️ الغلاف أولًا دايمًا، والمكرّر بيتشال: الغلاف
+              //    ممكن يكون مكتوبًا في المعرض كمان، وصورتان
+              //    متطابقتان في الشريط بيبانوا غلطة عرض.
+              images={[
+                ...new Set(
+                  [product.coverImageUrl, ...(product.galleryImageUrls ?? [])].filter(
+                    (u): u is string => Boolean(u),
+                  ),
+                ),
+              ]}
+              alt={product.name}
+            />
           </div>
           
           <div className="flex flex-col justify-start space-y-6 lg:col-start-2 lg:row-start-2 lg:space-y-8 lg:self-start">
+            {/* ══ الوصف الكامل ═══════════════════════════════
+                `shortDescription` سطر للكارت، وده الوصف اللي العميل
+                بيقرا عشان يقرّر (`long_description` — ملف 130).
+
+                ⚠️ و`RichText` مش نصًّا خامًا: بيحوّل `## عنوان` و
+                   `- نقطة` و`**عريض**` لعناصر حقيقية، **ومابيقبلش
+                   HTML خام عن قصد** — أي حد عنده صلاحية تعديل
+                   المحتوى كان هيقدر يحقن سكربت في صفحة عامة.
+                   (ونفس المكوّن اللي المدونة والشروط بيستعملوه.) */}
+            {product.longDescription && (
+              <RichText
+                value={product.longDescription}
+                className="space-y-4 leading-relaxed text-slate-600"
+              />
+            )}
+
             {product.features && product.features.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-bold text-slate-800">ميزات المنتج:</h3>

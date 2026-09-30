@@ -63,6 +63,10 @@ export const getPersonalizedProducts = async (
     ownerType: p.owner_type,
     publisherCost: p.publisher_cost ?? undefined,
     features: p.features || undefined,
+    longDescription: p.long_description || undefined,
+    galleryImageUrls: p.gallery_image_urls || undefined,
+    reviewStatus: p.review_status ?? 'approved',
+    reviewNote: p.review_note || undefined,
     isActive: p.is_active ?? true,
     createdAt: p.created_at ?? undefined,
   }));
@@ -244,6 +248,18 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
     ownerType: data.owner_type,
     publisherCost: data.publisher_cost ?? undefined,
     features: data.features || undefined,
+    longDescription: data.long_description || undefined,
+    galleryImageUrls: data.gallery_image_urls || undefined,
+    // ⚠️ العمود في القاعدة `text` بـ`CHECK` (قرار ملف 130: الـenum
+    //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات
+    //    بتتعامل معاه. وأي قيمة غريبة بتتقري «في الانتظار» — الأأمن:
+    //    المنتج يفضل مستخبي لحد ما حد يبصّ.
+    reviewStatus: (['pending', 'approved', 'rejected'] as const).includes(
+      data.review_status as 'pending',
+    )
+      ? (data.review_status as 'pending' | 'approved' | 'rejected')
+      : 'pending',
+    reviewNote: data.review_note || undefined,
     isActive: data.is_active ?? true,
     createdAt: data.created_at ?? undefined,
   };

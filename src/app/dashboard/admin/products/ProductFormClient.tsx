@@ -5,6 +5,7 @@ import { FormError } from '@/components/ui/FormError';
 import { Publisher, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
+import { GalleryField } from '@/components/dashboard/GalleryField';
 import { ImageField } from '@/components/dashboard/ImageField';
 import {
   ASSIGNABLE_PRODUCT_CATEGORIES,
@@ -154,6 +155,25 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
       </div>
       
 
+
+      {/* الوصف الكامل لصفحة المنتج — `الوصف` فوق سطر للكارت. */}
+      <div>
+        <label className="mb-2 block text-sm font-bold text-slate-700">
+          الوصف الكامل{' '}
+          <span className="font-medium text-slate-500">(اختياري — بيظهر في صفحة المنتج)</span>
+        </label>
+        <textarea
+          name="longDescription"
+          rows={6}
+          placeholder={'## عن القصة\nنصّ الفقرة…\n\n- نقطة\n- نقطة تانية'}
+          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm"
+        ></textarea>
+        <p className="mt-1 text-xs font-medium text-slate-500">
+          يدعم <code>## عنوان</code> و<code>- نقطة</code> و<code>**عريض**</code>.
+        </p>
+      </div>
+
+      <GalleryField name="galleryImageUrls" folder="alrehla/products/gallery" />
       {/* ══ 🔴 الخانة دي كانت ناقصة من النموذجين ══════════════
           عمود `features` موجود في القاعدة، **ومعروض في صفحة المنتج
           وفي كارت المكتبة** — ومافيش مكان يتكتب فيه. يعني الشاشة

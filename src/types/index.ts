@@ -297,6 +297,19 @@ export type PersonalizedProduct = {
   publisherId?: string;
   ownerType: 'platform' | 'publisher';
   features?: string[];
+  /** الوصف الكامل لصفحة المنتج — `shortDescription` سطر للكارت (ملف 130). */
+  longDescription?: string;
+  /** صور إضافية: صفحات من جوّه الكتاب، الغلاف الخلفي، عيّنة رسومات (ملف 130). */
+  galleryImageUrls?: string[];
+  /**
+   * حالة مراجعة الإدارة — ملف 130.
+   *
+   * ⚠️ **منفصلة عن `isActive` عن قصد**: `isActive` قرار إداري
+   *    بالإيقاف، ودي حالة في مسار المراجعة. المنتج بيظهر للعميل
+   *    لما **الاتنين** يبقوا تمام.
+   */
+  reviewStatus?: 'pending' | 'approved' | 'rejected';
+  reviewNote?: string;
   /**
    * نصيب الناشر من النسخة الواحدة (ملف SQL 97).
    *

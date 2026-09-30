@@ -101,6 +101,27 @@ export async function saveProduct(formData: FormData) {
   // شرائح في احتمالات الخطأ. والفاضي بيتشال، والمكرّر بيتشال،
   // والسقف ٨ عشان الكارت مايتحوّلش لقايمة.
   const features = parseFeatures(formData.get('features') as string | null);
+  const longDescription =
+    ((formData.get('longDescription') as string | null) ?? '').trim() || null;
+
+  // ── معرض الصور ────────────────────────────────────────────
+  //
+  // ⚠️ **نفس تنظيف التفاصيل** (`parseFeatures`): الفاضي بيتشال
+  //    والمكرّر بيتشال. والمكرّر هنا بيحصل كتير — الإداري بيرفع
+  //    نفس الصورة مرتين بالغلط فتطلع مرتين في الشريط.
+  //
+  // ⚠️ **والرابط لازم يكون من Cloudinary بتاعنا**: الخانة بتوصل
+  //    كنصّ، وأي حد يقدر يبعت أي رابط — وساعتها صفحة عامة بتعرض
+  //    صورة من سيرفر مش بتاعنا، بلا تحكّم فيها ولا في وقت
+  //    اختفائها. (نفس الحارس اللي في صور المدربين.)
+  const gallery = [
+    ...new Set(
+      ((formData.get('galleryImageUrls') as string | null) ?? '')
+        .split('\n')
+        .map((u) => u.trim())
+        .filter((u) => /^https:\/\/res\.cloudinary\.com\//.test(u)),
+    ),
+  ].slice(0, 8);
 
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
@@ -199,6 +220,8 @@ export async function saveProduct(formData: FormData) {
     //    و«قايمة فاضية»، والشاشات بتفحص `array_length` اللي بترجّع
     //    `null` للاتنين — فالتوحيد هنا بيمنع فرقًا مالوش معنى.
     features: features.length > 0 ? features : null,
+    long_description: longDescription,
+    gallery_image_urls: gallery.length > 0 ? gallery : null,
     cover_image_url: coverImageUrl,
     publisher_id: effectivePublisherId,
     owner_type: ownerType,

@@ -156,11 +156,41 @@ export function LibraryCustomizationWizard({
 
   const onNext = async () => {
     setUploadError('');
-    const isValid = await methods.trigger();
+
+    // ══ 🔴 التحقّق على **الخطوة الحالية وحدها** ══════════════
+    //
+    // كان `methods.trigger()` بلا حقول — وده بيتحقّق من **النموذج
+    // كله**. ولمّا بقت صورة الغلاف إجبارية، الزائر واقف في خطوة ١
+    // (بيانات الطفل) وبيضغط «التالي» فيلاقي:
+    //
+    //     «محتاجين نظبّط ده الأول — صورة الغلاف: اختار صورة الطفل»
+    //
+    // الرسالة **صح والمكان غلط**: بتطلب منه حاجة الخطوة اللي هو
+    // فيها مافيهاش، والخانة اللي بتتكلم عنها مش موجودة قدامه —
+    // فمايعرفش يعمل إيه، والزرّ شكله متعطّل بلا سبب.
+    //
+    // ⚠️ **والارتداد ده جه من تعديلي أنا**: الصورة كانت اختيارية
+    //    فالتحقّق الشامل كان بيعدّي بالصدفة. أول ما بقت إجبارية،
+    //    العيب اللي كان مستخبي بان.
+    //
+    // `FIELD_STEP` هي نفس الخريطة اللي `onInvalid` بتستعملها
+    // عشان ترجّع الزائر للخطوة الناقصة — فالمصدر واحد.
+    const fieldsInStep = (Object.keys(FIELD_STEP) as (keyof LibraryFormValues)[]).filter(
+      (name) => FIELD_STEP[name as string].step === currentStep,
+    );
+
+    const isValid = await methods.trigger(fieldsInStep);
     if (!isValid) {
-      // ⚠️ كان `if (isValid) goToStep(...)` وبس: الرفض مكانش بيقول حاجة،
-      //    فالزر شكله متعطّل.
-      setUploadError(describeErrors([]));
+      // ⚠️ **اللي وقع فعلًا وبس** — لا كل حقول الخطوة.
+      //    `describeErrors` بتسرد أي اسم يتبعتلها، والخانة السليمة
+      //    بتطلع باسمها بلا سبب، فالزائر بيدوّر في خانة مافيهاش
+      //    حاجة.
+      const failed = (fieldsInStep as string[]).filter(
+        (name) => (methods.formState.errors as Record<string, unknown>)[name],
+      );
+      // كان `if (isValid) goToStep(...)` وبس: الرفض مكانش بيقول
+      // حاجة، فالزرّ شكله متعطّل.
+      setUploadError(describeErrors(failed));
       return;
     }
     goToStep(currentStep + 1);
