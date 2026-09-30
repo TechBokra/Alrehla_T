@@ -29,7 +29,7 @@ import {
   Lock,
 } from 'lucide-react';
 import type { UserProfile, UserRole } from '@/types';
-import { ROLE_LABELS } from '@/app/dashboard/admin/users/UsersClient';
+import { ROLE_LABELS } from '@/app/(admin)/dashboard/admin/users/UsersClient';
 import { resetUserPassword, updateUserRole } from '@/actions/admin-users';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { formatCairo, PLATFORM_TIMEZONE } from '@/lib/timezone';

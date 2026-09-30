@@ -1,14 +1,12 @@
 import {
-  WritingPackage, Instructor, PersonalizedProduct, AddonProduct, SubscriptionTier, 
-  Testimonial, CreativeService, BlogPost, UserProfile, Booking, Order, 
-  Publisher, InstructorPayout, PublisherPayout, SessionMessage, SessionAttachment, 
-  StudyMaterial, InstructorStudent, BoxSubscription, SupportTicket, 
-  JoinRequest, SupportSessionRequest, AuditLog, ServiceOrder, CourseSubscription, 
-  SupportTicketMessage, FamilyMember, NotificationItem, UserRole,
-  PublisherOrder,
-  InstructorPricingOption, PricingFormulaSettings, InstructorCompensationProfile, InstructorCertification
+  AuditLog,
+  InstructorPayout,
+  JoinRequest,
+  PricingFormulaSettings,
+  PublisherPayout,
+  SupportSessionRequest,
+  SupportTicket
 } from '@/types';
-import { cookies } from 'next/headers';
 
 // Import from auth if needed
 

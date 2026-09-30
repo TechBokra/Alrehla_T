@@ -2,7 +2,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getCurrentUser } from '@/data/domains/auth';
 import { LogoutButton } from '@/components/LogoutButton';
 import { StudentProfileClient } from './StudentProfileClient';
-import { PasswordChangeForm } from '@/app/account/settings/PasswordChangeForm';
+import { PasswordChangeForm } from '@/app/(client)/account/settings/PasswordChangeForm';
 
 export const dynamic = 'force-dynamic';
 

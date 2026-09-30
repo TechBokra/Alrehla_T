@@ -1,15 +1,9 @@
-import { 
-  WritingPackage, Instructor, PersonalizedProduct, AddonProduct, SubscriptionTier, 
-  Testimonial, CreativeService, BlogPost, UserProfile, Booking, Order, 
-  Publisher, InstructorPayout, PublisherPayout, SessionMessage, SessionAttachment, 
-  StudyMaterial, InstructorStudent, BoxSubscription, SupportTicket, 
-  JoinRequest, SupportSessionRequest, AuditLog, ServiceOrder, CourseSubscription, 
-  SupportTicketMessage, NotificationItem, UserRole,
-  PublisherOrder, InstructorPricingOption, PricingFormulaSettings, 
-  InstructorCompensationProfile, InstructorCertification, ChildProfile
-} from '@/types';
-import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import {
+  NotificationItem,
+  SupportTicket,
+  SupportTicketMessage
+} from '@/types';
 
 export async function getNotifications(): Promise<NotificationItem[]> {
   const supabase = await createClient();

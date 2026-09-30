@@ -4,7 +4,7 @@ import { KeyRound } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { pageMetadata } from '@/lib/seo';
 import { createClient } from '@/lib/supabase/server';
-import { SetPasswordForm } from '@/app/set-password/SetPasswordForm';
+import { SetPasswordForm } from '@/app/(client)/set-password/SetPasswordForm';
 
 export const dynamic = 'force-dynamic';
 
