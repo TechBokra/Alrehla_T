@@ -2,12 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, Check, X, Search, TrendingUp } from 'lucide-react';
+import { Plus, Pencil, Check, X, Search, TrendingUp } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import type { ShippingRateRow } from '@/data/domains/orders';
 import {
   upsertShippingRate,
-  deleteShippingRate,
+  setShippingRateActive,
   adjustShippingRatesByGovernorate,
 } from '@/actions/shipping';
 
@@ -27,11 +27,17 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const run = async (fn: () => Promise<unknown>) => {
+  // ⚠️ الأكشنز بقت **بترجّع** `{ ok:false, error }` ولا بترمي (قاعدة
+  //    «هـ») — فلازم النتيجة تتقري، وإلا الرفض يعدّي كأنه نجاح.
+  const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
     setError('');
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        setError(result.error ?? 'تعذّر الحفظ');
+        return;
+      }
       setDraft(null);
       setBulkGov(null);
       setBulkDelta('');
@@ -193,17 +199,25 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
                           isActive: rate.isActive,
                         })
                       }
+                      aria-label={`تعديل ${rate.city}`}
                       className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
+                    {/* ⚠️ كان «حذف نهائي» بسلة مهملات ومن غير تأكيد. بقى
+                        إيقاف/تشغيل — ضغطة غلط بتترجع بضغطة. */}
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => run(() => deleteShippingRate(rate.id))}
-                      className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                      onClick={() => run(() => setShippingRateActive(rate.id, !rate.isActive))}
+                      aria-label={rate.isActive ? `إيقاف ${rate.city}` : `تشغيل ${rate.city}`}
+                      className={`rounded-xl border bg-white px-3 py-1.5 text-xs font-bold transition-colors disabled:opacity-50 ${
+                        rate.isActive
+                          ? 'border-red-200 text-red-700 hover:bg-red-50'
+                          : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                      }`}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      {rate.isActive ? 'إيقاف' : 'تشغيل'}
                     </button>
                   </div>
                 </div>

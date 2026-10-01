@@ -1,5 +1,6 @@
 import { formatPrice } from '@/lib/utils';
-import { getProductBySlug, getPublishers } from '@/data/domains/products';
+import { getProductBySlug, getPublishers, productRedirectPath } from '@/data/domains/products';
+import { permanentRedirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
@@ -50,6 +51,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       </PageContainer>
     );
   }
+
+  // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136):
+  // الرابط اللي اتبعت على واتساب بيشتغل، ومحرك البحث بينقل ترتيبه.
+  const moved = productRedirectPath(slug, product, '/enha-lak/product');
+  if (moved) permanentRedirect(moved);
 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);

@@ -13,19 +13,37 @@ import { logAuditAction } from '@/lib/audit';
  * than the database console.
  */
 
+/**
+ * ⚠️ **كل الدوال هنا بترجّع ولا بترمي** (قاعدة «هـ»). كانت بترمي،
+ *    وNext بيمسح نصّ الاستثناء في الإنتاج — فالإداري اللي كتب سعرًا
+ *    غلط كان بيشوف «حدث خطأ غير متوقع» بدل «السعر غير صحيح».
+ */
+export type ShippingResult = { ok: true; updated?: number } | { ok: false; error: string };
+
+const fail = (error: string): ShippingResult => ({ ok: false, error });
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireOrdersAdmin() {
-  return requireAdmin('canManageOrders', 'غير مصرح لك بإدارة أسعار الشحن');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»).
+  try {
+    return await requireAdmin('canManageOrders', 'غير مصرح لك بإدارة أسعار الشحن');
+  } catch {
+    return null;
+  }
 }
 
-function validate(governorate: string, city: string, fee: number) {
+function validate(
+  governorate: string,
+  city: string,
+  fee: number,
+): { ok: true; gov: string; area: string } | { ok: false; error: string } {
   const gov = governorate.trim();
   const area = city.trim();
-  if (!gov) throw new Error('اكتب اسم المحافظة');
-  if (!area) throw new Error('اكتب اسم المنطقة');
-  if (!Number.isFinite(fee) || fee < 0) throw new Error('السعر غير صحيح');
-  if (fee > 100000) throw new Error('السعر غير منطقي');
-  return { gov, area };
+  if (!gov) return { ok: false, error: 'اكتب اسم المحافظة' };
+  if (!area) return { ok: false, error: 'اكتب اسم المنطقة' };
+  if (!Number.isFinite(fee) || fee < 0) return { ok: false, error: 'السعر غير صحيح' };
+  if (fee > 100000) return { ok: false, error: 'السعر غير منطقي' };
+  return { ok: true, gov, area };
 }
 
 export async function upsertShippingRate(params: {
@@ -34,9 +52,12 @@ export async function upsertShippingRate(params: {
   city: string;
   fee: number;
   isActive: boolean;
-}) {
+}): Promise<ShippingResult> {
   const admin = await requireOrdersAdmin();
-  const { gov, area } = validate(params.governorate, params.city, params.fee);
+  if (!admin) return fail('غير مصرح لك بإدارة أسعار الشحن');
+  const checked = validate(params.governorate, params.city, params.fee);
+  if (!checked.ok) return fail(checked.error);
+  const { gov, area } = checked;
   const supabase = await createClient();
 
   const row = {
@@ -56,11 +77,11 @@ export async function upsertShippingRate(params: {
 
   if (error) {
     console.error('Error saving shipping rate', error);
-    throw new Error('تعذّر حفظ السعر');
+    return fail('تعذّر حفظ السعر');
   }
   // قاعدة «و»: التعديل على صف مش موجود بينجح ويرجّع صفر صفوف.
   if (!saved || saved.length === 0) {
-    throw new Error('الحفظ مروّحش للقاعدة — المنطقة مش موجودة أو الصلاحيات مش سامحة.');
+    return fail('الحفظ مروّحش للقاعدة — المنطقة مش موجودة أو الصلاحيات مش سامحة.');
   }
 
   await logAuditAction({
@@ -78,25 +99,39 @@ export async function upsertShippingRate(params: {
 }
 
 /**
- * Removing an area.
+ * إيقاف منطقة شحن أو تشغيلها.
  *
- * Orders already placed keep the fee that was charged at the time — it is
- * stored on the order itself — so deleting an area never changes a past order.
+ * ⚠️ **كانت «حذف نهائي» بزرار سلة مهملات من غير تأكيد** — ضغطة غلط
+ *    بتمسح المنطقة وسعرها للأبد. وده ضد قاعدة معمارية سارية: «لا حذف
+ *    نهائي من واجهة الويب — الإيقاف بدل الحذف». والعمود `is_active`
+ *    موجود أصلًا وشاشة الدفع بتفلتر بيه.
+ *
+ *    الطلبات القديمة محتفظة بسعرها في الطلب نفسه، فالإيقاف مابيغيّرش
+ *    طلبًا قائمًا — زي الحذف بالظبط، من غير ما يضيع حاجة.
  */
-export async function deleteShippingRate(id: string) {
+export async function setShippingRateActive(id: string, isActive: boolean): Promise<ShippingResult> {
   const admin = await requireOrdersAdmin();
+  if (!admin) return fail('غير مصرح لك بإدارة أسعار الشحن');
   const supabase = await createClient();
 
-  const { error } = await supabase.from('shipping_rates').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('shipping_rates')
+    .update({ is_active: isActive, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
   if (error) {
-    console.error('Error deleting shipping rate', error);
-    throw new Error('تعذّر حذف المنطقة');
+    console.error('Error toggling shipping rate', error);
+    return fail('تعذّر تغيير حالة المنطقة');
+  }
+  // قاعدة «و»: صفر صفوف بلا خطأ = المنطقة مش موجودة أو الصلاحيات رفضت.
+  if (!data || data.length === 0) {
+    return fail('التغيير مروّحش للقاعدة — المنطقة مش موجودة أو الصلاحيات مش سامحة.');
   }
 
   await logAuditAction({
     actorProfileId: admin.id,
     actorName: admin.fullName,
-    action: 'shipping_rate_deleted',
+    action: isActive ? 'shipping_rate_activated' : 'shipping_rate_deactivated',
     entityType: 'ShippingRate',
     entityId: id,
   });
@@ -107,9 +142,13 @@ export async function deleteShippingRate(id: string) {
 }
 
 /** Raising or lowering every area in one governorate at once. */
-export async function adjustShippingRatesByGovernorate(governorate: string, delta: number) {
+export async function adjustShippingRatesByGovernorate(
+  governorate: string,
+  delta: number,
+): Promise<ShippingResult> {
   const admin = await requireOrdersAdmin();
-  if (!Number.isFinite(delta) || delta === 0) throw new Error('اكتب قيمة التعديل');
+  if (!admin) return fail('غير مصرح لك بإدارة أسعار الشحن');
+  if (!Number.isFinite(delta) || delta === 0) return fail('اكتب قيمة التعديل');
 
   const supabase = await createClient();
   const { data: rates } = await supabase
@@ -117,7 +156,7 @@ export async function adjustShippingRatesByGovernorate(governorate: string, delt
     .select('id, fee')
     .eq('governorate', governorate);
 
-  if (!rates?.length) throw new Error('لا توجد مناطق في هذه المحافظة');
+  if (!rates?.length) return fail('لا توجد مناطق في هذه المحافظة');
 
   // ⚠️ الحلقة دي كانت `await` **عارية**: مفيش فحص خطأ ولا عدد صفوف.
   //    فلو صف أو اتنين فشلوا، الإدارة بتشوف «تم» والأسعار **نصها
@@ -134,7 +173,7 @@ export async function adjustShippingRatesByGovernorate(governorate: string, delt
 
     if (error) {
       console.error('Error adjusting shipping rate', error);
-      throw new Error(
+      return fail(
         `اتغيّرت ${changed} منطقة من ${rates.length}، وبعدين وقف. راجع الأسعار قبل ما تعيد.`,
       );
     }
@@ -142,7 +181,7 @@ export async function adjustShippingRatesByGovernorate(governorate: string, delt
   }
 
   if (changed === 0) {
-    throw new Error('ولا سعر اتغيّر — راجع الصلاحيات.');
+    return fail('ولا سعر اتغيّر — راجع الصلاحيات.');
   }
 
   await logAuditAction({

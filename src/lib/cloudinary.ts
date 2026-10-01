@@ -183,3 +183,35 @@ export function blurPlaceholder(url: string | null | undefined): string | undefi
   if (/\/upload\/[a-z]{1,3}_/.test(url)) return undefined;
   return url.replace('/upload/', '/upload/f_auto,q_auto:low,e_blur:800,w_20/');
 }
+
+/**
+ * صورة منتج **بالعلامة المائية** — شعار المنصة في الركن، شفاف جزئيًّا.
+ *
+ * ── قرار تامر (1 أكتوبر): «لازم كدا في الكل» ──────────────────
+ *
+ * ⚠️ **العلامة على الصورة نفسها من Cloudinary** — مش طبقة CSS فوقها.
+ *    الطبقة بتتشال من أدوات المطوّر في ثانية؛ اللي على البكسل بيفضل في
+ *    أي لقطة شاشة أو حفظ.
+ *
+ * ⚠️ **والعرض ١٦٠٠ ثابت عن قصد**: الرابط ده بيتحسب **على الخادم** قبل
+ *    ما المنتج يتبعت للمتصفح (`data/domains/products.ts`) — فرابط الصورة
+ *    الأصلية **مابيوصلش للصفحة خالص**. والتصغير لمقاس الكارت بيعمله
+ *    `next/image` بعدها.
+ *
+ * ⚠️ **ومن غير شعار (أو شعار مش على Cloudinary) الصورة بترجع زي ما
+ *    هي** — العلامة إضافة، وغيابها مايوقعش الصفحة.
+ */
+export function watermarkedImageUrl(
+  url: string | null | undefined,
+  watermarkLayerId: string | null,
+): string | undefined {
+  if (!url) return undefined;
+  if (!watermarkLayerId) return url;
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  // متحوّلة قبل كده (عليها علامة أو مقاس) — مانكدّسش.
+  if (/\/upload\/[a-z]{1,3}_/.test(url)) return url;
+  return url.replace(
+    '/upload/',
+    `/upload/f_auto,q_auto:good,c_limit,w_1600/l_${watermarkLayerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/`,
+  );
+}

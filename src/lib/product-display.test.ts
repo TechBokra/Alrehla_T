@@ -5,6 +5,7 @@ import {
   resultLabel,
   hasActiveFilter,
   productState,
+  productRedirectPath,
 } from './product-display';
 import type { PersonalizedProduct } from '@/types';
 
@@ -156,5 +157,22 @@ describe('حالة المنتج في اللوحات', () => {
 
   it('⚠️ حالة مش معروفة = مستني، مش معروض', () => {
     expect(productState({ isActive: true, reviewStatus: undefined })).toBe('pending');
+  });
+});
+
+describe('الرابط القديم بيحوّل (ملف 136)', () => {
+  it('الرابط الحالي = مفيش تحويل', () => {
+    expect(productRedirectPath('اعماق-البحار', { slug: 'اعماق-البحار' }, '/enha-lak/product')).toBeNull();
+  });
+
+  it('⚠️ الرابط العربي جاي مُرمَّز — مايتقريش «قديم» غلط', () => {
+    // قاعدة «ط»: من غير فكّ الترميز كل رابط عربي كان هيحوّل لنفسه للأبد.
+    const encoded = encodeURIComponent('اعماق-البحار');
+    expect(productRedirectPath(encoded, { slug: 'اعماق-البحار' }, '/enha-lak/product')).toBeNull();
+  });
+
+  it('الرابط القديم بيروح للحالي', () => {
+    expect(productRedirectPath('prod-1789588225745', { slug: 'اعماق-البحار' }, '/enha-lak/product'))
+      .toBe(`/enha-lak/product/${encodeURIComponent('اعماق-البحار')}`);
   });
 });

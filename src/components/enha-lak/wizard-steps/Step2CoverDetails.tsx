@@ -53,7 +53,6 @@ export function Step2CoverDetails({ onNext, onPrev }: { onNext: () => void, onPr
           onChange={handleFileChange}
           className="block w-full text-base md:text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-base md:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
-        {/* TODO: استبدال بمعاينة Cloudinary الفعلية عند ربط الباك إند */}
         {coverPhotoPreviewUrl && (
             <Image src={coverPhotoPreviewUrl} alt="معاينة صورة الغلاف المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
         )}

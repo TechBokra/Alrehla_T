@@ -17,8 +17,36 @@ import { cookies } from 'next/headers';
 
 
 import { createPublicClient } from '@/lib/supabase/public';
+export { productRedirectPath } from '@/lib/product-display';
 import { createClient } from '@/lib/supabase/server';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
+import { getSiteSettings } from '@/data/domains/content';
+import { watermarkedImageUrl } from '@/lib/cloudinary';
+import { publicIdFromUrl } from '@/lib/cloudinary-admin';
+
+/**
+ * صور المنتج **بالعلامة المائية** للصفحات العامة (قرار تامر، 1 أكتوبر).
+ *
+ * ⚠️ **بتتحسب هنا على الخادم، قبل ما المنتج يتبعت للمتصفح** — فرابط
+ *    الصورة الأصلية مابيوصلش لحمولة الصفحة خالص. لو اتحسبت في المكوّن،
+ *    المنتج كان هيتبعت بالرابط الأصلي جوّه بيانات الصفحة، وأي حد يفتح
+ *    المصدر ياخده نضيف.
+ *
+ * ⚠️ **واللوحات مابتمرّش من هنا** (`getManagedProducts`): الإدارة
+ *    والناشر محتاجين الصورة الأصلية — يراجعوها ويبدّلوها.
+ *
+ * الشعار من «صور الموقع ← الشعار»، وبصيغة طبقة Cloudinary (`/` ← `:`).
+ */
+async function withWatermark(product: PersonalizedProduct): Promise<PersonalizedProduct> {
+  const settings = await getSiteSettings();
+  const layer = publicIdFromUrl(settings.images.logo)?.replace(/\//g, ':') ?? null;
+  if (!layer) return product;
+  return {
+    ...product,
+    coverImageUrl: watermarkedImageUrl(product.coverImageUrl, layer),
+    galleryImageUrls: product.galleryImageUrls?.map((u) => watermarkedImageUrl(u, layer) ?? u),
+  };
+}
 
 /**
  * صفّ المنتج من القاعدة ← شكل الكود. **مكان واحد للتلات دوال.**
@@ -92,7 +120,7 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
     return [];
   }
 
-  return data.map(mapProductRow);
+  return Promise.all(data.map(mapProductRow).map(withWatermark));
 };
 
 /**
@@ -279,11 +307,29 @@ export const getPublisherBySlug = async (rawSlug: string): Promise<Publisher | n
 export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedProduct | null> => {
   const slug = decodeSlug(rawSlug);
   const supabase = createPublicClient();
-  const { data, error } = await supabase.from('personalized_products')
+  const { data: current, error } = await supabase.from('personalized_products')
     .select('*')
     .eq('slug', slug)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
+
+  // ── رابط قديم؟ (ملف 136) ─────────────────────────────────
+  //
+  // الروابط اللي كانت `prod-<رقم>` اتغيّرت لأسماء مقروءة، والقديم
+  // اتحفظ في `previous_slugs`. فلو الرابط مش لاقي منتج، بندوّر هنا —
+  // والصفحة بتشوف إن `slug` الراجع غير المطلوب فبتحوّل تحويلًا دائمًا
+  // (`productRedirectPath`). من غير ده، كل رابط اتبعت على واتساب قبل
+  // التغيير كان هيوصل لـ«المنتج غير موجود».
+  let data = current;
+  if (!data && !error) {
+    const { data: moved } = await supabase.from('personalized_products')
+      .select('*')
+      .contains('previous_slugs', [slug])
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    data = moved;
+  }
 
   if (error || !data) return null;
 
@@ -310,7 +356,7 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
   //
   // **ومالوش أي مبرّر**: كل الأعمدة اللي بتتقري موجودة في
   // النوعين، والصفحات اللي بتستعملها بتفلتر بالتصنيف لا بالملكية.
-  return mapProductRow(data);
+  return withWatermark(mapProductRow(data));
 };
 
 

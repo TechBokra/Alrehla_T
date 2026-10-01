@@ -12,8 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { notFound } from 'next/navigation';
-import { getProductBySlug, getAddonProducts } from '@/data/domains/products';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { getProductBySlug, getAddonProducts, productRedirectPath } from '@/data/domains/products';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
@@ -34,6 +34,10 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   if (!product || product.category !== 'library') {
     notFound();
   }
+
+  // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136).
+  const moved = productRedirectPath(productSlug, product, '/enha-lak/custom-library');
+  if (moved) permanentRedirect(moved);
 
   return (
     <PageContainer className="!py-0 !space-y-0">

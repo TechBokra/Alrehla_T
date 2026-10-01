@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
+import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder, watermarkedImageUrl } from '@/lib/cloudinary';
 import { publicIdFromUrl } from '@/lib/cloudinary-admin';
 
 const CLOUD = 'https://res.cloudinary.com/dwg0hr34g/image/upload/v1/alrehla/site/x.jpg';
@@ -151,5 +151,33 @@ describe('رقم الصورة من رابطها', () => {
     expect(publicIdFromUrl('https://example.com/x.png')).toBeNull();
     expect(publicIdFromUrl('')).toBeNull();
     expect(publicIdFromUrl(null)).toBeNull();
+  });
+});
+
+describe('العلامة المائية على صور المنتجات', () => {
+  const LAYER = 'alrehla:site:logo';
+
+  it('الشعار في الركن، والصورة بمقاس ثابت يتصغّر بعدها', () => {
+    expect(watermarkedImageUrl(CLOUD, LAYER)).toBe(
+      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_alrehla:site:logo,fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v1/alrehla/site/x.jpg',
+    );
+  });
+
+  it('⚠️ بعد العلامة `optimizedImageUrl` مابتكدّسش ولا بتشيلها', () => {
+    // الكارت والمعرض بينادوا `optimizedImageUrl` على الرابط اللي جاي من
+    // الخادم — لو بتعيد بناءه من الأصل، العلامة كانت هتختفي.
+    const marked = watermarkedImageUrl(CLOUD, LAYER)!;
+    expect(optimizedImageUrl(marked, 600)).toBe(marked);
+  });
+
+  it('من غير شعار، أو صورة مش Cloudinary: الصورة زي ما هي', () => {
+    expect(watermarkedImageUrl(CLOUD, null)).toBe(CLOUD);
+    expect(watermarkedImageUrl('https://example.com/a.jpg', LAYER)).toBe('https://example.com/a.jpg');
+    expect(watermarkedImageUrl(undefined, LAYER)).toBeUndefined();
+  });
+
+  it('رقم الشعار بصيغة الطبقة من رابطه', () => {
+    const id = publicIdFromUrl('https://res.cloudinary.com/x/image/upload/v1789/alrehla/site/logo.png');
+    expect(id?.replace(/\//g, ':')).toBe('alrehla:site:logo');
   });
 });

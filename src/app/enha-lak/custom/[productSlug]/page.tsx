@@ -12,7 +12,8 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getProductBySlug, getAddonProducts } from '@/data/domains/products';
+import { getProductBySlug, getAddonProducts, productRedirectPath } from '@/data/domains/products';
+import { permanentRedirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import Link from 'next/link';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
@@ -23,6 +24,12 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
     getProductBySlug(productSlug),
     getAddonProducts(),
   ]);
+
+  // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136).
+  if (product) {
+    const moved = productRedirectPath(productSlug, product, '/enha-lak/custom');
+    if (moved) permanentRedirect(moved);
+  }
 
   // ⚠️ **الحارس كان `ownerType !== 'platform'`.**
   //
@@ -37,7 +44,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
       <PageContainer className="py-12 space-y-12 md:py-16">
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <h1 className="text-3xl font-black text-slate-800">المنتج غير متاح للتخصيص</h1>
-          <Link href="/enha-lak" className="mt-8 rounded-xl bg-rose-500 px-6 py-3 font-bold text-white hover:bg-rose-600 transition-colors">
+          <Link href="/enha-lak" className="mt-8 rounded-xl bg-rose-700 px-6 py-3 font-bold text-white hover:bg-rose-800 transition-colors">
             العودة للمتجر
           </Link>
         </div>

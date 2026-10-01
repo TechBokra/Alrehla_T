@@ -1100,6 +1100,8 @@ export type Database = {
           min_age: number | null
           /** أكبر سنّ مناسب — ملف 132. فاضي مع min_age = «فأكبر». */
           max_age: number | null
+          /** روابط قديمة بتحوّل للحالي — ملف 136. */
+          previous_slugs: string[]
         }
         Insert: {
           id?: string
@@ -1124,6 +1126,7 @@ export type Database = {
           long_description?: string | null
           min_age?: number | null
           max_age?: number | null
+          previous_slugs?: string[]
         }
         Update: {
           id?: string
@@ -1148,6 +1151,7 @@ export type Database = {
           long_description?: string | null
           min_age?: number | null
           max_age?: number | null
+          previous_slugs?: string[]
         }
         Relationships: []
       }

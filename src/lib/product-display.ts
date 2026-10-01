@@ -1,4 +1,5 @@
 import type { PersonalizedProduct } from '@/types';
+import { decodeSlug } from '@/lib/utils';
 import { isAgeBandId, productMatchesAgeBand, type AgeBandId } from '@/lib/age-bands';
 
 /**
@@ -130,3 +131,18 @@ export function productState(p: Pick<PersonalizedProduct, 'isActive' | 'reviewSt
   if (p.reviewStatus !== 'approved') return 'pending';
   return 'live';
 }
+
+/**
+ * المسار الصحيح لو المنتج اتجاب برابط قديم، و`null` لو الرابط هو
+ * الحالي. الصفحات بتنادي `permanentRedirect` بيه (ملف 136).
+ */
+export function productRedirectPath(
+  requestedSlug: string,
+  product: Pick<PersonalizedProduct, 'slug'>,
+  base: string,
+): string | null {
+  return decodeSlug(requestedSlug) === product.slug
+    ? null
+    : `${base}/${encodeURIComponent(product.slug)}`;
+}
+
