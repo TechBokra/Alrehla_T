@@ -137,6 +137,12 @@ export function PageContentClient({ content }: { content: SiteContent }) {
                   افتح الصفحة في تبويب جديد
                 </Link>
 
+                {group.note && (
+                  <p className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
+                    {group.note}
+                  </p>
+                )}
+
                 {visibleFields.map((field) => (
                   <Field
                     key={field.key}

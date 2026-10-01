@@ -41,6 +41,8 @@ export interface ContentGroup {
   title: string;
   /** مسارها على الموقع — عشان يقدر يفتحها ويشوف التغيير. */
   path: string;
+  /** ملاحظة فوق الخانات — مثلًا إن جزء من المحتوى بيتعدّل من مكان تاني. */
+  note?: string;
   fields: ContentField[];
 }
 
@@ -811,8 +813,107 @@ const sessionRecording: ContentGroup = {
   ],
 };
 
+
+/* ------------------------------------------------------------------ */
+/* الفوتر — في كل صفحات الموقع                                          */
+/* ------------------------------------------------------------------ */
+
+const footer: ContentGroup = {
+  id: 'footer',
+  title: 'الفوتر (أسفل كل الصفحات)',
+  path: '/',
+  note:
+    'التليفون والواتساب والبريد والعنوان ومواعيد العمل وروابط فيسبوك وإنستجرام واسم الموقع '
+    + 'بتتعدّل من «الإعدادات العامة» — الفوتر بيقراها من هناك، واللي فاضي بيختفي. '
+    + 'والشعار من «صور الموقع» (الشعار على خلفية داكنة، أو العادي لو مش مرفوع).',
+  fields: [
+    {
+      key: 'footer.description',
+      label: 'الجملة تحت الشعار',
+      type: 'longtext',
+      fallback: 'منصة تعليمية متطورة لتعلّم الكتابة الإبداعية وتقديم قصص مخصصة.',
+    },
+    {
+      key: 'footer.quickLinksTitle',
+      label: 'عنوان عمود الروابط',
+      type: 'text',
+      fallback: 'روابط سريعة',
+    },
+    {
+      key: 'footer.legalTitle',
+      label: 'عنوان عمود الصفحات القانونية',
+      type: 'text',
+      fallback: 'القانونية',
+    },
+    {
+      key: 'footer.link.about',
+      label: 'رابط «رحلتنا»',
+      type: 'text',
+      fallback: 'رحلتنا',
+      hint: 'النص بس — الرابط نفسه ثابت (/about).',
+    },
+    {
+      key: 'footer.link.enhaLak',
+      label: 'رابط «إنها لك»',
+      type: 'text',
+      fallback: 'إنها لك',
+      hint: 'النص بس — الرابط نفسه ثابت (/enha-lak).',
+    },
+    {
+      key: 'footer.link.creativeWriting',
+      label: 'رابط «بداية الرحلة»',
+      type: 'text',
+      fallback: 'بداية الرحلة',
+      hint: 'النص بس — الرابط نفسه ثابت (/creative-writing).',
+    },
+    {
+      key: 'footer.link.blog',
+      label: 'رابط «المدونة»',
+      type: 'text',
+      fallback: 'المدونة',
+      hint: 'النص بس — الرابط نفسه ثابت (/blog).',
+    },
+    {
+      key: 'footer.link.joinUs',
+      label: 'رابط «انضم إلينا»',
+      type: 'text',
+      fallback: 'انضم إلينا',
+      hint: 'النص بس — الرابط نفسه ثابت (/join-us).',
+    },
+    {
+      key: 'footer.link.support',
+      label: 'رابط «الدعم والمساعدة»',
+      type: 'text',
+      fallback: 'الدعم والمساعدة',
+      hint: 'النص بس — الرابط نفسه ثابت (/support).',
+    },
+    {
+      key: 'footer.link.privacy',
+      label: 'رابط «سياسة الخصوصية»',
+      type: 'text',
+      fallback: 'سياسة الخصوصية',
+      hint: 'النص بس — الرابط نفسه ثابت (/privacy).',
+    },
+    {
+      key: 'footer.link.terms',
+      label: 'رابط «الشروط والأحكام»',
+      type: 'text',
+      fallback: 'الشروط والأحكام',
+      hint: 'النص بس — الرابط نفسه ثابت (/terms).',
+    },
+    {
+      key: 'footer.copyright',
+      label: 'سطر الحقوق',
+      type: 'text',
+      fallback: 'جميع الحقوق محفوظة.',
+      hint: 'بيتكتب قبله تلقائيًّا: © السنة الحالية + اسم الموقع من الإعدادات العامة.',
+    },
+  ],
+};
+
 export const CONTENT_GROUPS: ContentGroup[] = [
   home,
+  footer,
   about,
   enhaLak,
   creativeWriting,

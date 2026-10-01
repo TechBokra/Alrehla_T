@@ -36,9 +36,12 @@ export default async function Header() {
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="flex min-h-[44px] items-center gap-2 text-2xl font-black tracking-tighter text-amber-500 transition-colors hover:text-amber-600 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="flex min-h-[44px] items-center gap-2 text-2xl font-black tracking-tighter text-amber-800 transition-colors hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            {/* الشعار يُرفع من: لوحة الإدارة ← صور الموقع ← شعار الموقع.
+            {/* ⚠️ لون الاسم كان `amber-500` على خلفية فاتحة = 2.1:1 (المطلوب
+                4.5) — بقى `amber-800`. بيظهر بس لو مفيش شعار مرفوع؛ الشعار
+                المرفوع حاليًّا كحلي وتباينه سليم (اتقاس من الصورة نفسها).
+                الشعار يُرفع من: لوحة الإدارة ← صور الموقع ← شعار الموقع.
                 لحد ما يُرفع، البوصلة والاسم يفضلوا زي ما هم. */}
             {logo ? (
               <Image
