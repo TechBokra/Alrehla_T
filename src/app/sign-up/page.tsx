@@ -3,6 +3,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { UserPlus } from 'lucide-react';
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { getSafeRedirectPath } from '@/lib/safe-redirect';
 import { SignUpForm } from '@/components/SignUpForm';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,7 +15,19 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function SignUpPage() {
+/**
+ * ⚠️ **`?next=` بيتنقل بين الدخول والتسجيل.** عميل جديد جاي من المعالج
+ *    (`/sign-in?next=/enha-lak/custom/…`) كان يدوس «أنشئ حسابًا» فيضيع
+ *    الرجوع، ويخلص تسجيله في لوحة التحكم بدل ما يكمّل طلبه.
+ */
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const safeNext = next ? getSafeRedirectPath(next) : '/';
+  const otherHref = safeNext !== '/' ? `/sign-in?next=${encodeURIComponent(safeNext)}` : '/sign-in';
   return (
     <PageContainer className="py-12 space-y-12 md:py-16">
       <div className="mx-auto w-full max-w-md pt-12 pb-24">
@@ -31,7 +44,7 @@ export default function SignUpPage() {
 
           <div className="mt-8 text-center text-sm font-medium text-slate-600">
             لديك حساب بالفعل؟{' '}
-            <Link href="/sign-in" className="font-bold text-amber-700 hover:text-amber-800 hover:underline">
+            <Link href={otherHref} className="font-bold text-amber-700 hover:text-amber-800 hover:underline">
               تسجيل الدخول
             </Link>
           </div>

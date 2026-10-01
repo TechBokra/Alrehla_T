@@ -87,6 +87,11 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     return { error: 'راجع الخانات: الاسم والبريد مطلوبين، وكلمة المرور ٦ على الأقل.' }
   }
 
+  // الصفحة اللي العميل جاي منها — بيرجعلها بعد التسجيل، أو بعد تأكيد
+  // البريد (رابط التأكيد بيعدّي على `/auth/callback?next=`).
+  const nextRaw = formData.get('next')
+  const next = getSafeRedirectPath(typeof nextRaw === 'string' ? nextRaw : null)
+
   const supabase = await createClient()
 
   const { error, data } = await supabase.auth.signUp({
@@ -96,6 +101,10 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
       data: {
         full_name: fullName,
       },
+      // ⚠️ لازم `/auth/callback` يبقى في Redirect URLs في Supabase (هو
+      //    نفسه بتاع استرجاع كلمة المرور). لو مش مسموح، Supabase بيرجع
+      //    لعنوان الموقع الأساسي — زي ما كان قبل السطر ده بالظبط.
+      emailRedirectTo: `${SITE_URL}/auth/callback?next=${encodeURIComponent(next === '/' ? '/dashboard' : next)}`,
     },
   })
 
@@ -138,7 +147,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
   //    بيخلّي مصدر الملف واحدًا: المحفّز، و`syncUserProfile` احتياطًا
   //    عند أول دخول.
 
-  redirect('/dashboard')
+  redirect(next === '/' ? '/dashboard' : next)
 }
 
 export async function signOut() {

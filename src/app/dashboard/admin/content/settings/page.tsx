@@ -171,6 +171,28 @@ export default async function Page() {
           </div>
         </Section>
 
+        {/* ---------- الطلبات اللي مااتدفعتش ---------- */}
+        <Section
+          title="الطلبات اللي مااتدفعتش"
+          hint="الطلب بيتسجّل قبل رفع الإيصال. لو العميل مارفعش إيصال خلال المدة دي، الطلب بيتلغي لوحده وبيوصله إشعار. صفر = مابيتلغيش."
+        >
+          <div className="md:col-span-2">
+            <label className={labelClass} htmlFor="pendingOrderCancelDays">
+              إلغاء الطلب بعد (أيام)
+            </label>
+            <input
+              id="pendingOrderCancelDays"
+              type="number"
+              min={0}
+              max={60}
+              name="pendingOrderCancelDays"
+              dir="ltr"
+              defaultValue={settings.pendingOrderCancelDays}
+              className={`${field} text-left`}
+            />
+          </div>
+        </Section>
+
         {/* ---------- تسعير المدربين ---------- */}
         <Section
           title="تنبيه سعر المدربين"

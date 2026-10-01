@@ -10,6 +10,7 @@ import {
   InstructorPricingOption, PricingFormulaSettings, InstructorCompensationProfile, InstructorCertification
 } from '@/types';
 import { cookies } from 'next/headers';
+import { DEFAULT_PENDING_CANCEL_DAYS, normalizeCancelDays } from '@/lib/stale-orders';
 
 // Import from auth if needed
 
@@ -50,6 +51,11 @@ export interface SiteSettings {
    * صفر أو فاضي = مفيش تنبيه.
    */
   instructorPriceAlert: number;
+  /**
+   * طلب «بانتظار الدفع» من غير إيصال بيتلغي بعد كام يوم (قرار تامر: ٧،
+   * وتتغيّر من الإعدادات). صفر = مابيتلغيش تلقائيًا.
+   */
+  pendingOrderCancelDays: number;
   /**
    * تسجيل الجلسات.
    *
@@ -92,6 +98,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       workingHours: '',
       announcement: { enabled: false, text: '', until: '' },
       instructorPriceAlert: 0,
+      pendingOrderCancelDays: DEFAULT_PENDING_CANCEL_DAYS,
       sessionRecording: DEFAULT_RECORDING_SETTINGS,
       images: {},
     };
@@ -115,6 +122,9 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       until: value.announcement?.until ?? '',
     },
     instructorPriceAlert: Number(value.instructorPriceAlert) || 0,
+    // ⚠️ `??` مش `||`: صفر اختيار مقصود (الإلغاء التلقائي مقفول)، و`||`
+    //    كان هيحوّله لـ٧ من غير ما الإدارة تعرف.
+    pendingOrderCancelDays: normalizeCancelDays(value.pendingOrderCancelDays),
     // ⚠️ الافتراضي **مقفول**: لو الصف اتقرا غلط لأي سبب، الشاشات
     //    تسكت عن التسجيل — مش تقول لولي أمر إن ابنه بيتسجّل وهو مش
     //    متسجّل، ولا العكس.

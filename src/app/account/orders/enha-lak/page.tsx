@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
 import { getPersonalizedProducts } from '@/data/domains/products';
+import { getSiteSettings } from '@/data/domains/content';
 import { FORMAT_LABELS } from '@/lib/item-format';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
@@ -27,7 +28,12 @@ const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' 
 
 
 export default async function EnhaLakOrdersPage() {
-  const [allOrders, products] = await Promise.all([getOrders(), getPersonalizedProducts()]);
+  const [allOrders, products, settings] = await Promise.all([
+    getOrders(),
+    getPersonalizedProducts(),
+    getSiteSettings(),
+  ]);
+  const cancelDays = settings.pendingOrderCancelDays;
   const names = new Map(products.map((p) => [p.id, p.name]));
   const orders = allOrders.map(order => ({
     // ⚠️ الرقم المرجعي، مش رقم الصف: هو اللي العميل كتبه في ملاحظة التحويل،
@@ -52,6 +58,11 @@ export default async function EnhaLakOrdersPage() {
           >
             ادفع وارفع الإيصال
           </Link>
+        )}
+        {order.status === 'pending' && cancelDays > 0 && (
+          <span className="text-xs text-slate-600">
+            بيتلغي لوحده لو مااتدفعش خلال {cancelDays} أيام من الطلب
+          </span>
         )}
       </div>
     ),

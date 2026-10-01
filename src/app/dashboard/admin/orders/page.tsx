@@ -2,6 +2,10 @@ import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getAllOrders } from '@/data/domains/orders';
+import { getSiteSettings } from '@/data/domains/content';
+import { createClient } from '@/lib/supabase/server';
+import { cancelStalePendingOrders, cancelledMessage } from '@/lib/stale-orders';
+import { notifyUser } from '@/lib/notifications';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { OrdersClient } from './OrdersClient';
@@ -13,6 +17,22 @@ export default async function Page() {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageOrders')) {
     return <Unauthorized />;
+  }
+
+  // ⚠️ احتياط للمهمة اليومية (`api/cron/stale-orders`): لو `CRON_SECRET`
+  //    مش متظبط المهمة بتقف، فالإلغاء بيحصل هنا وقت ما الإدارة تفتح
+  //    القايمة — قبل القراية، فالقايمة بتطلع بحالتها الصح.
+  const { pendingOrderCancelDays: days } = await getSiteSettings();
+  const stale = await cancelStalePendingOrders(await createClient(), days);
+  if (stale.ok) {
+    for (const o of stale.cancelled) {
+      await notifyUser({
+        event: 'order_status',
+        recipientProfileId: o.userId,
+        ...cancelledMessage(o, days),
+        link: '/account/orders/enha-lak',
+      });
+    }
   }
 
   const orders = await getAllOrders();

@@ -19,6 +19,9 @@ export function SignUpForm() {
     setNotice(null)
 
     const formData = new FormData(e.currentTarget)
+    // نفس `SignInForm`: الصفحة اللي العميل جاي منها (المعالج / الدفع).
+    const next = new URLSearchParams(window.location.search).get('next')
+    if (next) formData.set('next', next)
     try {
       const result = await signUp(formData)
       if (result?.error) {

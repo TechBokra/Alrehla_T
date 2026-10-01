@@ -14,6 +14,7 @@ import { CONTENT_DEFAULTS, CONTENT_FIELDS } from '@/lib/site-content';
  * It now updates the single `site_settings` row the footer reads.
  */
 import { DEFAULT_RETENTION_DAYS } from '@/lib/session-recording';
+import { normalizeCancelDays } from '@/lib/stale-orders';
 
 export type SiteSettingsResult = { ok: true } | { ok: false; error: string };
 
@@ -78,6 +79,13 @@ export async function updateSiteSettings(
     } else {
       next.instructorPriceAlert = parsed;
     }
+  }
+
+  // إلغاء الطلبات اللي مااتدفعتش (قرار تامر: ٧، وتتغيّر من هنا).
+  // صفر = مقفول. فاضي = الافتراضي. فوق ٦٠ بيتقص — `normalizeCancelDays`.
+  if (formData.has('pendingOrderCancelDays')) {
+    const raw = String(formData.get('pendingOrderCancelDays') ?? '').trim();
+    next.pendingOrderCancelDays = normalizeCancelDays(raw);
   }
 
   // تسجيل الجلسات — التفعيل والمدة مع بعض.
