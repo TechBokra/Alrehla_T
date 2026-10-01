@@ -10,6 +10,7 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { FulfilmentPanel } from './FulfilmentPanel';
+import { OrderItemCustomization } from './OrderItemCustomization';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 
 export const dynamic = 'force-dynamic';
@@ -120,6 +121,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
         <h3 className="text-xl font-bold text-slate-800 mb-4">محتويات الطلب</h3>
         <SimpleDataTable columns={columns} data={formattedItems} />
+
+        {/* اسم الطفل والقصة والصور والإضافات — كانت محفوظة ومش ظاهرة. */}
+        <div className="mt-6 space-y-4">
+          {target.items.map((item, idx) => (
+            <OrderItemCustomization
+              key={idx}
+              productName={formattedItems[idx]?.nameDisplay ?? item.productId}
+              customization={item.customizationData}
+            />
+          ))}
+        </div>
         
         <div className="mt-6 border-t border-slate-100 pt-6 flex justify-end">
           <div className="text-2xl font-black text-slate-800">الإجمالي: {formatPrice(target.totalAmount)}</div>

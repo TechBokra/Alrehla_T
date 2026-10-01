@@ -31,7 +31,9 @@ const contentSecurityPolicy = [
 
   // مصادر الصور — نفس اللي في `images.remotePatterns` تحت، زائد
   // data: و blob: لمعاينة الصورة قبل رفعها.
-  "img-src 'self' data: blob: https://res.cloudinary.com https://ui-avatars.com https://picsum.photos",
+  // و`api.cloudinary.com`: صور الأطفال الخاصة بتتعرض للإدارة من رابط
+  // `download` المؤقت (`@/lib/cloudinary-private`).
+  "img-src 'self' data: blob: https://res.cloudinary.com https://api.cloudinary.com https://ui-avatars.com https://picsum.photos",
 
   // Supabase (REST + realtime عبر websocket) ورفع Cloudinary المباشر.
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com",

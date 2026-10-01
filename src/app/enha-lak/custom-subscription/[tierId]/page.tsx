@@ -18,6 +18,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { PersonalizedProduct } from '@/types';
+import { requireShopper } from '@/lib/require-shopper';
 
 interface PageProps {
   params: Promise<{ tierId: string }>;
@@ -34,6 +35,8 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
   if (!tier) {
     notFound();
   }
+
+  await requireShopper(`/enha-lak/custom-subscription/${encodeURIComponent(tier.id)}`);
 
   const product: PersonalizedProduct = {
     id: tier.id,

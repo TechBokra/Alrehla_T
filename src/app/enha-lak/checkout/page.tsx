@@ -14,20 +14,16 @@ import { getSiteSettings } from '@/data/domains/content';
 import { getShippingRates } from '@/data/domains/orders';
 import { getCurrentUser } from '@/data/domains/auth';
 import { CheckoutClient } from './CheckoutClient';
-import { redirect } from 'next/navigation';
+import { requireShopper } from '@/lib/require-shopper';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CheckoutPage() {
+  // ⚠️ كان `if (!user)` — ومابيتحققش أبدًا (التفاصيل في `requireShopper`).
+  await requireShopper('/enha-lak/checkout');
   const user = await getCurrentUser();
   const settings = await getSiteSettings();
   const shippingRates = await getShippingRates();
-  
-  if (!user) {
-    // ⚠️ كان `?callbackUrl=` — وصفحة الدخول بتقرا `?next=` (`SignInForm`). فالمشتري
-    //    كان بيسجّل دخوله ويتودّى للوحة التحكم بدل الدفع، والسلة لسه مستنياه.
-    redirect('/sign-in?next=/enha-lak/checkout');
-  }
 
   // We pass the user to the client component to pre-fill info
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState, useEffect } from 'react';
@@ -214,10 +214,11 @@ export function LibraryCustomizationWizard({
   const onSubmit = async (data: LibraryFormValues) => {
     // The chosen cover photo used to be dropped here entirely: the order went
     // through with a child's name and a dedication, and no picture.
-    let coverPhotoUrl: string | undefined;
+    // ⚠️ صورة الطفل على الغلاف **خاصة** (`@/lib/cloudinary-private`).
+    let coverPhoto: PrivatePhoto | undefined;
     try {
       if (data.coverPhotoFile instanceof File) {
-        coverPhotoUrl = (await uploadImage(data.coverPhotoFile, 'alrehla/library')).url;
+        coverPhoto = await uploadPrivatePhoto(data.coverPhotoFile, 'covers');
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
@@ -256,7 +257,7 @@ export function LibraryCustomizationWizard({
         childId,
         childName,
         dedicationText: data.dedicationText,
-        coverPhotoUrl,
+        coverPhoto,
         selectedAddonIds: data.selectedAddonIds,
         customizedAddonIds: data.customizedAddonIds ?? [],
       },

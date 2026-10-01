@@ -17,6 +17,7 @@ import { permanentRedirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import Link from 'next/link';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
+import { requireShopper } from '@/lib/require-shopper';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;
@@ -51,6 +52,8 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
       </PageContainer>
     );
   }
+
+  await requireShopper(`/enha-lak/custom/${encodeURIComponent(product.slug)}`);
 
   return (
     <div className="min-h-screen bg-slate-50">

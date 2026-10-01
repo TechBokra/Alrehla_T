@@ -1,5 +1,6 @@
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
+import { getPersonalizedProducts } from '@/data/domains/products';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -24,9 +25,16 @@ const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' 
 
 
 export default async function EnhaLakOrdersPage() {
-  const allOrders = await getOrders();
+  const [allOrders, products] = await Promise.all([getOrders(), getPersonalizedProducts()]);
+  const names = new Map(products.map((p) => [p.id, p.name]));
   const orders = allOrders.map(order => ({
-    idDisplay: `طلب #${order.id.replace('ord-', '').toUpperCase()}`,
+    // ⚠️ الرقم المرجعي، مش رقم الصف: هو اللي العميل كتبه في ملاحظة التحويل،
+    //    وهو اللي بيظهر للإدارة — فلو كلّم الدعم، الرقم واحد في الشاشتين.
+    idDisplay: (
+      <span dir="ltr" className="font-mono font-bold">
+        {order.paymentReference ?? order.id.replace('ord-', '').toUpperCase()}
+      </span>
+    ),
     date: new Date(order.createdAt).toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE }),
     statusDisplay: (
       <StatusBadge
@@ -38,7 +46,18 @@ export default async function EnhaLakOrdersPage() {
     total: formatPrice(order.totalAmount),
     itemsDisplay: (
       <div className="flex flex-col gap-1">
-        {order.items.map((item, idx) => <span key={idx}>منتج ({item.productId}) - كمية: {item.quantity}</span>)}
+        {/* كان بيعرض رقم المنتج الداخلي («منتج (3f2a…)») بدل اسمه. */}
+        {order.items.map((item, idx) => {
+          const child = (item.customizationData as { childName?: unknown } | undefined)?.childName;
+          return (
+            <span key={idx}>
+              {names.get(item.productId) ?? 'منتج لم يعد معروضًا'} × {item.quantity}
+              {typeof child === 'string' && child.trim() && (
+                <span className="text-slate-500"> — لـ{child.trim()}</span>
+              )}
+            </span>
+          );
+        })}
       </div>
     ),
   }));

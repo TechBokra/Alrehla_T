@@ -17,6 +17,7 @@ import { getProductBySlug, getAddonProducts, productRedirectPath } from '@/data/
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
+import { requireShopper } from '@/lib/require-shopper';
 
 interface PageProps {
   params: Promise<{ productSlug: string }>;
@@ -38,6 +39,8 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136).
   const moved = productRedirectPath(productSlug, product, '/enha-lak/custom-library');
   if (moved) permanentRedirect(moved);
+
+  await requireShopper(`/enha-lak/custom-library/${encodeURIComponent(product.slug)}`);
 
   return (
     <PageContainer className="!py-0 !space-y-0">

@@ -1,6 +1,6 @@
 'use client';
 
-import { uploadImage } from '@/lib/cloudinary';
+import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -156,14 +156,17 @@ export function PersonalizationWizard({
     // Only the file NAME used to be kept: the File itself was dropped, so the
     // book was ordered without the photo it is built from, while the review
     // step said "تم إرفاق صورة شخصية".
-    let facePhotoUrl: string | undefined;
-    let secondPhotoUrl: string | undefined;
+    //
+    // ⚠️ **صور خاصة** (`@/lib/cloudinary-private`): كانت بتترفع برابط عام
+    //    دائم. دلوقتي الطلب بيحفظ رقم الصورة بس، والإدارة وحدها تفتحها.
+    let childPhoto: PrivatePhoto | undefined;
+    let secondPhoto: PrivatePhoto | undefined;
     try {
       if (data.facePhotoFile) {
-        facePhotoUrl = (await uploadImage(data.facePhotoFile, 'alrehla/personalization')).url;
+        childPhoto = await uploadPrivatePhoto(data.facePhotoFile, 'children');
       }
       if (data.secondPhotoFile) {
-        secondPhotoUrl = (await uploadImage(data.secondPhotoFile, 'alrehla/personalization')).url;
+        secondPhoto = await uploadPrivatePhoto(data.secondPhotoFile, 'children');
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
@@ -201,8 +204,8 @@ export function PersonalizationWizard({
         recipientType: 'child',
         childId: finalChildId || undefined,
         childName,
-        childPhotoUrl: facePhotoUrl,
-        secondPhotoUrl,
+        childPhoto,
+        secondPhoto,
         heroDescription: data.heroDescription,
         // «هدف آخر» بيتحفظ بنص العميل نفسه، مش بكلمة 'other'.
         storyGoal:
