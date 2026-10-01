@@ -79,6 +79,7 @@ export function parseStoredCart<T>(raw: string | null, now: number): T[] {
 export function clearStoredCart(): void {
   try {
     window.localStorage.removeItem(CART_STORAGE_KEY);
+    window.localStorage.removeItem(DEFERRED_STORAGE_KEY);
   } catch {
     // التخزين مقفول — مفيش حاجة محفوظة أصلًا.
   }
@@ -86,5 +87,31 @@ export function clearStoredCart(): void {
     window.dispatchEvent(new Event(CART_CLEAR_EVENT));
   } catch {
     // برّه المتصفح.
+  }
+}
+
+/**
+ * منتجات «مستنية» — اتشالت من السلة عشان اشتراك الصندوق يتطلب لوحده،
+ * وبترجع للسلة أول ما طلب الاشتراك يخلص (`CheckoutClient`).
+ *
+ * ⚠️ بنفس صلاحية السلة (أسبوع) وبتتمسح مع الخروج (`clearStoredCart`).
+ */
+export const DEFERRED_STORAGE_KEY = 'alrehla-cart-deferred-v1';
+
+export function saveDeferredItems<T>(items: T[]): void {
+  try {
+    window.localStorage.setItem(DEFERRED_STORAGE_KEY, serializeCart(items, Date.now()));
+  } catch {
+    /* المتصفح مانع التخزين — المنتجات بتضيع زي الحذف العادي */
+  }
+}
+
+export function takeDeferredItems<T>(): T[] {
+  try {
+    const items = parseStoredCart<T>(window.localStorage.getItem(DEFERRED_STORAGE_KEY), Date.now());
+    window.localStorage.removeItem(DEFERRED_STORAGE_KEY);
+    return items;
+  } catch {
+    return [];
   }
 }

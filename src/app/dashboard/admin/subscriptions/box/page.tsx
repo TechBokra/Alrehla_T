@@ -54,9 +54,14 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <div className="flex justify-between items-center mb-6">
         <DashboardPageHeader title="اشتراكات صندوق الرحلة" />
-        <Link href="/dashboard/admin/subscriptions/box/plans" className="rounded-xl bg-slate-900 px-4 py-2 font-bold text-white transition-colors hover:bg-slate-800 mb-6">
+        <div className="mb-6 flex gap-3">
+        <Link href="/dashboard/admin/subscriptions/box/shipments" className="rounded-xl bg-rose-700 px-4 py-2 font-bold text-white transition-colors hover:bg-rose-800">
+          صناديق الشهر
+        </Link>
+        <Link href="/dashboard/admin/subscriptions/box/plans" className="rounded-xl bg-slate-900 px-4 py-2 font-bold text-white transition-colors hover:bg-slate-800">
           إدارة الخطط
         </Link>
+        </div>
       </div>
       <SimpleDataTable columns={columns} data={formatted} />
     </div>

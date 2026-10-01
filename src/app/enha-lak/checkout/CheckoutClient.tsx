@@ -2,7 +2,8 @@
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState } from 'react';
-import { useCart } from '@/context/CartContext';
+import { useCart, type CartItem } from '@/context/CartContext';
+import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
 import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2, Plus, Minus, Trash2 } from 'lucide-react';
@@ -35,7 +36,7 @@ interface Props {
 }
 
 export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippingRates }: Props) {
-  const { items, cartTotal, clearCart, updateQuantity, removeItem } = useCart();
+  const { items, cartTotal, clearCart, updateQuantity, removeItem, addItem } = useCart();
   const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment
   // Card, wallet and Fawry options used to be offered here with forms that
   // were never read by anything: the customer typed a real card number, was
@@ -185,6 +186,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
       }
 
       clearCart();
+      // المنتجات اللي استنت طلب الاشتراك (`saveDeferredItems`) ترجع للسلة
+      // — ودلوقتي هتاخد خصم المشترك لما الدفع يتأكد.
+      for (const item of takeDeferredItems<CartItem>()) addItem(item);
       router.push('/enha-lak/order-confirmation?id=' + placedOrder.id);
     });
   };
@@ -402,8 +406,21 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
 
               {mixedBox && (
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-                  اشتراك صندوق الرحلة بيتطلب لوحده. احذف باقي المنتجات من ملخص الطلب
-                  واطلبهم بعد الاشتراك — وساعتها هياخدوا خصم المشترك على الإضافات.
+                  <p>
+                    اشتراك صندوق الرحلة بيتطلب لوحده. باقي المنتجات تستنى وترجع
+                    لسلتك بعد ما تخلص الاشتراك — وساعتها تاخد خصم المشترك على الإضافات.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const others = items.filter((i: CartItem) => !i.boxPlanId);
+                      saveDeferredItems(others);
+                      others.forEach((i: CartItem) => removeItem(i.id));
+                    }}
+                    className="mt-3 rounded-lg bg-amber-800 px-4 py-2 text-xs font-bold text-white hover:bg-amber-900"
+                  >
+                    اطلب الاشتراك الأول
+                  </button>
                 </div>
               )}
 

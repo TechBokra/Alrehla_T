@@ -333,6 +333,11 @@ export async function saveProduct(formData: FormData) {
   revalidatePath('/dashboard/publisher/products');
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');
+  // صفحة كل منتج وصفحة كل ناشر والصفحة الرئيسية للقسم بيتخزّنوا ساعة —
+  // من غير دول، منتج اتوافق عليه أو اتوقف كان بيفضل بحالته القديمة لحد ساعة.
+  revalidatePath('/enha-lak');
+  revalidatePath('/enha-lak/product/[slug]', 'page');
+  revalidatePath('/enha-lak/publisher/[slug]', 'page');
 }
 
 export type ProductStateResult = { ok: true } | { ok: false; error: string };
@@ -405,6 +410,11 @@ export async function setProductActive(
   revalidatePath(`/dashboard/admin/products/${productId}`);
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');
+  // صفحة كل منتج وصفحة كل ناشر والصفحة الرئيسية للقسم بيتخزّنوا ساعة —
+  // من غير دول، منتج اتوافق عليه أو اتوقف كان بيفضل بحالته القديمة لحد ساعة.
+  revalidatePath('/enha-lak');
+  revalidatePath('/enha-lak/product/[slug]', 'page');
+  revalidatePath('/enha-lak/publisher/[slug]', 'page');
   return { ok: true };
 }
 
@@ -477,6 +487,11 @@ export async function reviewProduct(formData: FormData) {
   revalidatePath('/dashboard/publisher/products');
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');
+  // صفحة كل منتج وصفحة كل ناشر والصفحة الرئيسية للقسم بيتخزّنوا ساعة —
+  // من غير دول، منتج اتوافق عليه أو اتوقف كان بيفضل بحالته القديمة لحد ساعة.
+  revalidatePath('/enha-lak');
+  revalidatePath('/enha-lak/product/[slug]', 'page');
+  revalidatePath('/enha-lak/publisher/[slug]', 'page');
   revalidatePath(`/enha-lak/product/${data.slug}`);
   return { ok: true as const };
 }
