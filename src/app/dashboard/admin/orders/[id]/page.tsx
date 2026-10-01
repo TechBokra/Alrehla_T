@@ -142,9 +142,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               )}
             </div>
           ) : (
-            <p className="text-sm font-medium text-slate-400">
-              لا يوجد عنوان مسجّل — طلب قديم أو منتج لا يُشحن.
-            </p>
+            <div className="space-y-1 text-sm font-medium">
+              <p className="text-slate-600">لا يوجد عنوان مسجّل — طلب قديم أو منتج لا يُشحن.</p>
+              {/* الإلكتروني لوحده (ملف 138) مالوش عنوان — بس التليفون متسجّل
+                  للتواصل، وكان مستخبي جوه كارت العنوان. */}
+              {target.recipientPhone && (
+                <p className="text-slate-800">
+                  تليفون العميل: <span dir="ltr">{target.recipientPhone}</span>
+                </p>
+              )}
+            </div>
           )}
           {target.trackingReference && (
             <p className="mt-3 text-sm font-bold text-blue-700" dir="ltr">
