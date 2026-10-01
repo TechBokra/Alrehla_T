@@ -18,6 +18,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
+import { getMyAddonDiscount } from '@/data/domains/subscriptions';
 
 interface PageProps {
   params: Promise<{ productSlug: string }>;
@@ -45,7 +46,11 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   return (
     <PageContainer className="!py-0 !space-y-0">
       <Section>
-        <LibraryCustomizationWizard product={product} addons={addons} />
+        <LibraryCustomizationWizard
+          product={product}
+          addons={addons}
+          addonDiscountPercent={await getMyAddonDiscount()}
+        />
       </Section>
     </PageContainer>
   );

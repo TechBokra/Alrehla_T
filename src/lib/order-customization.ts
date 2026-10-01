@@ -60,6 +60,8 @@ const LEGACY_PHOTOS: [key: string, label: string][] = [
 /** خانات داخلية — أرقام للربط، مالهاش معنى للي بينفّذ. */
 const INTERNAL = new Set([
   'recipientType', 'childId', 'selectedAddonIds', 'customizedAddonIds', 'addons',
+  // صندوق الرحلة (ملف 140) — بيتعرضوا من `describeBoxDetails`.
+  'monthlyGoals', 'plan',
 ]);
 
 function text(v: unknown): string | null {
@@ -141,4 +143,34 @@ export function describeCustomization(raw: unknown): CustomizationView {
 /** في تفاصيل أصلًا؟ — عشان الصفحة ماتعرضش كارت فاضي لمنتج عادي. */
 export function hasCustomization(view: CustomizationView): boolean {
   return view.fields.length > 0 || view.photos.length > 0 || view.addons.length > 0;
+}
+
+/** الخطة وقت الشراء + أهداف الشهور — طلب اشتراك صندوق الرحلة (ملف 140). */
+export type BoxDetailsView = {
+  planName: string;
+  months: number;
+  price: number | null;
+  shippingPerMonth: number | null;
+  addonDiscountPercent: number;
+  freeAddonName: string | null;
+  /** `null` = «تختاره الإدارة». */
+  goals: (string | null)[];
+};
+
+export function describeBoxDetails(raw: unknown): BoxDetailsView | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const data = raw as Record<string, unknown>;
+  const plan = (data.plan && typeof data.plan === 'object' ? data.plan : {}) as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const months = Math.max(1, Math.trunc(num(plan.months) ?? 1));
+  const rawGoals = Array.isArray(data.monthlyGoals) ? data.monthlyGoals : [];
+  return {
+    planName: text(plan.name) ?? 'صندوق الرحلة',
+    months,
+    price: num(plan.price),
+    shippingPerMonth: num(plan.shippingPerMonth),
+    addonDiscountPercent: num(plan.addonDiscountPercent) ?? 0,
+    freeAddonName: text(plan.freeAddonName),
+    goals: Array.from({ length: months }, (_, i) => text(rawGoals[i])),
+  };
 }

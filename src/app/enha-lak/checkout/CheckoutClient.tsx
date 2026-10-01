@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { createOrder, submitPaymentProof } from '@/actions/orders';
+import { createOrder, createBoxSubscriptionOrder, submitPaymentProof } from '@/actions/orders';
 import type { PaymentMethod } from '@/actions/orders';
 import { PaymentProofForm } from '@/components/checkout/PaymentProofForm';
 import { Section } from '@/components/ui/Section';
@@ -71,6 +71,12 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
   //    قاعدة الدالة بالظبط).
   const needsShipping = cartNeedsShipping(items);
   const hasElectronic = cartHasElectronic(items);
+  // ملف 140: الاشتراك بيتطلب **لوحده** — دالة تانية وطلب تاني.
+  const boxItem = items.find((i: { boxPlanId?: string }) => i.boxPlanId) as
+    | { boxPlanId: string; boxMonths?: number; customizationData?: unknown }
+    | undefined;
+  const boxMonths = boxItem ? Math.max(1, boxItem.boxMonths ?? 1) : 1;
+  const mixedBox = Boolean(boxItem) && items.length > 1;
   // The rate is per area, not per governorate: Cairo and Shorouk are both in
   // Cairo and are not the same trip.
   const matchedRate = shippingRates.find(
@@ -84,7 +90,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
     {}
   );
   const shippingKnown = !needsShipping || Boolean(matchedRate);
-  const shipping = needsShipping ? (matchedRate?.fee ?? 0) : 0;
+  // الصندوق: سعر المنطقة × عدد الشهور (قرار تامر) — نفس حساب القاعدة.
+  const shipping = needsShipping ? (matchedRate?.fee ?? 0) * boxMonths : 0;
   const grandTotal = subtotal + shipping;
 
   const handleShippingSubmit = (e: React.FormEvent) => {
@@ -110,9 +117,19 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
     setIsProcessing(true);
     setOrderError('');
     startTransition(async () => {
+      const shippingDetails = {
+        recipientName: shippingInfo.name,
+        recipientPhone: shippingInfo.phone,
+        addressLine: shippingInfo.address,
+        city: shippingInfo.city,
+        governorate: shippingInfo.gov,
+        notes: shippingInfo.notes,
+      };
       // الواجهة بتبعت إيه اتطلب وبس. الأسعار والشحن بيتحسبوا في القاعدة،
       // فالأرقام المعروضة فوق للعرض بس — مش هي اللي بتتحسب على العميل.
-      const result = await createOrder(
+      const result = boxItem
+        ? await createBoxSubscriptionOrder(boxItem.boxPlanId, boxItem.customizationData, shippingDetails)
+        : await createOrder(
         items.map(
           (i: {
             productId: string;
@@ -383,10 +400,17 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 </div>
               )}
 
+              {mixedBox && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+                  اشتراك صندوق الرحلة بيتطلب لوحده. احذف باقي المنتجات من ملخص الطلب
+                  واطلبهم بعد الاشتراك — وساعتها هياخدوا خصم المشترك على الإضافات.
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isProcessing || !shippingKnown}
+                  disabled={isProcessing || !shippingKnown || mixedBox}
                   className="w-full flex justify-center items-center gap-2 rounded-xl bg-rose-600 px-8 py-4 font-black text-white hover:bg-rose-700 transition-colors shadow-lg disabled:opacity-70"
                 >
                   {isPending || isProcessing ? 'جارٍ تسجيل الطلب…' : 'سجّل الطلب واعرض بيانات التحويل'}
@@ -426,7 +450,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                       العرض بس — **السعر والإجمالي بيتحسبوا في القاعدة**
                       من الأرقام المبعوتة (قاعدة «ف»). */}
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    {isQuantityLocked(item.format) ? (
+                    {isQuantityLocked(item.format) || item.boxPlanId ? (
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
@@ -486,7 +510,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                   : shippingKnown
                     ? shipping === 0
                       ? 'مجاناً'
-                      : formatPrice(shipping)
+                      : boxItem
+                        ? `${formatPrice(matchedRate?.fee ?? 0)} × ${boxMonths.toLocaleString('ar-EG')} = ${formatPrice(shipping)}`
+                        : formatPrice(shipping)
                     : 'يُحدَّد حسب المنطقة'}
               </span>
             </div>

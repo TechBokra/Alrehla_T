@@ -24,6 +24,8 @@ const EMPTY: BoxPlanInput = {
   isHighlighted: false,
   isActive: true,
   sortOrder: 0,
+  addonDiscountPercent: 0,
+  freeAddonId: '',
 };
 
 const toInput = (t: SubscriptionTier): BoxPlanInput => ({
@@ -38,12 +40,24 @@ const toInput = (t: SubscriptionTier): BoxPlanInput => ({
   isHighlighted: t.isHighlighted,
   isActive: t.isActive,
   sortOrder: t.sortOrder,
+  addonDiscountPercent: t.addonDiscountPercent ?? 0,
+  freeAddonId: t.freeAddonId ?? '',
 });
 
-export function BoxPlansClient({ plans }: { plans: SubscriptionTier[] }) {
+/** الإضافات المتاحة لاختيار «الإضافة المجانية» (ملف 140). */
+const AddonsContext = React.createContext<{ id: string; name: string }[]>([]);
+
+export function BoxPlansClient({
+  plans,
+  addons = [],
+}: {
+  plans: SubscriptionTier[];
+  addons?: { id: string; name: string }[];
+}) {
   const [adding, setAdding] = useState(false);
 
   return (
+    <AddonsContext.Provider value={addons}>
     <div className="space-y-6">
       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
         الباقات دي هي اللي بتظهر في صفحة «صندوق الرحلة». الصورة والمزايا هما اللي
@@ -99,6 +113,7 @@ export function BoxPlansClient({ plans }: { plans: SubscriptionTier[] }) {
         ))
       )}
     </div>
+    </AddonsContext.Provider>
   );
 }
 
@@ -123,6 +138,7 @@ function PlanForm({
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const addons = React.useContext(AddonsContext);
 
   const set = <K extends keyof BoxPlanInput>(key: K, value: BoxPlanInput[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -272,6 +288,28 @@ function PlanForm({
               value={form.savingsNote}
               onChange={(e) => set('savingsNote', e.target.value)}
             />
+          </Field>
+          <Field label="خصم المشترك على الإضافات ٪" hint="على أي إضافة يطلبها طول مدة اشتراكه — ٠ = مفيش">
+            <input
+              type="number"
+              min={0}
+              max={90}
+              className={inputClass}
+              value={form.addonDiscountPercent}
+              onChange={(e) => set('addonDiscountPercent', Number(e.target.value))}
+            />
+          </Field>
+          <Field label="إضافة مجانية في كل صندوق" hint="بتظهر للإدارة في كل شهر من شهور الاشتراك">
+            <select
+              className={inputClass}
+              value={form.freeAddonId}
+              onChange={(e) => set('freeAddonId', e.target.value)}
+            >
+              <option value="">— من غير —</option>
+              {addons.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
           </Field>
           <Field label="ترتيب العرض" hint="الأصغر يظهر أولًا">
             <input

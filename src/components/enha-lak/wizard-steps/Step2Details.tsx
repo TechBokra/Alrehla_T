@@ -2,7 +2,24 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-export function Step2Details({ onNext, onPrev }: { onNext: () => void, onPrev: () => void }) {
+/** نفس اختيارات الهدف — للقصة الواحدة وللاشتراك. */
+const GOAL_OPTIONS = [
+  { value: 'شجاعة', label: 'الشجاعة والتغلب على الخوف' },
+  { value: 'ثقة', label: 'بناء الثقة بالنفس' },
+  { value: 'حل المشكلات', label: 'تعلم حل المشكلات' },
+  { value: 'تعاون', label: 'التعاون مع الآخرين' },
+];
+
+export function Step2Details({
+  onNext,
+  onPrev,
+  monthlyGoals,
+}: {
+  onNext: () => void;
+  onPrev: () => void;
+  /** اشتراك صندوق الرحلة (ملف 140): عدد الشهور — هدف لكل شهر بدل هدف واحد. */
+  monthlyGoals?: number;
+}) {
   const { register, watch, setValue, formState: { errors } } = useFormContext();
   
   const facePhotoFile = watch('facePhotoFile');
@@ -41,6 +58,34 @@ export function Step2Details({ onNext, onPrev }: { onNext: () => void, onPrev: (
     <div className="space-y-6">
       <h2 className="text-2xl font-black text-slate-800">تفاصيل القصة</h2>
 
+      {monthlyGoals ? (
+        <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
+          <legend className="px-2 text-sm font-bold text-slate-700">هدف قصة كل شهر (اختياري)</legend>
+          <p className="text-xs text-slate-600">
+            اختار من القايمة أو اكتب بكلامك. اللي تسيبه فاضي فريقنا بيختاره حسب سنّ الطفل.
+          </p>
+          <datalist id="goal-options">
+            {GOAL_OPTIONS.map((o) => (
+              <option key={o.value} value={o.label} />
+            ))}
+          </datalist>
+          {Array.from({ length: monthlyGoals }, (_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <label htmlFor={`goal-${i}`} className="w-20 shrink-0 text-sm font-bold text-slate-700">
+                الشهر {(i + 1).toLocaleString('ar-EG')}
+              </label>
+              <input
+                id={`goal-${i}`}
+                list="goal-options"
+                maxLength={200}
+                placeholder="تختاره الإدارة"
+                {...register(`monthlyGoals.${i}`)}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          ))}
+        </fieldset>
+      ) : (<>
       <div className="space-y-2">
         <label className="text-sm font-bold text-slate-700">الهدف التربوي (إلزامي)</label>
         <select 
@@ -70,6 +115,7 @@ export function Step2Details({ onNext, onPrev }: { onNext: () => void, onPrev: (
           )}
         </div>
       )}
+      </>)}
 
       <div className="space-y-2">
         <label className="text-sm font-bold text-slate-700">إهداء أو رسالة في أول الكتاب (اختياري)</label>

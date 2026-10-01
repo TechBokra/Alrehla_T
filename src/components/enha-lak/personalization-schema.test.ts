@@ -191,3 +191,22 @@ describe('باقي المعالج', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('وضع الاشتراك (ملف 140)', () => {
+  const base = {
+    familyMemberId: 'c1',
+    heroDescription: 'بيحب الديناصورات',
+    facePhotoFile: {},
+    selectedAddonIds: [],
+  };
+  it('الاشتراك من غير هدف واحد بيعدّي — الأهداف شهرية', async () => {
+    const { wizardSchema } = await import('./personalization-schema');
+    expect(wizardSchema.safeParse({ ...base, storyGoal: '', mode: 'subscription', monthlyGoals: ['', 'ثقة'] }).success).toBe(true);
+  });
+  it('القصة الواحدة لسه محتاجة هدف', async () => {
+    const { wizardSchema } = await import('./personalization-schema');
+    const r = wizardSchema.safeParse({ ...base, storyGoal: '' });
+    expect(r.success).toBe(false);
+    expect(JSON.stringify(r.error?.issues)).toContain('الرجاء اختيار الهدف التربوي');
+  });
+});

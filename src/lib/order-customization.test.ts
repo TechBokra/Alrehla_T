@@ -67,3 +67,26 @@ describe('describeCustomization', () => {
     }
   });
 });
+
+import { describeBoxDetails } from './order-customization';
+describe('describeBoxDetails (ملف 140)', () => {
+  it('الخطة والأهداف — الفاضي = تختاره الإدارة، والعدد = شهور الخطة', () => {
+    const v = describeBoxDetails({
+      childName: 'ليلى',
+      monthlyGoals: ['ثقة', null, '  '],
+      plan: { name: 'ربع سنوي', months: 3, price: 1200, shippingPerMonth: 50, addonDiscountPercent: 15, freeAddonName: 'كوباية' },
+    })!;
+    expect(v).toEqual({
+      planName: 'ربع سنوي', months: 3, price: 1200, shippingPerMonth: 50,
+      addonDiscountPercent: 15, freeAddonName: 'كوباية', goals: ['ثقة', null, null],
+    });
+  });
+  it('أهداف الصندوق مابتظهرش كـ«بيانات أخرى» في كارت التخصيص', () => {
+    const v = describeCustomization({ childName: 'ليلى', monthlyGoals: ['ثقة'], plan: { name: 'x' } });
+    expect(v.fields).toEqual([{ label: 'اسم الطفل', value: 'ليلى' }]);
+  });
+  it('بيانات تالفة = null', () => {
+    expect(describeBoxDetails(null)).toBeNull();
+    expect(describeBoxDetails('x')).toBeNull();
+  });
+});

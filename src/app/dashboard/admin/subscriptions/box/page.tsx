@@ -18,22 +18,35 @@ export default async function Page() {
 
   const subscriptions = await getBoxSubscriptions();
   
-  const formatted = subscriptions.map(s => ({
-    ...s,
-    idDisplay: <span className="font-bold text-slate-700">#{s.id.split('-')[1]}</span>,
-    dateDisplay: formatDate(s.nextShipmentDate),
-    statusDisplay: s.status === 'active' 
-      ? <StatusBadge type="success" label="نشط" />
-      : s.status === 'paused'
-      ? <StatusBadge type="warning" label="متوقف مؤقتاً" />
-      : <StatusBadge type="danger" label="ملغى" />
-  }));
+  const formatted = subscriptions.map(s => {
+    const shipped = s.shipments?.filter((x) => x.status === 'shipped' || x.status === 'delivered').length ?? 0;
+    // الشحنة الجاية = أول شهر لسه ماتشحنش (ملف 140) — بدل تاريخ ثابت.
+    const next = s.shipments?.find((x) => x.status === 'pending' || x.status === 'preparing');
+    return {
+      ...s,
+      idDisplay: (
+        <Link href={`/dashboard/admin/subscriptions/box/${s.id}`} className="font-bold text-blue-700 hover:underline">
+          فتح
+        </Link>
+      ),
+      progressDisplay: s.months ? `${shipped} / ${s.months}` : '—',
+      nextDisplay: next
+        ? `الشهر ${next.monthNumber}${next.status === 'preparing' ? ' (بيتجهّز)' : ''}`
+        : s.months ? 'خلص' : (s.nextShipmentDate ? formatDate(s.nextShipmentDate) : '—'),
+      statusDisplay: s.status === 'active'
+        ? <StatusBadge type="success" label="نشط" />
+        : s.status === 'paused'
+        ? <StatusBadge type="warning" label="متوقف مؤقتاً" />
+        : <StatusBadge type="danger" label="ملغى" />
+    };
+  });
 
   const columns = [
-    { header: 'رقم الاشتراك', accessorKey: 'idDisplay' },
+    { header: 'الاشتراك', accessorKey: 'idDisplay' },
     { header: 'المشترك', accessorKey: 'customerName' },
     { header: 'الخطة', accessorKey: 'planName' },
-    { header: 'موعد الشحنة القادمة', accessorKey: 'dateDisplay' },
+    { header: 'الشحنات', accessorKey: 'progressDisplay' },
+    { header: 'الشحنة الجاية', accessorKey: 'nextDisplay' },
     { header: 'الحالة', accessorKey: 'statusDisplay' }
   ];
 

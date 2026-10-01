@@ -17,6 +17,10 @@ export interface BoxPlanInput {
   isHighlighted: boolean;
   isActive: boolean;
   sortOrder: number;
+  /** ملف 140: خصم المشترك على الإضافات (٠–٩٠). */
+  addonDiscountPercent: number;
+  /** ملف 140: الإضافة المجانية في كل صندوق — فاضي = مفيش. */
+  freeAddonId: string;
 }
 
 /**
@@ -45,8 +49,14 @@ function validate(input: BoxPlanInput) {
     );
   }
 
+  // نفس قيد القاعدة (ملف 140) — عشان الرسالة تبقى مفهومة بدل رفض القاعدة.
+  const discount = Math.trunc(Number(input.addonDiscountPercent) || 0);
+  if (discount < 0 || discount > 90) throw new Error('خصم الإضافات من ٠ لـ٩٠٪');
+
   return {
     name,
+    addon_discount_percent: discount,
+    free_addon_id: input.freeAddonId.trim() || null,
     price_total: total,
     price_monthly: monthly,
     duration_months: months,

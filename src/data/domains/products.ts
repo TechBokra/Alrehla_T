@@ -250,6 +250,8 @@ export const getSubscriptionTiers = async (
     isHighlighted: plan.is_highlighted ?? false,
     isActive: plan.is_active ?? true,
     sortOrder: plan.sort_order ?? 0,
+    addonDiscountPercent: plan.addon_discount_percent ?? 0,
+    freeAddonId: plan.free_addon_id ?? undefined,
   }));
 };
 

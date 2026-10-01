@@ -9,6 +9,7 @@ import { optimizedImageUrl } from '@/lib/cloudinary';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { fetchFamilyMembers } from '@/app/actions/family';
 import {
+  addonsDisplayTotal,
   basePriceForFormat,
   electronicAvailable,
   FORMAT_LABELS,
@@ -19,10 +20,16 @@ import {
 export function OrderSummarySidebar({
   product,
   addons = [],
+  addonDiscountPercent = 0,
+  subscriptionMonths,
 }: {
   product: PersonalizedProduct;
   /** نفس قايمة الإضافات اللي الخطوة ٣ بتعرضها — عشان الإجمالي يبقى حقيقي. */
   addons?: AddonProduct[];
+  /** خصم المشترك (ملف 140) — نفس حساب القاعدة. */
+  addonDiscountPercent?: number;
+  /** اشتراك الصندوق: الشحن × الشهور بيتحسب في الدفع. */
+  subscriptionMonths?: number;
 }) {
   const { watch } = useFormContext();
   const selectedAddonIds: string[] = watch('selectedAddonIds') || [];
@@ -68,10 +75,11 @@ export function OrderSummarySidebar({
   //    وقبل كده كان `addonsTotal = 0` ثابتًا — يعني العميل كان بيشوف
   //    إجماليًا من غير الإضافات ويدفع إجماليًا بيها.
   const chosenAddons = addons.filter((a) => selectedAddonIds.includes(a.id));
-  const addonsTotal = chosenAddons.reduce(
-    (sum, a) =>
-      sum + a.price + (customizedAddonIds.includes(a.id) ? a.customizationPrice : 0),
-    0,
+  const addonsTotal = addonsDisplayTotal(
+    chosenAddons,
+    selectedAddonIds,
+    customizedAddonIds,
+    addonDiscountPercent,
   );
   // النوع (ملف 138): «أنت البطل» اللي ليها إلكتروني بس — غير كده مطبوعة.
   const watchedFormat = watch('format');
@@ -156,6 +164,16 @@ export function OrderSummarySidebar({
         <span>الإجمالي:</span>
         <span className="text-rose-500">{formatPrice(total)}</span>
       </div>
+      {addonDiscountPercent > 0 && chosenAddons.length > 0 && (
+        <p className="mt-2 text-xs font-bold text-emerald-800">
+          شامل خصم المشترك {addonDiscountPercent.toLocaleString('ar-EG')}٪ على الإضافات
+        </p>
+      )}
+      {subscriptionMonths && (
+        <p className="mt-2 text-xs text-slate-600">
+          + الشحن: سعر منطقتك × {subscriptionMonths.toLocaleString('ar-EG')} شهور — بيتحسب في الدفع
+        </p>
+      )}
     </div>
   );
 }

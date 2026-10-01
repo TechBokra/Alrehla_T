@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getSubscriptionTiers } from '@/data/domains/products';
+import { getSubscriptionTiers, getAddonProducts } from '@/data/domains/products';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { BoxPlansClient } from './BoxPlansClient';
@@ -23,7 +23,10 @@ export default async function Page() {
     return <Unauthorized />;
   }
 
-  const plans = await getSubscriptionTiers({ includeInactive: true });
+  const [plans, addons] = await Promise.all([
+    getSubscriptionTiers({ includeInactive: true }),
+    getAddonProducts(),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
@@ -31,7 +34,7 @@ export default async function Page() {
         title="خطط صندوق الرحلة"
         backHref="/dashboard/admin/subscriptions/box"
       />
-      <BoxPlansClient plans={plans} />
+      <BoxPlansClient plans={plans} addons={addons.map((a) => ({ id: a.id, name: a.name }))} />
     </div>
   );
 }

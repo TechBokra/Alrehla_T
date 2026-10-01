@@ -44,10 +44,12 @@ export function isQuantityLocked(format: unknown): boolean {
   return format === 'electronic' || format === 'both';
 }
 
-type CartLike = { type?: string; format?: unknown; addonIds?: string[] };
+type CartLike = { type?: string; format?: unknown; addonIds?: string[]; boxPlanId?: string };
 
 export function itemNeedsShipping(item: CartLike): boolean {
-  if (item.type === 'subscription') return false;
+  // صندوق الرحلة بيتشحن كل شهر (ملف 140). بند «اشتراك» من غير خطة =
+  // سلة قديمة من قبل الإصلاح، ومالوش شحن.
+  if (item.type === 'subscription') return Boolean(item.boxPlanId);
   return item.format !== 'electronic' || (item.addonIds?.length ?? 0) > 0;
 }
 
@@ -77,11 +79,14 @@ export function addonsDisplayTotal(
   addons: { id: string; price: number; customizationPrice?: number }[],
   selectedIds: string[] = [],
   customizedIds: string[] = [],
+  /** خصم المشترك (ملف 140) — نفس تقريب القاعدة: لكل إضافة لأقرب جنيه. */
+  discountPercent = 0,
 ): number {
+  const d = Math.min(90, Math.max(0, Math.trunc(discountPercent) || 0));
   return addons
     .filter((a) => selectedIds.includes(a.id))
-    .reduce(
-      (sum, a) => sum + a.price + (customizedIds.includes(a.id) ? (a.customizationPrice ?? 0) : 0),
-      0,
-    );
+    .reduce((sum, a) => {
+      const full = a.price + (customizedIds.includes(a.id) ? (a.customizationPrice ?? 0) : 0);
+      return sum + (d > 0 ? Math.round((full * (100 - d)) / 100) : full);
+    }, 0);
 }

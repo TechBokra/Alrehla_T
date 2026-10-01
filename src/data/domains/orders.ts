@@ -59,6 +59,8 @@ export const getOrders = async (): Promise<Order[]> => {
     shippingNotes: order.shipping_notes || undefined,
     deliveryEmail: order.delivery_email || undefined,
     electronicSentAt: order.electronic_sent_at || undefined,
+    boxPlanId: order.box_plan_id || undefined,
+    boxDetails: (order.box_details as Record<string, unknown> | null) || undefined,
     createdAt: order.created_at,
     items: (order.order_items || []).map((item: any) => ({
       productId: item.product_id,
@@ -185,6 +187,8 @@ export async function getAllOrders(): Promise<Order[]> {
     shippingNotes: order.shipping_notes || undefined,
     deliveryEmail: order.delivery_email || undefined,
     electronicSentAt: order.electronic_sent_at || undefined,
+    boxPlanId: order.box_plan_id || undefined,
+    boxDetails: (order.box_details as Record<string, unknown> | null) || undefined,
     createdAt: order.created_at,
     items: itemsByOrder.get(order.id) ?? [],
   }));

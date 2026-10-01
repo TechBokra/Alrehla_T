@@ -10,11 +10,14 @@ export function Step4Review({
   onPrev,
   product,
   pending = false,
+  subscriptionMonths,
 }: {
   onPrev: () => void;
   product: PersonalizedProduct;
   /** الطلب بيتبعت دلوقتي — الزر بيقفل ويقول. */
   pending?: boolean;
+  /** اشتراك الصندوق (ملف 140): بنعرض هدف كل شهر بدل هدف واحد. */
+  subscriptionMonths?: number;
 }) {
   const { watch } = useFormContext();
   const router = useRouter();
@@ -55,10 +58,26 @@ export function Step4Review({
           <button type="button" onClick={() => goToStep(2)} className="absolute top-6 left-6 text-sm font-bold text-blue-600 hover:underline">تعديل</button>
           <h3 className="font-bold text-slate-800 mb-4">تفاصيل القصة</h3>
           <div className="space-y-4 text-sm">
-            <div>
-              <span className="text-slate-500 block mb-1">الهدف التربوي:</span>
-              <span className="font-bold text-slate-800">{values.storyGoal}</span>
-            </div>
+            {subscriptionMonths ? (
+              <div>
+                <span className="text-slate-500 block mb-1">أهداف الشهور:</span>
+                <ol className="space-y-1">
+                  {Array.from({ length: subscriptionMonths }, (_, i) => (
+                    <li key={i} className="font-bold text-slate-800">
+                      الشهر {(i + 1).toLocaleString('ar-EG')}:{' '}
+                      {values.monthlyGoals?.[i]?.trim() || (
+                        <span className="font-medium text-slate-600">تختاره الإدارة</span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : (
+              <div>
+                <span className="text-slate-500 block mb-1">الهدف التربوي:</span>
+                <span className="font-bold text-slate-800">{values.storyGoal}</span>
+              </div>
+            )}
             <div>
               <span className="text-slate-500 block mb-1">وصف البطل:</span>
               <span className="font-bold text-slate-800">{values.heroDescription}</span>
@@ -92,9 +111,11 @@ export function Step4Review({
 
         {/* إلكتروني من غير إضافات = مفيش شحن (ملف 138). */}
         <div className="rounded-2xl border border-blue-200 p-4 bg-blue-50 text-blue-800 text-sm font-bold text-center">
-          {cartNeedsShipping([{ format: values.format, addonIds: values.selectedAddonIds }])
-            ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
-            : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
+          {subscriptionMonths
+            ? `صندوق كل شهر لمدة ${subscriptionMonths.toLocaleString('ar-EG')} شهور — مصاريف الشحن = سعر منطقتك × عدد الشهور، وبتتحسب في خطوة الدفع`
+            : cartNeedsShipping([{ format: values.format, addonIds: values.selectedAddonIds }])
+              ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
+              : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
         </div>
       </div>
       <div className="flex justify-between pt-6 border-t border-slate-100">

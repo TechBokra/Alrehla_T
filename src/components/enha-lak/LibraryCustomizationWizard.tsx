@@ -76,8 +76,11 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
 export function LibraryCustomizationWizard({
   product,
   addons = [],
+  addonDiscountPercent = 0,
 }: {
   product: PersonalizedProduct;
+  /** خصم المشترك في صندوق الرحلة (ملف 140) — للعرض. */
+  addonDiscountPercent?: number;
   /**
    * ⚠️ **الخطوة دي كانت غايبة من مسار المكتبة كله.** العميل اللي
    *    بيطلب كتابًا من المكتبة مكانش بيتعرض عليه ولا إضافة — لا
@@ -252,7 +255,7 @@ export function LibraryCustomizationWizard({
       // ⚠️ بالإضافات — كان سعر الكتاب لوحده والطلب بالإضافات (`addonsDisplayTotal`).
       price:
         product.price +
-        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? []),
+        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? [], addonDiscountPercent),
       quantity: 1,
       type: 'book',
       imageUrl: product.coverImageUrl || undefined,
@@ -373,7 +376,7 @@ export function LibraryCustomizationWizard({
              — راسب في المعيار. المكوّن المشترك ماشي على الرموز.) */}
         <div className="lg:col-span-1">
           <FormProvider {...methods}>
-            <OrderSummarySidebar product={product} addons={addons} />
+            <OrderSummarySidebar product={product} addons={addons} addonDiscountPercent={addonDiscountPercent} />
           </FormProvider>
         </div>
       </div>

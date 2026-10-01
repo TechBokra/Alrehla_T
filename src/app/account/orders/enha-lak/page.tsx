@@ -57,6 +57,16 @@ export default async function EnhaLakOrdersPage() {
     total: formatPrice(order.totalAmount),
     itemsDisplay: (
       <div className="flex flex-col gap-1">
+        {/* طلب اشتراك (ملف 140): مالوش بنود — الشحنات في صفحة الاشتراك. */}
+        {order.boxPlanId && (
+          <span>
+            اشتراك صندوق الرحلة
+            {typeof (order.boxDetails?.plan as { name?: unknown } | undefined)?.name === 'string' &&
+              ` — ${(order.boxDetails?.plan as { name: string }).name}`}
+            {' · '}
+            <a href="/account/subscriptions/box" className="font-bold text-rose-700 hover:underline">الشحنات</a>
+          </span>
+        )}
         {/* كان بيعرض رقم المنتج الداخلي («منتج (3f2a…)») بدل اسمه. */}
         {order.items.map((item, idx) => {
           const child = (item.customizationData as { childName?: unknown } | undefined)?.childName;

@@ -18,6 +18,7 @@ import { PageContainer } from '@/components/PageContainer';
 import Link from 'next/link';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
+import { getMyAddonDiscount } from '@/data/domains/subscriptions';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;
@@ -57,7 +58,11 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <PersonalizationWizard product={product} addons={addons} />
+      <PersonalizationWizard
+        product={product}
+        addons={addons}
+        addonDiscountPercent={await getMyAddonDiscount()}
+      />
     </div>
   );
 }

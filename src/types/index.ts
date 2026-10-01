@@ -403,6 +403,10 @@ export type Order = {
   deliveryEmail?: string;
   /** الإدارة بعتت النسخة الإلكترونية إمتى (ملف 138). */
   electronicSentAt?: string;
+  /** طلب اشتراك صندوق الرحلة — رقم الخطة (ملف 140). */
+  boxPlanId?: string;
+  /** الخطة وقت الشراء + بيانات الطفل + أهداف الشهور (ملف 140). */
+  boxDetails?: Record<string, unknown>;
 };
 
 // مقال في المدونة
@@ -462,6 +466,10 @@ export type SubscriptionTier = {
   /** باقة واحدة فقط تحمل شارة «الأكثر اختيارًا» — مضمون بفهرس في قاعدة البيانات. */
   isHighlighted: boolean;
   isActive: boolean;
+  /** خصم المشترك على الإضافات طول الاشتراك (ملف 140). */
+  addonDiscountPercent: number;
+  /** إضافة بتتحط مجانًا في كل صندوق (ملف 140). */
+  freeAddonId?: string;
   sortOrder: number;
 };
 
@@ -625,10 +633,32 @@ export type AdminPermission =
 
 export type BoxSubscription = {
   id: string;
+  userId?: string;
   customerName: string;
   planName: string;
   status: 'active' | 'cancelled' | 'paused';
   nextShipmentDate: string;
+  /** ملف 140 — اشتراكات قبله مالهاش الخانات دي. */
+  orderId?: string;
+  months?: number;
+  startsAt?: string;
+  endsAt?: string;
+  addonDiscountPercent?: number;
+  freeAddonName?: string;
+  /** بيانات الطفل + أهداف الشهور + الخطة وقت الشراء. */
+  details?: Record<string, unknown>;
+  shipments?: BoxShipment[];
+};
+
+/** شحنة شهر في اشتراك الصندوق (ملف 140). */
+export type BoxShipment = {
+  id: string;
+  monthNumber: number;
+  goal?: string;
+  status: 'pending' | 'preparing' | 'shipped' | 'delivered';
+  trackingReference?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
 };
 
 export type JoinRequest = {

@@ -103,9 +103,18 @@ export default async function SubscriptionPage() {
                       / شهر
                     </span>
                   </div>
-                  <div className="mt-2 text-sm font-medium text-slate-500">
+                  <div className="mt-2 text-sm font-medium text-slate-600">
                     إجمالي الدفع: {formatPrice(tier.priceTotal)}
                   </div>
+                  {/* ملف 140: الشحن سعر المنطقة × الشهور (قرار تامر) — يتقال قبل الدفع مش فيه. */}
+                  <div className="mt-1 text-xs text-slate-600">
+                    + شحن كل شهر حسب منطقتك
+                  </div>
+                  {tier.addonDiscountPercent > 0 && (
+                    <div className="mt-2 text-sm font-bold text-emerald-800">
+                      خصم {tier.addonDiscountPercent.toLocaleString('ar-EG')}٪ على الإضافات طول الاشتراك
+                    </div>
+                  )}
                 </div>
 
                 {tier.savingsNote && (

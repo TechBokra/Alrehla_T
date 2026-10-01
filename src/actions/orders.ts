@@ -161,6 +161,68 @@ export async function createOrder(
 }
 
 /**
+ * اشتراك صندوق الرحلة (ملف 140).
+ *
+ * ⚠️ **كان مستحيل**: المعالج كان بيحط رقم الخطة في السلة كأنه منتج،
+ *    و`create_customer_order` بتدوّر في المنتجات ← «منتج غير موجود»
+ *    بعد ما العميل يملا كل حاجة (ملف 137 أكّد: صفر خطط ليها منتج).
+ *
+ * الطلب هنا طلب عادي (نفس الدفع والإيصال والرقم المرجعي)، والقاعدة
+ * بتحسب السعر والشحن × الشهور. **والاشتراك نفسه مابيتعملش هنا** —
+ * بيتعمل لوحده أول ما الإدارة تأكد الدفع (محفّز في القاعدة).
+ */
+export async function createBoxSubscriptionOrder(
+  planId: string,
+  details: unknown,
+  shipping: ShippingDetails,
+): Promise<CreateOrderResult> {
+  try {
+    await requireNotDependent('الاشتراك');
+    await requireBuyer();
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+  }
+  if (!planId) return { ok: false, error: 'اختار خطة الأول' };
+  if (!isValidPhone(shipping.recipientPhone)) {
+    return { ok: false, error: PHONE_ERROR };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('create_box_subscription_order', {
+    p_plan_id: planId,
+    p_details: (details ?? {}) as Json,
+    p_shipping: {
+      recipientName: shipping.recipientName?.trim() ?? '',
+      recipientPhone: normalizePhone(shipping.recipientPhone),
+      addressLine: shipping.addressLine?.trim() ?? '',
+      city: shipping.city?.trim() ?? '',
+      governorate: shipping.governorate?.trim() ?? '',
+      notes: shipping.notes?.trim() ?? '',
+    },
+  });
+
+  if (error || !data) {
+    console.error('Error creating box subscription order:', error);
+    // رسائل القاعدة عربي ومفهومة («الخطة دي مش متاحة»، «منطقة الشحن…»).
+    return { ok: false, error: error?.message ?? 'تعذّر تسجيل الاشتراك' };
+  }
+
+  const orderId = data as unknown as string;
+  const { data: row } = await supabase
+    .from('orders')
+    .select('payment_reference, total_amount')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  return {
+    ok: true,
+    orderId,
+    paymentReference: row?.payment_reference ?? '',
+    totalAmount: row?.total_amount != null ? Number(row.total_amount) : null,
+  };
+}
+
+/**
  * العميل بيقول «حوّلت» ويرفع الإيصال.
  *
  * كان بيكتب «رقم عملية» بإيده والإدارة بتأكد الدفع من غير ما تشوف أي

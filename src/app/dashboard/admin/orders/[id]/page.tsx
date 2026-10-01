@@ -12,6 +12,8 @@ import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButto
 import { FulfilmentPanel } from './FulfilmentPanel';
 import { OrderItemCustomization } from './OrderItemCustomization';
 import { ElectronicDeliveryPanel } from './ElectronicDeliveryPanel';
+import { BoxOrderPanel } from './BoxOrderPanel';
+import { createClient } from '@/lib/supabase/server';
 import { FORMAT_LABELS } from '@/lib/item-format';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 
@@ -32,6 +34,18 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
   const products = await getManagedProducts();
+  const paid = ['paid', 'preparing', 'shipped', 'delivered'].includes(target.status);
+  // طلب اشتراك (ملف 140): الاشتراك اللي اتعمل منه بعد الدفع، لو اتعمل.
+  let boxSubscriptionId: string | undefined;
+  if (target.boxPlanId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('box_subscriptions')
+      .select('id')
+      .eq('order_id', target.id)
+      .maybeSingle();
+    boxSubscriptionId = data?.id;
+  }
   const formattedItems = target.items.map((item: any, idx: number) => {
     const product = products.find(p => p.id === item.productId);
     const price = item.unitPrice || (product ? product.price : 0);
@@ -80,11 +94,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             {target.status === 'awaiting_verification' && (
               <ConfirmPaymentButton kind="order" targetId={target.id} />
             )}
-            <FulfilmentPanel
-              orderId={target.id}
-              status={target.status}
-              trackingReference={target.trackingReference ?? ''}
-            />
+            {/* الاشتراك بيتشحن شهر شهر من صفحته — مش من هنا. */}
+            {!target.boxPlanId && (
+              <FulfilmentPanel
+                orderId={target.id}
+                status={target.status}
+                trackingReference={target.trackingReference ?? ''}
+              />
+            )}
           </div>
         </div>
         {target.deliveryEmail && (
@@ -92,8 +109,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             orderId={target.id}
             email={target.deliveryEmail}
             sentAt={target.electronicSentAt}
-            paid={['paid', 'preparing', 'shipped', 'delivered'].includes(target.status)}
+            paid={paid}
           />
+        )}
+
+        {target.boxPlanId && (
+          <BoxOrderPanel details={target.boxDetails} subscriptionId={boxSubscriptionId} paid={paid} />
         )}
 
         {/* The shipping address is now stored with the order — it used to be

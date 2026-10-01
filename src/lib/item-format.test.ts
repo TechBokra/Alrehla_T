@@ -25,6 +25,7 @@ describe('item-format — نفس قواعد ملف 138', () => {
     expect(itemNeedsShipping({ format: 'both' })).toBe(true);
     expect(itemNeedsShipping({})).toBe(true); // سلة قديمة من غير نوع = مطبوع
     expect(itemNeedsShipping({ type: 'subscription' })).toBe(false);
+    expect(itemNeedsShipping({ type: 'subscription', boxPlanId: 'sub-2' })).toBe(true);
     expect(cartNeedsShipping([{ format: 'electronic' }, { format: 'electronic' }])).toBe(false);
     expect(cartNeedsShipping([{ format: 'electronic' }, {}])).toBe(true);
   });
@@ -57,5 +58,10 @@ describe('addonsDisplayTotal', () => {
     expect(addonsDisplayTotal(addons, ['a'], [])).toBe(120);
     expect(addonsDisplayTotal(addons, ['a', 'b'], ['a'])).toBe(200);
     expect(addonsDisplayTotal(addons, [], ['a'])).toBe(0);
+  });
+  it('خصم المشترك بنفس تقريب القاعدة (ملف 140): (120+30)×0.85 = 127.5 → 128', () => {
+    const addons = [{ id: 'a', price: 120, customizationPrice: 30 }];
+    expect(addonsDisplayTotal(addons, ['a'], ['a'], 15)).toBe(128);
+    expect(addonsDisplayTotal(addons, ['a'], [], 200)).toBe(12); // سقف ٩٠٪
   });
 });

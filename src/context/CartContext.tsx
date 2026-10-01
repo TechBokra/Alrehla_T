@@ -34,6 +34,12 @@ export type CartItem = {
    * القديمة المحفوظة في المتصفح مالهاش الخانة دي.
    */
   format?: ItemFormat;
+  /**
+   * اشتراك صندوق الرحلة (ملف 140): رقم الخطة وعدد شهورها. البند ده
+   * بيتطلب **لوحده** بدالة تانية (`create_box_subscription_order`).
+   */
+  boxPlanId?: string;
+  boxMonths?: number;
 };
 
 interface CartContextType {
@@ -110,7 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // ⚠️ الإلكتروني ملف واحد: القاعدة بتحسبه كمية ١ مهما اتبعت، فلو
     //    الشاشة سمحت بـ٣ كان العميل هيشوف ٣ أضعاف ويدفع واحد.
     setItems((prev) =>
-      prev.map(i => i.id === id ? { ...i, quantity: isQuantityLocked(i.format) ? 1 : quantity } : i),
+      prev.map(i => i.id === id ? { ...i, quantity: isQuantityLocked(i.format) || i.boxPlanId ? 1 : quantity } : i),
     );
   };
 

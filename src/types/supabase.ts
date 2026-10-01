@@ -225,6 +225,8 @@ export type Database = {
           is_active: boolean
           sort_order: number
           updated_at: string
+          addon_discount_percent: number
+          free_addon_id: string | null
         }
         Insert: {
           id?: string
@@ -240,6 +242,8 @@ export type Database = {
           is_active?: boolean
           sort_order?: number
           updated_at?: string
+          addon_discount_percent?: number
+          free_addon_id?: string | null
         }
         Update: {
           id?: string
@@ -255,6 +259,47 @@ export type Database = {
           is_active?: boolean
           sort_order?: number
           updated_at?: string
+          addon_discount_percent?: number
+          free_addon_id?: string | null
+        }
+        Relationships: []
+      }
+      box_shipments: {
+        Row: {
+          id: string
+          subscription_id: string
+          month_number: number
+          goal: string | null
+          status: string
+          tracking_reference: string | null
+          shipped_at: string | null
+          delivered_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          subscription_id?: string
+          month_number?: number
+          goal?: string | null
+          status?: string
+          tracking_reference?: string | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          subscription_id?: string
+          month_number?: number
+          goal?: string | null
+          status?: string
+          tracking_reference?: string | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -268,6 +313,14 @@ export type Database = {
           next_shipment_date: string | null
           created_at: string
           updated_at: string
+          order_id: string | null
+          plan_id: string | null
+          months: number | null
+          starts_at: string | null
+          ends_at: string | null
+          addon_discount_percent: number
+          free_addon_name: string | null
+          details: Json | null
         }
         Insert: {
           id?: string
@@ -278,6 +331,14 @@ export type Database = {
           next_shipment_date?: string | null
           created_at?: string
           updated_at?: string
+          order_id?: string | null
+          plan_id?: string | null
+          months?: number | null
+          starts_at?: string | null
+          ends_at?: string | null
+          addon_discount_percent?: number
+          free_addon_name?: string | null
+          details?: Json | null
         }
         Update: {
           id?: string
@@ -288,6 +349,14 @@ export type Database = {
           next_shipment_date?: string | null
           created_at?: string
           updated_at?: string
+          order_id?: string | null
+          plan_id?: string | null
+          months?: number | null
+          starts_at?: string | null
+          ends_at?: string | null
+          addon_discount_percent?: number
+          free_addon_name?: string | null
+          details?: Json | null
         }
         Relationships: []
       }
@@ -1002,6 +1071,8 @@ export type Database = {
           payment_receipt_url: string | null
           delivery_email: string | null
           electronic_sent_at: string | null
+          box_plan_id: string | null
+          box_details: Json | null
         }
         Insert: {
           id?: string
@@ -1029,6 +1100,8 @@ export type Database = {
           payment_receipt_url?: string | null
           delivery_email?: string | null
           electronic_sent_at?: string | null
+          box_plan_id?: string | null
+          box_details?: Json | null
         }
         Update: {
           id?: string
@@ -1056,6 +1129,8 @@ export type Database = {
           payment_receipt_url?: string | null
           delivery_email?: string | null
           electronic_sent_at?: string | null
+          box_plan_id?: string | null
+          box_details?: Json | null
         }
         Relationships: []
       }
@@ -2004,6 +2079,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_box_subscription_order: {
+        Args: { p_plan_id: string; p_details: Json; p_shipping: Json }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

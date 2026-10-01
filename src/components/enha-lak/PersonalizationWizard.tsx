@@ -47,6 +47,7 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   facePhotoFile: { step: 2, label: 'الصورة الشخصية' },
   secondPhotoFile: { step: 2, label: 'الصورة الإضافية' },
   dedicationText: { step: 2, label: 'الإهداء' },
+  monthlyGoals: { step: 2, label: 'أهداف الشهور' },
   selectedAddonIds: { step: 3, label: 'الإضافات' },
   customizedAddonIds: { step: 3, label: 'تخصيص الإضافات' },
 };
@@ -55,10 +56,19 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
 export function PersonalizationWizard({
   product,
   addons = [],
+  subscription,
+  addonDiscountPercent = 0,
 }: {
   product: PersonalizedProduct;
   /** الإضافات المتاحة — بتيجي من القاعدة عن طريق الصفحة. */
   addons?: AddonProduct[];
+  /**
+   * اشتراك صندوق الرحلة (ملف 140): هدف لكل شهر، ومفيش خطوة إضافات
+   * (قرار تامر: المجانية بس)، والطلب بيروح لدالة الاشتراك.
+   */
+  subscription?: { planId: string; months: number };
+  /** خصم المشترك الحالي على الإضافات — للعرض (القاعدة بتحسبه لوحدها). */
+  addonDiscountPercent?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,6 +84,8 @@ export function PersonalizationWizard({
       selectedAddonIds: [],
       customizedAddonIds: [],
       format: 'printed',
+      mode: subscription ? 'subscription' : 'single',
+      monthlyGoals: subscription ? Array.from({ length: subscription.months }, () => '') : undefined,
     },
     mode: 'onChange',
   });
@@ -114,7 +126,9 @@ export function PersonalizationWizard({
     const values = getValues();
     const { facePhotoFile, secondPhotoFile, ...rest } = values;
     sessionStorage.setItem(`wizard_state_${product.id}`, JSON.stringify(rest));
-    router.push(`${pathname}?step=${currentStep + 1}`);
+    // الاشتراك مالوش خطوة إضافات: من ٢ على ٤ على طول.
+    const next = subscription && currentStep === 2 ? 4 : currentStep + 1;
+    router.push(`${pathname}?step=${next}`);
   };
 
   /** بيحوّل أخطاء التحقق لرسالة عربية فيها أسماء الحقول. */
@@ -148,7 +162,8 @@ export function PersonalizationWizard({
 
   const handlePrev = () => {
     if (currentStep > 1) {
-      router.push(`${pathname}?step=${currentStep - 1}`);
+      const prev = subscription && currentStep === 4 ? 2 : currentStep - 1;
+      router.push(`${pathname}?step=${prev}`);
     }
   };
 
@@ -195,6 +210,35 @@ export function PersonalizationWizard({
 
     // النوع: لو المنتج مالوش إلكتروني، أي قيمة غير «مطبوعة» بتتجاهل
     // (جلسة قديمة في المتصفح مثلًا) بدل ما القاعدة ترفض الطلب كله.
+    // ── اشتراك الصندوق (ملف 140) ───────────────────────────
+    if (subscription) {
+      addItem({
+        id: `box-${subscription.planId}-${Date.now()}`,
+        productId: subscription.planId,
+        name: product.name,
+        // السعر للعرض — القاعدة بتسعّر من الخطة، والشحن × الشهور في الدفع.
+        price: product.price,
+        quantity: 1,
+        type: 'subscription',
+        boxPlanId: subscription.planId,
+        boxMonths: subscription.months,
+        customizationData: {
+          recipientType: 'child',
+          childId: finalChildId || undefined,
+          childName,
+          childPhoto,
+          secondPhoto,
+          heroDescription: data.heroDescription,
+          dedicationText: data.dedicationText?.trim() || undefined,
+          familyMemberNames: data.familyMemberNames,
+          monthlyGoals: (data.monthlyGoals ?? []).map((g) => g.trim()),
+        },
+      });
+      sessionStorage.removeItem(`wizard_state_${product.id}`);
+      router.push('/cart');
+      return;
+    }
+
     const format: ItemFormat =
       electronicAvailable(product) && data.format ? data.format : 'printed';
 
@@ -207,7 +251,7 @@ export function PersonalizationWizard({
       // القصة لوحده، والعميل يتقاله «حوّل» رقمًا أقل من طلبه.
       price:
         basePriceForFormat(product, format) +
-        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? []),
+        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? [], addonDiscountPercent),
       format,
       quantity: 1,
       type: product.category === 'subscription' ? 'subscription' : 'custom',
@@ -258,17 +302,33 @@ export function PersonalizationWizard({
 
             <div className="mt-8">
               {currentStep === 1 && <Step1ChildInfo onNext={() => handleNext(['familyMemberId', 'newChildName', 'newChildBirthDate', 'newChildGender'])} />}
-              {currentStep === 2 && <Step2Details onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile'])} onPrev={handlePrev} />}
-              {currentStep === 3 && <Step3Addons addons={addons} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
-              {currentStep === 4 && (
-                <Step4Review onPrev={handlePrev} product={product} pending={isSubmitting} />
+              {currentStep === 2 && (
+                <Step2Details
+                  monthlyGoals={subscription?.months}
+                  onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile', 'monthlyGoals'])}
+                  onPrev={handlePrev}
+                />
+              )}
+              {currentStep === 3 && !subscription && <Step3Addons addons={addons} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
+              {(currentStep === 4 || (subscription && currentStep === 3)) && (
+                <Step4Review
+                  onPrev={handlePrev}
+                  product={product}
+                  pending={isSubmitting}
+                  subscriptionMonths={subscription?.months}
+                />
               )}
             </div>
           </div>
         </div>
         
         <div className="w-96 shrink-0 sticky top-24">
-          <OrderSummarySidebar product={product} addons={addons} />
+          <OrderSummarySidebar
+            product={product}
+            addons={addons}
+            addonDiscountPercent={addonDiscountPercent}
+            subscriptionMonths={subscription?.months}
+          />
         </div>
       </form>
     </FormProvider>

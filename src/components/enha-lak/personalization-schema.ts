@@ -41,7 +41,9 @@ export const wizardSchema = z.object({
   
   heroDescription: z.string().min(5, 'يجب إدخال وصف للبطل'),
   familyMemberNames: z.string().optional(),
-  storyGoal: z.string().min(2, 'الرجاء اختيار الهدف التربوي'),
+  // ⚠️ الإلزام اتنقل لـ`superRefine` تحت: في الاشتراك (ملف 140) مفيش
+  //    هدف واحد — فيه هدف لكل شهر، والفاضي «تختاره الإدارة».
+  storyGoal: z.string(),
   /** لما العميل يختار «هدف آخر» بيكتب هدفه بكلامه هنا. */
   customStoryGoal: z.string().optional(),
   /** إهداء يتكتب في أول الكتاب — نفس فكرة معالج المكتبة. */
@@ -65,7 +67,19 @@ export const wizardSchema = z.object({
    */
   format: z.enum(['printed', 'electronic', 'both']).optional(),
 
+  /** قصة واحدة ولا اشتراك صندوق الرحلة (ملف 140). */
+  mode: z.enum(['single', 'subscription']).optional(),
+  /** هدف كل شهر في الاشتراك — الفاضي = «تختاره الإدارة». */
+  monthlyGoals: z.array(z.string()).optional(),
+
 }).superRefine((data, ctx) => {
+  if (data.mode !== 'subscription' && data.storyGoal.trim().length < 2) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'الرجاء اختيار الهدف التربوي',
+      path: ['storyGoal'],
+    });
+  }
   if (data.storyGoal === 'other' && !data.customStoryGoal?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
