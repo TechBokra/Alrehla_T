@@ -181,3 +181,26 @@ describe('العلامة المائية على صور المنتجات', () => {
     expect(id?.replace(/\//g, ':')).toBe('alrehla:site:logo');
   });
 });
+
+import { addWatermark, watermarkCloudinaryUrlsIn } from './cloudinary';
+describe('addWatermark — صور الموقع كلها', () => {
+  const L = 'alrehla:site:logo1';
+  it('بعد تحويل المقاس، قبل رقم النسخة', () => {
+    expect(addWatermark('https://res.cloudinary.com/d/image/upload/f_auto,w_700/v12/alrehla/blog/a.jpg', L))
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v12/alrehla/blog/a.jpg`);
+  });
+  it('صورة خام: بتتصغّر الأول', () => {
+    expect(addWatermark('https://res.cloudinary.com/d/image/upload/v12/a.jpg', L))
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v12/a.jpg`);
+  });
+  it('مابتتكدّسش، ومابتلمسش غير Cloudinary، ومن غير شعار = زي ما هي', () => {
+    const once = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', L);
+    expect(addWatermark(once, L)).toBe(once);
+    expect(addWatermark('https://picsum.photos/1', L)).toBe('https://picsum.photos/1');
+    expect(addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', null)).toBe('https://res.cloudinary.com/d/image/upload/v1/a.jpg');
+  });
+  it('صور جوّه نص المقال', () => {
+    const out = watermarkCloudinaryUrlsIn('![x](https://res.cloudinary.com/d/image/upload/v1/a.jpg) و <img src="https://res.cloudinary.com/d/image/upload/v2/b.png">', L);
+    expect(out.match(/l_alrehla:site:logo1/g)?.length).toBe(2);
+  });
+});

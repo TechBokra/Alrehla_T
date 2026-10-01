@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,7 +11,7 @@ import { Reveal } from '@/components/ui/Reveal';
 
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
-import { optimizedImageUrl } from '@/lib/cloudinary';
+import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 
 
 
@@ -24,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function BlogPage() {
   const posts = await getBlogPosts();
+  const wm = await getWatermarkLayer(); // «على الكل»
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -52,7 +54,7 @@ export default async function BlogPage() {
                 <Link href={`/blog/${post.slug}`} className="block">
                   <div className="relative mb-6 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
                     {post.coverImageUrl ? (
-                      <Image src={optimizedImageUrl(post.coverImageUrl, 600)} alt={`صورة مقال: ${post.title}`} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
+                      <Image src={addWatermark(optimizedImageUrl(post.coverImageUrl, 600), wm)} alt={`صورة مقال: ${post.title}`} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover transition-transform duration-500 group-hover:scale-105" referrerPolicy="no-referrer" />
                     ) : (
                       <BookOpen className="h-12 w-12 text-slate-300" />
                     )}

@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import React from 'react';
 import { getPublishers } from '@/data/domains/products';
 import Image from 'next/image';
@@ -6,7 +7,7 @@ import { Star, Quote, BookOpen, PenTool, Search, Wand2, Gift } from 'lucide-reac
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
-import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
+import { addWatermark, optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
 import { getSiteSettings, getSiteContent, getTestimonials } from '@/data/domains/content';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { RichText } from '@/components/ui/RichText';
@@ -62,6 +63,8 @@ export default async function Home() {
   // Every image on this page used to come from picsum.photos — random stock
   // photographs standing in as the platform's own.
   const settings = await getSiteSettings();
+  // علامة مائية على صور الأقسام (قرار تامر: «على الكل») — مش الشعار.
+  const wm = await getWatermarkLayer();
   const content = await getSiteContent();
   // قسم آراء العملاء كان مربوطًا بمصفوفة فاضية مكتوبة في الكود، فكان بيقول
   // «قريبًا» دائمًا مهما كتبت الإدارة آراء في قاعدة البيانات.
@@ -126,14 +129,14 @@ export default async function Home() {
             <picture>
               <source
                 media="(min-width: 1024px)"
-                srcSet={slotImageUrlAt(settings.images.homeHero, '21:9', 2100)}
+                srcSet={addWatermark(slotImageUrlAt(settings.images.homeHero, '21:9', 2100), wm)}
               />
               <source
                 media="(min-width: 640px)"
-                srcSet={slotImageUrlAt(settings.images.homeHero, '16:9', 1400)}
+                srcSet={addWatermark(slotImageUrlAt(settings.images.homeHero, '16:9', 1400), wm)}
               />
               <img
-                src={slotImageUrlAt(settings.images.homeHero, '4:3', 900)}
+                src={addWatermark(slotImageUrlAt(settings.images.homeHero, '4:3', 900), wm)}
                 alt=""
                 width={900}
                 height={675}
@@ -210,7 +213,7 @@ export default async function Home() {
             {settings.images.homeReading ? (
               <div className="relative mb-6 aspect-[16/9] w-full overflow-hidden rounded-2xl">
                 <Image
-                  src={slotImageUrl(settings.images.homeReading, 'homeReading')}
+                  src={addWatermark(slotImageUrl(settings.images.homeReading, 'homeReading'), wm)}
                   alt=""
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -241,7 +244,7 @@ export default async function Home() {
             {settings.images.homeWriting ? (
               <div className="relative mb-6 aspect-[16/9] w-full overflow-hidden rounded-2xl">
                 <Image
-                  src={slotImageUrl(settings.images.homeWriting, 'homeWriting')}
+                  src={addWatermark(slotImageUrl(settings.images.homeWriting, 'homeWriting'), wm)}
                   alt=""
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
@@ -284,7 +287,7 @@ export default async function Home() {
             <div className="rounded-card relative aspect-[4/3] w-full overflow-hidden shadow-xl transition-transform duration-300 ease-[var(--ease-ui)] lg:-rotate-2 motion-safe:lg:hover:rotate-0">
             {settings.images.homeFamily ? (
               <Image 
-              src={slotImageUrl(settings.images.homeFamily, 'homeFamily')}
+              src={addWatermark(slotImageUrl(settings.images.homeFamily, 'homeFamily'), wm)}
               alt="العائلة تقرأ معاً"
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"

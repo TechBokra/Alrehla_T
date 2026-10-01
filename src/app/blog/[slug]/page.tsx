@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -8,7 +9,7 @@ import { notFound } from 'next/navigation';
 import { Section } from '@/components/ui/Section';
 import { Button } from '@/components/ui/Button';
 import { RichText } from '@/components/ui/RichText';
-import { optimizedImageUrl } from '@/lib/cloudinary';
+import { watermarkCloudinaryUrlsIn, addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
 import { articleSchema, breadcrumbSchema } from '@/lib/structured-data';
@@ -35,6 +36,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   // الاسم في الرابط بيوصل مشفّر لأن العناوين عربية، فالمقارنة النصية
   // المباشرة كانت بتفشل والمقال بيطلع «غير موجود» وهو موجود.
   const post = await getBlogPostBySlug(resolvedParams.slug);
+  const wm = await getWatermarkLayer(); // «على الكل» — الغلاف وصور المقال
 
   if (!post) {
     notFound();
@@ -92,7 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="relative mb-16 aspect-[21/9] w-full overflow-hidden rounded-[2rem] bg-slate-100 shadow-lg">
           {post.coverImageUrl ? (
             <Image 
-              src={optimizedImageUrl(post.coverImageUrl, 1400)} 
+              src={addWatermark(optimizedImageUrl(post.coverImageUrl, 1400), wm)} 
               alt={post.title} 
               fill
               sizes="(max-width: 1024px) 100vw, 896px"
@@ -137,7 +139,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {post.excerpt}
           </p>
           <RichText
-            value={post.content}
+            value={watermarkCloudinaryUrlsIn(post.content, wm)}
             className="space-y-6 leading-loose text-slate-700"
           />
         </article>

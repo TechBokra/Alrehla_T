@@ -215,3 +215,35 @@ export function watermarkedImageUrl(
     `/upload/f_auto,q_auto:good,c_limit,w_1600/l_${watermarkLayerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/`,
   );
 }
+
+/**
+ * العلامة المائية على صورة **متحوّلة أو لأ** — لصور الموقع كلها (قرار تامر:
+ * «على الكل»): خطط الصندوق، أغلفة المقالات وصورها، وصور أقسام الموقع.
+ *
+ * الفرق عن `watermarkedImageUrl`: دي بتشتغل **بعد** تحويل المقاس
+ * (`slotImageUrl`، `optimizedImageUrl`)، فالشعار بيتحط على الصورة بمقاسها
+ * النهائي بدل ما يتكدّس فوقه قص تاني يقص الشعار نفسه.
+ *
+ * ⚠️ مش للشعار نفسه ولا لكود الدفع (QR) ولا الصور الشخصية — الصفحة هي
+ *    اللي بتقرر تناديها على إيه.
+ */
+export function addWatermark(url: string | null | undefined, layerId: string | null): string {
+  if (!url) return '';
+  if (!layerId || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  if (url.includes('/l_')) return url; // عليها علامة قبل كده
+  const base = /\/upload\/[a-z]{1,3}_/.test(url) ? url : optimizedImageUrl(url, 1600);
+  const [head, rest] = base.split('/upload/');
+  const segs = rest.split('/');
+  let i = 0;
+  while (i < segs.length - 1 && /^[a-z]{1,3}_/.test(segs[i])) i++;
+  segs.splice(i, 0, `l_${layerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24`);
+  return `${head}/upload/${segs.join('/')}`;
+}
+
+/**
+ * صور Cloudinary **جوّه نص** (محتوى مقال) — كل رابط بتتحط عليه العلامة.
+ */
+export function watermarkCloudinaryUrlsIn(text: string, layerId: string | null): string {
+  if (!text || !layerId) return text;
+  return text.replace(/https:\/\/res\.cloudinary\.com\/[^\s"')<>]+?\/upload\/[^\s"')<>]+/g, (u) => addWatermark(u, layerId));
+}

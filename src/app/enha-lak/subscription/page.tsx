@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 
@@ -10,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import Image from 'next/image';
-import { optimizedImageUrl } from '@/lib/cloudinary';
+import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
 import { getSubscriptionTiers } from '@/data/domains/products';
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/Button';
 
 export default async function SubscriptionPage() {
   const tiers = await getSubscriptionTiers();
+  const wm = await getWatermarkLayer(); // «على الكل»
 
   const benefits = [
     { title: 'قصة مخصصة جديدة', icon: BookOpenIcon },
@@ -74,7 +76,7 @@ export default async function SubscriptionPage() {
                 {tier.imageUrl && (
                   <div className="relative -mx-8 -mt-8 mb-6 h-40 w-[calc(100%+4rem)] overflow-hidden bg-slate-100">
                     <Image
-                      src={optimizedImageUrl(tier.imageUrl, 700)}
+                      src={addWatermark(optimizedImageUrl(tier.imageUrl, 700), wm)}
                       alt={tier.name}
                       fill
                       sizes="(max-width: 768px) 100vw, 360px"

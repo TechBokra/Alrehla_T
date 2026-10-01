@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import Image from 'next/image';
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
@@ -14,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { PageContainer } from '@/components/PageContainer';
 import { getSiteSettings, getSiteContent } from '@/data/domains/content';
-import { slotImageUrl, blurPlaceholder } from '@/lib/cloudinary';
+import { addWatermark, slotImageUrl, blurPlaceholder } from '@/lib/cloudinary';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import {
   Sparkles,
@@ -29,6 +30,7 @@ import {
 
 export default async function AboutPage() {
   const settings = await getSiteSettings();
+  const wm = await getWatermarkLayer(); // «على الكل»
   const content = await getSiteContent();
 
   // الأيقونة واللون ثابتان لكل قيمة؛ الاسم والوصف بيتعدّلوا من لوحة الإدارة.
@@ -57,7 +59,7 @@ export default async function AboutPage() {
         <div className="relative mt-12 h-64 w-full overflow-hidden rounded-[2.5rem] md:h-96">
           {settings.images.aboutTeam ? (
             <Image
-              src={slotImageUrl(settings.images.aboutTeam, 'aboutTeam')}
+              src={addWatermark(slotImageUrl(settings.images.aboutTeam, 'aboutTeam'), wm)}
               alt="فريق منصة الرحلة"
               fill
               sizes="(max-width: 896px) 100vw, 896px"

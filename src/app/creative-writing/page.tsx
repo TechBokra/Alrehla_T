@@ -1,3 +1,4 @@
+import { getWatermarkLayer } from '@/lib/watermark';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { pageMetadata } from '@/lib/seo';
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getTestimonials, getSiteContent, getSiteSettings } from '@/data/domains/content';
-import { slotImageUrl } from '@/lib/cloudinary';
+import { addWatermark, slotImageUrl } from '@/lib/cloudinary';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
@@ -40,6 +41,7 @@ export default async function CreativeWritingPage() {
 
   const content = await getSiteContent();
   const settings = await getSiteSettings();
+  const wm = await getWatermarkLayer(); // «على الكل»
 
   // الشرائح كانت في layout القسم، يعني بتظهر فوق كل صفحة جواه.
 
@@ -94,7 +96,7 @@ export default async function CreativeWritingPage() {
         <section className="mx-auto w-full max-w-7xl px-4 pb-12 md:px-8">
           <div className="rounded-card relative aspect-[4/3] w-full overflow-hidden shadow-sm sm:aspect-[16/9] lg:aspect-[21/9]">
             <Image
-              src={slotImageUrl(settings.images.creativeSlide1, 'creativeSlide1')}
+              src={addWatermark(slotImageUrl(settings.images.creativeSlide1, 'creativeSlide1'), wm)}
               alt=""
               fill
               sizes="(max-width: 1280px) 100vw, 1280px"
