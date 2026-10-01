@@ -200,7 +200,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
         {/* Step 1: Shipping */}
         <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 1 ? 'border-rose-200 shadow-md' : 'bg-slate-50 opacity-60'}`}>
           <div className="flex items-center gap-4 mb-8">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 1 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-500'}`}>1</div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 1 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>
             <h2 className="text-xl font-black text-slate-800">بيانات التوصيل</h2>
           </div>
 
@@ -296,7 +296,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
         {/* Step 2: Payment */}
         <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 2 ? 'border-rose-200 shadow-md' : 'opacity-50 pointer-events-none'}`}>
           <div className="flex items-center gap-4 mb-8">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 2 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-500'}`}>2</div>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 2 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>2</div>
             <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
           </div>
 
@@ -401,7 +401,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                         type="button"
                         onClick={() => removeItem(item.id)}
                         disabled={isPending || isProcessing}
-                        className="ms-1 text-xs font-bold text-slate-400 hover:text-rose-600 disabled:opacity-40"
+                        className="ms-1 text-xs font-bold text-slate-600 hover:text-rose-700 disabled:opacity-40"
                       >
                         حذف
                       </button>

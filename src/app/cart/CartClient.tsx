@@ -58,7 +58,8 @@ export default function CartClient() {
                         <p className="mt-1 font-medium text-slate-500">الكمية: {item.quantity}</p>
 
                         <div className="mt-4 flex items-center justify-center md:justify-start gap-4">
-                          <span className="text-lg font-black text-emerald-600">{formatPrice(item.price)}</span>
+                          {/* ⚠️ كان `emerald-600` = 3.65:1 — راسب (مقيس والسلة فيها منتجات، 1 أكتوبر). */}
+                          <span className="text-lg font-black text-emerald-700">{formatPrice(item.price)}</span>
                         </div>
                       </div>
                       <Button 

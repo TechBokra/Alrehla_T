@@ -50,7 +50,7 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
           سجّل الدخول لفتح تذكرة دعم حتى يصلك الرد على حسابك.
         </p>
         <Link
-          href="/sign-in?callbackUrl=/support"
+          href="/sign-in?next=/support"
           className="font-bold text-amber-800 underline"
         >
           تسجيل الدخول

@@ -67,13 +67,13 @@ export default async function PaymentStatusPage({ searchParams }: { searchParams
             </div>
             <div className="flex justify-between font-medium text-slate-600">
               <span>الحالة</span>
-              <span className={`font-bold ${isAwaiting ? 'text-amber-600' : 'text-emerald-600'}`}>
+              <span className={`font-bold ${isAwaiting ? 'text-amber-800' : 'text-emerald-700'}`}>
                 {isAwaiting ? 'قيد المراجعة' : 'مدفوع'}
               </span>
             </div>
             <div className="flex justify-between font-medium text-slate-600">
               <span>الإجمالي</span>
-              <span className="font-bold text-amber-600">{formatPrice(order.totalAmount)}</span>
+              <span className="font-bold text-amber-800">{formatPrice(order.totalAmount)}</span>
             </div>
           </div>
         </Card>

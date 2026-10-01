@@ -24,7 +24,9 @@ export default async function CheckoutPage() {
   const shippingRates = await getShippingRates();
   
   if (!user) {
-    redirect('/sign-in?callbackUrl=/enha-lak/checkout');
+    // ⚠️ كان `?callbackUrl=` — وصفحة الدخول بتقرا `?next=` (`SignInForm`). فالمشتري
+    //    كان بيسجّل دخوله ويتودّى للوحة التحكم بدل الدفع، والسلة لسه مستنياه.
+    redirect('/sign-in?next=/enha-lak/checkout');
   }
 
   // We pass the user to the client component to pre-fill info

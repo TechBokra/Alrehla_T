@@ -14,7 +14,7 @@ export function CartHeaderButton() {
     >
       <ShoppingCart className="h-5 w-5" />
       {itemCount > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-sm">
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-700 text-[10px] font-bold text-white shadow-sm">
           {itemCount > 99 ? '99+' : itemCount}
         </span>
       )}
