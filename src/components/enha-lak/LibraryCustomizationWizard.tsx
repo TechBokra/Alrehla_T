@@ -1,6 +1,7 @@
 'use client';
 
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
+import { addonsDisplayTotal } from '@/lib/item-format';
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState, useEffect } from 'react';
@@ -248,7 +249,10 @@ export function LibraryCustomizationWizard({
       id: `${product.id}-${Date.now()}`,
       productId: product.id,
       name: product.name,
-      price: product.price,
+      // ⚠️ بالإضافات — كان سعر الكتاب لوحده والطلب بالإضافات (`addonsDisplayTotal`).
+      price:
+        product.price +
+        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? []),
       quantity: 1,
       type: 'book',
       imageUrl: product.coverImageUrl || undefined,

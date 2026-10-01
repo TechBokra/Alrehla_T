@@ -241,6 +241,10 @@ export async function saveProduct(formData: FormData) {
     galleryImageUrls: { gallery_image_urls: gallery.length > 0 ? gallery : null },
     // خانتا السنّ بيتكتبوا مع بعض دايمًا: قيد القاعدة بيربطهم.
     minAge: { min_age: age.minAge, max_age: age.maxAge },
+    // ⚠️ كانت بتتكتب دايمًا — وشاشة الإدارة ماكانش فيها الخانة، فأي
+    //    حفظ من الإدارة كان بيمسح سعر النسخة الإلكترونية. الخانة دلوقتي
+    //    في الإدارة لـ«مخصص» بس (`ElectronicPriceField`).
+    electronicPrice: { electronic_price: electronicPrice },
   });
 
   const dbPayload = {
@@ -249,7 +253,6 @@ export async function saveProduct(formData: FormData) {
     category,
     price,
     publisher_cost: effectiveCost,
-    electronic_price: electronicPrice,
     short_description: shortDescription,
     ...optionalColumns,
     cover_image_url: coverImageUrl,

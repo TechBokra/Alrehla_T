@@ -362,6 +362,8 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   unitPrice: number;
+  /** مطبوعة / إلكترونية / الاتنين (ملف 138). */
+  format?: 'printed' | 'electronic' | 'both';
   customizationData?: {
     recipientType?: 'self' | 'child';
     childId?: string;
@@ -397,6 +399,10 @@ export type Order = {
   city?: string;
   governorate?: string;
   shippingNotes?: string;
+  /** إيميل استلام النسخة الإلكترونية (ملف 138). */
+  deliveryEmail?: string;
+  /** الإدارة بعتت النسخة الإلكترونية إمتى (ملف 138). */
+  electronicSentAt?: string;
 };
 
 // مقال في المدونة

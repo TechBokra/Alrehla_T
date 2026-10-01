@@ -8,6 +8,13 @@ import Image from 'next/image';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { fetchFamilyMembers } from '@/app/actions/family';
+import {
+  basePriceForFormat,
+  electronicAvailable,
+  FORMAT_LABELS,
+  isItemFormat,
+  type ItemFormat,
+} from '@/lib/item-format';
 
 export function OrderSummarySidebar({
   product,
@@ -66,7 +73,12 @@ export function OrderSummarySidebar({
       sum + a.price + (customizedAddonIds.includes(a.id) ? a.customizationPrice : 0),
     0,
   );
-  const total = product.price + addonsTotal;
+  // النوع (ملف 138): «أنت البطل» اللي ليها إلكتروني بس — غير كده مطبوعة.
+  const watchedFormat = watch('format');
+  const format: ItemFormat =
+    electronicAvailable(product) && isItemFormat(watchedFormat) ? watchedFormat : 'printed';
+  const base = basePriceForFormat(product, format);
+  const total = base + addonsTotal;
 
   return (
     <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
@@ -80,7 +92,10 @@ export function OrderSummarySidebar({
         </div>
         <div>
           <h4 className="font-bold text-slate-800">{product.name}</h4>
-          <p className="text-sm text-slate-500 mt-1">{formatPrice(product.price)}</p>
+          <p className="text-sm text-slate-600 mt-1">{formatPrice(base)}</p>
+          {format !== 'printed' && (
+            <p className="mt-1 text-xs font-bold text-emerald-800">{FORMAT_LABELS[format]}</p>
+          )}
         </div>
       </div>
 

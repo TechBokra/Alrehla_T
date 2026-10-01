@@ -20,6 +20,7 @@ import { ShareSection } from '@/components/share/ShareSection';
 import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
+import { electronicAvailable } from '@/lib/item-format';
 
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -216,6 +217,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <div className="flex items-center justify-between gap-4">
                 <span className="text-enha-lak-strong text-3xl font-black">{formatPrice(product.price)}</span>
               </div>
+              {/* ملف 138: العميل يعرف قبل المعالج إن فيه اختيار أرخص من غير شحن. */}
+              {electronicAvailable(product) && (
+                <p className="mt-2 text-sm font-bold text-slate-700">
+                  أو نسخة إلكترونية بـ{formatPrice(product.electronicPrice ?? 0)} — بتوصلك على الإيميل من غير شحن
+                </p>
+              )}
               
               <div className="mt-6">
                 {/* ⚠️ **الشرط كان `ownerType === 'platform'` الأول.**

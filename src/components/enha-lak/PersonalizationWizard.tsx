@@ -1,6 +1,7 @@
 'use client';
 
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
+import { addonsDisplayTotal, basePriceForFormat, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,6 +73,7 @@ export function PersonalizationWizard({
     defaultValues: {
       selectedAddonIds: [],
       customizedAddonIds: [],
+      format: 'printed',
     },
     mode: 'onChange',
   });
@@ -191,12 +193,22 @@ export function PersonalizationWizard({
       return;
     }
 
+    // النوع: لو المنتج مالوش إلكتروني، أي قيمة غير «مطبوعة» بتتجاهل
+    // (جلسة قديمة في المتصفح مثلًا) بدل ما القاعدة ترفض الطلب كله.
+    const format: ItemFormat =
+      electronicAvailable(product) && data.format ? data.format : 'printed';
+
     // 2. Add to cart
     addItem({
       id: product.id + '-' + Date.now(),
       productId: product.id,
-      name: product.name,
-      price: product.price,
+      name: format === 'printed' ? product.name : `${product.name} — ${FORMAT_LABELS[format]}`,
+      // للعرض بس — القاعدة بتسعّر من الجدول. ⚠️ **بالإضافات**: كان سعر
+      // القصة لوحده، والعميل يتقاله «حوّل» رقمًا أقل من طلبه.
+      price:
+        basePriceForFormat(product, format) +
+        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? []),
+      format,
       quantity: 1,
       type: product.category === 'subscription' ? 'subscription' : 'custom',
       imageUrl: product.coverImageUrl || undefined,

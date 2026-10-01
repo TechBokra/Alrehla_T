@@ -17,6 +17,12 @@ import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { optimizedImageUrl } from '@/lib/cloudinary';
+import {
+  cartHasElectronic,
+  cartNeedsShipping,
+  isQuantityLocked,
+  isValidDeliveryEmail,
+} from '@/lib/item-format';
 
 interface Props {
   /** Read from site settings — it used to be a placeholder number in the code. */
@@ -38,7 +44,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionRef, setTransactionRef] = useState('');
   const [orderError, setOrderError] = useState('');
-  const [placedOrder, setPlacedOrder] = useState<{ id: string; reference: string } | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<{ id: string; reference: string; total: number | null } | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
@@ -51,13 +57,20 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
     city: '',
     gov: '',
     notes: '',
+    // إيميل استلام النسخة الإلكترونية — إيميل الحساب افتراضيًّا (ملف 138).
+    email: user.email || '',
   });
+  const [emailError, setEmailError] = useState('');
 
   const subtotal = cartTotal;
   // Shipping is not flat: it comes from the rate set for the chosen
   // governorate. A flat 50 EGP used to be charged with the comment
   // "Fixed shipping logic for demo".
-  const needsShipping = items.some((item: { type?: string }) => item.type !== 'subscription');
+  //
+  // ⚠️ الإلكتروني لوحده مالوش شحن، إلا لو معاه إضافة (ملف 138 — نفس
+  //    قاعدة الدالة بالظبط).
+  const needsShipping = cartNeedsShipping(items);
+  const hasElectronic = cartHasElectronic(items);
   // The rate is per area, not per governorate: Cairo and Shorouk are both in
   // Cairo and are not the same trip.
   const matchedRate = shippingRates.find(
@@ -76,6 +89,11 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasElectronic && !isValidDeliveryEmail(shippingInfo.email)) {
+      setEmailError('اكتب إيميل صحيح — النسخة الإلكترونية هتوصلك عليه');
+      return;
+    }
+    setEmailError('');
     setStep(2);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -102,12 +120,14 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
             customizationData?: unknown;
             addonIds?: string[];
             customizedAddonIds?: string[];
+            format?: 'printed' | 'electronic' | 'both';
           }) => ({
             productId: i.productId,
             quantity: i.quantity,
             customizationData: i.customizationData,
             addonIds: i.addonIds,
             customizedAddonIds: i.customizedAddonIds,
+            format: i.format,
           }),
         ),
         {
@@ -117,6 +137,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
           city: shippingInfo.city,
           governorate: shippingInfo.gov,
           notes: shippingInfo.notes,
+          deliveryEmail: hasElectronic ? shippingInfo.email : undefined,
         },
       );
 
@@ -128,7 +149,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
         return;
       }
 
-      setPlacedOrder({ id: result.orderId, reference: result.paymentReference });
+      setPlacedOrder({ id: result.orderId, reference: result.paymentReference, total: result.totalAmount });
     });
   };
 
@@ -201,7 +222,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
         <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 1 ? 'border-rose-200 shadow-md' : 'bg-slate-50 opacity-60'}`}>
           <div className="flex items-center gap-4 mb-8">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 1 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>
-            <h2 className="text-xl font-black text-slate-800">بيانات التوصيل</h2>
+            <h2 className="text-xl font-black text-slate-800">
+              {needsShipping ? 'بيانات التوصيل' : 'بيانات التواصل'}
+            </h2>
           </div>
 
           {step === 1 && (
@@ -219,6 +242,25 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 </div>
               </div>
 
+              {hasElectronic && (
+                <div>
+                  <label htmlFor="delivery-email" className="mb-2 block text-sm font-bold text-slate-700">
+                    الإيميل اللي هتستلم عليه النسخة الإلكترونية
+                  </label>
+                  <input
+                    id="delivery-email"
+                    type="email"
+                    required
+                    dir="ltr"
+                    value={shippingInfo.email}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-right outline-none focus:border-rose-500 focus:bg-white"
+                  />
+                  {emailError && <p className="mt-2 text-xs font-bold text-red-700">{emailError}</p>}
+                </div>
+              )}
+
+              {needsShipping && (<>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">العنوان بالتفصيل (الشارع، رقم العمارة، الشقة)</label>
                 <input type="text" required value={shippingInfo.address} onChange={e => setShippingInfo({...shippingInfo, address: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
@@ -271,6 +313,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                   />
                 </div>
               </div>
+              </>)}
 
               <div className="pt-4 flex justify-end">
                 <button type="submit" className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 transition-colors">
@@ -285,7 +328,12 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 <MapPin className="h-5 w-5 text-slate-400" />
                 <div>
                   <p className="font-bold text-slate-800">{shippingInfo.name}</p>
-                  <p className="text-sm text-slate-500">{shippingInfo.address}، {shippingInfo.city}</p>
+                  {needsShipping && (
+                    <p className="text-sm text-slate-600">{shippingInfo.address}، {shippingInfo.city}</p>
+                  )}
+                  {hasElectronic && (
+                    <p className="text-sm text-slate-600" dir="ltr">{shippingInfo.email}</p>
+                  )}
                 </div>
               </div>
               <button onClick={() => setStep(1)} className="text-sm font-bold text-rose-600 hover:underline">تعديل</button>
@@ -304,7 +352,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
             <>
               <PaymentProofForm
                 reference={placedOrder.reference}
-                amount={grandTotal}
+                // ⚠️ إجمالي القاعدة، مش حساب الشاشة — هو اللي العميل لازم يحوّله.
+                amount={placedOrder.total ?? grandTotal}
                 walletNumber={paymentWalletNumber}
                 qrUrl={paymentQrUrl}
                 accent="rose"
@@ -377,6 +426,16 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                       العرض بس — **السعر والإجمالي بيتحسبوا في القاعدة**
                       من الأرقام المبعوتة (قاعدة «ف»). */}
                   <div className="mt-2 flex items-center justify-between gap-2">
+                    {isQuantityLocked(item.format) ? (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.id)}
+                        disabled={isPending || isProcessing}
+                        className="text-xs font-bold text-slate-600 hover:text-rose-700 disabled:opacity-40"
+                      >
+                        حذف
+                      </button>
+                    ) : (
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -406,6 +465,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                         حذف
                       </button>
                     </div>
+                    )}
                     <span className="text-sm font-bold text-rose-600">{formatPrice((item.price * item.quantity))}</span>
                   </div>
                 </div>

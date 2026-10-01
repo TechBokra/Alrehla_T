@@ -3,6 +3,8 @@ import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
 import { PersonalizedProduct } from '@/types';
 import { Button } from '@/components/ui/Button';
+import { FormatChooser } from './FormatChooser';
+import { cartNeedsShipping } from '@/lib/item-format';
 
 export function Step4Review({
   onPrev,
@@ -86,9 +88,13 @@ export function Step4Review({
           </div>
         )}
 
-        {/* Shipping Info Note */}
+        <FormatChooser product={product} />
+
+        {/* إلكتروني من غير إضافات = مفيش شحن (ملف 138). */}
         <div className="rounded-2xl border border-blue-200 p-4 bg-blue-50 text-blue-800 text-sm font-bold text-center">
-          سيتم إدخال بيانات الشحن في خطوة الدفع التالية
+          {cartNeedsShipping([{ format: values.format, addonIds: values.selectedAddonIds }])
+            ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
+            : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
         </div>
       </div>
       <div className="flex justify-between pt-6 border-t border-slate-100">

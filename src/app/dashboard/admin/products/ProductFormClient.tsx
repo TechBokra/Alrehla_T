@@ -7,6 +7,7 @@ import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
+import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
 import {
   ASSIGNABLE_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
@@ -19,6 +20,7 @@ interface Props {
 
 export function ProductFormClient({ publishers, pricingSettings }: Props) {
   const [ownerType, setOwnerType] = useState('platform');
+  const [category, setCategory] = useState<string>(ASSIGNABLE_PRODUCT_CATEGORIES[0]);
   const [basePrice, setBasePrice] = useState(0);
   const [finalPrice, setFinalPrice] = useState(0);
   const [coverImageUrl, setCoverImageUrl] = useState('');
@@ -65,7 +67,7 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
         </div>
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">النوع / التصنيف</label>
-          <select name="category" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
+          <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
             {/* ⚠️ **كانت ستة، تلاتة منهم القاعدة بترفضهم.**
                 «كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف
                 `product_category` — الحفظ بيترفض من القاعدة.
@@ -146,6 +148,7 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
               </div>
             </div>
           )}
+          <ElectronicPriceField category={category} />
         </div>
       </div>
 

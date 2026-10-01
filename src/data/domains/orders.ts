@@ -14,6 +14,7 @@ import { cookies } from 'next/headers';
 
 
 import { createClient } from '@/lib/supabase/server';
+import { isItemFormat } from '@/lib/item-format';
 
 export const getOrders = async (): Promise<Order[]> => {
   const supabase = await createClient();
@@ -56,12 +57,15 @@ export const getOrders = async (): Promise<Order[]> => {
     city: order.city || undefined,
     governorate: order.governorate || undefined,
     shippingNotes: order.shipping_notes || undefined,
+    deliveryEmail: order.delivery_email || undefined,
+    electronicSentAt: order.electronic_sent_at || undefined,
     createdAt: order.created_at,
     items: (order.order_items || []).map((item: any) => ({
       productId: item.product_id,
       quantity: item.quantity,
       unitPrice: item.unit_price,
-      customizationData: item.customization_data || undefined
+      customizationData: item.customization_data || undefined,
+      format: isItemFormat(item.format) ? item.format : 'printed',
     }))
   }));
 };
@@ -143,7 +147,7 @@ export async function getAllOrders(): Promise<Order[]> {
 
   const { data: items } = await supabase
     .from('order_items')
-    .select('order_id, product_id, quantity, unit_price, customization_data')
+    .select('order_id, product_id, quantity, unit_price, customization_data, format')
     .in('order_id', data.map((o) => o.id));
 
   const itemsByOrder = new Map<string, OrderItem[]>();
@@ -154,6 +158,7 @@ export async function getAllOrders(): Promise<Order[]> {
       quantity: item.quantity,
       unitPrice: item.unit_price,
       customizationData: (item.customization_data as OrderItem['customizationData']) || undefined,
+      format: isItemFormat(item.format) ? item.format : 'printed',
     });
     itemsByOrder.set(item.order_id, list);
   }
@@ -178,6 +183,8 @@ export async function getAllOrders(): Promise<Order[]> {
     city: order.city || undefined,
     governorate: order.governorate || undefined,
     shippingNotes: order.shipping_notes || undefined,
+    deliveryEmail: order.delivery_email || undefined,
+    electronicSentAt: order.electronic_sent_at || undefined,
     createdAt: order.created_at,
     items: itemsByOrder.get(order.id) ?? [],
   }));

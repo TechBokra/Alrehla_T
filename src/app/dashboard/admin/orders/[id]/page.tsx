@@ -11,6 +11,8 @@ import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { FulfilmentPanel } from './FulfilmentPanel';
 import { OrderItemCustomization } from './OrderItemCustomization';
+import { ElectronicDeliveryPanel } from './ElectronicDeliveryPanel';
+import { FORMAT_LABELS } from '@/lib/item-format';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +39,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     return {
       id: idx,
       nameDisplay: product ? product.name : item.productId,
+      formatDisplay: FORMAT_LABELS[(item as { format?: keyof typeof FORMAT_LABELS }).format ?? 'printed'],
       priceDisplay: `${formatPrice(price)}`,
       quantity: quantity,
       totalDisplay: `${formatPrice(price * quantity)}`
@@ -44,6 +47,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   });
   const columns = [
     { header: 'المنتج', accessorKey: 'nameDisplay' },
+    { header: 'النسخة', accessorKey: 'formatDisplay' },
     { header: 'السعر', accessorKey: 'priceDisplay' },
     { header: 'الكمية', accessorKey: 'quantity' },
     { header: 'الإجمالي', accessorKey: 'totalDisplay' }
@@ -83,6 +87,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             />
           </div>
         </div>
+        {target.deliveryEmail && (
+          <ElectronicDeliveryPanel
+            orderId={target.id}
+            email={target.deliveryEmail}
+            sentAt={target.electronicSentAt}
+            paid={['paid', 'preparing', 'shipped', 'delivered'].includes(target.status)}
+          />
+        )}
+
         {/* The shipping address is now stored with the order — it used to be
             collected on screen and thrown away. */}
         <div className="mb-8 rounded-2xl border border-slate-100 bg-slate-50 p-5">

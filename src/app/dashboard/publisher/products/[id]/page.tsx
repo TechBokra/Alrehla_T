@@ -70,10 +70,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <PublisherCostField formula={formula} defaultCost={target.publisherCost} />
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">السعر الإلكتروني (اختياري)</label>
-              <input type="number" name="electronicPrice" defaultValue={target.electronicPrice || ''} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none" />
-            </div>
+            {/* «السعر الإلكتروني» اتشال: النسخة الإلكترونية لـ«أنت البطل هنا» وحدها،
+                والناشر منتجاته مكتبة بس (قرار تامر). الخادم مابيلمسش العمود لو
+                الخانة مش مبعوتة. */}
           </div>
 
           <div>

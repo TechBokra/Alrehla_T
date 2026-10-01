@@ -1,6 +1,7 @@
 'use client';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
+import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { FormError } from '@/components/ui/FormError';
@@ -20,6 +21,7 @@ interface Props {
 
 export function ProductEditFormClient({ product, publishers, pricingSettings }: Props) {
   const [ownerType, setOwnerType] = useState(product.ownerType);
+  const [category, setCategory] = useState<string>(product.category);
   // ⚠️ **الرقم الابتدائي كان `product.price` دايمًا** — وده سعر
   //    العميل. فشاشة تعديل منتج ناشر كانت بتفتح والنصيب مكتوب فيه
   //    سعر العميل، وأول حفظة تضيف الهامش **فوق الهامش**.
@@ -63,7 +65,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
         </div>
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">النوع / التصنيف</label>
-          <select name="category" defaultValue={product.category} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
+          <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
             {/* ⚠️ **كانت ستة، تلاتة منهم القاعدة بترفضهم.**
                 «كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف
                 `product_category` — الحفظ بيترفض من القاعدة.
@@ -136,6 +138,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
               </div>
             </div>
           )}
+          <ElectronicPriceField category={category} defaultValue={product.electronicPrice} />
         </div>
       </div>
 

@@ -945,6 +945,7 @@ export type Database = {
           publisher_id_snapshot: string | null
           /** نصيب الناشر لحظة الشراء — المستحق بيتحسب منه (ملف 134). */
           publisher_cost_snapshot: number | null
+          format: string
         }
         Insert: {
           id?: string
@@ -957,6 +958,7 @@ export type Database = {
           /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
           publisher_id_snapshot?: string | null
           publisher_cost_snapshot?: number | null
+          format?: string
         }
         Update: {
           id?: string
@@ -969,6 +971,7 @@ export type Database = {
           /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
           publisher_id_snapshot?: string | null
           publisher_cost_snapshot?: number | null
+          format?: string
         }
         Relationships: []
       }
@@ -997,6 +1000,8 @@ export type Database = {
           payment_reference: string | null
           payment_method: string | null
           payment_receipt_url: string | null
+          delivery_email: string | null
+          electronic_sent_at: string | null
         }
         Insert: {
           id?: string
@@ -1022,6 +1027,8 @@ export type Database = {
           payment_reference?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          delivery_email?: string | null
+          electronic_sent_at?: string | null
         }
         Update: {
           id?: string
@@ -1047,6 +1054,8 @@ export type Database = {
           payment_reference?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          delivery_email?: string | null
+          electronic_sent_at?: string | null
         }
         Relationships: []
       }

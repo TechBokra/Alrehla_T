@@ -59,6 +59,12 @@ export const wizardSchema = z.object({
    */
   customizedAddonIds: z.array(z.string()).optional(),
 
+  /**
+   * مطبوعة / إلكترونية / الاتنين (ملف 138). الاختيار بيظهر بس لو
+   * المنتج ليه سعر إلكتروني — والقاعدة بترفض غير كده على أي حال.
+   */
+  format: z.enum(['printed', 'electronic', 'both']).optional(),
+
 }).superRefine((data, ctx) => {
   if (data.storyGoal === 'other' && !data.customStoryGoal?.trim()) {
     ctx.addIssue({

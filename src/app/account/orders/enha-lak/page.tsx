@@ -1,6 +1,7 @@
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
 import { getPersonalizedProducts } from '@/data/domains/products';
+import { FORMAT_LABELS } from '@/lib/item-format';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -42,7 +43,17 @@ export default async function EnhaLakOrdersPage() {
         label={ORDER_STATUS[order.status]?.label ?? order.status}
       />
     ),
-    tracking: order.trackingReference || '—',
+    // الإلكتروني مالوش رقم شحنة — بيتقال اتبعت ولا لسه (ملف 138).
+    tracking: (
+      <div className="flex flex-col gap-1">
+        <span>{order.trackingReference || '—'}</span>
+        {order.deliveryEmail && (
+          <span className="text-xs font-bold text-slate-700">
+            {order.electronicSentAt ? 'النسخة الإلكترونية اتبعتت ✓' : 'النسخة الإلكترونية: لسه'}
+          </span>
+        )}
+      </div>
+    ),
     total: formatPrice(order.totalAmount),
     itemsDisplay: (
       <div className="flex flex-col gap-1">
@@ -52,6 +63,9 @@ export default async function EnhaLakOrdersPage() {
           return (
             <span key={idx}>
               {names.get(item.productId) ?? 'منتج لم يعد معروضًا'} × {item.quantity}
+              {item.format && item.format !== 'printed' && (
+                <span className="text-slate-600"> · {FORMAT_LABELS[item.format]}</span>
+              )}
               {typeof child === 'string' && child.trim() && (
                 <span className="text-slate-500"> — لـ{child.trim()}</span>
               )}

@@ -145,3 +145,58 @@ export async function setOrderFulfilmentStatus(params: {
   revalidatePath('/dashboard/admin/finance/publisher-payouts');
   return { ok: true, payouts };
 }
+
+/**
+ * «تم إرسال النسخة الإلكترونية» (ملف 138 — الإرسال يدوي بقرار تامر).
+ *
+ * ⚠️ بترجّع ولا بترمي (قاعدة «هـ»).
+ * ⚠️ `.is('electronic_sent_at', null)`: ضغطة تانية مابتغيّرش الوقت
+ *    الأول — والعميل مابياخدش إشعارين.
+ */
+export async function markElectronicSent(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let admin;
+  try {
+    admin = await requireOrdersAdmin();
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بإدارة الطلبات' };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ electronic_sent_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .is('electronic_sent_at', null)
+    .not('delivery_email', 'is', null)
+    .select('user_id, delivery_email');
+
+  if (error) {
+    console.error('Error marking electronic copy sent', error);
+    return { ok: false, error: 'تعذّر التسجيل — جرّب تاني' };
+  }
+  // قاعدة «و»: صفر صفوف بلا خطأ.
+  if (!data || data.length === 0) {
+    return { ok: false, error: 'مااتسجّلش: الطلب مالوش نسخة إلكترونية، أو متسجّل إنها اتبعتت قبل كده.' };
+  }
+
+  await notifyUser({
+    event: 'order_status',
+    recipientProfileId: data[0].user_id,
+    title: 'النسخة الإلكترونية اتبعتت',
+    message: `على ${data[0].delivery_email} — لو مالقيتهاش بص في الرسائل غير المرغوب فيها.`,
+    link: '/account/orders/enha-lak',
+  });
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'order_electronic_sent',
+    entityType: 'Order',
+    entityId: orderId,
+  });
+
+  revalidatePath(`/dashboard/admin/orders/${orderId}`);
+  revalidatePath('/account/orders/enha-lak');
+  return { ok: true };
+}

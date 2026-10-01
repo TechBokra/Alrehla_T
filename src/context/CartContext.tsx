@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { isQuantityLocked, type ItemFormat } from '@/lib/item-format';
 import {
   CART_CLEAR_EVENT,
   CART_STORAGE_KEY,
@@ -28,6 +29,11 @@ export type CartItem = {
   /** الإضافات اللي اتطلبت بتخصيص — مجموعة فرعية من `addonIds`. */
   customizedAddonIds?: string[];
   customizationData?: any;
+  /**
+   * مطبوعة / إلكترونية / الاتنين (ملف 138). فاضي = مطبوعة — السلال
+   * القديمة المحفوظة في المتصفح مالهاش الخانة دي.
+   */
+  format?: ItemFormat;
 };
 
 interface CartContextType {
@@ -101,7 +107,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem(id);
       return;
     }
-    setItems((prev) => prev.map(i => i.id === id ? { ...i, quantity } : i));
+    // ⚠️ الإلكتروني ملف واحد: القاعدة بتحسبه كمية ١ مهما اتبعت، فلو
+    //    الشاشة سمحت بـ٣ كان العميل هيشوف ٣ أضعاف ويدفع واحد.
+    setItems((prev) =>
+      prev.map(i => i.id === id ? { ...i, quantity: isQuantityLocked(i.format) ? 1 : quantity } : i),
+    );
   };
 
   const clearCart = () => setItems([]);

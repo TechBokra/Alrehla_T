@@ -9,6 +9,7 @@ import { notifyAdmins } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/supabase';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
+import { isItemFormat, type ItemFormat } from '@/lib/item-format';
 
 export type ShippingDetails = {
   recipientName: string;
@@ -17,6 +18,8 @@ export type ShippingDetails = {
   city: string;
   governorate: string;
   notes?: string;
+  /** إيميل استلام النسخة الإلكترونية — إلزامي لو فيه إلكتروني (ملف 138). */
+  deliveryEmail?: string;
 };
 
 /**
@@ -50,10 +53,12 @@ export type NewOrderItem = {
    * الطلب كله لو إضافة هنا مش `supports_customization`.
    */
   customizedAddonIds?: string[];
+  /** مطبوعة / إلكترونية / الاتنين — القاعدة بتتحقق وبتسعّر (ملف 138). */
+  format?: ItemFormat;
 };
 
 export type CreateOrderResult =
-  | { ok: true; orderId: string; paymentReference: string }
+  | { ok: true; orderId: string; paymentReference: string; totalAmount: number | null }
   | { ok: false; error: string };
 
 /** وسائل الدفع المتاحة — نفس القيم المسموح بيها في قاعدة البيانات. */
@@ -92,6 +97,7 @@ export async function createOrder(
       // القاعدة بتقاطعها مع `addon_ids` — فالتخصيص لإضافة مش مختارة
       // بيتجاهل بدل ما يتحسب.
       customized_addon_ids: item.customizedAddonIds ?? [],
+      format: isItemFormat(item.format) ? item.format : 'printed',
     })),
     p_shipping: shipping
       ? {
@@ -102,6 +108,7 @@ export async function createOrder(
           city: shipping.city?.trim() ?? '',
           governorate: shipping.governorate?.trim() ?? '',
           notes: shipping.notes?.trim() ?? '',
+          deliveryEmail: shipping.deliveryEmail?.trim() ?? '',
         }
       : null,
   });
@@ -138,7 +145,7 @@ export async function createOrder(
   // ملاحظة التحويل — فبنرجّعه معانا بدل ما يدوّر عليه.
   const { data: row } = await supabase
     .from('orders')
-    .select('payment_reference')
+    .select('payment_reference, total_amount')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -146,6 +153,10 @@ export async function createOrder(
     ok: true,
     orderId,
     paymentReference: row?.payment_reference ?? '',
+    // ⚠️ **المبلغ اللي العميل بيحوّله لازم يبقى بتاع القاعدة**، مش
+    //    حساب الشاشة: السلة كانت بتعرض سعر القصة من غير الإضافات،
+    //    فالعميل كان بيتقاله «حوّل X» والطلب بـX + الإضافات.
+    totalAmount: row?.total_amount != null ? Number(row.total_amount) : null,
   };
 }
 
