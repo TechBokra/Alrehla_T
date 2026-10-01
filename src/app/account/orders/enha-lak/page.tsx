@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
 import { getPersonalizedProducts } from '@/data/domains/products';
@@ -38,10 +39,21 @@ export default async function EnhaLakOrdersPage() {
     ),
     date: new Date(order.createdAt).toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE }),
     statusDisplay: (
-      <StatusBadge
-        type={ORDER_STATUS[order.status]?.type ?? 'warning'}
-        label={ORDER_STATUS[order.status]?.label ?? order.status}
-      />
+      <div className="flex flex-col items-start gap-2">
+        <StatusBadge
+          type={ORDER_STATUS[order.status]?.type ?? 'warning'}
+          label={ORDER_STATUS[order.status]?.label ?? order.status}
+        />
+        {/* الطلب اتسجّل والإيصال مااترفعش — كان مفيش رجوع ليه. */}
+        {order.status === 'pending' && (
+          <Link
+            href={`/account/orders/enha-lak/${order.id}/pay`}
+            className="rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-800"
+          >
+            ادفع وارفع الإيصال
+          </Link>
+        )}
+      </div>
     ),
     // الإلكتروني مالوش رقم شحنة — بيتقال اتبعت ولا لسه (ملف 138).
     tracking: (

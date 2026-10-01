@@ -8,6 +8,9 @@ import { getPublisherOrders } from '@/data/domains/products';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { salesTotals } from '@/lib/publisher-sales';
+import { StatusBadge } from '@/components/StatusBadge';
+import { productOrderStatus } from '@/lib/order-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +22,9 @@ export default async function PublisherDashboard() {
 
   const orders = await getPublisherOrders();
   
-  const totalSales = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const totalEarnings = orders.reduce((sum, o) => sum + o.publisherShare, 0);
+  // ⚠️ كانت بتجمع **كل** البنود — طلب بانتظار الدفع أو ملغي كان بيتحسب
+  //    في «أرباحك». دلوقتي المدفوع بس (`salesTotals`).
+  const { sales: totalSales, earnings: totalEarnings } = salesTotals(orders);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
@@ -46,8 +50,8 @@ export default async function PublisherDashboard() {
         {/* "+12% عن الشهر الماضي", a 70% share, "12 كتاب", "4.8/5 من 156 تقييم"
             and a withdrawable balance of 850 were all written into the page —
             the same figures for every publisher, none of them measured. */}
-        <StatCard title="إجمالي المبيعات" value={`${formatPrice(totalSales)}`} icon={ShoppingBag} />
-        <StatCard title="أرباحك" value={`${formatPrice(totalEarnings)}`} icon={DollarSign} />
+        <StatCard title="المبيعات المدفوعة" value={`${formatPrice(totalSales)}`} icon={ShoppingBag} />
+        <StatCard title="أرباحك من المدفوع" value={`${formatPrice(totalEarnings)}`} icon={DollarSign} />
         <StatCard title="عدد الطلبات" value={`${orders.length}`} icon={BookOpen} />
       </div>
 
@@ -70,6 +74,7 @@ export default async function PublisherDashboard() {
                 { header: 'الكمية', accessorKey: 'quantity' },
                 { header: 'إجمالي البيع', accessorKey: 'total' },
                 { header: 'أرباحك', accessorKey: 'shareDisplay' },
+                { header: 'الحالة', accessorKey: 'statusDisplay' },
               ]}
               data={orders.map((order) => ({
                 productName: order.productName,
@@ -82,6 +87,12 @@ export default async function PublisherDashboard() {
                   <span className="font-bold text-emerald-700">
                     {formatPrice(order.publisherShare)}
                   </span>
+                ),
+                statusDisplay: (
+                  <StatusBadge
+                    type={productOrderStatus(order.status).type}
+                    label={productOrderStatus(order.status).label}
+                  />
                 ),
               }))}
             />

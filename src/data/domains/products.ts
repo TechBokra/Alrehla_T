@@ -19,6 +19,7 @@ import { cookies } from 'next/headers';
 import { createPublicClient } from '@/lib/supabase/public';
 export { productRedirectPath } from '@/lib/product-display';
 import { createClient } from '@/lib/supabase/server';
+import { sharePerUnit } from '@/lib/publisher-sales';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { getSiteSettings } from '@/data/domains/content';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
@@ -407,7 +408,7 @@ export async function getPublisherOrders(): Promise<PublisherOrder[]> {
   // بنودها في الطلبات.
   const { data: items } = await supabase
     .from('order_items')
-    .select('id, order_id, product_id, quantity, unit_price')
+    .select('id, order_id, product_id, quantity, unit_price, publisher_cost_snapshot')
     .in('product_id', Array.from(productById.keys()));
 
   if (!items || items.length === 0) return [];
@@ -432,13 +433,14 @@ export async function getPublisherOrders(): Promise<PublisherOrder[]> {
     const product = productById.get(item.product_id);
     const totalAmount = item.unit_price * item.quantity;
 
-    // النصيب المخزّن أولًا؛ والعكس احتياطيًا للمنتجات الأقدم من ملف 97.
-    // والنصيب لا ينزل تحت الصفر لو الرسم الثابت أكبر من سعر الوحدة.
-    const storedCost = product?.publisher_cost;
-    const sharePerUnit =
-      storedCost != null && storedCost > 0
-        ? storedCost
-        : Math.max(0, (item.unit_price - formula.fixedAdminFee) / multiplier);
+    // ⚠️ المتثبّت وقت الشراء أولًا (ملف 134) — `sharePerUnit`.
+    const unitShare = sharePerUnit({
+      snapshot: item.publisher_cost_snapshot,
+      currentCost: product?.publisher_cost,
+      unitPrice: item.unit_price,
+      fixedAdminFee: formula.fixedAdminFee,
+      multiplier,
+    });
 
     rows.push({
       id: item.id,
@@ -446,7 +448,7 @@ export async function getPublisherOrders(): Promise<PublisherOrder[]> {
       productName: product?.name ?? 'منتج محذوف',
       quantity: item.quantity,
       totalAmount,
-      publisherShare: sharePerUnit * item.quantity,
+      publisherShare: unitShare * item.quantity,
       status: order.status,
       createdAt: order.created_at,
     });

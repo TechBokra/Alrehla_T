@@ -7,10 +7,18 @@ const steps = [
   { step: 4, label: 'المراجعة' },
 ];
 
-export function WizardStepper({ currentStep }: { currentStep: number }) {
+export function WizardStepper({
+  currentStep,
+  skipSteps = [],
+}: {
+  currentStep: number;
+  /** خطوات مش في المسار ده — اشتراك الصندوق مالوش «الإضافات» (ملف 140). */
+  skipSteps?: number[];
+}) {
+  const visible = steps.filter((s) => !skipSteps.includes(s.step));
   return (
-    <div className="flex w-full items-center justify-between">
-      {steps.map((s, idx) => {
+    <div className="flex w-full items-start justify-between">
+      {visible.map((s, idx) => {
         const isCompleted = currentStep > s.step;
         const isCurrent = currentStep === s.step;
         
@@ -24,15 +32,15 @@ export function WizardStepper({ currentStep }: { currentStep: number }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                s.step
+                idx + 1
               )}
             </div>
-            <span className={`text-sm font-bold ${isCurrent || isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
+            <span className={`text-center text-xs font-bold sm:text-sm ${isCurrent || isCompleted ? 'text-slate-800' : 'text-slate-500'}`}>
               {s.label}
             </span>
             
             {/* Connector Line */}
-            {idx !== steps.length - 1 && (
+            {idx !== visible.length - 1 && (
               <div className={`absolute top-5 left-[-50%] w-full h-[2px] -z-10
                 ${currentStep > s.step ? 'bg-emerald-500' : 'bg-slate-200'}`} 
               />

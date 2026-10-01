@@ -289,10 +289,17 @@ export function PersonalizationWizard({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="mx-auto flex max-w-7xl gap-8 px-6 py-12 items-start">
-        <div className="flex-1">
-          <div className="mb-8 rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
-            <WizardStepper currentStep={currentStep} />
+      {/* ⚠️ **كان `flex` والملخص `w-96 shrink-0` جنب الفورم في كل المقاسات.**
+          على موبايل ٣٩٠ بكسل الملخص لوحده ٣٨٤ — فالفورم كان بيتزنق في
+          شريط ضيق والصفحة بتتمرّر بالعرض. دلوقتي عمود واحد تحت `lg`،
+          والملخص تحت الخطوات (زي معالج المكتبة). */}
+      <form
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="mx-auto grid w-full max-w-7xl items-start gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-8 lg:py-12"
+      >
+        <div className="min-w-0">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+            <WizardStepper currentStep={currentStep} skipSteps={subscription ? [3] : []} />
             
             {uploadError && (
               <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
@@ -322,7 +329,7 @@ export function PersonalizationWizard({
           </div>
         </div>
         
-        <div className="w-96 shrink-0 sticky top-24">
+        <div className="w-full lg:sticky lg:top-24">
           <OrderSummarySidebar
             product={product}
             addons={addons}
