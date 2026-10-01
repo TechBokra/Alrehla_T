@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { User, LogOut, LayoutDashboard, Loader2, ChevronDown } from 'lucide-react';
 import { signOut } from '@/actions/auth';
+import { clearStoredCart } from '@/lib/cart-storage';
 
 interface Props {
   /** Where "حسابي" leads for this role. */
@@ -84,6 +85,8 @@ export function AccountMenu({ accountHref, dashboardLabel, displayName }: Props)
             disabled={pending}
             onClick={async () => {
               setPending(true);
+              // السلة المحفوظة فيها اسم الطفل وصورته (`lib/cart-storage.ts`).
+              clearStoredCart();
               await signOut();
             }}
             className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-70"

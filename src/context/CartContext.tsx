@@ -1,5 +1,11 @@
 'use client';
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import {
+  CART_CLEAR_EVENT,
+  CART_STORAGE_KEY,
+  parseStoredCart,
+  serializeCart,
+} from '@/lib/cart-storage';
 
 export type CartItem = {
   /** رقم سطر العربة — بيفرّق بين نسختين متخصصتين من نفس المنتج. */
@@ -41,6 +47,40 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+
+  // ══ الحفظ في المتصفح — التفصيل والتنازل في `lib/cart-storage.ts` ══
+  //
+  // ⚠️ **القراءة بعد أول رسم لا قبله**: الخادم بيرسم السلة فاضية
+  //    (مفيش تخزين على الخادم)، ولو المتصفح رسمها مليانة من أول لحظة
+  //    React بيشتكي من عدم التطابق. فبتبدأ فاضية وتتملى فورًا.
+  //
+  // ⚠️ **و`loaded` قبل أي حفظ**: من غيره، أول رسم بالسلة الفاضية كان
+  //    هيتحفظ **فوق** السلة المحفوظة قبل ما تتقري — فتضيع في نفس
+  //    اللحظة اللي المفروض تتحمّل فيها.
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    try {
+      setItems(parseStoredCart<CartItem>(window.localStorage.getItem(CART_STORAGE_KEY), Date.now()));
+    } catch {
+      // التخزين مقفول (تصفّح خاص) — السلة تشتغل في الذاكرة زي الأول.
+    }
+    loaded.current = true;
+
+    const clear = () => setItems([]);
+    window.addEventListener(CART_CLEAR_EVENT, clear);
+    return () => window.removeEventListener(CART_CLEAR_EVENT, clear);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded.current) return;
+    try {
+      if (items.length === 0) window.localStorage.removeItem(CART_STORAGE_KEY);
+      else window.localStorage.setItem(CART_STORAGE_KEY, serializeCart(items, Date.now()));
+    } catch {
+      // مساحة التخزين خلصت أو مقفول — السلة في الذاكرة لسه شغّالة.
+    }
+  }, [items]);
 
   const addItem = (item: CartItem) => {
     setItems((prev) => {
