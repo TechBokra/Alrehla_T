@@ -326,11 +326,14 @@ function InstructorGroup({
               <input type="hidden" name="id" value={req.id} />
               {/* ⚠️ خانة السبب ظاهرة دايمًا: الرفض بلا سبب بيترفض، والخانة
                   المخفية كانت هتخلّي الرسالة عن خانة الإداري مش شايفها. */}
-              <input
+              {/* `textarea` مش `input`: Enter في خانة السبب كان هيدوس أول
+                  زرار — «اعتماد» — وده عكس اللي الإداري بيكتب السبب عشانه. */}
+              <textarea
                 name="feedback"
+                rows={2}
                 maxLength={300}
                 placeholder="سبب الرفض — بيوصل للمدرب"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
+                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
               />
               <div className="flex flex-wrap gap-2">
                 <Button type="submit" name="decision" value="approved" accentColor="journey">
@@ -383,11 +386,12 @@ function InstructorGroup({
                   )}
                   <ActionForm action={reviewInstructorMedia} className="mt-auto space-y-2 pt-2">
                     <input type="hidden" name="id" value={item.id} />
-                    <input
+                    <textarea
                       name="feedback"
+                      rows={2}
                       maxLength={300}
                       placeholder="سبب الرفض — بيوصل للمدرب"
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
+                      className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
                     />
                     <div className="flex flex-wrap gap-2">
                       <Button type="submit" name="decision" value="approved" accentColor="journey">

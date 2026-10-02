@@ -48,8 +48,29 @@ export function ActionForm({
       onDone?.();
     });
 
+  // ⚠️ **الزرار اللي اتداس لازم يوصل مع النموذج.** شاشات المراجعة فيها
+  //    زرارين «اعتماد» و«رفض» بنفس الاسم (`decision`) وقيمتين مختلفتين.
+  //    `<form action={fn}>` كان بيبعت النموذج **من غير قيمة الزرار**،
+  //    فالأكشن كان بيرجّع «القرار غير معروف» على كل ضغطة اعتماد. هنا
+  //    بنبني البيانات بنفسنا ومعاها الزرار اللي اتداس.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    // بنضيف الزرار بإيدنا بدل `new FormData(form, submitter)`: المتصفحات
+    // القديمة بتتجاهل التاني في صمت — وده بالظبط نوع العطل اللي بنصلّحه.
+    const submitter = (e.nativeEvent as SubmitEvent).submitter;
+    if (
+      submitter instanceof HTMLButtonElement &&
+      submitter.name &&
+      !formData.has(submitter.name)
+    ) {
+      formData.append(submitter.name, submitter.value);
+    }
+    submit(formData);
+  };
+
   return (
-    <form action={submit} className={className}>
+    <form onSubmit={onSubmit} className={className}>
       <FormError message={error} />
       {/* ⚠️ `fieldset` بيقفل كل الخانات مرة واحدة وهو شغّال —
           من غيره المستخدم يقدر يعدّل وهو بيتحفظ فيضيع تعديله. */}
