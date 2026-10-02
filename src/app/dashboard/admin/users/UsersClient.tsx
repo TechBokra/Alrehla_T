@@ -21,7 +21,8 @@ export const ROLE_LABELS: Record<string, string> = {
   instructor: 'مدرب',
   service_provider: 'مقدّم خدمة',
   publisher: 'ناشر',
-  general_supervisor: 'مشرف عام',
+  // دوره الإداري بالظبط («محاسب»، «مسؤول محتوى»…) من شاشة «الصلاحيات».
+  general_supervisor: 'إداري',
   super_admin: 'مدير نظام',
 };
 

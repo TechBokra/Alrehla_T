@@ -1230,7 +1230,7 @@ export function AdminUserDetailClient({
                 <option value="publisher">ناشر</option>
                 {isSuperAdmin && (
                   <>
-                    <option value="general_supervisor">مشرف عام</option>
+                    <option value="general_supervisor">إداري (دوره بيتحدد من «الصلاحيات»)</option>
                     <option value="super_admin">مدير نظام</option>
                   </>
                 )}
