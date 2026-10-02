@@ -19,16 +19,36 @@ export function TempCodeBox({
   code,
   email,
   role = 'الشخص',
+  loginUrl,
+  greeting,
+  nextStep,
 }: {
   code: string;
   email?: string;
   /** «المدرب» أو «الشخص» — بيغيّر نص الرسالة بس. */
   role?: string;
+  /** رابط صفحة الدخول — بيتحط في الرسالة عشان المستلم مايدوّرش عليها. */
+  loginUrl?: string;
+  /** سطر أول الرسالة (مثلًا «أهلًا منى، طلبك اتقبل»). */
+  greeting?: string;
+  /** اللي هيعمله بعد ما يحدّد كلمة مروره. */
+  nextStep?: string;
 }) {
   const [copied, setCopied] = useState<'code' | 'all' | null>(null);
 
   const message = email
-    ? `بياناتك على منصة الرحلة:\nالبريد: ${email}\nالرمز المؤقت: ${code}\n\nادخل بيه وهيطلب منك تحدد كلمة مرورك.`
+    ? [
+        greeting,
+        'بياناتك على منصة الرحلة:',
+        loginUrl ? `رابط الدخول: ${loginUrl}` : null,
+        `البريد: ${email}`,
+        `الرمز المؤقت: ${code}`,
+        '',
+        'ادخل بيه وهيطلب منك تحدد كلمة مرورك.',
+        nextStep,
+      ]
+        .filter((line) => line !== undefined && line !== null)
+        .join('\n')
     : code;
 
   const copy = async (what: 'code' | 'all') => {

@@ -84,7 +84,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     .eq('key', 'general')
     .single();
 
-  if (error || !data || !data.value || typeof data.value !== 'object') {
+  if (error || !data) {
     return {
       siteName: '',
       contactEmail: '',
@@ -104,7 +104,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     };
   }
 
-  const value = (data.value ?? {}) as Partial<SiteSettings>;
+  const value = data.value as unknown as Partial<SiteSettings>;
   return {
     siteName: value.siteName ?? '',
     contactEmail: value.contactEmail ?? '',

@@ -12,6 +12,10 @@ export type UserProfile = {
   avatarUrl?: string;
   createdAt: string;
   permissions?: AdminPermission[];
+  /** اسم الدور الإداري («محاسب»، «مسؤول محتوى»…) — للإداريين بس. */
+  adminRoleName?: string;
+  /** رقم الدور الإداري — schema/05. فاضي = الافتراضي. */
+  adminRoleId?: string | null;
   /**
    * الحساب لسه على الرمز المؤقت وما حطّش كلمة مروره.
    * مصدرها `app_metadata` بتاع Supabase — انظر `src/lib/first-login.ts`.

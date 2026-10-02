@@ -7,6 +7,9 @@ import {
 import { getMyInstructorId } from '@/data/domains/services';
 import { LogoutButton } from '@/components/LogoutButton';
 import { InstructorProfileClient } from './InstructorProfileClient';
+import { getOwnInstructorMedia } from '@/data/domains/instructor-media';
+import { InstructorMediaPanel } from '@/components/dashboard/InstructorMediaPanel';
+import { onboardingState } from '@/lib/instructor-onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +33,10 @@ export default async function InstructorProfilePage() {
     );
   }
 
-  const requests = await getProfileUpdateRequestsByInstructor(instructor.id);
+  const [requests, media] = await Promise.all([
+    getProfileUpdateRequestsByInstructor(instructor.id),
+    getOwnInstructorMedia(instructor.id),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
@@ -41,7 +47,18 @@ export default async function InstructorProfilePage() {
         email={user.email}
         avatarUrl={user.avatarUrl}
         hasPendingRequest={requests.some((r) => r.status === 'pending')}
+        onboarding={onboardingState(instructor, requests)}
       />
+
+      {/* ⚠️ **الصور كانت في «الإعدادات» تحت نموذج طويل** — والمدرب
+          بيدوّر عليها في ملفه، جنب صورته الشخصية، فكان فاكرها مش
+          موجودة. والقسم لسه مستقل عن نموذج الملف: النموذج بيبعت **طلب
+          موافقة واحدًا**، والصور بتتبعت **كل واحدة لوحدها**. لو
+          اتحطّوا في نموذج واحد، المدرب كان هيضغط «حفظ» ويفتكر إن
+          الصور اتبعتت معاه. */}
+      <div className="mt-12 border-t border-slate-200 pt-12">
+        <InstructorMediaPanel media={media} />
+      </div>
 
       <div className="mt-8 flex justify-end border-t border-slate-200 pt-8">
         <LogoutButton />

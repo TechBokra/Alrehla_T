@@ -9,6 +9,11 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AdminInstructorClient } from './AdminInstructorClient';
 import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/services';
 import { getWritingPackages, getPublicInstructorById } from '@/data/domains/writing';
+import Image from 'next/image';
+import Link from 'next/link';
+import { getInstructorMediaForAdmin } from '@/data/domains/instructor-media';
+import { StatusBadge } from '@/components/StatusBadge';
+import { optimizedImageUrl } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +35,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const services = await getStandaloneServices({ includeInactive: true });
   const serviceOffers = await getInstructorServiceOffers(target.id);
   const formula = await getPricingFormulaSettings();
+  const media = await getInstructorMediaForAdmin(target.id);
 
   // الباقات المفعّلة + اللي المدرب مسجَّل عليها دلوقتي.
   // ⚠️ بتتقري من الدالة العامة عشان تبقى **نفس المصدر** اللي معالج
@@ -70,6 +76,69 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         serviceOffers={serviceOffers}
         formula={formula}
       />
+
+      {/* ⚠️ **صور المدرب كانت مش ظاهرة هنا خالص** — الإداري كان لازم
+          يروح «صور المدربين» ويدوّر على الاسم. دلوقتي ملخص هنا،
+          والمراجعة نفسها في شاشتها. */}
+      <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black text-slate-800">الغلاف وصور الأعمال</h2>
+            <p className="text-sm font-medium text-slate-500">
+              المدرب بيرفعها من «ملفي وصوري»، ومابتظهرش في صفحته قبل الاعتماد.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/admin/instructors/media"
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+          >
+            مراجعة الصور
+          </Link>
+        </div>
+        {media.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-500">
+            المدرب لسه مارفعش غلاف ولا صور أعمال.
+          </p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {media.map((item) => (
+              <li key={item.id} className="overflow-hidden rounded-2xl border border-slate-200">
+                <div className="relative aspect-square bg-slate-50">
+                  <Image
+                    src={optimizedImageUrl(item.imageUrl, 300)}
+                    alt={item.title ?? 'صورة مدرب'}
+                    fill
+                    sizes="160px"
+                    className="object-contain p-2"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="space-y-1 p-2">
+                  <p className="text-[11px] font-bold text-slate-600">
+                    {item.kind === 'cover' ? 'غلاف' : item.title || 'عمل'}
+                  </p>
+                  <StatusBadge
+                    type={
+                      item.status === 'approved'
+                        ? 'success'
+                        : item.status === 'pending'
+                          ? 'pending'
+                          : 'danger'
+                    }
+                    label={
+                      item.status === 'approved'
+                        ? 'ظاهرة'
+                        : item.status === 'pending'
+                          ? 'مستنية'
+                          : 'مرفوضة'
+                    }
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

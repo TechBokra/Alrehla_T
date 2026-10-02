@@ -38,7 +38,6 @@ vi.mock('@/data/domains/auth', () => ({
     'canManageFinance',
     'canViewAuditLogs',
   ],
-  EDITABLE_ADMIN_ROLES: ['general_supervisor'],
 }));
 
 const mockNotifyUser = vi.fn();
@@ -56,7 +55,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { updateUserRole } from '@/actions/admin-users';
-import { updateRolePermissions } from '@/actions/admin-permissions';
+import { saveAdminRole, deleteAdminRole, assignAdminRole } from '@/actions/admin-permissions';
 import { cancelDependentRequest } from '@/actions/dependent-requests';
 import {
   markInstructorPayoutAsPaid,
@@ -104,6 +103,31 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       expect(mockLogAuditAction).toHaveBeenCalled();
     });
 
+    it('بيكتب الدور الإداري مع «إداري»، ومابيلمسوش مع أي دور تاني', async () => {
+      mockRequireAdmin.mockResolvedValue({ id: 'admin-1', fullName: 'Super Admin', role: 'super_admin' });
+      const roleId = '22222222-2222-2222-2222-222222222222';
+
+      const maybeSingleMock = vi.fn().mockResolvedValue({ data: { id: 't' }, error: null });
+      const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
+      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+      mockSupabase = { from: vi.fn().mockReturnValue({ update: updateMock }) };
+
+      await updateUserRole('t', 'general_supervisor', roleId);
+      expect(updateMock.mock.calls[0][0]).toMatchObject({ admin_role_id: roleId });
+
+      await updateUserRole('t', 'general_supervisor', null);
+      expect(updateMock.mock.calls[1][0]).toMatchObject({ admin_role_id: null });
+
+      await updateUserRole('t', 'publisher', roleId);
+      expect(updateMock.mock.calls[2][0]).not.toHaveProperty('admin_role_id');
+
+      // رقم مش صالح = رفض، مش افتراضي في صمت.
+      const bad = await updateUserRole('t', 'general_supervisor', 'not-a-uuid');
+      expect(bad.ok).toBe(false);
+      expect(updateMock).toHaveBeenCalledTimes(3);
+    });
+
     it('returns failure when 0 rows are affected (no matching row)', async () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
@@ -139,88 +163,106 @@ describe('Zero-Row Mutation Hardening Tests', () => {
     });
   });
 
-  describe('2. updateRolePermissions (src/actions/admin-permissions.ts)', () => {
+  describe('2. الأدوار الإدارية (src/actions/admin-permissions.ts)', () => {
     const superAdmin = { id: 'super-admin-1', fullName: 'Super Admin', role: 'super_admin' };
 
-    function mockUpdate(result: { data: unknown; error: unknown }) {
-      const maybeSingleMock = vi.fn().mockResolvedValue(result);
-      const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = vi.fn().mockReturnValue({ update: updateMock });
+    /** سلسلة Supabase وهمية: أي نداء بيرجّع نفسه، و`maybeSingle` بالنتيجة. */
+    function mockChain(result: { data: unknown; error: unknown }) {
+      const calls: Record<string, unknown[][]> = {};
+      const chain: Record<string, unknown> = {};
+      for (const m of ['update', 'insert', 'delete', 'eq', 'select']) {
+        chain[m] = vi.fn((...args: unknown[]) => {
+          (calls[m] ??= []).push(args);
+          return chain;
+        });
+      }
+      chain.maybeSingle = vi.fn().mockResolvedValue(result);
+      const fromMock = vi.fn().mockReturnValue(chain);
       mockSupabase = { from: fromMock };
-      return { fromMock, updateMock, eqMock, selectMock };
+      return { fromMock, calls };
     }
 
-    it('returns success when the role row is updated', async () => {
+    it('saveAdminRole: بيعدّل دور موجود وبينضّف التكرار والمسافات', async () => {
       mockGetCurrentUser.mockResolvedValue(superAdmin);
-      const { fromMock, updateMock, eqMock } = mockUpdate({
-        data: { role: 'general_supervisor' },
-        error: null,
-      });
+      const { fromMock, calls } = mockChain({ data: { id: 'role-1' }, error: null });
 
-      const result = await updateRolePermissions({
-        role: 'general_supervisor',
-        permissions: ['canManageUsers', 'canManageOrders', 'canManageOrders'],
+      const result = await saveAdminRole({
+        id: 'role-1',
+        name: '  محاسب   أول ',
+        permissions: ['canManageFinance', 'canManageFinance', 'hack' as never],
       });
 
       expect(result).toEqual({ ok: true });
-      expect(fromMock).toHaveBeenCalledWith('role_permissions');
-      expect(eqMock).toHaveBeenCalledWith('role', 'general_supervisor');
-      // التكرار بيتشال قبل الحفظ.
-      expect(updateMock.mock.calls[0][0].permissions).toEqual([
-        'canManageUsers',
-        'canManageOrders',
-      ]);
+      expect(fromMock).toHaveBeenCalledWith('admin_roles');
+      const row = calls.update[0][0] as { name: string; permissions: string[] };
+      expect(row.name).toBe('محاسب أول');
+      expect(row.permissions).toEqual(['canManageFinance']);
+      expect(calls.eq[0]).toEqual(['id', 'role-1']);
       expect(mockLogAuditAction).toHaveBeenCalled();
     });
 
-    it('returns failure when 0 rows are affected (table/row missing or RLS)', async () => {
+    it('saveAdminRole: صفر صفوف = فشل، مش «تم»', async () => {
       mockGetCurrentUser.mockResolvedValue(superAdmin);
-      mockUpdate({ data: null, error: null });
+      mockChain({ data: null, error: null });
 
-      const result = await updateRolePermissions({
-        role: 'general_supervisor',
-        permissions: ['canManageUsers'],
-      });
+      const result = await saveAdminRole({ id: 'x', name: 'محاسب', permissions: ['canManageFinance'] });
 
       expect(result.ok).toBe(false);
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
 
-    it('enforces role restriction (only super_admin allowed)', async () => {
+    it('saveAdminRole: الاسم المكرر بيرجع رسالة مفهومة', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
+      mockChain({ data: null, error: { code: '23505', message: 'duplicate' } });
+
+      const result = await saveAdminRole({ name: 'محاسب', permissions: ['canManageFinance'] });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error).toContain('بنفس الاسم');
+    });
+
+    it('saveAdminRole: بيرفض الاسم القصير والصلاحيات الفاضية من غير ما يكلّم القاعدة', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
+      const { fromMock } = mockChain({ data: { id: 'r' }, error: null });
+
+      expect((await saveAdminRole({ name: 'ا', permissions: ['canManageFinance'] })).ok).toBe(false);
+      expect((await saveAdminRole({ name: 'محاسب', permissions: [] })).ok).toBe(false);
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it('كل الأكشنز لمدير النظام بس', async () => {
       mockGetCurrentUser.mockResolvedValue({
         id: 'supervisor-1',
         fullName: 'General Supervisor',
         role: 'general_supervisor',
       });
+      const { fromMock } = mockChain({ data: { id: 'r' }, error: null });
 
-      const result = await updateRolePermissions({
-        role: 'general_supervisor',
-        permissions: ['canManageFinance'],
-      });
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toContain('تعديل الصلاحيات لمدير النظام فقط');
-      }
+      expect((await saveAdminRole({ name: 'محاسب', permissions: ['canManageFinance'] })).ok).toBe(false);
+      expect((await deleteAdminRole('r')).ok).toBe(false);
+      expect((await assignAdminRole({ userId: 'supervisor-1', adminRoleId: 'r' })).ok).toBe(false);
+      expect(fromMock).not.toHaveBeenCalled();
     });
 
-    it('refuses editing super_admin role and empty / unknown permission lists', async () => {
+    it('deleteAdminRole: مايمسحش الافتراضي (الشرط في الاستعلام نفسه)', async () => {
       mockGetCurrentUser.mockResolvedValue(superAdmin);
+      const { calls } = mockChain({ data: null, error: null });
 
-      const asSuper = await updateRolePermissions({
-        role: 'super_admin' as never,
-        permissions: ['canManageUsers'],
-      });
-      expect(asSuper.ok).toBe(false);
+      const result = await deleteAdminRole('default-role');
 
-      const unknownOnly = await updateRolePermissions({
-        role: 'general_supervisor',
-        permissions: ['hack' as never],
-      });
-      expect(unknownOnly.ok).toBe(false);
-      expect(mockLogAuditAction).not.toHaveBeenCalled();
+      expect(result.ok).toBe(false);
+      expect(calls.eq).toContainEqual(['is_default', false]);
+    });
+
+    it('assignAdminRole: للإداريين بس، والافتراضي بيتخزّن فاضي', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
+      const { calls } = mockChain({ data: { id: 'u1' }, error: null });
+
+      const result = await assignAdminRole({ userId: 'u1', adminRoleId: null });
+
+      expect(result).toEqual({ ok: true });
+      expect((calls.update[0][0] as { admin_role_id: unknown }).admin_role_id).toBeNull();
+      expect(calls.eq).toContainEqual(['role', 'general_supervisor']);
     });
   });
 

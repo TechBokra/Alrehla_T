@@ -1788,23 +1788,32 @@ export type Database = {
         }
         Relationships: []
       }
-      /** صلاحيات كل دور إداري — ملف schema/04. مدير النظام مالوش صف (الكل دايمًا). */
-      role_permissions: {
+      /** الأدوار الإدارية بأسماء — ملف schema/05. مدير النظام مالوش صف (الكل دايمًا). */
+      admin_roles: {
         Row: {
-          role: Database["public"]["Enums"]["user_role_enum"]
+          id: string
+          name: string
           permissions: string[]
+          is_default: boolean
+          created_at: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
-          role: Database["public"]["Enums"]["user_role_enum"]
+          id?: string
+          name: string
           permissions?: string[]
+          is_default?: boolean
+          created_at?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
-          role?: Database["public"]["Enums"]["user_role_enum"]
+          id?: string
+          name?: string
           permissions?: string[]
+          is_default?: boolean
+          created_at?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -2021,6 +2030,8 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role_enum"]
           is_guardian: boolean | null
           avatar_url: string | null
+          /** الدور الإداري — schema/05. فاضي = الافتراضي. */
+          admin_role_id: string | null
           created_at: string
           updated_at: string
           /** موقوف عن الشراء من التاريخ ده — SQL 118. الدخول مابيتمنعش. */
@@ -2033,6 +2044,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role_enum"]
           is_guardian?: boolean | null
           avatar_url?: string | null
+          admin_role_id?: string | null
           created_at?: string
           updated_at?: string
           suspended_at?: string | null
@@ -2044,6 +2056,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role_enum"]
           is_guardian?: boolean | null
           avatar_url?: string | null
+          admin_role_id?: string | null
           created_at?: string
           updated_at?: string
           suspended_at?: string | null

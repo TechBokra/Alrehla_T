@@ -126,7 +126,8 @@ export async function submitInstructorMedia(formData: FormData): Promise<MediaRe
     link: '/dashboard/admin/instructors/media',
   });
 
-  revalidatePath('/dashboard/instructor/settings');
+  // الصور بقت في «ملفي» (كانت في «الإعدادات»).
+  revalidatePath('/dashboard/instructor/profile');
   revalidatePath('/dashboard/admin/instructors/media');
   return { ok: true };
 }
@@ -164,7 +165,11 @@ export async function removeInstructorMedia(formData: FormData): Promise<MediaRe
   // ⚠️ **الصورة بتفضل على Cloudinary.** مافيش حذف تلقائي من هنا
   //    لأن نفس الرابط ممكن يكون مستعملًا في مكان تاني — التنظيف
   //    من شاشة الصور في الإدارة زي باقي الصور اليتيمة.
-  revalidatePath('/dashboard/instructor/settings');
+  // الصور بقت في «ملفي» (كانت في «الإعدادات»).
+  revalidatePath('/dashboard/instructor/profile');
+  revalidatePath('/dashboard/admin/instructors/media');
+  // لو كانت معتمدة، كانت ظاهرة في صفحته العامة.
+  revalidatePath(`/creative-writing/instructors/${instructorId}`);
   return { ok: true };
 }
 
@@ -235,6 +240,67 @@ export async function reviewInstructorMedia(formData: FormData): Promise<MediaRe
   });
 
   revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
+  revalidatePath('/dashboard/instructor/profile');
+  revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
+  return { ok: true };
+}
+
+/**
+ * الإدارة: سحب اعتماد صورة ظاهرة — بسبب بيوصل للمدرب.
+ *
+ * ⚠️ **سحب مش حذف.** الصورة بتبقى «مرفوضة» بالسبب في لوحة المدرب، فهو
+ *    عارف إيه اللي حصل ويقدر يرفع بديل. الحذف كان هيخلّيها تختفي من
+ *    عنده من غير أي تفسير.
+ */
+export async function revokeInstructorMedia(formData: FormData): Promise<MediaResult> {
+  let actorName = 'إداري';
+  let actorId: string | undefined;
+  try {
+    const admin = await requireAdmin('canManageInstructors');
+    actorName = admin.fullName ?? 'إداري';
+    actorId = admin.id;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+  }
+
+  const id = String(formData.get('id') ?? '');
+  const feedback = String(formData.get('feedback') ?? '').trim();
+  if (!id) return { ok: false, error: 'الصورة غير محددة' };
+  if (feedback.length < 3) {
+    return { ok: false, error: 'اكتب السبب — بيوصل للمدرب عشان يعرف يغيّر إيه' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('instructor_media')
+    .update({ status: 'rejected', admin_feedback: feedback })
+    .eq('id', id)
+    // المعتمَد بس — نفس سبب شرط «المعلَّق» في المراجعة.
+    .eq('status', 'approved')
+    .select('id, instructor_id, kind')
+    .maybeSingle();
+
+  if (error) {
+    console.error('تعذّر سحب اعتماد الصورة', error);
+    return { ok: false, error: 'تعذّر حفظ القرار' };
+  }
+  if (!data) {
+    return { ok: false, error: 'الصورة دي مش معتمدة دلوقتي — حدّث الصفحة' };
+  }
+
+  await logAuditAction({
+    actorProfileId: actorId,
+    actorName,
+    action: 'instructor_media_revoked',
+    entityType: 'instructor_media',
+    entityId: id,
+    metadata: { instructorId: data.instructor_id, kind: data.kind, feedback },
+  });
+
+  revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
+  revalidatePath('/dashboard/instructor/profile');
   revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
   return { ok: true };
 }
