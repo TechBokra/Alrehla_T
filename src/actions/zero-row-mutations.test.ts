@@ -103,6 +103,31 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       expect(mockLogAuditAction).toHaveBeenCalled();
     });
 
+    it('بيكتب الدور الإداري مع «إداري»، ومابيلمسوش مع أي دور تاني', async () => {
+      mockRequireAdmin.mockResolvedValue({ id: 'admin-1', fullName: 'Super Admin', role: 'super_admin' });
+      const roleId = '22222222-2222-2222-2222-222222222222';
+
+      const maybeSingleMock = vi.fn().mockResolvedValue({ data: { id: 't' }, error: null });
+      const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
+      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+      mockSupabase = { from: vi.fn().mockReturnValue({ update: updateMock }) };
+
+      await updateUserRole('t', 'general_supervisor', roleId);
+      expect(updateMock.mock.calls[0][0]).toMatchObject({ admin_role_id: roleId });
+
+      await updateUserRole('t', 'general_supervisor', null);
+      expect(updateMock.mock.calls[1][0]).toMatchObject({ admin_role_id: null });
+
+      await updateUserRole('t', 'publisher', roleId);
+      expect(updateMock.mock.calls[2][0]).not.toHaveProperty('admin_role_id');
+
+      // رقم مش صالح = رفض، مش افتراضي في صمت.
+      const bad = await updateUserRole('t', 'general_supervisor', 'not-a-uuid');
+      expect(bad.ok).toBe(false);
+      expect(updateMock).toHaveBeenCalledTimes(3);
+    });
+
     it('returns failure when 0 rows are affected (no matching row)', async () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',

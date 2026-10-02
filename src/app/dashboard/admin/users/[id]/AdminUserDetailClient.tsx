@@ -36,6 +36,13 @@ import {
 import type { UserProfile, UserRole } from '@/types';
 import { ROLE_LABELS } from '@/app/dashboard/admin/users/UsersClient';
 import { resetUserPassword, updateUserRole } from '@/actions/admin-users';
+import {
+  roleChoices,
+  roleToChoice,
+  choiceToRole,
+  roleDisplayName,
+  type AdminRoleOption,
+} from '@/lib/role-choice';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { formatCairo, PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { Pagination } from '@/components/dashboard/Pagination';
@@ -94,6 +101,8 @@ interface AdminUserDetailClientProps {
   childrenList: UserChildRow[];
   tickets: UserTicketRow[];
   isSuperAdmin: boolean;
+  /** الأدوار الإدارية بأسمائها (schema/05). */
+  adminRoles?: AdminRoleOption[];
 }
 
 type ActiveTab = 'overview' | 'orders' | 'sessions' | 'children' | 'tickets';
@@ -109,14 +118,25 @@ export function AdminUserDetailClient({
   childrenList,
   tickets,
   isSuperAdmin,
+  adminRoles = [],
 }: AdminUserDetailClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
   // Role change state
-  const [currentRole, setCurrentRole] = useState<UserRole>(user.role);
+  // «اختيار» مش دور خام: الإداري بيتعرض ويتحدد باسم دوره الإداري
+  // (`@/lib/role-choice`).
+  const [currentRole, setCurrentRole] = useState<string>(
+    roleToChoice(user.role, user.adminRoleId, adminRoles)
+  );
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [selectedNewRole, setSelectedNewRole] = useState<UserRole>(user.role);
+  const [selectedNewRole, setSelectedNewRole] = useState<string>(currentRole);
+  const currentRoleLabel = (() => {
+    const decoded = choiceToRole(currentRole, adminRoles);
+    return decoded
+      ? roleDisplayName(decoded.role, decoded.adminRoleId, adminRoles, ROLE_LABELS)
+      : currentRole;
+  })();
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleFeedback, setRoleFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -191,7 +211,12 @@ export function AdminUserDetailClient({
     setRoleSaving(true);
     setRoleFeedback(null);
     try {
-      const res = await updateUserRole(user.id, selectedNewRole);
+      const decoded = choiceToRole(selectedNewRole, adminRoles);
+      if (!decoded) {
+        setRoleFeedback({ ok: false, msg: 'الدور المختار غير صالح — حدّث الصفحة.' });
+        return;
+      }
+      const res = await updateUserRole(user.id, decoded.role, decoded.adminRoleId);
       if (res.ok) {
         setCurrentRole(selectedNewRole);
         setRoleFeedback({ ok: true, msg: 'تم تغيير دور المستخدم بنجاح.' });
@@ -286,7 +311,7 @@ export function AdminUserDetailClient({
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-black text-slate-900">{user.fullName}</h2>
                 <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                  {ROLE_LABELS[currentRole] || currentRole}
+                  {currentRoleLabel}
                 </span>
                 {user.isGuardian && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-800 border border-violet-200">
@@ -462,7 +487,7 @@ export function AdminUserDetailClient({
                 </div>
                 <div>
                   <span className="text-slate-400 block mb-0.5">الدور الحالي:</span>
-                  <span className="font-bold text-indigo-700">{ROLE_LABELS[currentRole] || currentRole}</span>
+                  <span className="font-bold text-indigo-700">{currentRoleLabel}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block mb-0.5">تاريخ التسجيل:</span>
@@ -1222,18 +1247,19 @@ export function AdminUserDetailClient({
               <label className="text-xs font-bold text-slate-700">اختر الدور الجديد:</label>
               <select
                 value={selectedNewRole}
-                onChange={(e) => setSelectedNewRole(e.target.value as UserRole)}
+                onChange={(e) => setSelectedNewRole(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-slate-800"
               >
-                <option value="student">عميل / طالب</option>
-                <option value="service_provider">مقدّم خدمة</option>
-                <option value="publisher">ناشر</option>
-                {isSuperAdmin && (
-                  <>
-                    <option value="general_supervisor">إداري (دوره بيتحدد من «الصلاحيات»)</option>
-                    <option value="super_admin">مدير نظام</option>
-                  </>
-                )}
+                {roleChoices(
+                  ['student', 'service_provider', 'publisher', 'general_supervisor', 'super_admin'],
+                  adminRoles,
+                  ROLE_LABELS,
+                  isSuperAdmin
+                ).map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
               </select>
               <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
                 * ملاحظة: دور المدرب يتم تعيينه عبر شاشة «المدربين» لضمان إنشاء ملف تدريبي متكامل.

@@ -223,6 +223,7 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     fullName: profile.full_name,
     email: emailById.get(profile.id) ?? '',
     role: profile.role as UserRole,
+    adminRoleId: (profile as { admin_role_id?: string | null }).admin_role_id ?? null,
     isGuardian: profile.is_guardian || false,
     avatarUrl: profile.avatar_url || undefined,
     createdAt: profile.created_at || new Date().toISOString(),
