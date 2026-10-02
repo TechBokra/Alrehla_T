@@ -8,6 +8,8 @@ import {
 } from '@/data/domains/writing';
 import { getSiteSettings } from '@/data/domains/content';
 import { getMyInstructorId } from '@/data/domains/services';
+import { getOwnInstructorMedia } from '@/data/domains/instructor-media';
+import { InstructorMediaPanel } from '@/components/dashboard/InstructorMediaPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +19,7 @@ export default async function InstructorSettingsPage() {
   const instructorId = await getMyInstructorId();
   if (!instructorId) return null;
 
-  const [instructor, formulaSettings, settings, allPackages, publicRow] = await Promise.all([
+  const [instructor, formulaSettings, settings, allPackages, publicRow, media] = await Promise.all([
     getInstructorById(instructorId),
     getPricingFormulaSettings(),
     getSiteSettings(),
@@ -25,6 +27,7 @@ export default async function InstructorSettingsPage() {
     // ⚠️ نفس المصدر اللي معالج الحجز بيقرا منه — مصدرين لنفس الرقم
     //    بيفترقوا يوم ما.
     getPublicInstructorById(instructorId),
+    getOwnInstructorMedia(instructorId),
   ]);
 
   const packages = allPackages.filter((p) => p.isActive !== false);
@@ -52,8 +55,13 @@ export default async function InstructorSettingsPage() {
         selectedPackageIds={publicRow?.packageIds ?? []}
       />
 
-      {/* الغلاف وصور الأعمال اتنقلوا لـ«ملفي وصوري» — جنب الصورة
-          الشخصية، المكان اللي المدرب بيدوّر فيه عليهم. */}
+      {/* ⚠️ الصور في قسم مستقل تحت لا جوّه نموذج الإعدادات: نموذج
+          الإعدادات بيبعت **طلب موافقة واحدًا** بكل التغييرات، والصور
+          بتتبعت **كل واحدة لوحدها**. لو اتحطّوا في نموذج واحد،
+          المدرب كان هيضغط «حفظ» ويفتكر إن الصور اتبعتت معاه. */}
+      <div className="mt-12 border-t border-slate-200 pt-12">
+        <InstructorMediaPanel media={media} />
+      </div>
     </div>
   );
 }

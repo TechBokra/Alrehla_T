@@ -10,13 +10,6 @@ import { Pagination } from '@/components/dashboard/Pagination';
 import { createUserDirectly, inviteUser, updateUserRole } from '@/actions/admin-users';
 import { InviteLinkBox } from '@/components/dashboard/InviteLinkBox';
 import type { UserProfile, UserRole } from '@/types';
-import {
-  roleChoices,
-  roleToChoice,
-  choiceToRole,
-  roleDisplayName,
-  type AdminRoleOption,
-} from '@/lib/role-choice';
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
@@ -28,8 +21,7 @@ export const ROLE_LABELS: Record<string, string> = {
   instructor: 'مدرب',
   service_provider: 'مقدّم خدمة',
   publisher: 'ناشر',
-  // دوره الإداري بالظبط («محاسب»، «مسؤول محتوى»…) من شاشة «الصلاحيات».
-  general_supervisor: 'إداري',
+  general_supervisor: 'مشرف عام',
   super_admin: 'مدير نظام',
 };
 
@@ -63,15 +55,12 @@ export function UsersClient({
   isSuperAdmin,
   currentUserId,
   prefill,
-  adminRoles = [],
 }: {
   users: UserProfile[];
   canInvite: boolean;
   isSuperAdmin: boolean;
   currentUserId: string;
   prefill?: UserPrefill | null;
-  /** الأدوار الإدارية بأسمائها (schema/05) — فاضية لو الجدول مش موجود. */
-  adminRoles?: AdminRoleOption[];
 }) {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
@@ -124,8 +113,6 @@ export function UsersClient({
       <RoleCell
         userId={user.id}
         role={user.role}
-        adminRoleId={user.adminRoleId ?? null}
-        adminRoles={adminRoles}
         editable={user.id !== currentUserId || isSuperAdmin}
         isSuperAdmin={isSuperAdmin}
       />
@@ -175,7 +162,6 @@ export function UsersClient({
       {showForm && (
         <AddUserForm
           isSuperAdmin={isSuperAdmin}
-          adminRoles={adminRoles}
           prefill={prefill}
           onDone={() => setShowForm(false)}
         />
@@ -273,21 +259,16 @@ export function UsersClient({
 function RoleCell({
   userId,
   role,
-  adminRoleId,
-  adminRoles,
   editable,
   isSuperAdmin,
 }: {
   userId: string;
   role: UserRole;
-  adminRoleId: string | null;
-  adminRoles: AdminRoleOption[];
   editable: boolean;
   isSuperAdmin: boolean;
 }) {
   const router = useRouter();
-  // القيمة «اختيار» مش دور خام: الإداري بيتعرض باسم دوره الإداري.
-  const [value, setValue] = useState<string>(roleToChoice(role, adminRoleId, adminRoles));
+  const [value, setValue] = useState<UserRole>(role);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -295,15 +276,12 @@ function RoleCell({
   // لو عرضناه في قايمة ما هوش فيها، المتصفح هيختار أول عنصر وهيبان إن
   // دوره اتغيّر وهو ما اتغيّرش — وأي لمسة للقايمة كانت هتغيّره فعلًا.
   const locked = !ASSIGNABLE.includes(role);
-  // غير مدير النظام مايقدرش يلمس دور إداري — فبيشوفه نص ثابت مش قايمة
-  // مافيهاش قيمته (نفس سبب «مدرب» فوق).
-  const adminTarget = role === 'general_supervisor' || role === 'super_admin';
 
-  if (!editable || locked || (adminTarget && !isSuperAdmin)) {
+  if (!editable || locked) {
     return (
       <div className="space-y-1">
         <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
-          {roleDisplayName(role, adminRoleId, adminRoles, ROLE_LABELS)}
+          {ROLE_LABELS[role] ?? role}
         </span>
         {locked && role === 'instructor' && (
           <p className="text-[11px] font-medium text-slate-500">يتعدّل من شاشة المدربين</p>
@@ -312,15 +290,13 @@ function RoleCell({
     );
   }
 
-  const change = async (next: string) => {
-    const decoded = choiceToRole(next, adminRoles);
-    if (!decoded) return;
+  const change = async (next: UserRole) => {
     const previous = value;
     setValue(next);
     setBusy(true);
     setError('');
     try {
-      const result = await updateUserRole(userId, decoded.role, decoded.adminRoleId);
+      const result = await updateUserRole(userId, next);
       if (!result.ok) {
         setValue(previous); // الرجوع للقيمة القديمة: الشاشة ما تكدبش على المستخدم
         setError(result.error);
@@ -340,12 +316,14 @@ function RoleCell({
       <select
         value={value}
         disabled={busy}
-        onChange={(e) => change(e.target.value)}
+        onChange={(e) => change(e.target.value as UserRole)}
         className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 focus:border-blue-500 focus:outline-none disabled:opacity-50"
       >
-        {roleChoices(ASSIGNABLE, adminRoles, ROLE_LABELS, isSuperAdmin).map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
+        {ASSIGNABLE.filter(
+          (r) => isSuperAdmin || (r !== 'super_admin' && r !== 'general_supervisor'),
+        ).map((r) => (
+          <option key={r} value={r}>
+            {ROLE_LABELS[r]}
           </option>
         ))}
       </select>
@@ -367,12 +345,10 @@ function RoleCell({
  */
 function AddUserForm({
   isSuperAdmin,
-  adminRoles,
   prefill,
   onDone,
 }: {
   isSuperAdmin: boolean;
-  adminRoles: AdminRoleOption[];
   prefill?: UserPrefill | null;
   onDone: () => void;
 }) {
@@ -381,8 +357,7 @@ function AddUserForm({
   const [form, setForm] = useState({
     email: prefill?.email ?? '',
     fullName: prefill?.fullName ?? '',
-    // «اختيار» مش دور خام — الأدوار الإدارية بأسمائها (`@/lib/role-choice`).
-    role: roleToChoice((prefill?.role ?? 'student') as UserRole, null, adminRoles),
+    role: (prefill?.role ?? 'student') as UserRole,
     password: '',
   });
   const [busy, setBusy] = useState(false);
@@ -398,14 +373,8 @@ function AddUserForm({
     setLink('');
     setCreated(null);
     try {
-      const decoded = choiceToRole(form.role, adminRoles);
-      if (!decoded) {
-        setError('الدور المختار غير صالح — حدّث الصفحة وجرّب تاني');
-        return;
-      }
-      const payload = { ...form, role: decoded.role, adminRoleId: decoded.adminRoleId };
       if (mode === 'direct') {
-        const result = await createUserDirectly(payload);
+        const result = await createUserDirectly(form);
         if (!result.ok) {
           setError(result.error);
           return; // الفورم ما بيتفضّاش عند الفشل: التصحيح أسهل من إعادة الكتابة
@@ -416,7 +385,7 @@ function AddUserForm({
           password: result.password,
         });
       } else {
-        const result = await inviteUser(payload);
+        const result = await inviteUser(form);
         if (!result.ok) {
           setError(result.error);
           return;
@@ -502,11 +471,13 @@ function AddUserForm({
           <select
             className={inputClass}
             value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
+            onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
           >
-            {roleChoices(ASSIGNABLE, adminRoles, ROLE_LABELS, isSuperAdmin).map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+            {ASSIGNABLE.filter(
+              (r) => isSuperAdmin || (r !== 'super_admin' && r !== 'general_supervisor'),
+            ).map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABELS[r]}
               </option>
             ))}
           </select>

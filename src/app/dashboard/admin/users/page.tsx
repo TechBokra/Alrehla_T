@@ -1,6 +1,6 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/auth';
+import { getAllUsers, getCurrentUser } from '@/data/domains/auth';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { isAdminApiConfigured } from '@/lib/supabase/admin';
@@ -19,7 +19,7 @@ export default async function Page({
     return <Unauthorized />;
   }
 
-  const [allUsers, adminRoles] = await Promise.all([getAllUsers(), getAdminRoles()]);
+  const allUsers = await getAllUsers();
   const canInvite = isAdminApiConfigured();
 
   // تعبئة جاية من قبول طلب انضمام. نص في رابط لا أكتر — الإداري
@@ -54,7 +54,6 @@ export default async function Page({
         isSuperAdmin={user.role === 'super_admin'}
         currentUserId={user.id}
         prefill={prefill}
-        adminRoles={(adminRoles ?? []).map(({ id, name, isDefault }) => ({ id, name, isDefault }))}
       />
     </div>
   );

@@ -3,16 +3,19 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { UserRole } from '@/types';
 import { needsPasswordSetup, SET_PASSWORD_PATH } from '@/lib/first-login';
+import { getSupabaseUrl, getSupabaseAnonKey, getSupabaseFetch } from '@/lib/supabase/env';
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
+  const customFetch = getSupabaseFetch();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabaseAnonKey(),
     {
+      global: customFetch ? { fetch: customFetch } : undefined,
       cookies: {
         getAll() {
           return request.cookies.getAll();

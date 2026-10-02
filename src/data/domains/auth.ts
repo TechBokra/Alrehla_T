@@ -43,17 +43,16 @@ export async function syncUserProfile(user: User) {
 }
 
 /**
- * الصلاحيات على مستوى **الدور الإداري**، مش الشخص.
+ * الصلاحيات على مستوى **الدور**، مش الشخص.
  *
  * • مدير النظام: الكل دايمًا — مالوش صف في الجدول عن قصد، عشان ماينفعش
  *   يقفل الباب على نفسه.
- * • أي إداري تاني (دوره في القاعدة `general_supervisor`): صلاحيات دوره
- *   الإداري من جدول `admin_roles` (ملف schema/05) — «محاسب»، «مسؤول
- *   محتوى»… — وعمود `admin_role_id` فاضي = الدور الافتراضي («مشرف عام»).
+ * • المشرف العام: اللي في صفّه في جدول `role_permissions` (بيتعدّل من
+ *   شاشة الصلاحيات)، وكل مشرف بياخده — الموجود والجديد.
  *
  * `defaultPermissionsForRole` دي **احتياطي بس**: لو الجدول مش موجود (ملف
- * 05 لسه ماتشغّلش) أو القراءة فشلت، الموقع بيشتغل بالقديم بدل ما يقفل
- * القايمة على الإداريين.
+ * 04 لسه ماتشغّلش) أو القراءة فشلت، الموقع بيشتغل بالقديم بدل ما يقفل
+ * القايمة على المشرفين.
  */
 export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers',
@@ -73,78 +72,35 @@ export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {
   return [];
 }
 
-/** أسماء غريبة بتتشال — القاعدة بترفضها أصلًا، بس مفيش ضرر من التأكيد. */
-export function knownPermissions(list: readonly string[] | null | undefined): AdminPermission[] {
-  return (list ?? []).filter((p): p is AdminPermission =>
-    (ALL_ADMIN_PERMISSIONS as string[]).includes(p)
-  );
-}
-
-export type AdminRoleRow = {
-  id: string;
-  name: string;
-  permissions: AdminPermission[];
-  isDefault: boolean;
-};
-
-/** كل الأدوار الإدارية — الافتراضي الأول. `null` = الجدول مش موجود (05 ماتشغّلش). */
-export async function getAdminRoles(): Promise<AdminRoleRow[] | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('admin_roles')
-    .select('id, name, permissions, is_default')
-    .order('is_default', { ascending: false })
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('admin_roles read failed', error.message);
-    return null;
-  }
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    permissions: knownPermissions(r.permissions),
-    isDefault: r.is_default,
-  }));
-}
+/** الأدوار اللي صلاحياتها بتتظبط من الشاشة. */
+export const EDITABLE_ADMIN_ROLES = ['general_supervisor'] as const;
+export type EditableAdminRole = (typeof EDITABLE_ADMIN_ROLES)[number];
 
 /**
- * صلاحيات حساب إداري واسم دوره.
+ * صلاحيات دور من الجدول — مع الاحتياطي لو مش موجود.
  *
- * دوره المحدَّد لو موجود، وإلا الافتراضي. ولو الجدول مش موجود أو القراءة
- * فشلت: الصلاحيات القديمة (نفس سلوك ما قبل الملف).
+ * ⚠️ أسماء غريبة في الصف بتتشال هنا كمان (القاعدة بترفضها أصلًا، بس
+ *    مفيش ضرر من التأكيد).
  */
-export async function getAdminAccess(
-  role: UserRole,
-  adminRoleId: string | null | undefined,
-): Promise<{ permissions: AdminPermission[]; roleName?: string }> {
-  if (role === 'super_admin') {
-    return { permissions: [...ALL_ADMIN_PERMISSIONS], roleName: 'مدير النظام' };
-  }
-  if (role !== 'general_supervisor') return { permissions: [] };
+export async function getRolePermissions(role: UserRole): Promise<AdminPermission[]> {
+  if (role === 'super_admin') return [...ALL_ADMIN_PERMISSIONS];
+  if (!(EDITABLE_ADMIN_ROLES as readonly string[]).includes(role)) return [];
 
   const supabase = await createClient();
-
-  if (adminRoleId) {
-    const { data } = await supabase
-      .from('admin_roles')
-      .select('name, permissions')
-      .eq('id', adminRoleId)
-      .maybeSingle();
-    if (data) return { permissions: knownPermissions(data.permissions), roleName: data.name };
-  }
-
   const { data, error } = await supabase
-    .from('admin_roles')
-    .select('name, permissions')
-    .eq('is_default', true)
+    .from('role_permissions')
+    .select('permissions')
+    .eq('role', role)
     .maybeSingle();
 
   if (error || !data) {
-    if (error) console.error('admin_roles read failed — using defaults', error.message);
-    return { permissions: defaultPermissionsForRole(role), roleName: 'مشرف عام' };
+    if (error) console.error('role_permissions read failed — using defaults', error.message);
+    return defaultPermissionsForRole(role);
   }
-  return { permissions: knownPermissions(data.permissions), roleName: data.name };
+
+  return (data.permissions ?? []).filter((p): p is AdminPermission =>
+    (ALL_ADMIN_PERMISSIONS as string[]).includes(p)
+  );
 }
 
 // Database Access Functions
@@ -172,11 +128,8 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
 
   const role: UserRole = (profile.role as UserRole) || 'customer';
 
-  // الصلاحيات من دوره الإداري — كل اللي في الدور بياخدوا نفس الحاجة.
-  const { permissions, roleName } = await getAdminAccess(
-    role,
-    (profile as { admin_role_id?: string | null }).admin_role_id,
-  );
+  // الصلاحيات من دوره — كل اللي في الدور بياخدوا نفس الحاجة.
+  const permissions = await getRolePermissions(role);
 
   return {
     id: user.id,
@@ -190,7 +143,6 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
     suspendedAt: (profile as { suspended_at?: string | null }).suspended_at ?? null,
     suspensionReason:
       (profile as { suspension_reason?: string | null }).suspension_reason ?? null,
-    ...(roleName ? { adminRoleName: roleName } : {}),
     ...(permissions.length > 0 ? { permissions } : {})
   };
 };
@@ -223,7 +175,6 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     fullName: profile.full_name,
     email: emailById.get(profile.id) ?? '',
     role: profile.role as UserRole,
-    adminRoleId: (profile as { admin_role_id?: string | null }).admin_role_id ?? null,
     isGuardian: profile.is_guardian || false,
     avatarUrl: profile.avatar_url || undefined,
     createdAt: profile.created_at || new Date().toISOString(),

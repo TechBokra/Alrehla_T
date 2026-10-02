@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/auth';
+import { getAllUsers, getCurrentUser } from '@/data/domains/auth';
 import { hasAdminPermission, calculateAge } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { createClient } from '@/lib/supabase/server';
@@ -25,7 +25,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   const { id } = await params;
-  const [allUsers, adminRoles] = await Promise.all([getAllUsers(), getAdminRoles()]);
+  const allUsers = await getAllUsers();
   const targetUser = allUsers.find((u) => u.id === id);
   if (!targetUser) notFound();
 
@@ -160,7 +160,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         childrenList={childrenList}
         tickets={tickets}
         isSuperAdmin={user.role === 'super_admin'}
-        adminRoles={(adminRoles ?? []).map(({ id, name, isDefault }) => ({ id, name, isDefault }))}
       />
     </div>
   );

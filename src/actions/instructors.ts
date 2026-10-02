@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/supabase';
 import { notifyUser, getInstructorUserId, notifyAdmins } from '@/lib/notifications';
 import { summarizeInstructorChangesText } from '@/lib/request-summary';
-import { isProfileComplete, validateFirstProfile } from '@/lib/instructor-onboarding';
 
 /**
  * Instructor profile changes, certification and pricing settings.
@@ -34,46 +33,21 @@ async function requireOwnInstructorProfile(instructorId: string) {
 
   const { data } = await supabase
     .from('instructors')
-    .select('id, display_name, bio, specialties')
+    .select('id, display_name')
     .eq('id', instructorId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!data) throw new Error('غير مصرح لك بتعديل هذا الملف');
-  return {
-    user,
-    instructorName: data.display_name,
-    // ملف ناقص = مدرب جديد جاي من طلب انضمام بيكمّل ملفه لأول مرة.
-    isFirstProfile: !isProfileComplete(data),
-  };
+  return { user, instructorName: data.display_name };
 }
 
 export async function submitInstructorProfileUpdate(
   instructorId: string,
   changes: Partial<Instructor>
 ) {
-  const { user, instructorName, isFirstProfile } =
-    await requireOwnInstructorProfile(instructorId);
+  const { instructorName } = await requireOwnInstructorProfile(instructorId);
   const supabase = await createClient();
-
-  // ⚠️ **الملف الأول إلزامي كله** — والفحص هنا مش في الشاشة بس (قاعدة
-  //    «ع»): من غيره نداء مباشر كان يبعت ملف فاضي للمراجعة. والصورة
-  //    بتتقري من القاعدة (الشاشة بتحفظها قبل الطلب ده).
-  if (isFirstProfile) {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
-    const problem = validateFirstProfile({
-      displayName: changes.displayName ?? '',
-      bio: changes.bio ?? '',
-      specialties: changes.specialties ?? [],
-      yearsExperience: Number(changes.yearsExperience),
-      avatarUrl: profile?.avatar_url ?? '',
-    });
-    if (problem) throw new Error(problem);
-  }
 
   const { error } = await supabase.from('profile_update_requests').insert({
     instructor_id: instructorId,
@@ -91,14 +65,11 @@ export async function submitInstructorProfileUpdate(
 
   await notifyAdmins({
     event: 'instructor_profile',
-    title: isFirstProfile
-      ? `مدرب جديد كمّل ملفه: ${instructorName || 'مدرب'} — راجعه وفعّله`
-      : `طلب تعديل ملف: ${instructorName || 'مدرب'}`,
+    title: `طلب تعديل ملف: ${instructorName || 'مدرب'}`,
     message: summary,
     link: `/dashboard/admin/instructors/${instructorId}`,
   });
 
-  revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   return { success: true };

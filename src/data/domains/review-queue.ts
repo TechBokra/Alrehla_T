@@ -36,7 +36,6 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     sessionRequests,
     withdrawals,
     stalledOrders,
-    instructorMedia,
   ] = await Promise.all([
     supabase.from('orders').select('id', head).eq('status', 'awaiting_verification'),
     supabase.from('service_orders').select('id', head).eq('status', 'awaiting_verification'),
@@ -61,9 +60,6 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
       .select('id', head)
       .eq('status', 'delivered')
       .lt('delivered_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-    // صور المدربين (غلاف وأعمال) — مابتظهرش في صفحته قبل الاعتماد، فلو
-    // الشاشة مش بتنبّه، المدرب بيستنى من غير ما حد يعرف.
-    supabase.from('instructor_media').select('id', head).eq('status', 'pending'),
   ]);
 
   // A count the current admin is not allowed to read comes back as an error or
@@ -136,14 +132,6 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
       label: 'طلبات تعديل ملفات المدربين',
       count: n(profileRequests),
       href: '/dashboard/admin/instructors',
-      permission: 'canManageInstructors',
-      urgent: false,
-    },
-    {
-      key: 'instructor_media',
-      label: 'صور مدربين مستنية المراجعة',
-      count: n(instructorMedia),
-      href: '/dashboard/admin/instructors/media',
       permission: 'canManageInstructors',
       urgent: false,
     },

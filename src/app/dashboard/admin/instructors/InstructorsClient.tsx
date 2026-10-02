@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, X } from 'lucide-react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { isProfileComplete } from '@/lib/instructor-onboarding';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/dashboard/Pagination';
 import { createInstructor } from '@/actions/admin-instructors';
@@ -92,10 +91,6 @@ export function InstructorsClient({
       statusDisplay = <StatusBadge type="warning" label="بانتظار الاعتماد" />;
     if (inst.status === 'pending_training')
       statusDisplay = <StatusBadge type="neutral" label="قيد التدريب" />;
-    // جاي من طلب انضمام ولسه ماكمّلش ملفه (أو ملفه مستني مراجعتك في
-    // «طلبات تعديل ملفات المدربين») — `@/lib/instructor-onboarding`.
-    if (!isProfileComplete(inst))
-      statusDisplay = <StatusBadge type="pending" label="ملفه لسه ناقص" />;
 
     return {
       ...inst,

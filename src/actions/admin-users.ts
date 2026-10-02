@@ -66,46 +66,14 @@ function checkRole(role: UserRole, actorRole: UserRole): string | null {
 // الرمز المؤقت بقى في `@/lib/first-login` — مشترك مع شاشة المدربين،
 // وحروفه الملتبسة مشالة عشان يتقال في تليفون من غير لبس.
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * الدور الإداري («محاسب»، «مسؤول محتوى»…) — schema/05.
- *
- * بيتكتب للإداري (`general_supervisor`) بس؛ أي دور تاني القاعدة بتصفّره.
- * `null` = الدور الافتراضي. وأي قيمة مش رقم صالح بتترفض بدل ما تتجاهل
- * — الإداري اللي اختار «محاسب» لازم يعرف لو ماتسجّلش.
- */
-function cleanAdminRoleId(
-  role: UserRole,
-  adminRoleId: string | null | undefined,
-): { ok: true; value: string | null | undefined } | { ok: false; error: string } {
-  if (role !== 'general_supervisor' || adminRoleId === undefined) {
-    return { ok: true, value: undefined };
-  }
-  if (adminRoleId === null || adminRoleId === '') return { ok: true, value: null };
-  if (!UUID.test(adminRoleId)) return { ok: false, error: 'الدور الإداري المختار غير صالح' };
-  return { ok: true, value: adminRoleId };
-}
-
 /** كتابة الملف الشخصي بعد إنشاء الحساب — مشتركة بين الطريقتين. */
-async function writeProfile(
-  userId: string,
-  fullName: string,
-  role: UserRole,
-  adminRoleId?: string | null,
-) {
+async function writeProfile(userId: string, fullName: string, role: UserRole) {
   const supabaseAdmin = createAdminClient();
   // الملف الشخصي قد يكون أُنشئ بمحفّز عند التسجيل — upsert بتتعامل مع
   // الحالتين من غير ما تكسر لو الصف موجود.
-  return supabaseAdmin.from('user_profiles').upsert(
-    {
-      id: userId,
-      full_name: fullName,
-      role,
-      ...(adminRoleId !== undefined ? { admin_role_id: adminRoleId } : {}),
-    },
-    { onConflict: 'id' },
-  );
+  return supabaseAdmin
+    .from('user_profiles')
+    .upsert({ id: userId, full_name: fullName, role }, { onConflict: 'id' });
 }
 
 /**
@@ -124,8 +92,6 @@ export async function createUserDirectly(params: {
   email: string;
   fullName: string;
   role: UserRole;
-  /** الدور الإداري لو الدور «إداري» — `null` = الافتراضي. */
-  adminRoleId?: string | null;
   password?: string;
 }): Promise<UserActionResult<{ userId: string; password: string }>> {
   const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإضافة مستخدمين');
@@ -142,8 +108,6 @@ export async function createUserDirectly(params: {
 
   const roleError = checkRole(params.role, admin.role);
   if (roleError) return { ok: false, error: roleError };
-  const adminRole = cleanAdminRoleId(params.role, params.adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
 
   const password = typed || generateTempCode();
   const supabaseAdmin = createAdminClient();
@@ -174,12 +138,7 @@ export async function createUserDirectly(params: {
   const userId = data.user?.id;
   if (!userId) return { ok: false, error: 'تعذّر إنشاء الحساب' };
 
-  const { error: profileError } = await writeProfile(
-    userId,
-    fullName,
-    params.role,
-    adminRole.value,
-  );
+  const { error: profileError } = await writeProfile(userId, fullName, params.role);
   if (profileError) {
     console.error('Error creating profile', profileError);
     return {
@@ -227,8 +186,6 @@ export async function inviteUser(params: {
   email: string;
   fullName: string;
   role: UserRole;
-  /** الدور الإداري لو الدور «إداري» — `null` = الافتراضي. */
-  adminRoleId?: string | null;
 }): Promise<UserActionResult<{ userId: string; inviteLink: string }>> {
   const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإضافة مستخدمين');
 
@@ -240,8 +197,6 @@ export async function inviteUser(params: {
 
   const roleError = checkRole(params.role, admin.role);
   if (roleError) return { ok: false, error: roleError };
-  const adminRole = cleanAdminRoleId(params.role, params.adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
 
   const supabaseAdmin = createAdminClient();
 
@@ -276,12 +231,7 @@ export async function inviteUser(params: {
 
   const inviteLink = `${await currentOrigin()}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}`;
 
-  const { error: profileError } = await writeProfile(
-    newUserId,
-    fullName,
-    params.role,
-    adminRole.value,
-  );
+  const { error: profileError } = await writeProfile(newUserId, fullName, params.role);
   if (profileError) {
     console.error('Error creating profile for invited user', profileError);
     return {
@@ -311,15 +261,11 @@ export async function inviteUser(params: {
 export async function updateUserRole(
   userId: string,
   role: UserRole,
-  /** الدور الإداري لو الدور «إداري» — `null` = الافتراضي، ومن غيره = زي ما هو. */
-  adminRoleId?: string | null,
 ): Promise<UserActionResult> {
   const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بتعديل أدوار المستخدمين');
 
   const roleError = checkRole(role, admin.role);
   if (roleError) return { ok: false, error: roleError };
-  const adminRole = cleanAdminRoleId(role, adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
 
   // حماية من قفل النظام على نفسه: آخر مدير نظام ما يقدرش ينزّل دور نفسه.
   if (userId === admin.id && role !== admin.role && admin.role === 'super_admin') {
@@ -339,11 +285,7 @@ export async function updateUserRole(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('user_profiles')
-    .update({
-      role,
-      ...(adminRole.value !== undefined ? { admin_role_id: adminRole.value } : {}),
-      updated_at: new Date().toISOString(),
-    })
+    .update({ role, updated_at: new Date().toISOString() })
     .eq('id', userId)
     .select('id')
     .maybeSingle();
@@ -363,7 +305,7 @@ export async function updateUserRole(
     action: 'user_role_changed',
     entityType: 'UserProfile',
     entityId: userId,
-    metadata: { role, adminRoleId: adminRole.value ?? null },
+    metadata: { role },
   });
 
   revalidatePath('/dashboard/admin/users');
