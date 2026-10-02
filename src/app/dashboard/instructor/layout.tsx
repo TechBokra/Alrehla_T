@@ -30,7 +30,7 @@ export default async function InstructorLayout({
           { href: '/dashboard/instructor/services', label: 'خدماتي وطلباتها' },
           { href: '/dashboard/instructor/ratings', label: 'تقييماتي' },
           { href: '/dashboard/instructor/payouts', label: 'مستحقاتي' },
-          { href: '/dashboard/instructor/profile', label: 'ملفي' },
+          { href: '/dashboard/instructor/profile', label: 'ملفي وصوري' },
           { href: '/dashboard/instructor/settings', label: 'الإعدادات' },
         ]}
       />
