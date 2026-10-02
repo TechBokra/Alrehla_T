@@ -7,7 +7,9 @@ import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { User, Mail, Phone, Calendar, Briefcase, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
-import { joinRequestRoleLabel } from '@/lib/join-roles';
+import Link from 'next/link';
+import { joinRequestRoleLabel, joinNextStep } from '@/lib/join-roles';
+import { createClient } from '@/lib/supabase/server';
 
 import { JoinRequestActions } from './JoinRequestActions';
 
@@ -26,6 +28,31 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
+
+  // ⚠️ **الطلب المقبول لسه محتاج حساب.** القبول بيسجّل القرار بس، والحساب
+  //    بيتعمل من شاشة المدربين/المستخدمين. قبل كده زرار «كمّل» كان بيظهر
+  //    لحظة بعد القبول وبعدين الصفحة بتتحدّث فيختفي — فالإداري كان
+  //    بيشوف «تم اتخاذ إجراء» ويفتكر إن الحساب اتعمل. دلوقتي الصفحة
+  //    نفسها بتسأل: فيه حساب بالبريد ده؟ ولو لأ، الزرار بيفضل ظاهر.
+  let account: { exists: boolean; userId?: string } | null = null;
+  if (target.status === 'approved' && target.email) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('user_emails')
+      .select('user_id')
+      .eq('email', target.email.trim().toLowerCase())
+      .maybeSingle();
+    account = data ? { exists: true, userId: data.user_id } : { exists: false };
+  }
+  const next =
+    target.status === 'approved'
+      ? joinNextStep(
+          target.requestedRole ?? '',
+          target.applicantName ?? '',
+          target.email ?? '',
+          target.message ?? null,
+        )
+      : {};
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
@@ -120,6 +147,40 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <div className="pt-8 border-t border-slate-100 flex flex-wrap gap-4">
             {target.status === 'pending' ? (
               <JoinRequestActions requestId={target.id} />
+            ) : target.status === 'approved' && account?.exists ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+                <CheckCircle className="h-5 w-5" />
+                الطلب مقبول والحساب اتعمل.
+                <Link
+                  href={`/dashboard/admin/users/${account.userId}`}
+                  className="underline"
+                >
+                  افتح الحساب
+                </Link>
+              </div>
+            ) : target.status === 'approved' ? (
+              <div className="w-full space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <p className="font-black text-amber-900">
+                  الطلب مقبول — بس الحساب لسه ما اتعملش.
+                </p>
+                <p className="text-sm font-medium text-amber-800">
+                  القبول بيسجّل القرار بس. الحساب بيتعمل من الشاشة اللي تحت
+                  والخانات متملّية من الطلب — تكمّل الباقي (التخصصات، سنين
+                  الخبرة…) وتضغط إنشاء، وبعدها تبعت له بيانات الدخول.
+                </p>
+                {next.nextHref ? (
+                  <Link
+                    href={next.nextHref}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800"
+                  >
+                    {next.nextLabel ?? 'كمّل إنشاء الحساب'}
+                  </Link>
+                ) : (
+                  <p className="text-sm font-bold text-amber-900">
+                    الدور المطلوب «دور آخر» — اعمل الحساب من شاشة المستخدمين بالدور المناسب.
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="flex items-center gap-2 text-slate-500 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100">
                 <Clock className="h-5 w-5" />
