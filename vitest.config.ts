@@ -34,7 +34,17 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    env: { TZ: 'UTC' },
+    // ⚠️ **الاختبارات ماتلمسش القاعدة الحقيقية أبدًا.** على Vercel مفاتيح
+    //    Supabase موجودة وقت البناء، واختبار ناسي يعمل mock لعميل الخدمة
+    //    كان بيكلّم قاعدة الإنتاج فعلًا (اتمسك في سجل بناء: «Error creating
+    //    publisher row … uuid "t"»). المفاتيح الفاضية هنا بتخلّي أي نداء
+    //    حقيقي يفشل محليًا بدل ما يكتب في الإنتاج.
+    env: {
+      TZ: 'UTC',
+      NEXT_PUBLIC_SUPABASE_URL: '',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: '',
+      SUPABASE_SERVICE_ROLE_KEY: '',
+    },
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 });

@@ -49,6 +49,12 @@ vi.mock('@/lib/notifications', () => ({
   notifyAdmins: (...args: unknown[]) => mockNotifyAdmins(...args),
 }));
 
+// صف دار النشر بيتعمل بمفتاح الخدمة — هنا بنشوف إنه اتنادى بس.
+const mockEnsurePublisherRow = vi.fn().mockResolvedValue({ id: 'pub-1' });
+vi.mock('@/lib/ensure-publisher', () => ({
+  ensurePublisherRow: (...args: unknown[]) => mockEnsurePublisherRow(...args),
+}));
+
 let mockSupabase: any;
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => Promise.resolve(mockSupabase),
@@ -121,6 +127,8 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await updateUserRole('t', 'publisher', roleId);
       expect(updateMock.mock.calls[2][0]).not.toHaveProperty('admin_role_id');
+      // «ناشر» = صف دار النشر بيتعمل (لوحة الناشر من غيره «غير موجودة»).
+      expect(mockEnsurePublisherRow).toHaveBeenCalledWith('t', expect.any(String));
 
       // رقم مش صالح = رفض، مش افتراضي في صمت.
       const bad = await updateUserRole('t', 'general_supervisor', 'not-a-uuid');
