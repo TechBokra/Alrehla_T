@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Upload, Trash2, QrCode } from 'lucide-react';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
 import { saveSiteImage } from '@/actions/content';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 /**
  * The InstaPay QR the customer scans instead of typing the wallet number.
@@ -22,7 +23,9 @@ export function PaymentQrUploader({ value }: { value: string }) {
     setBusy(true);
     setError('');
     try {
-      const finalUrl = file ? (await uploadImage(file, 'alrehla/site')).url : url;
+      const finalUrl = file
+        ? (await uploadImage(file, 'alrehla/site')).url
+        : url;
       await saveSiteImage({ key: 'paymentQrUrl', url: finalUrl });
       router.refresh();
     } catch (err) {
@@ -47,7 +50,13 @@ export function PaymentQrUploader({ value }: { value: string }) {
       <div className="flex flex-wrap items-center gap-4">
         <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
           {value ? (
-            <Image src={optimizedImageUrl(value, 400)} alt="كود الدفع" fill sizes="200px" className="object-contain p-2" />
+            <Image
+              src={optimizedImageUrl(value, 400)}
+              alt="كود الدفع"
+              fill
+              sizes="200px"
+              className="object-contain p-2"
+            />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-400">
               لم يُرفع بعد
@@ -56,7 +65,7 @@ export function PaymentQrUploader({ value }: { value: string }) {
         </div>
 
         <div className="space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
               <Upload className="h-4 w-4" />
               {busy ? 'جارٍ…' : value ? 'تغيير الكود' : 'رفع الكود'}
@@ -71,6 +80,7 @@ export function PaymentQrUploader({ value }: { value: string }) {
                 }}
               />
             </label>
+            <LibraryPicker onPick={(url) => void set(url)} disabled={busy} />
             {value && (
               <button
                 type="button"

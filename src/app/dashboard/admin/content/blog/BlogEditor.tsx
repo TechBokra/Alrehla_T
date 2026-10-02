@@ -7,6 +7,7 @@ import { Check, Trash2, Upload, Eye } from 'lucide-react';
 import type { BlogPost } from '@/types';
 import { saveBlogPost, deleteBlogPost } from '@/actions/blog';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
@@ -141,7 +142,7 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
 
           <div>
             <label className="mb-2 block text-sm font-bold text-slate-700">صورة الغلاف</label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50">
                 <Upload className="h-4 w-4" />
                 {uploading ? 'جارٍ الرفع…' : 'اختر صورة'}
@@ -152,6 +153,7 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
                   onChange={(e) => onPickCover(e.target.files?.[0])}
                 />
               </label>
+              <LibraryPicker onPick={setCoverImageUrl} disabled={uploading} />
               {coverImageUrl && (
                 <div className="relative h-14 w-20 overflow-hidden rounded-lg border border-slate-200">
                   <Image

@@ -55,9 +55,17 @@ export default async function Page() {
   const orphanBytes = orphans.reduce((sum, a) => sum + a.bytes, 0);
   const totalBytes = assets.reduce((sum, a) => sum + a.bytes, 0);
 
+  // ⚠️ لو أكتر من نص الصور بانت بلا رابط، الأرجح إن القاعدة هي اللي
+  //    فاضية أو ناقصة (زي بعد إعادة البناء يوم 2 أكتوبر 2026) — مش إن
+  //    الصور زبالة. الحذف بيتقفل لحد ما الصور ترجع لأماكنها.
+  const deleteLocked = assets.length > 0 && orphans.length > assets.length / 2;
+
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="صور الموقع على Cloudinary" backHref="/dashboard/admin" />
+      <DashboardPageHeader
+        title="صور الموقع على Cloudinary"
+        backHref="/dashboard/admin"
+      />
 
       {!ready && (
         <p className="mb-6 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-900">
@@ -91,7 +99,7 @@ export default async function Page() {
         />
         <Stat
           icon={<HardDrive className="h-5 w-5 text-amber-600" />}
-          label="مالهاش رابط"
+          label="مش مستخدمة حاليًا"
           value={String(orphans.length)}
           hint={`${mb(orphanBytes)} ميجا`}
         />
@@ -109,13 +117,16 @@ export default async function Page() {
           مش إن نصّ المخزن زبالة — الاحتمال الأرجح إن **جدول ما
           اتقريش** فصوره كلها بانت بلا رابط. وده بالظبط السيناريو
           اللي بيخلّي ضغطة حذف تمسح شغل شهور. */}
-      {assets.length > 0 && orphans.length > assets.length / 2 && (
+      {deleteLocked && (
         <p className="mb-6 flex gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <span>
-            أكتر من نص صور المجلّد ({orphans.length} من {assets.length}) بانت بلا
-            رابط. ده رقم كبير غير متوقّع — الأرجح إن جدول ما اتقريش لا إن الصور
-            دي فعلًا مهجورة. <strong>راجع قبل ما تحذف أي حاجة.</strong>
+            أكتر من نص صور المجلّد ({orphans.length} من {assets.length}) بانت
+            بلا رابط. ده رقم كبير غير متوقّع — الأرجح إن جدول ما اتقريش لا إن
+            الصور دي فعلًا مهجورة.{' '}
+            <strong>الحذف مقفول لحد ما الرقم ده يقل.</strong> رجّع الصور
+            لأماكنها من زرار «من المكتبة» في خانات الصور (صور الموقع، المنتجات،
+            المدونة، خطط الصندوق).
           </span>
         </p>
       )}
@@ -146,13 +157,16 @@ export default async function Page() {
 
       <section className="mb-10">
         <h2 className="text-lg font-black text-slate-800">
-          مالهاش رابط في القاعدة{' '}
-          <span className="text-sm font-bold text-slate-400">({orphans.length})</span>
+          مش مستخدمة حاليًا{' '}
+          <span className="text-sm font-bold text-slate-400">
+            ({orphans.length})
+          </span>
         </h2>
         <p className="mb-4 text-sm font-medium text-slate-500">
-          حدّد اللي متأكد منه واحذفه. الحذف نهائي.
+          تقدر تستعملها تاني من زرار «من المكتبة» في أي خانة صورة. ولو متأكد إن
+          صورة مالهاش لازمة، حدّدها واحذفها — الحذف نهائي.
         </p>
-        <OrphanGallery assets={orphans} />
+        <OrphanGallery assets={orphans} deleteLocked={deleteLocked} />
       </section>
 
       <Gallery
@@ -182,7 +196,9 @@ function Stat({
       <div className="mb-2 flex items-center gap-2 text-slate-400">{icon}</div>
       <p className="text-xs font-bold text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-black text-slate-800">{value}</p>
-      {hint && <p className="mt-1 text-xs font-medium text-slate-400">{hint}</p>}
+      {hint && (
+        <p className="mt-1 text-xs font-medium text-slate-400">{hint}</p>
+      )}
     </div>
   );
 }
@@ -196,7 +212,13 @@ function Gallery({
 }: {
   title: string;
   subtitle: string;
-  assets: { publicId: string; url: string; bytes: number; createdAt: string; format: string }[];
+  assets: {
+    publicId: string;
+    url: string;
+    bytes: number;
+    createdAt: string;
+    format: string;
+  }[];
   usage: Map<string, string[]>;
   empty: string;
 }) {
@@ -204,7 +226,9 @@ function Gallery({
     <section className="mb-10">
       <h2 className="text-lg font-black text-slate-800">
         {title}{' '}
-        <span className="text-sm font-bold text-slate-400">({assets.length})</span>
+        <span className="text-sm font-bold text-slate-400">
+          ({assets.length})
+        </span>
       </h2>
       <p className="mb-4 text-sm font-medium text-slate-500">{subtitle}</p>
 

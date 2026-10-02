@@ -155,6 +155,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
         features={product.features}
         minAge={product.minAge}
         maxAge={product.maxAge}
+        library
       />
       {/* كان خانة نص بتطلب من الإدارة ترفع الصورة في مكان تاني وتنسخ
           الرابط بالإيد. بقى رفعًا مباشرًا زي كل صور الموقع. */}
@@ -165,6 +166,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
         value={product.coverImageUrl || ''}
         aspect="cover"
         hint="غلاف الكتاب — يفضّل طولي (3:4)"
+        library
       />
       
       <div className="pt-6 border-t border-slate-100 flex justify-end">

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 /**
  * حقل صورة موحّد للوحة الإدارة.
@@ -28,6 +29,7 @@ export function ImageField({
   onChange,
   hint,
   aspect = 'wide',
+  library = false,
 }: {
   /** اسم الحقل في النموذج — بيتبعت كـ hidden input. */
   name: string;
@@ -38,6 +40,8 @@ export function ImageField({
   onChange?: (url: string) => void;
   hint?: string;
   aspect?: 'wide' | 'square' | 'cover';
+  /** زرار «من المكتبة» — **للإدارة بس**؛ الناشر والمدرب مايشوفوش صور غيرهم. */
+  library?: boolean;
 }) {
   const [url, setUrl] = useState(value ?? '');
   const [busy, setBusy] = useState(false);
@@ -102,7 +106,7 @@ export function ImageField({
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
             <Upload className="h-4 w-4" />
             {busy ? 'جارٍ الرفع…' : url ? 'تغيير' : 'رفع صورة'}
@@ -114,6 +118,8 @@ export function ImageField({
               onChange={(e) => pick(e.target.files?.[0])}
             />
           </label>
+
+          {library && <LibraryPicker onPick={set} disabled={busy} />}
 
           {url && (
             <button

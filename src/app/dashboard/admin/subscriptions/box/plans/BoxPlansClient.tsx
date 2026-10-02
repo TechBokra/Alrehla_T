@@ -7,6 +7,7 @@ import { Plus, Trash2, Upload, X, Star, EyeOff } from 'lucide-react';
 import type { SubscriptionTier } from '@/types';
 import { saveBoxPlan, deleteBoxPlan, type BoxPlanInput } from '@/actions/box-plans';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 import { formatPrice } from '@/lib/utils';
 
 const inputClass =
@@ -238,6 +239,9 @@ function PlanForm({
               onChange={(e) => pickImage(e.target.files?.[0])}
             />
           </label>
+          <div className="flex justify-center">
+            <LibraryPicker onPick={(url) => set('imageUrl', url)} disabled={uploading} />
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">

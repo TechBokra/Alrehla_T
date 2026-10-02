@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 const MAX = 8;
 
@@ -29,10 +30,13 @@ export function GalleryField({
   name,
   folder,
   value = [],
+  library = false,
 }: {
   name: string;
   folder: string;
   value?: string[];
+  /** زرار «من المكتبة» — **للإدارة بس** (نموذجا الناشر من غيره). */
+  library?: boolean;
 }) {
   const [urls, setUrls] = useState<string[]>(value);
   const [busy, setBusy] = useState(false);
@@ -140,18 +144,29 @@ export function GalleryField({
       )}
 
       {urls.length < MAX && (
-        <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
-          <Upload className="h-4 w-4" />
-          {busy ? 'جارٍ الرفع…' : 'أضف صورًا'}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => pick(e.target.files)}
-          />
-        </label>
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
+            <Upload className="h-4 w-4" />
+            {busy ? 'جارٍ الرفع…' : 'أضف صورًا'}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={busy}
+              onChange={(e) => pick(e.target.files)}
+            />
+          </label>
+          {library && (
+            <LibraryPicker
+              label="أضف من المكتبة"
+              disabled={busy}
+              onPick={(url) =>
+                setUrls((prev) => [...new Set([...prev, url])].slice(0, MAX))
+              }
+            />
+          )}
+        </div>
       )}
     </div>
   );

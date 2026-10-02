@@ -11,6 +11,7 @@ import {
 } from '@/lib/site-images';
 import { uploadImage, slotImageUrl } from '@/lib/cloudinary';
 import { saveSiteImage } from '@/actions/content';
+import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 /**
  * Every image slot on the site, in one place.
@@ -41,6 +42,20 @@ export function SiteImagesClient({ images }: { images: SiteImages }) {
     }
   };
 
+  // صورة اترفعت قبل كده (من «من المكتبة») — بتتحفظ من غير رفع جديد.
+  const choose = async (key: string, url: string) => {
+    setBusyKey(key);
+    setError('');
+    try {
+      await saveSiteImage({ key, url });
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذّر حفظ الصورة');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   const remove = async (key: string) => {
     setBusyKey(key);
     setError('');
@@ -65,6 +80,7 @@ export function SiteImagesClient({ images }: { images: SiteImages }) {
       url={images[slot.key]}
       busy={busyKey === slot.key}
       onUpload={(f) => upload(slot.key, f)}
+      onChoose={(u) => choose(slot.key, u)}
       onRemove={() => remove(slot.key)}
     />
   );
@@ -107,12 +123,14 @@ function SlotRow({
   url,
   busy,
   onUpload,
+  onChoose,
   onRemove,
 }: {
   slot: SiteImageSlot;
   url?: string;
   busy: boolean;
   onUpload: (file: File | undefined) => void;
+  onChoose: (url: string) => void;
   onRemove: () => void;
 }) {
   // خانات الهوية شفافيتها مهمة، فالمعاينة بخلفية شطرنجية عشان تبان.
@@ -122,7 +140,9 @@ function SlotRow({
     <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-white p-5">
       <div
         className={`relative h-24 w-36 shrink-0 overflow-hidden rounded-xl border border-slate-200 ${
-          isBrand ? 'bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%,transparent_75%,#f1f5f9_75%),linear-gradient(45deg,#f1f5f9_25%,transparent_25%,transparent_75%,#f1f5f9_75%)] bg-white [background-position:0_0,8px_8px] [background-size:16px_16px]' : 'bg-slate-100'
+          isBrand
+            ? 'bg-white bg-[linear-gradient(45deg,#f1f5f9_25%,transparent_25%,transparent_75%,#f1f5f9_75%),linear-gradient(45deg,#f1f5f9_25%,transparent_25%,transparent_75%,#f1f5f9_75%)] [background-size:16px_16px] [background-position:0_0,8px_8px]'
+            : 'bg-slate-100'
         }`}
       >
         {url ? (
@@ -152,7 +172,7 @@ function SlotRow({
         </p>
       </div>
 
-      <div className="flex shrink-0 gap-2">
+      <div className="flex shrink-0 flex-wrap gap-2">
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
           <Upload className="h-4 w-4" />
           {busy ? 'جارٍ…' : url ? 'تغيير' : 'رفع صورة'}
@@ -164,6 +184,7 @@ function SlotRow({
             onChange={(e) => onUpload(e.target.files?.[0])}
           />
         </label>
+        <LibraryPicker onPick={onChoose} disabled={busy} />
         {url && (
           <button
             type="button"

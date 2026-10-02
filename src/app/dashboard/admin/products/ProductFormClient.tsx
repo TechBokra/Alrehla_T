@@ -159,7 +159,7 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
       
 
 
-      <ProductContentFields />
+      <ProductContentFields library />
       {/* كان بيرفع على Supabase Storage — مسار تاني بالكامل عن باقي
           الموقع اللي على Cloudinary. التوحيد بيخلي الصورة تتحسن وتتضغط
           تلقائيًا زي كل صور الموقع. */}
@@ -171,6 +171,7 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
         onChange={setCoverImageUrl}
         aspect="cover"
         hint="غلاف الكتاب — يفضّل طولي (3:4)"
+        library
       />
       
       <div className="pt-6 border-t border-slate-100 flex justify-end">

@@ -2,7 +2,13 @@
 
 import React, { useState, useTransition } from 'react';
 import Image from 'next/image';
-import { Trash2, Loader2, CheckSquare, Square, AlertTriangle } from 'lucide-react';
+import {
+  Trash2,
+  Loader2,
+  CheckSquare,
+  Square,
+  AlertTriangle,
+} from 'lucide-react';
 import { deleteUnusedMedia } from '@/actions/media';
 import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
@@ -25,7 +31,14 @@ export type OrphanAsset = {
  * ⚠️ **والتأكيد بيقول العدد والحجم.** «متأكد؟» مجرّدة بتتضغط
  *    بالعادة. رقم قدّام عينك بيخلّيك تقرا.
  */
-export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
+export function OrphanGallery({
+  assets,
+  deleteLocked = false,
+}: {
+  assets: OrphanAsset[];
+  /** الحذف مقفول (أكتر من نص الصور بلا رابط — الأرجح القاعدة ناقصة). */
+  deleteLocked?: boolean;
+}) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState('');
@@ -41,7 +54,9 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
 
   const allSelected = assets.length > 0 && selected.size === assets.length;
   const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(assets.map((a) => a.publicId)));
+    setSelected(
+      allSelected ? new Set() : new Set(assets.map((a) => a.publicId))
+    );
 
   const selectedBytes = assets
     .filter((a) => selected.has(a.publicId))
@@ -55,7 +70,7 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
     const sure = window.confirm(
       `هتحذف ${ids.length} صورة (${mb} ميجا) نهائيًّا من Cloudinary.\n\n` +
         'الحذف مالوش تراجع. لو واحدة منهم مستخدَمة في الموقع، مكانها هيبقى فاضي.\n\n' +
-        'تأكيد؟',
+        'تأكيد؟'
     );
     if (!sure) return;
 
@@ -69,7 +84,7 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
       }
       setSelected(new Set());
       setNotice(
-        `اتحذف ${result.deleted} صورة${result.skipped ? ` · ${result.skipped} ما اتحذفتش` : ''}.`,
+        `اتحذف ${result.deleted} صورة${result.skipped ? ` · ${result.skipped} ما اتحذفتش` : ''}.`
       );
     });
   };
@@ -95,20 +110,28 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
         <button
           type="button"
           onClick={toggleAll}
-          disabled={busy}
+          disabled={busy || deleteLocked}
           className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 disabled:opacity-50"
         >
-          {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+          {allSelected ? (
+            <CheckSquare className="h-4 w-4" />
+          ) : (
+            <Square className="h-4 w-4" />
+          )}
           {allSelected ? 'إلغاء التحديد' : 'حدّد الكل'}
         </button>
 
         <button
           type="button"
           onClick={remove}
-          disabled={busy || selected.size === 0}
+          disabled={busy || deleteLocked || selected.size === 0}
           className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-40"
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          {busy ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
           احذف المحدَّد
           {selected.size > 0 && (
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">
@@ -132,7 +155,9 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
             <label
               key={asset.publicId}
               className={`block cursor-pointer overflow-hidden rounded-2xl border-2 bg-white transition-colors ${
-                isOn ? 'border-rose-500' : 'border-slate-200 hover:border-slate-300'
+                isOn
+                  ? 'border-rose-500'
+                  : 'border-slate-200 hover:border-slate-300'
               }`}
             >
               <div className="relative aspect-square bg-slate-100">
@@ -149,7 +174,7 @@ export function OrphanGallery({ assets }: { assets: OrphanAsset[] }) {
                   type="checkbox"
                   checked={isOn}
                   onChange={() => toggle(asset.publicId)}
-                  disabled={busy}
+                  disabled={busy || deleteLocked}
                   className="absolute top-2 right-2 h-5 w-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                 />
               </div>

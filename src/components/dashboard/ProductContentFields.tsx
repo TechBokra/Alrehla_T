@@ -29,12 +29,15 @@ export function ProductContentFields({
   features,
   minAge,
   maxAge,
+  library = false,
 }: {
   longDescription?: string;
   galleryImageUrls?: string[];
   features?: string[];
   minAge?: number | null;
   maxAge?: number | null;
+  /** زرار «من المكتبة» في المعرض — نموذجا الإدارة بس. */
+  library?: boolean;
 }) {
   const textareaClass =
     'w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm';
@@ -47,7 +50,9 @@ export function ProductContentFields({
       <div>
         <label className="mb-2 block text-sm font-bold text-slate-700">
           الوصف الكامل{' '}
-          <span className="font-medium text-slate-500">(اختياري — بيظهر في صفحة المنتج)</span>
+          <span className="font-medium text-slate-500">
+            (اختياري — بيظهر في صفحة المنتج)
+          </span>
         </label>
         <textarea
           name="longDescription"
@@ -57,7 +62,8 @@ export function ProductContentFields({
           className={textareaClass}
         ></textarea>
         <p className="mt-1 text-xs font-medium text-slate-500">
-          يدعم <code>## عنوان</code> و<code>- نقطة</code> و<code>**عريض**</code>.
+          يدعم <code>## عنوان</code> و<code>- نقطة</code> و<code>**عريض**</code>
+          .
         </p>
       </div>
 
@@ -65,6 +71,7 @@ export function ProductContentFields({
         name="galleryImageUrls"
         folder="alrehla/products/gallery"
         value={galleryImageUrls ?? []}
+        library={library}
       />
 
       {/* **سطر لكل بند** عن قصد: أبسط شكل للكتابة بالعربي. والخادم
@@ -72,7 +79,9 @@ export function ProductContentFields({
       <div>
         <label className="mb-2 block text-sm font-bold text-slate-700">
           تفاصيل المنتج{' '}
-          <span className="font-medium text-slate-500">(بند في كل سطر — اختياري)</span>
+          <span className="font-medium text-slate-500">
+            (بند في كل سطر — اختياري)
+          </span>
         </label>
         <textarea
           name="features"
