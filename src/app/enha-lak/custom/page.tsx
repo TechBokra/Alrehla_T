@@ -12,6 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import { formatPrice } from '@/lib/utils';
 import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
 import { PenTool, Plus } from 'lucide-react';
+import { getSiteContent } from '@/data/domains/content';
 
 import { PageContainer } from '@/components/PageContainer';
 import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
@@ -25,17 +26,17 @@ import { Reveal } from '@/components/ui/Reveal';
 export default async function CustomPage() {
   const allProducts = await getPersonalizedProducts();
   const customProducts = allProducts.filter((p) => p.category === 'custom');
-  const addons = await getAddonProducts();
+  const [addons, content] = await Promise.all([getAddonProducts(), getSiteContent()]);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
       {/* ⚠️ كان `SectionHeader` العام — نفس رأس المدونة والدعم. بقى رأس
           القسم الطفولي، ونفس اللي في المكتبة. */}
       <ShelfHeader
-        title="أنت البطل هنا"
-        eyebrow="قصة بتتكتب لطفلك من الصفر"
+        title={content['custom.title']}
+        eyebrow={content['custom.eyebrow']}
         icon={<PenTool className="h-8 w-8" />}
-        description="اختار المنتج، وشاركنا اللي فريقنا محتاجه للتخصيص. بنبدأ نكتب بعد تأكيد الطلب، وطفلك يبقى بطل الحكاية باسمه وصورته واهتماماته."
+        description={content['custom.description']}
       />
 
       {/* Custom Products */}
@@ -49,7 +50,7 @@ export default async function CustomPage() {
               <Reveal key={product.id} delay={Math.min(i, 5) * 60} className="h-full">
                 <ProductCard
                   product={product}
-                  actionLabel="ابدأ التخصيص"
+                  actionLabel={content['custom.action']}
                   actionHref={`/enha-lak/custom/${product.slug}`}
                   cardHref={`/enha-lak/product/${product.slug}`}
                   detailsHref={`/enha-lak/product/${product.slug}`}
@@ -65,10 +66,10 @@ export default async function CustomPage() {
             className="flex flex-col items-center justify-center rounded-[1.75rem] py-20 text-center"
           >
             <h2 className="mb-2 text-2xl font-black text-slate-800">
-              القصص المخصصة لسه بتتجهّز
+              {content['custom.empty.title']}
             </h2>
             <p className="font-medium text-slate-600">
-              بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.
+              {content['custom.empty.text']}
             </p>
           </Card>
         )}
@@ -92,13 +93,13 @@ export default async function CustomPage() {
         <div className="mb-10 text-center">
           <h2 className="flex items-center justify-center gap-3 text-3xl font-black text-slate-800">
             <Plus className="h-8 w-8 text-rose-500" />
-            إضافات اختيارية
+            {content['custom.addons.title']}
           </h2>
           <p className="mt-4 font-medium text-slate-500">
-            اجعل تجربة طفلك أكثر متعة وتفاعلاً مع هذه الإضافات الممتعة.
+            {content['custom.addons.text']}
           </p>
           <p className="mt-2 text-sm font-bold text-slate-600">
-            الإضافات بتتختار وإنت بتخصّص القصة — مش بتتطلب لوحدها.
+            {content['custom.addons.note']}
           </p>
         </div>
 
@@ -122,7 +123,7 @@ export default async function CustomPage() {
                   {formatPrice(addon.price)}
                 </span>
                 <span className="text-xs font-bold text-slate-600">
-                  تُضاف أثناء التخصيص
+                  {content['custom.addons.badge']}
                 </span>
               </div>
             </Card>

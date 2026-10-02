@@ -2,49 +2,54 @@
 
 import React from 'react';
 import { AdminPermission } from '@/types';
-import { updateAdminPermissions } from '@/actions/admin-permissions';
+import { updateRolePermissions } from '@/actions/admin-permissions';
+import type { EditableAdminRole } from '@/data/domains/auth';
 
-export type AdminRow = {
-  id: string;
-  fullName: string;
-  role: 'super_admin' | 'general_supervisor';
-  /** فاضي = ماشي على الافتراضي بتاع دوره. */
-  permissions: AdminPermission[] | null;
-  defaults: AdminPermission[];
-};
-
-export function PermissionsEditor({
-  admin,
+/**
+ * صلاحيات دور واحد — الحفظ بيسري على **كل** اللي في الدور.
+ */
+export function RolePermissionsEditor({
+  role,
+  title,
+  people,
+  initial,
   labels,
   allPermissions,
-  editable,
+  disabled,
 }: {
-  admin: AdminRow;
+  role: EditableAdminRole;
+  title: string;
+  people: string[];
+  initial: AdminPermission[];
   labels: Record<string, string>;
   allPermissions: AdminPermission[];
-  editable: boolean;
+  disabled?: boolean;
 }) {
-  const [useDefault, setUseDefault] = React.useState(admin.permissions === null);
-  const [selected, setSelected] = React.useState<AdminPermission[]>(
-    admin.permissions ?? admin.defaults
-  );
+  const [selected, setSelected] = React.useState<AdminPermission[]>(initial);
   const [saving, setSaving] = React.useState(false);
-  const [message, setMessage] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const [message, setMessage] = React.useState<{
+    ok: boolean;
+    text: string;
+  } | null>(null);
 
-  const effective = useDefault ? admin.defaults : selected;
+  const changed =
+    selected.length !== initial.length ||
+    selected.some((p) => !initial.includes(p));
 
   async function save() {
     setSaving(true);
     setMessage(null);
-    const result = await updateAdminPermissions({
-      userId: admin.id,
-      permissions: selected,
-      useRoleDefault: useDefault,
-    });
+    const result = await updateRolePermissions({ role, permissions: selected });
     setSaving(false);
     setMessage(
       result.ok
-        ? { ok: true, text: 'اتحفظت. التغيير بيبان له بعد ما يعمل تحديث للصفحة.' }
+        ? {
+            ok: true,
+            text:
+              people.length > 0
+                ? `اتحفظت لـ${people.length} ${people.length === 1 ? 'شخص' : 'أشخاص'}. بتبان لهم بعد تحديث الصفحة.`
+                : 'اتحفظت. أي حد تضيفه للدور ده هياخدها.',
+          }
         : { ok: false, text: result.error }
     );
   }
@@ -53,89 +58,70 @@ export function PermissionsEditor({
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-lg font-black text-slate-800">{admin.fullName}</p>
-          <p className="text-sm font-bold text-slate-500">
-            {admin.role === 'super_admin' ? 'مدير النظام' : 'مشرف عام'}
-            {admin.permissions === null ? ' — على الافتراضي' : ' — صلاحيات مخصّصة'}
+          <p className="text-lg font-black text-slate-800">{title}</p>
+          <p className="mt-1 text-sm font-medium text-slate-500">
+            {people.length === 0
+              ? 'مفيش حد في الدور ده لسه — اللي هتضيفه هياخد الصلاحيات دي'
+              : `${people.length} ${people.length === 1 ? 'شخص' : 'أشخاص'}: ${people.join('، ')}`}
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-600">
-          {effective.length} من {allPermissions.length}
+          {selected.length} من {allPermissions.length}
         </span>
       </div>
 
-      {!editable ? (
-        <p className="rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-500">
-          {admin.id ? 'تعديل الصلاحيات متاح لمدير النظام فقط، ولحسابات غير حسابه.' : ''}
-        </p>
-      ) : (
-        <>
-          <label className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-4">
-            <input
-              type="checkbox"
-              checked={useDefault}
-              onChange={(e) => setUseDefault(e.target.checked)}
-              className="h-5 w-5 rounded border-slate-300"
-            />
-            <span className="text-sm font-bold text-slate-700">
-              سيبه على الافتراضي بتاع دوره — أي تغيير في الافتراضي بعدين يسري عليه
-            </span>
-          </label>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {allPermissions.map((permission) => {
-              const on = effective.includes(permission);
-              return (
-                <label
-                  key={permission}
-                  className={`flex items-center gap-3 rounded-2xl border p-3 ${
-                    useDefault
-                      ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-60'
-                      : 'cursor-pointer border-slate-200 hover:border-amber-300'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    disabled={useDefault}
-                    checked={on}
-                    onChange={(e) =>
-                      setSelected((prev) =>
-                        e.target.checked
-                          ? [...prev, permission]
-                          : prev.filter((p) => p !== permission)
-                      )
-                    }
-                    className="h-5 w-5 rounded border-slate-300"
-                  />
-                  <span className="text-sm font-bold text-slate-700">
-                    {labels[permission] ?? permission}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving}
-              className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+      <div className="grid gap-2 sm:grid-cols-2">
+        {allPermissions.map((permission) => {
+          const on = selected.includes(permission);
+          return (
+            <label
+              key={permission}
+              className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                disabled
+                  ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-60'
+                  : on
+                    ? 'cursor-pointer border-amber-300 bg-amber-50/50'
+                    : 'cursor-pointer border-slate-200 hover:border-amber-300'
+              }`}
             >
-              {saving ? 'جاري الحفظ…' : 'حفظ الصلاحيات'}
-            </button>
-            {message && (
-              <p
-                className={`text-sm font-bold ${
-                  message.ok ? 'text-emerald-600' : 'text-red-600'
-                }`}
-              >
-                {message.text}
-              </p>
-            )}
-          </div>
-        </>
-      )}
+              <input
+                type="checkbox"
+                disabled={disabled || saving}
+                checked={on}
+                onChange={(e) =>
+                  setSelected((prev) =>
+                    e.target.checked
+                      ? [...prev, permission]
+                      : prev.filter((p) => p !== permission)
+                  )
+                }
+                className="h-5 w-5 rounded border-slate-300"
+              />
+              <span className="text-sm font-bold text-slate-700">
+                {labels[permission] ?? permission}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving || disabled || !changed}
+          className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+        >
+          {saving ? 'جاري الحفظ…' : `حفظ صلاحيات «${title}»`}
+        </button>
+        {message && (
+          <p
+            className={`text-sm font-bold ${message.ok ? 'text-emerald-600' : 'text-red-600'}`}
+          >
+            {message.text}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

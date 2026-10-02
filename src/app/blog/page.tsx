@@ -2,7 +2,7 @@ import { getWatermarkLayer } from '@/lib/watermark';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBlogPosts } from '@/data/domains/content';
+import { getBlogPosts, getSiteContent } from '@/data/domains/content';
 import { BookOpen, Calendar, ArrowLeft } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
@@ -24,24 +24,36 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BlogPage() {
-  const posts = await getBlogPosts();
-  const wm = await getWatermarkLayer(); // «على الكل»
+  const [posts, wm, content] = await Promise.all([
+    getBlogPosts(),
+    getWatermarkLayer(), // «على الكل»
+    getSiteContent(),
+  ]);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
       {/* Header */}
       <Section containerClassName="max-w-4xl space-y-6 text-center">
         <h1 className="text-4xl leading-tight font-black text-slate-900 md:text-6xl">
-          المدونة
+          {content['blog.title']}
         </h1>
         <p className="mx-auto max-w-2xl text-lg leading-relaxed font-medium text-slate-500 md:text-xl">
-          مقالات وأفكار حول القصص والكتابة والتربية والإبداع.
+          {content['blog.subtitle']}
         </p>
 
       </Section>
 
       {/* Blog Grid */}
       <Section containerClassName="max-w-6xl">
+        {posts.length === 0 && (
+          <Card
+            accentColor="amber"
+            className="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <BookOpen className="mb-4 h-12 w-12 text-slate-300" />
+            <p className="font-bold text-slate-600">{content['blog.empty']}</p>
+          </Card>
+        )}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, i) => (
             <Reveal key={post.id} delay={Math.min(i, 5) * 60} className="h-full">
@@ -78,7 +90,7 @@ export default async function BlogPage() {
                     href={`/blog/${post.slug}`}
                     className="text-brand-strong flex items-center gap-1.5 font-bold"
                   >
-                    اقرأ المزيد
+                    {content['blog.readMore']}
                     {/* ⚠️ كان `transition-all group-hover:gap-2` —
                         يعني حركة على `gap`، وهي **خاصية تخطيط**:
                         المتصفح بيعيد حساب مكان العناصر ٦٠ مرة في

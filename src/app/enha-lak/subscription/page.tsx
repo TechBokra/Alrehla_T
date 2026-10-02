@@ -15,6 +15,7 @@ import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
 import Link from 'next/link';
 import { getSubscriptionTiers } from '@/data/domains/products';
+import { getSiteContent } from '@/data/domains/content';
 import { PackageOpen, Sparkles, Gift, Activity, Check } from 'lucide-react';
 import { SVGProps } from 'react';
 
@@ -27,24 +28,27 @@ import { Button } from '@/components/ui/Button';
 
 
 export default async function SubscriptionPage() {
-  const tiers = await getSubscriptionTiers();
-  const wm = await getWatermarkLayer(); // «على الكل»
+  const [tiers, wm, content] = await Promise.all([
+    getSubscriptionTiers(),
+    getWatermarkLayer(), // «على الكل»
+    getSiteContent(),
+  ]);
 
   const benefits = [
-    { title: 'قصة مخصصة جديدة', icon: BookOpenIcon },
-    { title: 'أنشطة تفاعلية', icon: Activity },
-    { title: 'هدية إضافية', icon: Gift },
+    { title: content['box.benefit1'], icon: BookOpenIcon },
+    { title: content['box.benefit2'], icon: Activity },
+    { title: content['box.benefit3'], icon: Gift },
   ];
 
   return (
     <PageContainer className="!py-0 !space-y-0">
       {/* Header */}
       <SectionHeader
-        title="صندوق الرحلة"
+        title={content['box.title']}
         icon={<PackageOpen className="h-8 w-8" />}
         iconClassName="bg-rose-50 text-rose-600"
         
-        description="اشتراك يضمن متعة متجددة لطفلك كل شهر، مع مفاجآت تُصنع خصيصًا له وتصله حتى باب المنزل."
+        description={content['box.description']}
       />
 
       {/* Pricing */}
@@ -69,7 +73,7 @@ export default async function SubscriptionPage() {
                 {isPopular && (
                   <div className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-rose-600 px-4 py-1 text-xs font-bold text-white shadow-sm">
                     <Sparkles className="h-3 w-3" />
-                    الأكثر اختيارًا
+                    {content['box.popular']}
                   </div>
                 )}
 
@@ -110,7 +114,7 @@ export default async function SubscriptionPage() {
                   </div>
                   {/* ملف 140: الشحن سعر المنطقة × الشهور (قرار تامر) — يتقال قبل الدفع مش فيه. */}
                   <div className="mt-1 text-xs text-slate-600">
-                    + شحن كل شهر حسب منطقتك
+                    {content['box.shippingNote']}
                   </div>
                   {tier.addonDiscountPercent > 0 && (
                     <div className="mt-2 text-sm font-bold text-emerald-800">
@@ -141,7 +145,7 @@ export default async function SubscriptionPage() {
                   accentColor="rose"
                   className={`w-full justify-center shadow-md ${isPopular ? '!bg-rose-600 !text-white hover:!bg-rose-700' : '!bg-slate-900 !text-white hover:!bg-slate-800'}`}
                 >
-                  اختر الخطة
+                  {content['box.action']}
                 </Button>
               </Card>
             );
@@ -152,7 +156,7 @@ export default async function SubscriptionPage() {
       {/* What's in the box */}
       <Section containerClassName="max-w-4xl rounded-3xl border border-slate-100 bg-slate-50/50 p-8 text-center md:p-12 pb-24">
         <h2 className="mb-10 text-3xl font-black text-slate-800">
-          ماذا سأحصل عليه شهريًا؟
+          {content['box.benefits.title']}
         </h2>
         <div className="grid gap-8 sm:grid-cols-3">
           {benefits.map((benefit, index) => {

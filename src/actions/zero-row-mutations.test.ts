@@ -38,6 +38,7 @@ vi.mock('@/data/domains/auth', () => ({
     'canManageFinance',
     'canViewAuditLogs',
   ],
+  EDITABLE_ADMIN_ROLES: ['general_supervisor'],
 }));
 
 const mockNotifyUser = vi.fn();
@@ -55,7 +56,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 import { updateUserRole } from '@/actions/admin-users';
-import { updateAdminPermissions } from '@/actions/admin-permissions';
+import { updateRolePermissions } from '@/actions/admin-permissions';
 import { cancelDependentRequest } from '@/actions/dependent-requests';
 import {
   markInstructorPayoutAsPaid,
@@ -138,61 +139,52 @@ describe('Zero-Row Mutation Hardening Tests', () => {
     });
   });
 
-  describe('2. updateAdminPermissions (src/actions/admin-permissions.ts)', () => {
-    it('returns success when row is successfully updated', async () => {
-      mockGetCurrentUser.mockResolvedValue({
-        id: 'super-admin-1',
-        fullName: 'Super Admin',
-        role: 'super_admin',
-      });
+  describe('2. updateRolePermissions (src/actions/admin-permissions.ts)', () => {
+    const superAdmin = { id: 'super-admin-1', fullName: 'Super Admin', role: 'super_admin' };
 
-      const maybeSingleMock = vi.fn().mockResolvedValue({ data: { id: 'target-user-2' }, error: null });
+    function mockUpdate(result: { data: unknown; error: unknown }) {
+      const maybeSingleMock = vi.fn().mockResolvedValue(result);
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
       const eqMock = vi.fn().mockReturnValue({ select: selectMock });
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
-
       mockSupabase = { from: fromMock };
+      return { fromMock, updateMock, eqMock, selectMock };
+    }
 
-      const result = await updateAdminPermissions({
-        userId: 'target-user-2',
-        permissions: ['canManageUsers', 'canManageOrders'],
-        useRoleDefault: false,
+    it('returns success when the role row is updated', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
+      const { fromMock, updateMock, eqMock } = mockUpdate({
+        data: { role: 'general_supervisor' },
+        error: null,
+      });
+
+      const result = await updateRolePermissions({
+        role: 'general_supervisor',
+        permissions: ['canManageUsers', 'canManageOrders', 'canManageOrders'],
       });
 
       expect(result).toEqual({ ok: true });
-      expect(fromMock).toHaveBeenCalledWith('user_profiles');
-      expect(eqMock).toHaveBeenCalledWith('id', 'target-user-2');
-      expect(selectMock).toHaveBeenCalledWith('id');
+      expect(fromMock).toHaveBeenCalledWith('role_permissions');
+      expect(eqMock).toHaveBeenCalledWith('role', 'general_supervisor');
+      // التكرار بيتشال قبل الحفظ.
+      expect(updateMock.mock.calls[0][0].permissions).toEqual([
+        'canManageUsers',
+        'canManageOrders',
+      ]);
       expect(mockLogAuditAction).toHaveBeenCalled();
     });
 
-    it('returns failure when 0 rows are affected (no matching row)', async () => {
-      mockGetCurrentUser.mockResolvedValue({
-        id: 'super-admin-1',
-        fullName: 'Super Admin',
-        role: 'super_admin',
-      });
+    it('returns failure when 0 rows are affected (table/row missing or RLS)', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
+      mockUpdate({ data: null, error: null });
 
-      // maybeSingle returns null when 0 rows were updated
-      const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
-      const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = vi.fn().mockReturnValue({ update: updateMock });
-
-      mockSupabase = { from: fromMock };
-
-      const result = await updateAdminPermissions({
-        userId: 'non-existent-user',
+      const result = await updateRolePermissions({
+        role: 'general_supervisor',
         permissions: ['canManageUsers'],
-        useRoleDefault: false,
       });
 
       expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toContain('المستخدم غير موجود أو تعذّر تحديث صلاحياته');
-      }
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
 
@@ -203,10 +195,9 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         role: 'general_supervisor',
       });
 
-      const result = await updateAdminPermissions({
-        userId: 'target-user-2',
-        permissions: ['canManageUsers'],
-        useRoleDefault: false,
+      const result = await updateRolePermissions({
+        role: 'general_supervisor',
+        permissions: ['canManageFinance'],
       });
 
       expect(result.ok).toBe(false);
@@ -215,23 +206,21 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       }
     });
 
-    it('prevents super_admin from modifying own permissions', async () => {
-      mockGetCurrentUser.mockResolvedValue({
-        id: 'super-admin-1',
-        fullName: 'Super Admin',
-        role: 'super_admin',
-      });
+    it('refuses editing super_admin role and empty / unknown permission lists', async () => {
+      mockGetCurrentUser.mockResolvedValue(superAdmin);
 
-      const result = await updateAdminPermissions({
-        userId: 'super-admin-1',
+      const asSuper = await updateRolePermissions({
+        role: 'super_admin' as never,
         permissions: ['canManageUsers'],
-        useRoleDefault: false,
       });
+      expect(asSuper.ok).toBe(false);
 
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toContain('ما ينفعش تعدّل صلاحيات حسابك أنت');
-      }
+      const unknownOnly = await updateRolePermissions({
+        role: 'general_supervisor',
+        permissions: ['hack' as never],
+      });
+      expect(unknownOnly.ok).toBe(false);
+      expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
   });
 

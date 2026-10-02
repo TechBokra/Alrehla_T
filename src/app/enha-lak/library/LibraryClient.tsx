@@ -61,9 +61,18 @@ const EMPTY: Filters = { query: '', publisherSlug: 'all', ageBand: 'all', sort: 
  * البحث بيشوفه — والمتصفح بيقرا الرابط ويطبّق الفلتر. والرابط من
  * غير فلتر (الأغلبية) مابيشوفش أي فرق.
  */
+/** نصوص الصفحة من «محتوى الصفحات». */
+export type LibraryTexts = {
+  action: string;
+  details: string;
+  emptyTitle: string;
+  emptyText: string;
+};
+
 export function LibraryClient(props: {
   initialProducts: PersonalizedProduct[];
   publishers: Publisher[];
+  texts: LibraryTexts;
 }) {
   return (
     <Suspense fallback={<LibraryView {...props} initial={EMPTY} />}>
@@ -72,7 +81,11 @@ export function LibraryClient(props: {
   );
 }
 
-function LibraryFromUrl(props: { initialProducts: PersonalizedProduct[]; publishers: Publisher[] }) {
+function LibraryFromUrl(props: {
+  initialProducts: PersonalizedProduct[];
+  publishers: Publisher[];
+  texts: LibraryTexts;
+}) {
   const params = useSearchParams();
   const age = params.get('age');
   const publisher = params.get('publisher');
@@ -94,10 +107,12 @@ function LibraryView({
   initialProducts,
   publishers,
   initial,
+  texts,
 }: {
   initialProducts: PersonalizedProduct[];
   publishers: Publisher[];
   initial: Filters;
+  texts: LibraryTexts;
 }) {
   const [f, setF] = useState<Filters>(initial);
 
@@ -336,10 +351,10 @@ function LibraryView({
                 product={product}
                 publisherName={publishers.find((p) => p.id === product.publisherId)?.name}
                 cardHref={`/enha-lak/product/${product.slug}`}
-                actionLabel="تخصيص الغلاف"
+                actionLabel={texts.action}
                 actionHref={`/enha-lak/custom-library/${product.slug}`}
                 detailsHref={`/enha-lak/product/${product.slug}`}
-                detailsLabel="عرض تفاصيل القصة"
+                detailsLabel={texts.details}
               />
             </Reveal>
           ))}
@@ -369,10 +384,10 @@ function LibraryView({
           ) : (
             <>
               <h2 className="mb-2 text-2xl font-black text-slate-800">
-                المكتبة لسه بتتجهّز
+                {texts.emptyTitle}
               </h2>
               <p className="font-medium text-slate-600">
-                بنضيف إصدارات دور النشر أول بأول — ارجع لنا قريب.
+                {texts.emptyText}
               </p>
             </>
           )}

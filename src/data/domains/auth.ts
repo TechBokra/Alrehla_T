@@ -43,10 +43,16 @@ export async function syncUserProfile(user: User) {
 }
 
 /**
- * الصلاحيات الافتراضية لكل دور.
+ * الصلاحيات على مستوى **الدور**، مش الشخص.
  *
- * دي بتشتغل لما عمود `permissions` في القاعدة يكون فاضي — وده وضع كل
- * الحسابات لحد ما الإدارة تخصّص صلاحيات لحساب بعينه من شاشة الصلاحيات.
+ * • مدير النظام: الكل دايمًا — مالوش صف في الجدول عن قصد، عشان ماينفعش
+ *   يقفل الباب على نفسه.
+ * • المشرف العام: اللي في صفّه في جدول `role_permissions` (بيتعدّل من
+ *   شاشة الصلاحيات)، وكل مشرف بياخده — الموجود والجديد.
+ *
+ * `defaultPermissionsForRole` دي **احتياطي بس**: لو الجدول مش موجود (ملف
+ * 04 لسه ماتشغّلش) أو القراءة فشلت، الموقع بيشتغل بالقديم بدل ما يقفل
+ * القايمة على المشرفين.
  */
 export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers',
@@ -64,6 +70,37 @@ export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {
     );
   }
   return [];
+}
+
+/** الأدوار اللي صلاحياتها بتتظبط من الشاشة. */
+export const EDITABLE_ADMIN_ROLES = ['general_supervisor'] as const;
+export type EditableAdminRole = (typeof EDITABLE_ADMIN_ROLES)[number];
+
+/**
+ * صلاحيات دور من الجدول — مع الاحتياطي لو مش موجود.
+ *
+ * ⚠️ أسماء غريبة في الصف بتتشال هنا كمان (القاعدة بترفضها أصلًا، بس
+ *    مفيش ضرر من التأكيد).
+ */
+export async function getRolePermissions(role: UserRole): Promise<AdminPermission[]> {
+  if (role === 'super_admin') return [...ALL_ADMIN_PERMISSIONS];
+  if (!(EDITABLE_ADMIN_ROLES as readonly string[]).includes(role)) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('role_permissions')
+    .select('permissions')
+    .eq('role', role)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) console.error('role_permissions read failed — using defaults', error.message);
+    return defaultPermissionsForRole(role);
+  }
+
+  return (data.permissions ?? []).filter((p): p is AdminPermission =>
+    (ALL_ADMIN_PERMISSIONS as string[]).includes(p)
+  );
 }
 
 // Database Access Functions
@@ -91,14 +128,8 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
 
   const role: UserRole = (profile.role as UserRole) || 'customer';
 
-  // الصلاحيات: العمود في القاعدة لو متملّي، وإلا الافتراضي بتاع الدور.
-  // العمود الفاضي مقصود — معناه «زي أي واحد في دوره»، فالحسابات القديمة
-  // ما بتتأثرش، ومفيش حاجة محتاجة تتملّى بالإيد.
-  const stored = (profile as { permissions?: string[] | null }).permissions;
-  const permissions: AdminPermission[] =
-    Array.isArray(stored) && stored.length > 0
-      ? (stored as AdminPermission[])
-      : defaultPermissionsForRole(role);
+  // الصلاحيات من دوره — كل اللي في الدور بياخدوا نفس الحاجة.
+  const permissions = await getRolePermissions(role);
 
   return {
     id: user.id,

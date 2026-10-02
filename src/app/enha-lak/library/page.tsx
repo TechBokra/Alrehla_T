@@ -14,12 +14,13 @@ import { PageContainer } from '@/components/PageContainer';
 import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
 import { LibraryClient } from './LibraryClient';
+import { getSiteContent } from '@/data/domains/content';
 
 
 export default async function LibraryPage() {
   const allProducts = await getPersonalizedProducts();
   const libraryProducts = allProducts.filter((p) => p.category === 'library');
-  const publishers = await getPublishers();
+  const [publishers, content] = await Promise.all([getPublishers(), getSiteContent()]);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -27,13 +28,22 @@ export default async function LibraryPage() {
           بنفس الشكل. والعنوان الفرعي من المصفوفة التنفيذية §3.3: «قصة
           جاهزة… وغلاف يحمل اسم طفلك» — أوضح فرق عن «أنت البطل هنا». */}
       <ShelfHeader
-        title="المكتبة العامة"
-        eyebrow="قصة جاهزة… وغلاف يحمل اسم طفلك"
+        title={content['library.title']}
+        eyebrow={content['library.eyebrow']}
         icon={<BookOpen className="h-8 w-8" />}
-        description="تصفّح القصص واختار اللي يناسب طفلك. محتوى القصة يفضل زي ما هو، والتخصيص على الغلاف والخيارات المتاحة بس."
+        description={content['library.description']}
       />
 
-      <LibraryClient initialProducts={libraryProducts} publishers={publishers} />
+      <LibraryClient
+        initialProducts={libraryProducts}
+        publishers={publishers}
+        texts={{
+          action: content['library.action'],
+          details: content['library.details'],
+          emptyTitle: content['library.empty.title'],
+          emptyText: content['library.empty.text'],
+        }}
+      />
     </PageContainer>
   );
 }

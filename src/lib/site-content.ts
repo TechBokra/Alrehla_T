@@ -703,6 +703,36 @@ const writingPackages: ContentGroup = {
       fallback: 'باقات أخرى',
       hint: 'بيظهر فوق الباقات اللي مش تابعة لمسار من التلاتة.',
     },
+    {
+      key: 'packages.otherSubtitle',
+      label: 'السطر تحت «باقات أخرى»',
+      type: 'text',
+      fallback: 'لم يُحدَّد مسارها بعد',
+    },
+    { key: 'packages.track.foundation.title', label: 'مسار التأسيس — العنوان', type: 'text', fallback: 'مسار التأسيس' },
+    { key: 'packages.track.foundation.subtitle', label: 'مسار التأسيس — السطر تحته', type: 'text', fallback: 'دون 12 سنة' },
+    { key: 'packages.track.youth.title', label: 'مسار اليافعين — العنوان', type: 'text', fallback: 'مسار اليافعين والكبار' },
+    { key: 'packages.track.youth.subtitle', label: 'مسار اليافعين — السطر تحته', type: 'text', fallback: '12 سنة فأعلى' },
+    { key: 'packages.track.specialization.title', label: 'مسار التخصص — العنوان', type: 'text', fallback: 'مسار التخصص' },
+    {
+      key: 'packages.track.specialization.subtitle',
+      label: 'مسار التخصص — السطر تحته',
+      type: 'text',
+      fallback: '12 سنة فأعلى — لمن أنهى مسارًا سابقًا أو يكتب بالفعل',
+    },
+    {
+      key: 'packages.help.text',
+      label: 'سطر المساعدة في آخر الصفحة',
+      type: 'text',
+      fallback: 'غير متأكد أي باقة تناسبك؟',
+    },
+    {
+      key: 'packages.help.link',
+      label: 'رابط المساعدة (النص بس)',
+      type: 'text',
+      fallback: 'تواصل معنا وسنساعدك على فهم الفروق قبل الحجز.',
+      hint: 'الرابط نفسه بيروح لصفحة الدعم — النص بس اللي بيتعدّل.',
+    },
   ],
 };
 
@@ -911,11 +941,146 @@ const footer: ContentGroup = {
   ],
 };
 
+/* ------------------------------------------------------------------ */
+/* المدونة                                                              */
+/* ------------------------------------------------------------------ */
+
+const blog: ContentGroup = {
+  id: 'blog',
+  title: 'المدونة',
+  path: '/blog',
+  note: 'المقالات نفسها بتتكتب من «المدونة» في القائمة — هنا نصوص الصفحة حواليها بس.',
+  fields: [
+    { key: 'blog.title', label: 'عنوان الصفحة', type: 'text', fallback: 'المدونة' },
+    {
+      key: 'blog.subtitle',
+      label: 'السطر تحت العنوان',
+      type: 'longtext',
+      fallback: 'مقالات وأفكار حول القصص والكتابة والتربية والإبداع.',
+    },
+    { key: 'blog.readMore', label: 'زرار «اقرأ المزيد» على كل مقال', type: 'text', fallback: 'اقرأ المزيد' },
+    {
+      key: 'blog.empty',
+      label: 'رسالة لما مفيش مقالات',
+      type: 'text',
+      fallback: 'المقالات الأولى في الطريق — ارجع لنا قريب.',
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* أنت البطل هنا                                                        */
+/* ------------------------------------------------------------------ */
+
+const enhaLakCustom: ContentGroup = {
+  id: 'enha-lak-custom',
+  title: '«أنت البطل هنا» — القصص المخصصة',
+  path: '/enha-lak/custom',
+  note: 'المنتجات والإضافات وأسعارها من «المنتجات» و«إضافات المنتجات» — هنا نصوص الصفحة بس.',
+  fields: [
+    { key: 'custom.title', label: 'عنوان الصفحة', type: 'text', fallback: 'أنت البطل هنا' },
+    { key: 'custom.eyebrow', label: 'السطر الصغير تحت العنوان', type: 'text', fallback: 'قصة بتتكتب لطفلك من الصفر' },
+    {
+      key: 'custom.description',
+      label: 'الفقرة التعريفية',
+      type: 'longtext',
+      fallback:
+        'اختار المنتج، وشاركنا اللي فريقنا محتاجه للتخصيص. بنبدأ نكتب بعد تأكيد الطلب، وطفلك يبقى بطل الحكاية باسمه وصورته واهتماماته.',
+    },
+    { key: 'custom.action', label: 'زرار المنتج', type: 'text', fallback: 'ابدأ التخصيص' },
+    { key: 'custom.empty.title', label: 'لما مفيش منتجات — العنوان', type: 'text', fallback: 'القصص المخصصة لسه بتتجهّز' },
+    { key: 'custom.empty.text', label: 'لما مفيش منتجات — السطر', type: 'text', fallback: 'بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.' },
+    { key: 'custom.addons.title', label: 'قسم الإضافات — العنوان', type: 'text', fallback: 'إضافات اختيارية' },
+    {
+      key: 'custom.addons.text',
+      label: 'قسم الإضافات — الوصف',
+      type: 'longtext',
+      fallback: 'اجعل تجربة طفلك أكثر متعة وتفاعلاً مع هذه الإضافات الممتعة.',
+    },
+    {
+      key: 'custom.addons.note',
+      label: 'قسم الإضافات — الملاحظة',
+      type: 'text',
+      fallback: 'الإضافات بتتختار وإنت بتخصّص القصة — مش بتتطلب لوحدها.',
+    },
+    { key: 'custom.addons.badge', label: 'الكلمة جنب سعر كل إضافة', type: 'text', fallback: 'تُضاف أثناء التخصيص' },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* المكتبة العامة                                                       */
+/* ------------------------------------------------------------------ */
+
+const enhaLakLibrary: ContentGroup = {
+  id: 'enha-lak-library',
+  title: 'المكتبة العامة',
+  path: '/enha-lak/library',
+  note: 'الكتب نفسها من «المنتجات» ودور النشر — هنا نصوص الصفحة بس. الفلاتر والبحث ثابتين.',
+  fields: [
+    { key: 'library.title', label: 'عنوان الصفحة', type: 'text', fallback: 'المكتبة العامة' },
+    { key: 'library.eyebrow', label: 'السطر الصغير تحت العنوان', type: 'text', fallback: 'قصة جاهزة… وغلاف يحمل اسم طفلك' },
+    {
+      key: 'library.description',
+      label: 'الفقرة التعريفية',
+      type: 'longtext',
+      fallback:
+        'تصفّح القصص واختار اللي يناسب طفلك. محتوى القصة يفضل زي ما هو، والتخصيص على الغلاف والخيارات المتاحة بس.',
+    },
+    { key: 'library.action', label: 'زرار الكتاب', type: 'text', fallback: 'تخصيص الغلاف' },
+    { key: 'library.details', label: 'رابط التفاصيل على الكتاب', type: 'text', fallback: 'عرض تفاصيل القصة' },
+    { key: 'library.empty.title', label: 'لما المكتبة فاضية — العنوان', type: 'text', fallback: 'المكتبة لسه بتتجهّز' },
+    {
+      key: 'library.empty.text',
+      label: 'لما المكتبة فاضية — السطر',
+      type: 'text',
+      fallback: 'بنضيف إصدارات دور النشر أول بأول — ارجع لنا قريب.',
+    },
+  ],
+};
+
+/* ------------------------------------------------------------------ */
+/* صندوق الرحلة                                                         */
+/* ------------------------------------------------------------------ */
+
+const enhaLakBox: ContentGroup = {
+  id: 'enha-lak-box',
+  title: 'صندوق الرحلة',
+  path: '/enha-lak/subscription',
+  note: 'الخطط وأسعارها ومزايا كل خطة من «خطط صندوق الرحلة» — هنا نصوص الصفحة بس.',
+  fields: [
+    { key: 'box.title', label: 'عنوان الصفحة', type: 'text', fallback: 'صندوق الرحلة' },
+    {
+      key: 'box.description',
+      label: 'الفقرة تحت العنوان',
+      type: 'longtext',
+      fallback:
+        'اشتراك يضمن متعة متجددة لطفلك كل شهر، مع مفاجآت تُصنع خصيصًا له وتصله حتى باب المنزل.',
+    },
+    { key: 'box.popular', label: 'شارة الخطة المميزة', type: 'text', fallback: 'الأكثر اختيارًا' },
+    { key: 'box.shippingNote', label: 'سطر الشحن تحت السعر', type: 'text', fallback: '+ شحن كل شهر حسب منطقتك' },
+    { key: 'box.action', label: 'زرار الخطة', type: 'text', fallback: 'اختر الخطة' },
+    { key: 'box.benefits.title', label: 'عنوان قسم «ماذا سأحصل عليه»', type: 'text', fallback: 'ماذا سأحصل عليه شهريًا؟' },
+    {
+      key: 'box.benefit1',
+      label: 'الميزة ١',
+      type: 'text',
+      fallback: 'قصة مخصصة جديدة',
+      hint: 'المزايا التلاتة دي بتظهر كمان على أي خطة مالهاش مزايا مكتوبة.',
+    },
+    { key: 'box.benefit2', label: 'الميزة ٢', type: 'text', fallback: 'أنشطة تفاعلية' },
+    { key: 'box.benefit3', label: 'الميزة ٣', type: 'text', fallback: 'هدية إضافية' },
+  ],
+};
+
 export const CONTENT_GROUPS: ContentGroup[] = [
   home,
   footer,
   about,
   enhaLak,
+  enhaLakCustom,
+  enhaLakLibrary,
+  enhaLakBox,
+  blog,
   creativeWriting,
   creativeWritingAbout,
   joinUs,

@@ -7,6 +7,20 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logAuditAction } from '@/lib/audit';
 import type { UserRole } from '@/types';
 import { generateTempCode, MUST_SET_PASSWORD } from '@/lib/first-login';
+import { headers } from 'next/headers';
+import { SITE_URL } from '@/lib/seo';
+
+/**
+ * عنوان الموقع اللي الإدارة فاتحاه دلوقتي — عشان رابط الدعوة يروح لنفس
+ * الموقع، مش لعنوان مكتوب في إعداد ممكن يكون قديم.
+ */
+async function currentOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  if (!host) return SITE_URL;
+  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
 
 /**
  * ليه النتيجة بترجع بدل ما الخطأ يترمي:
@@ -155,6 +169,18 @@ export async function createUserDirectly(params: {
  *
  * ⚠️ الرابط ده مفتاح: أي حد يفتحه يقدر يحدد كلمة المرور. يتبعت للشخص
  * المقصود وحده.
+ *
+ * ── الرابط على موقعنا، مش رابط Supabase ─────────────────────
+ *
+ * رابط Supabase الجاهز (`action_link`) كان بيرجّع الشخص على «عنوان
+ * الموقع» المتسجّل في Supabase — وفي القاعدة الجديدة ده كان
+ * `localhost:3000` — وبيحط الجلسة بعد `#` في العنوان، والجزء ده
+ * مابيوصلش للخادم أصلًا. فالرابط مكانش بيشتغل.
+ *
+ * دلوقتي بناخد **بصمة الرمز** (`hashed_token`) ونبني الرابط بنفسنا على
+ * `/auth/confirm` في **نفس الموقع اللي الإدارة فاتحاه** — فمايعتمدش
+ * على أي إعداد في Supabase. والتحقق بيحصل هناك بضغطة زرار
+ * (`confirmInvite`).
  */
 export async function inviteUser(params: {
   email: string;
@@ -189,8 +215,21 @@ export async function inviteUser(params: {
   }
 
   const newUserId = data.user?.id;
-  const actionLink = data.properties?.action_link;
-  if (!newUserId || !actionLink) return { ok: false, error: 'تعذّر إنشاء الحساب' };
+  const tokenHash = data.properties?.hashed_token;
+  if (!newUserId || !tokenHash) return { ok: false, error: 'تعذّر إنشاء الحساب' };
+
+  // ⚠️ **الحساب لسه مالوش كلمة مرور.** العلامة دي هي اللي بتوقفه على
+  //    شاشة «حدّد كلمة مرورك» بعد ما يدخل من الرابط — من غيرها كان
+  //    هيدخل لوحته ويفضل حساب بلا كلمة مرور، ومايعرفش يدخل تاني.
+  const { error: flagError } = await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+    app_metadata: { [MUST_SET_PASSWORD]: true },
+  });
+  if (flagError) {
+    console.error('Error flagging invited user', flagError);
+    return { ok: false, error: 'اتعمل الحساب لكن تعذّر تجهيز الدعوة — جرّب «إنشاء مباشر» بدلها' };
+  }
+
+  const inviteLink = `${await currentOrigin()}/auth/confirm?token_hash=${encodeURIComponent(tokenHash)}`;
 
   const { error: profileError } = await writeProfile(newUserId, fullName, params.role);
   if (profileError) {
@@ -211,7 +250,7 @@ export async function inviteUser(params: {
   });
 
   revalidatePath('/dashboard/admin/users');
-  return { ok: true, userId: newUserId, inviteLink: actionLink };
+  return { ok: true, userId: newUserId, inviteLink };
 }
 
 /**

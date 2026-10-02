@@ -1788,6 +1788,28 @@ export type Database = {
         }
         Relationships: []
       }
+      /** صلاحيات كل دور إداري — ملف schema/04. مدير النظام مالوش صف (الكل دايمًا). */
+      role_permissions: {
+        Row: {
+          role: Database["public"]["Enums"]["user_role_enum"]
+          permissions: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          role: Database["public"]["Enums"]["user_role_enum"]
+          permissions?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          role?: Database["public"]["Enums"]["user_role_enum"]
+          permissions?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           id: string
@@ -1999,7 +2021,6 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role_enum"]
           is_guardian: boolean | null
           avatar_url: string | null
-          permissions: string[] | null
           created_at: string
           updated_at: string
           /** موقوف عن الشراء من التاريخ ده — SQL 118. الدخول مابيتمنعش. */
@@ -2012,7 +2033,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role_enum"]
           is_guardian?: boolean | null
           avatar_url?: string | null
-          permissions?: string[] | null
           created_at?: string
           updated_at?: string
           suspended_at?: string | null
@@ -2024,7 +2044,6 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role_enum"]
           is_guardian?: boolean | null
           avatar_url?: string | null
-          permissions?: string[] | null
           created_at?: string
           updated_at?: string
           suspended_at?: string | null

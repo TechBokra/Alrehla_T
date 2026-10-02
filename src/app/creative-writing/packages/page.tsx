@@ -56,18 +56,18 @@ export default async function PackagesPage() {
   const tracks = [
     {
       key: 'foundation' as const,
-      title: 'مسار التأسيس',
-      subtitle: 'دون 12 سنة',
+      title: content['packages.track.foundation.title'],
+      subtitle: content['packages.track.foundation.subtitle'],
     },
     {
       key: 'youth' as const,
-      title: 'مسار اليافعين والكبار',
-      subtitle: '12 سنة فأعلى',
+      title: content['packages.track.youth.title'],
+      subtitle: content['packages.track.youth.subtitle'],
     },
     {
       key: 'specialization' as const,
-      title: 'مسار التخصص',
-      subtitle: '12 سنة فأعلى — لمن أنهى مسارًا سابقًا أو يكتب بالفعل',
+      title: content['packages.track.specialization.title'],
+      subtitle: content['packages.track.specialization.subtitle'],
     },
   ].map((t) => ({ ...t, items: activePackages.filter((p) => p.track === t.key) }));
 
@@ -106,7 +106,7 @@ export default async function PackagesPage() {
             <div className="mb-10 text-center md:text-right">
               <h2 className="text-3xl font-black text-slate-800">{content['packages.otherTitle']}</h2>
               <p className="mt-2 font-medium text-slate-500">
-                لم يُحدَّد مسارها بعد
+                {content['packages.otherSubtitle']}
               </p>
             </div>
             <div className="grid gap-8 lg:grid-cols-2">
@@ -122,12 +122,12 @@ export default async function PackagesPage() {
       <Section containerClassName="pb-16">
         <Card accentColor="emerald" className="mx-auto w-full max-w-4xl p-6 text-center bg-slate-50">
           <p className="text-lg font-medium text-slate-600">
-            غير متأكد أي باقة تناسبك؟{' '}
+            {content['packages.help.text']}{' '}
             <Link
               href="/support"
               className="font-bold text-emerald-700 hover:underline"
             >
-              تواصل معنا وسنساعدك على فهم الفروق قبل الحجز.
+              {content['packages.help.link']}
             </Link>
           </p>
         </Card>
