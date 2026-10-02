@@ -5,7 +5,7 @@ import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'مدربو الكتابة الإبداعية',
+    title: 'مدربو بداية الرحلة',
     description: 'تعرّف على مدربي الكتابة الإبداعية في منصة الرحلة، وتقييمات المشاركين، واحجز جلستك مع المدرب المناسب.',
     path: '/creative-writing/instructors',
   });

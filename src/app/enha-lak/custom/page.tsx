@@ -3,7 +3,7 @@ import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'القصص المخصصة',
+    title: 'أنت البطل هنا',
     description: 'اطلب قصة مخصصة يكون فيها طفلك هو البطل: اسمه وصورته واهتماماته داخل الحكاية.',
     path: '/enha-lak/custom',
   });

@@ -99,7 +99,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         expect.objectContaining({ role: 'general_supervisor' })
       );
       expect(eqMock).toHaveBeenCalledWith('id', 'target-user-1');
-      expect(selectMock).toHaveBeenCalledWith('id');
+      expect(selectMock).toHaveBeenCalledWith('id, full_name');
       expect(mockLogAuditAction).toHaveBeenCalled();
     });
 

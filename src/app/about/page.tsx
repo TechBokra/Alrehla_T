@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'عن المنصة',
+    title: 'رحلتنا',
     description: 'تعرف على رؤيتنا ومهمتنا في منصة الرحلة لتطوير قدرات الأطفال والشباب.',
     path: '/about',
   });

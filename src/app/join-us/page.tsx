@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/Button';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'انضم إلينا كمدرب أو ناشر',
-    description: 'قدم طلبك للانضمام إلى فريق منصة الرحلة كمدرب معتمد أو دار نشر.',
+    // الصفحة للمدربين ومقدّمي الخدمات الإبداعية (رسام، معلّق صوتي، كاتب)
+    // — مش للناشرين. الناشر بيتفق مع الإدارة مباشرة.
+    title: 'انضم إلينا',
+    description:
+      'قدّم طلبك للانضمام إلى فريق منصة الرحلة: مدرّب كتابة إبداعية، أو رسام، أو معلّق صوتي، أو كاتب قصص.',
     path: '/join-us',
   });
 }

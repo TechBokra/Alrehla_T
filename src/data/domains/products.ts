@@ -465,13 +465,21 @@ export async function getMyPublisher(): Promise<Publisher | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  let { data } = await supabase
     .from('publishers')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (error || !data) return null;
+  // ⚠️ حساب دوره ناشر ومالوش صف دار نشر — بيتعمل دلوقتي بدل ما لوحته
+  //    كلها تطلع «غير موجود» (`@/lib/ensure-publisher`).
+  if (!data) {
+    const { ensurePublisherRowForPublisher } = await import('@/lib/ensure-publisher');
+    const created = await ensurePublisherRowForPublisher(user.id);
+    if (!created) return null;
+    ({ data } = await supabase.from('publishers').select('*').eq('id', created.id).maybeSingle());
+    if (!data) return null;
+  }
 
   return {
     id: data.id,

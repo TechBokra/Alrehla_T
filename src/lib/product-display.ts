@@ -69,7 +69,18 @@ export type ProductFilter = {
    *    الرابط المكسور مايستاهلش رفًّا فاضيًا.
    */
   ageBand?: AgeBandId | 'all' | string;
+  /**
+   * مصدر الكتاب: إصدارات المنصة أو إصدارات دور النشر. `all` أو فاضي = الكل.
+   * (ملاحظة فريق العمل: «مفيش فلتر ناشر/منصة في المكتبة».)
+   */
+  source?: ProductSource | 'all' | string;
 };
+
+export type ProductSource = 'platform' | 'publisher';
+
+export function isProductSource(value: unknown): value is ProductSource {
+  return value === 'platform' || value === 'publisher';
+}
 
 export function filterProducts(
   products: PersonalizedProduct[],
@@ -80,8 +91,10 @@ export function filterProducts(
     ? options.publisherId
     : null;
   const ageBand = isAgeBandId(options.ageBand) ? options.ageBand : null;
+  const source = isProductSource(options.source) ? options.source : null;
 
   return products.filter((p) => {
+    if (source && p.ownerType !== source) return false;
     if (publisherId && p.publisherId !== publisherId) return false;
     if (ageBand && !productMatchesAgeBand(p, ageBand)) return false;
     if (!query) return true;
@@ -107,7 +120,8 @@ export function hasActiveFilter(options: ProductFilter): boolean {
   return Boolean(
     (options.query && options.query.trim()) ||
       (options.publisherId && options.publisherId !== 'all') ||
-      isAgeBandId(options.ageBand),
+      isAgeBandId(options.ageBand) ||
+      isProductSource(options.source),
   );
 }
 

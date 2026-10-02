@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'قسم إنها لك',
+    title: 'إنها لك',
     description: 'تصفح المتجر واكتشف أحدث منتجات وإصدارات إنها لك.',
     path: '/enha-lak',
   });
@@ -271,7 +271,25 @@ export default async function EnhaLakPage() {
         </div>
       </Section>
 
-
+      {/* ⚠️ **الصفحة كانت بتخلص من غير ولا زرار** — اللي قرا لحد هنا
+          مقتنع، ومالقاش يروح فين غير إنه يطلع للقايمة فوق. (ملاحظة
+          فريق العمل.) */}
+      <Section containerClassName="max-w-4xl pb-24 text-center">
+        <h2 className="mb-8 text-3xl font-black text-slate-800">
+          {content['enhaLak.cta.title']}
+        </h2>
+        <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button href="/enha-lak/custom" accentColor="enhaLak">
+            {content['enhaLak.cta.custom']}
+          </Button>
+          <Button href="/enha-lak/library" variant="secondary" accentColor="enhaLak">
+            {content['enhaLak.cta.library']}
+          </Button>
+          <Button href="/enha-lak/subscription" variant="secondary" accentColor="enhaLak">
+            {content['enhaLak.cta.box']}
+          </Button>
+        </div>
+      </Section>
     </PageContainer>
   );
 }

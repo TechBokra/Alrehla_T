@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'الكتابة الإبداعية',
+    title: 'بداية الرحلة',
     description: 'استكشف برامج ودورات الكتابة الإبداعية المتاحة.',
     path: '/creative-writing',
   });

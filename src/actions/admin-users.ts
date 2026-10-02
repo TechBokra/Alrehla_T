@@ -9,6 +9,7 @@ import type { UserRole } from '@/types';
 import { generateTempCode, MUST_SET_PASSWORD } from '@/lib/first-login';
 import { headers } from 'next/headers';
 import { SITE_URL } from '@/lib/seo';
+import { ensurePublisherRow } from '@/lib/ensure-publisher';
 
 /**
  * عنوان الموقع اللي الإدارة فاتحاه دلوقتي — عشان رابط الدعوة يروح لنفس
@@ -97,7 +98,7 @@ async function writeProfile(
   const supabaseAdmin = createAdminClient();
   // الملف الشخصي قد يكون أُنشئ بمحفّز عند التسجيل — upsert بتتعامل مع
   // الحالتين من غير ما تكسر لو الصف موجود.
-  return supabaseAdmin.from('user_profiles').upsert(
+  const result = await supabaseAdmin.from('user_profiles').upsert(
     {
       id: userId,
       full_name: fullName,
@@ -106,6 +107,9 @@ async function writeProfile(
     },
     { onConflict: 'id' },
   );
+  // الناشر من غير صف «دار نشر» لوحته كلها «غير موجود» (`ensure-publisher`).
+  if (!result.error && role === 'publisher') await ensurePublisherRow(userId, fullName);
+  return result;
 }
 
 /**
@@ -345,7 +349,7 @@ export async function updateUserRole(
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId)
-    .select('id')
+    .select('id, full_name')
     .maybeSingle();
 
   if (error) {
@@ -356,6 +360,9 @@ export async function updateUserRole(
   if (!data) {
     return { ok: false, error: 'المستخدم غير موجود أو تعذّر تحديث دوره' };
   }
+
+  // ⚠️ «ناشر» من غير صف دار نشر = لوحة كلها «غير موجود» (`ensure-publisher`).
+  if (role === 'publisher') await ensurePublisherRow(userId, data.full_name ?? '');
 
   await logAuditAction({
     actorProfileId: admin.id,

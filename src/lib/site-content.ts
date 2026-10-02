@@ -410,6 +410,10 @@ const enhaLak: ContentGroup = {
       type: 'text',
       fallback: 'ماذا تقول الأسر عنا؟',
     },
+    { key: 'enhaLak.cta.title', label: 'آخر الصفحة — العنوان', type: 'text', fallback: 'جاهز تبدأ حكاية طفلك؟' },
+    { key: 'enhaLak.cta.custom', label: 'آخر الصفحة — زرار «أنت البطل هنا»', type: 'text', fallback: 'ابدأ تخصيص قصتك' },
+    { key: 'enhaLak.cta.library', label: 'آخر الصفحة — زرار المكتبة', type: 'text', fallback: 'اختر قصتك من المكتبة' },
+    { key: 'enhaLak.cta.box', label: 'آخر الصفحة — زرار صندوق الرحلة', type: 'text', fallback: 'اشترك في صندوق الرحلة' },
   ],
 };
 
@@ -519,6 +523,8 @@ const creativeWritingAbout: ContentGroup = {
     { key: 'cwAbout.feature2.text', label: 'الميزة ٢ — الوصف', type: 'text', fallback: 'نؤمن أن الكتابة مهارة تنمو بالتجربة والمحاولة المستمرة أكثر من التنظير.' },
     { key: 'cwAbout.feature3.title', label: 'الميزة ٣ — العنوان', type: 'text', fallback: 'الثقة هي المفتاح' },
     { key: 'cwAbout.feature3.text', label: 'الميزة ٣ — الوصف', type: 'text', fallback: 'نبني مساحة آمنة تمنح المشارك الثقة بصوته وقدراته دون خوف من الخطأ.' },
+    { key: 'cwAbout.cta.title', label: 'آخر الصفحة — العنوان', type: 'text', fallback: 'جاهز تبدأ الرحلة؟' },
+    { key: 'cwAbout.cta.button', label: 'آخر الصفحة — الزرار', type: 'text', fallback: 'اكتشف باقات بداية الرحلة' },
   ],
 };
 

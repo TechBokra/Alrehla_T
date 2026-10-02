@@ -3,7 +3,7 @@ import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'عن «بداية الرحلة»',
+    title: 'عن بداية الرحلة',
     description: 'برنامج الكتابة الإبداعية في منصة الرحلة: جلسات فردية تساعد الطفل واليافع على تطوير أدواته وصوته في الكتابة.',
     path: '/creative-writing/about',
   });
@@ -16,6 +16,7 @@ import { getSiteContent } from '@/data/domains/content';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 
 export default async function AboutProgramPage() {
@@ -104,6 +105,16 @@ export default async function AboutProgramPage() {
             );
           })}
         </div>
+      </Section>
+
+      {/* الصفحة كانت بتخلص من غير ما تقول للقارئ يروح فين. */}
+      <Section containerClassName="mx-auto w-full max-w-4xl pb-24 text-center">
+        <h2 className="mb-8 text-3xl font-black text-slate-800">
+          {content['cwAbout.cta.title']}
+        </h2>
+        <Button href="/creative-writing/packages" accentColor="journey" size="lg">
+          {content['cwAbout.cta.button']}
+        </Button>
       </Section>
     </PageContainer>
   );

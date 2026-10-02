@@ -15,7 +15,9 @@ import {
   resultLabel,
   hasActiveFilter,
   PRODUCT_SORTS,
+  isProductSource,
   type ProductSort,
+  type ProductSource,
 } from '@/lib/product-display';
 import { AGE_BANDS, isAgeBandId, productMatchesAgeBand, type AgeBandId } from '@/lib/age-bands';
 import { optimizedImageUrl } from '@/lib/cloudinary';
@@ -43,12 +45,20 @@ import type { PersonalizedProduct, Publisher } from '@/types';
 
 type Filters = {
   query: string;
+  /** المصدر: إصدارات المنصة أو دور النشر — `all` = الكل. */
+  source: ProductSource | 'all';
   publisherSlug: string;
   ageBand: AgeBandId | 'all';
   sort: ProductSort;
 };
 
-const EMPTY: Filters = { query: '', publisherSlug: 'all', ageBand: 'all', sort: 'newest' };
+const EMPTY: Filters = {
+  query: '',
+  source: 'all',
+  publisherSlug: 'all',
+  ageBand: 'all',
+  sort: 'newest',
+};
 
 /**
  * ⚠️ **ليه `Suspense` ونسختين من نفس الشاشة**
@@ -95,6 +105,7 @@ function LibraryFromUrl(props: {
   //    القيمة الغريبة = «الكل»، مش رفّ فاضي.
   const initial: Filters = {
     query: params.get('q') ?? '',
+    source: isProductSource(params.get('source')) ? (params.get('source') as ProductSource) : 'all',
     ageBand: isAgeBandId(age) ? age : 'all',
     publisherSlug: props.publishers.some((p) => p.slug === publisher) ? publisher! : 'all',
     sort: PRODUCT_SORTS.some((s) => s.value === sort) ? (sort as ProductSort) : 'newest',
@@ -123,6 +134,7 @@ function LibraryView({
     //    خطوة في تاريخ المتصفح، والرجوع يمشي حرف حرف. ومن غير طلب
     //    للخادم — الفلترة كلها هنا.
     const q = new URLSearchParams();
+    if (merged.source !== 'all') q.set('source', merged.source);
     if (merged.ageBand !== 'all') q.set('age', merged.ageBand);
     if (merged.publisherSlug !== 'all') q.set('publisher', merged.publisherSlug);
     if (merged.sort !== 'newest') q.set('sort', merged.sort);
@@ -136,17 +148,23 @@ function LibraryView({
       ? 'all'
       : (publishers.find((p) => p.slug === f.publisherSlug)?.id ?? 'all');
 
-  const filterOptions = { query: f.query, publisherId, ageBand: f.ageBand };
+  const filterOptions = { query: f.query, publisherId, ageBand: f.ageBand, source: f.source };
 
   const visible = useMemo(
     () => sortProducts(filterProducts(initialProducts, filterOptions), f.sort),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [initialProducts, f.query, publisherId, f.ageBand, f.sort],
+    [initialProducts, f.query, publisherId, f.ageBand, f.source, f.sort],
   );
 
   const filtering = hasActiveFilter(filterOptions);
   const count = resultLabel(visible.length, initialProducts.length);
-  const clear = () => update({ query: '', publisherSlug: 'all', ageBand: 'all' });
+  const clear = () => update({ query: '', source: 'all', publisherSlug: 'all', ageBand: 'all' });
+
+  // المصدر بيظهر بس لو المكتبة فيها النوعين — زرار بيدّي كل الكتب أو
+  // صفر دايمًا مالوش لازمة.
+  const platformCount = initialProducts.filter((p) => p.ownerType === 'platform').length;
+  const publisherCount = initialProducts.filter((p) => p.ownerType === 'publisher').length;
+  const showSource = platformCount > 0 && publisherCount > 0;
 
   // ⚠️ **الفئة اللي مالهاش ولا كتاب مابتظهرش** — نفس قاعدة دور النشر
   //    تحت. زرار بيدّي صفر نتايج دايمًا بيتقري «الموقع باظ».
@@ -220,11 +238,54 @@ function LibraryView({
           </div>
         )}
 
+        {/* ══ المصدر: المنصة / دور النشر ════════════════════════ */}
+        {showSource && (
+          <div role="group" aria-label="مصدر الكتاب">
+            <p className="mb-2 text-sm font-bold text-slate-700">من إصدارات</p>
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+              {(
+                [
+                  ['all', 'الكل', initialProducts.length],
+                  ['platform', 'منصة الرحلة', platformCount],
+                  ['publisher', 'دور النشر', publisherCount],
+                ] as const
+              ).map(([value, label, n]) => {
+                const active = f.source === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    // اختيار «المنصة» بيلغي اختيار دار نشر بعينها — الاتنين
+                    // مع بعض = صفر نتايج دايمًا.
+                    onClick={() =>
+                      update(
+                        value === 'platform'
+                          ? { source: value, publisherSlug: 'all' }
+                          : { source: value },
+                      )
+                    }
+                    aria-pressed={active}
+                    className={cn(
+                      chipBase,
+                      active
+                        ? 'border-rose-700 bg-rose-700 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
+                    )}
+                  >
+                    {label}
+                    <span className="text-xs opacity-80">({n.toLocaleString('ar-EG')})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ══ دور النشر ════════════════════════════════════════
             ⚠️ كانت قايمة منسدلة — الاختيار مستخبي ورا ضغطة، والأب
             مايعرفش إن فيه دور نشر أصلًا لحد ما يفتحها. بقت أزرار
             ظاهرة بشعار كل دار. */}
-        {usablePublishers.length > 0 && (
+        {usablePublishers.length > 0 && f.source !== 'platform' && (
           <div role="group" aria-label="دار النشر">
             <p className="mb-2 text-sm font-bold text-slate-700">دار النشر</p>
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">

@@ -176,3 +176,20 @@ describe('الرابط القديم بيحوّل (ملف 136)', () => {
       .toBe(`/enha-lak/product/${encodeURIComponent('اعماق-البحار')}`);
   });
 });
+
+describe('فلتر المصدر — المنصة / دور النشر', () => {
+  const mine = product({ id: 'mine', ownerType: 'platform' });
+  const theirs = product({ id: 'theirs', ownerType: 'publisher', publisherId: 'pub-1' });
+
+  it('بيفصل إصدارات المنصة عن دور النشر', () => {
+    expect(filterProducts([mine, theirs], { source: 'platform' }).map((p) => p.id)).toEqual(['mine']);
+    expect(filterProducts([mine, theirs], { source: 'publisher' }).map((p) => p.id)).toEqual(['theirs']);
+    expect(filterProducts([mine, theirs], { source: 'all' })).toHaveLength(2);
+  });
+
+  it('قيمة غريبة من الرابط = الكل، مش صفر نتايج', () => {
+    expect(filterProducts([mine, theirs], { source: 'xyz' })).toHaveLength(2);
+    expect(hasActiveFilter({ source: 'xyz' })).toBe(false);
+    expect(hasActiveFilter({ source: 'platform' })).toBe(true);
+  });
+});
