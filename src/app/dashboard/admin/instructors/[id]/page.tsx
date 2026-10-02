@@ -89,7 +89,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </p>
           </div>
           <Link
-            href="/dashboard/admin/instructors/media"
+            href="/dashboard/admin/instructors/review"
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
             مراجعة الصور

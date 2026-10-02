@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Instructor,
@@ -40,8 +41,6 @@ import {
   X,
 } from 'lucide-react';
 import {
-  approveProfileUpdateRequest,
-  rejectProfileUpdateRequest,
   updateInstructorCertification,
   setInstructorStatus,
   setInstructorPackages,
@@ -117,7 +116,6 @@ export function AdminInstructorClient({
 
   // Status & Certification state
   const [trainingPassed, setTrainingPassed] = useState(certification?.examPassed || false);
-  const [adminFeedback, setAdminFeedback] = useState('');
   const [status, setStatus] = useState(instructor.status);
   const [statusDone, setStatusDone] = useState('');
 
@@ -217,32 +215,9 @@ export function AdminInstructorClient({
     fallbackError: 'تعذّر تغيير حالة المدرب.',
   });
 
-  const approve = useAction(approveProfileUpdateRequest, {
-    onSuccess: () => router.refresh(),
-    fallbackError: 'تعذّر اعتماد الطلب.',
-  });
-
-  const reject = useAction(rejectProfileUpdateRequest, {
-    onSuccess: () => {
-      setAdminFeedback('');
-      router.refresh();
-    },
-    fallbackError: 'تعذّر رفض الطلب.',
-  });
-
   const certify = useAction(updateInstructorCertification, {
     fallbackError: 'تعذّر حفظ حالة التدريب.',
   });
-
-  const handleApprove = (reqId: string) => approve.run(reqId);
-
-  const handleReject = async (reqId: string) => {
-    if (!adminFeedback.trim()) {
-      alert('يرجى كتابة سبب الرفض في خانة الملاحظات أولاً لإرساله للمدرب.');
-      return;
-    }
-    await reject.run(reqId, adminFeedback);
-  };
 
   const handleTrainingToggle = async (checked: boolean) => {
     const previous = trainingPassed;
@@ -252,8 +227,7 @@ export function AdminInstructorClient({
     else router.refresh();
   };
 
-  const busy = approve.pending || reject.pending || certify.pending;
-  const actionError = approve.error || reject.error || certify.error;
+  const actionError = certify.error;
 
   // Filtered packages
   const filteredPackages = useMemo(() => {
@@ -872,33 +846,15 @@ export function AdminInstructorClient({
                         </div>
                       )}
 
-                      {/* إجراءات الاعتماد أو الرفض */}
-                      <div className="pt-2 border-t border-slate-100 flex flex-col gap-2.5">
-                        <input
-                          type="text"
-                          value={adminFeedback}
-                          onChange={(e) => setAdminFeedback(e.target.value)}
-                          placeholder="ملاحظات للإرسال للمدرب (مطلوبة في حالة الرفض لتوضيح السبب)"
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs outline-none focus:border-amber-500 focus:bg-white"
-                        />
-                        <div className="flex gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(req.id)}
-                            disabled={busy}
-                            className="flex-1 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shadow-2xs"
-                          >
-                            {approve.pending ? 'جارٍ الاعتماد…' : 'اعتماد هذا الطلب'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReject(req.id)}
-                            disabled={busy}
-                            className="flex-1 rounded-xl bg-rose-50 border border-rose-200 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-60 transition-colors"
-                          >
-                            {reject.pending ? 'جارٍ الرفض…' : 'رفض مع إرسال الملاحظات'}
-                          </button>
-                        </div>
+                      {/* ⚠️ الاعتماد والرفض بقوا في «مراجعة ملفات المدربين» —
+                          مكان واحد للملف والصور. هنا عرض بس. */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <Link
+                          href="/dashboard/admin/instructors/review"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800"
+                        >
+                          راجعه من «مراجعة ملفات المدربين»
+                        </Link>
                       </div>
                     </div>
                   );

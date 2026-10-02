@@ -34,7 +34,7 @@ const GROUPS: RawGroup[] = [
       // ⚠️ الشاشة دي هي اللي بتخلّي الموافقة على الصور حقيقية.
       //    من غير مدخل في القايمة، الصور بتفضل معلَّقة للأبد
       //    والمدرب يفتكر إن الموقع باظ.
-      { label: 'صور المدربين', href: '/dashboard/admin/instructors/media', icon: 'Images', permission: 'canManageInstructors' },
+      { label: 'مراجعة ملفات المدربين', href: '/dashboard/admin/instructors/review', icon: 'Images', permission: 'canManageInstructors' },
       // مقدّمو الخدمة: المنصة والمدربون والمستقلون. مكان واحد لتحديد
       // مين بيقدّم أي خدمة إبداعية وبكام.
       { label: 'مقدّمو الخدمة', href: '/dashboard/admin/providers', icon: 'UserCheck', permission: 'canManageInstructors' },

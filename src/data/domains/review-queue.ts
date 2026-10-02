@@ -132,18 +132,11 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
       urgent: false,
     },
     {
-      key: 'profile_requests',
-      label: 'طلبات تعديل ملفات المدربين',
-      count: n(profileRequests),
-      href: '/dashboard/admin/instructors',
-      permission: 'canManageInstructors',
-      urgent: false,
-    },
-    {
-      key: 'instructor_media',
-      label: 'صور مدربين مستنية المراجعة',
-      count: n(instructorMedia),
-      href: '/dashboard/admin/instructors/media',
+      // ملف المدرب وصوره بيتراجعوا من مكان واحد — فبند واحد بعددهم.
+      key: 'instructor_review',
+      label: 'ملفات وصور مدربين مستنية المراجعة',
+      count: n(profileRequests) + n(instructorMedia),
+      href: '/dashboard/admin/instructors/review',
       permission: 'canManageInstructors',
       urgent: false,
     },

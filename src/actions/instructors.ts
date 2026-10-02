@@ -95,7 +95,7 @@ export async function submitInstructorProfileUpdate(
       ? `مدرب جديد كمّل ملفه: ${instructorName || 'مدرب'} — راجعه وفعّله`
       : `طلب تعديل ملف: ${instructorName || 'مدرب'}`,
     message: summary,
-    link: `/dashboard/admin/instructors/${instructorId}`,
+    link: '/dashboard/admin/instructors/review',
   });
 
   revalidatePath('/dashboard/instructor', 'layout');
@@ -142,7 +142,7 @@ export async function submitInstructorPackageUpdateRequest(
     event: 'instructor_profile',
     title: `طلب اعتماد باقات: ${instructorName || 'مدرب'}`,
     message: summary,
-    link: `/dashboard/admin/instructors/${instructorId}`,
+    link: '/dashboard/admin/instructors/review',
   });
 
   revalidatePath('/dashboard/instructor/settings');
@@ -292,6 +292,8 @@ export async function approveProfileUpdateRequest(requestId: string) {
   });
 
   revalidatePath(`/dashboard/admin/instructors/${request.instructor_id}`);
+  revalidatePath('/dashboard/admin/instructors/review');
+  revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
   return { success: true };
 }
@@ -337,6 +339,8 @@ export async function rejectProfileUpdateRequest(requestId: string, adminFeedbac
   });
 
   revalidatePath(`/dashboard/admin/instructors/${request.instructor_id}`);
+  revalidatePath('/dashboard/admin/instructors/review');
+  revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
   return { success: true };
 }

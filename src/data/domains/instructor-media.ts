@@ -196,3 +196,89 @@ export async function getInstructorMediaForAdmin(
     instructorName: byId.get(r.instructorId) ?? 'مدرب غير معروف',
   }));
 }
+
+/**
+ * كل اللي مستني مراجعة لكل مدرب — **ملفه وصوره في مكان واحد**.
+ *
+ * المدرب بيعدّل ملفه وصوره من صفحة واحدة («ملفي وصوري»)، فالإدارة
+ * بتراجعهم من صفحة واحدة برضه: طلبات تعديل الملف (نبذة، تخصصات،
+ * جدول، باقات…) والغلاف وصور الأعمال، متجمّعين بالمدرب، ومع كل مدرب
+ * بياناته الحالية عشان المقارنة «قبل ← بعد».
+ */
+export type InstructorReviewGroup = {
+  instructorId: string;
+  displayName: string;
+  bio: string;
+  specialties: string[];
+  yearsExperience: number;
+  status: string;
+  avatarUrl: string | null;
+  requests: {
+    id: string;
+    createdAt: string;
+    requestedChanges: Record<string, unknown>;
+  }[];
+  media: InstructorMedia[];
+};
+
+export async function getInstructorReviewGroups(): Promise<InstructorReviewGroup[]> {
+  const supabase = await createClient();
+  const [{ data: reqRows, error: reqError }, { data: mediaRows, error: mediaError }] =
+    await Promise.all([
+      supabase
+        .from('profile_update_requests')
+        .select('id, instructor_id, requested_changes, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('instructor_media')
+        .select(COLUMNS)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true }),
+    ]);
+
+  if (reqError) console.error('تعذّر قراءة طلبات تعديل الملفات', reqError);
+  if (mediaError) console.error('تعذّر قراءة الصور المعلَّقة', mediaError);
+
+  const ids = [
+    ...new Set([
+      ...(reqRows ?? []).map((r) => r.instructor_id),
+      ...(mediaRows ?? []).map((m) => m.instructor_id),
+    ]),
+  ];
+  if (ids.length === 0) return [];
+
+  const { data: instructors } = await supabase
+    .from('instructors')
+    .select('id, user_id, display_name, bio, specialties, years_experience, status')
+    .in('id', ids);
+
+  const userIds = (instructors ?? []).map((i) => i.user_id).filter(Boolean);
+  const { data: profiles } = userIds.length
+    ? await supabase.from('user_profiles').select('id, avatar_url').in('id', userIds)
+    : { data: [] as { id: string; avatar_url: string | null }[] };
+  const avatarByUser = new Map((profiles ?? []).map((p) => [p.id, p.avatar_url]));
+
+  const byId = new Map((instructors ?? []).map((i) => [i.id, i]));
+
+  return ids.map((id) => {
+    const inst = byId.get(id);
+    return {
+      instructorId: id,
+      displayName: inst?.display_name ?? 'مدرب غير معروف',
+      bio: inst?.bio ?? '',
+      specialties: inst?.specialties ?? [],
+      yearsExperience: inst?.years_experience ?? 0,
+      status: inst?.status ?? '',
+      avatarUrl: inst ? (avatarByUser.get(inst.user_id) ?? null) : null,
+      requests: (reqRows ?? [])
+        .filter((r) => r.instructor_id === id)
+        .map((r) => ({
+          id: r.id,
+          createdAt: r.created_at,
+          requestedChanges: (r.requested_changes ?? {}) as Record<string, unknown>,
+        })),
+      media: (mediaRows ?? []).filter((m) => m.instructor_id === id).map(toMedia),
+    };
+  });
+}

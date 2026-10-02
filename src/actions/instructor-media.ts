@@ -123,12 +123,12 @@ export async function submitInstructorMedia(formData: FormData): Promise<MediaRe
     event: 'instructor_profile',
     title: `صورة جديدة للمراجعة: ${instructorName}`,
     message: kind === 'cover' ? 'غلاف بروفايل جديد' : 'صورة عمل جديدة',
-    link: '/dashboard/admin/instructors/media',
+    link: '/dashboard/admin/instructors/review',
   });
 
   // الصور بقت في «ملفي» (كانت في «الإعدادات»).
   revalidatePath('/dashboard/instructor/profile');
-  revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath('/dashboard/admin/instructors/review');
   return { ok: true };
 }
 
@@ -167,7 +167,7 @@ export async function removeInstructorMedia(formData: FormData): Promise<MediaRe
   //    من شاشة الصور في الإدارة زي باقي الصور اليتيمة.
   // الصور بقت في «ملفي» (كانت في «الإعدادات»).
   revalidatePath('/dashboard/instructor/profile');
-  revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath('/dashboard/admin/instructors/review');
   // لو كانت معتمدة، كانت ظاهرة في صفحته العامة.
   revalidatePath(`/creative-writing/instructors/${instructorId}`);
   return { ok: true };
@@ -239,7 +239,7 @@ export async function reviewInstructorMedia(formData: FormData): Promise<MediaRe
     metadata: { instructorId: data.instructor_id, kind: data.kind },
   });
 
-  revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
   revalidatePath('/dashboard/instructor/profile');
   revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
@@ -298,7 +298,7 @@ export async function revokeInstructorMedia(formData: FormData): Promise<MediaRe
     metadata: { instructorId: data.instructor_id, kind: data.kind, feedback },
   });
 
-  revalidatePath('/dashboard/admin/instructors/media');
+  revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
   revalidatePath('/dashboard/instructor/profile');
   revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
