@@ -9,6 +9,7 @@ import { LogoutButton } from '@/components/LogoutButton';
 import { InstructorProfileClient } from './InstructorProfileClient';
 import { getOwnInstructorMedia } from '@/data/domains/instructor-media';
 import { InstructorMediaPanel } from '@/components/dashboard/InstructorMediaPanel';
+import { onboardingState } from '@/lib/instructor-onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,7 @@ export default async function InstructorProfilePage() {
         email={user.email}
         avatarUrl={user.avatarUrl}
         hasPendingRequest={requests.some((r) => r.status === 'pending')}
+        onboarding={onboardingState(instructor, requests)}
       />
 
       {/* ⚠️ **الصور كانت في «الإعدادات» تحت نموذج طويل** — والمدرب

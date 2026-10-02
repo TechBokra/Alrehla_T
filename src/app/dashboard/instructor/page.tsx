@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
+import { onboardingState } from '@/lib/instructor-onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,12 @@ export default async function InstructorDashboard() {
       instructorId ? getInstructorRatingSummary(instructorId) : { average: null, count: 0 },
       instructorId ? getReviewsForInstructor(instructorId) : [],
     ]);
+
+  // ⚠️ المدرب الجديد ملفه فاضي: اللوحة كلها أصفار ومفيش حاجة يعملها
+  //    غير إنه يكمّل ملفه — فبيروح هناك على طول.
+  if (instructor && onboardingState(instructor, updateRequests) === 'needs_profile') {
+    redirect('/dashboard/instructor/profile');
+  }
 
   // الجلسات القادمة غير الملغاة وغير المنتهية
   const confirmedBookings = allBookings.filter(

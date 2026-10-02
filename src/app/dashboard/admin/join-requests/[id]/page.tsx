@@ -12,6 +12,7 @@ import { joinRequestRoleLabel, joinNextStep } from '@/lib/join-roles';
 import { createClient } from '@/lib/supabase/server';
 
 import { JoinRequestActions } from './JoinRequestActions';
+import { JoinInstructorAccount } from './JoinInstructorAccount';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .eq('email', target.email.trim().toLowerCase())
       .maybeSingle();
     account = data ? { exists: true, userId: data.user_id } : { exists: false };
+  }
+
+  // طلب مدرب: «اتعمل» = فيه **ملف مدرب** للحساب ده، مش مجرد حساب (ممكن
+  // يكون مسجّل كعميل من قبل — وساعتها لسه محتاج يتحوّل لمدرب).
+  let instructorId: string | null = null;
+  if (target.requestedRole === 'instructor' && account?.userId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('instructors')
+      .select('id')
+      .eq('user_id', account.userId)
+      .maybeSingle();
+    instructorId = data?.id ?? null;
   }
   const next =
     target.status === 'approved'
@@ -147,6 +161,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <div className="pt-8 border-t border-slate-100 flex flex-wrap gap-4">
             {target.status === 'pending' ? (
               <JoinRequestActions requestId={target.id} />
+            ) : target.status === 'approved' && target.requestedRole === 'instructor' ? (
+              // المدرب: الحساب برمز مؤقت والمدرب يكمّل ملفه بنفسه.
+              <JoinInstructorAccount
+                requestId={target.id}
+                instructorId={instructorId}
+                manualHref={next.nextHref}
+              />
             ) : target.status === 'approved' && account?.exists ? (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
                 <CheckCircle className="h-5 w-5" />

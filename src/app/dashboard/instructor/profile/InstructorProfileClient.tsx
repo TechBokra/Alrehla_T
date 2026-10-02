@@ -1,17 +1,25 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Info, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Info, CheckCircle2, Sparkles } from 'lucide-react';
 import { Instructor } from '@/types';
 import { submitInstructorProfileUpdate } from '@/actions/instructors';
 import { AvatarPicker } from '@/components/dashboard/AvatarPicker';
 import { updateMyProfile } from '@/actions/profiles';
+import {
+  validateFirstProfile,
+  BIO_MIN,
+  type OnboardingState,
+} from '@/lib/instructor-onboarding';
 
 interface Props {
   instructor: Instructor;
   email: string;
   avatarUrl?: string;
   hasPendingRequest: boolean;
+  /** المدرب الجديد بيكمّل ملفه الأول — كل الخانات إلزامية. */
+  onboarding?: OnboardingState;
 }
 
 const inputClass =
@@ -22,7 +30,11 @@ export function InstructorProfileClient({
   email,
   avatarUrl,
   hasPendingRequest,
+  onboarding = 'complete',
 }: Props) {
+  const router = useRouter();
+  const firstProfile = onboarding === 'needs_profile';
+  const req = firstProfile ? <span className="text-rose-600"> *</span> : null;
   const [displayName, setDisplayName] = useState(instructor.displayName ?? '');
   const [bio, setBio] = useState(instructor.bio ?? '');
   const [specialties, setSpecialties] = useState((instructor.specialties ?? []).join('، '));
@@ -33,10 +45,30 @@ export function InstructorProfileClient({
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const parsedSpecialties = () =>
+    specialties
+      .split(/[،,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
   const handleSubmit = async () => {
-    setIsSaving(true);
     setMessage('');
     setError('');
+    // الملف الأول: الرسالة قبل الإرسال، والخادم بيعيد نفس الفحص.
+    if (firstProfile) {
+      const problem = validateFirstProfile({
+        displayName,
+        bio,
+        specialties: parsedSpecialties(),
+        yearsExperience: Number(yearsExperience),
+        avatarUrl: avatar,
+      });
+      if (problem) {
+        setError(problem);
+        return;
+      }
+    }
+    setIsSaving(true);
     try {
       // The picture belongs to the account, not to the reviewed profile, so it
       // saves immediately; the rest goes to the admin for review.
@@ -44,13 +76,15 @@ export function InstructorProfileClient({
       await submitInstructorProfileUpdate(instructor.id, {
         displayName: displayName.trim(),
         bio: bio.trim(),
-        specialties: specialties
-          .split(/[،,]/)
-          .map((s) => s.trim())
-          .filter(Boolean),
+        specialties: parsedSpecialties(),
         yearsExperience: Number(yearsExperience) || 0,
       });
-      setMessage('تم إرسال التعديلات للإدارة للمراجعة. ستظهر على الموقع بعد الاعتماد.');
+      setMessage(
+        firstProfile
+          ? 'ملفك وصل للإدارة. أول ما يتعتمد وتخلّص التدريب، حسابك هيتفعّل.'
+          : 'تم إرسال التعديلات للإدارة للمراجعة. ستظهر على الموقع بعد الاعتماد.'
+      );
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر إرسال التعديلات');
     } finally {
@@ -60,6 +94,22 @@ export function InstructorProfileClient({
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      {firstProfile && (
+        <div className="mb-8 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+          <Sparkles className="h-6 w-6 shrink-0" />
+          <div className="space-y-1 text-sm">
+            <p className="text-base font-black">أهلًا بيك في الرحلة!</p>
+            <p className="font-medium">
+              طلبك اتقبل. فاضل تكمّل ملفك — <strong>كل الخانات اللي عليها *
+              مطلوبة</strong> — وتبعته للإدارة. بعد ما يتعتمد وتخلّص التدريب،
+              حسابك بيتفعّل ويبدأ يظهر للأهالي.
+            </p>
+            <p className="font-medium">
+              وتحت كمان تقدر ترفع غلاف لصفحتك وصور إصداراتك وأعمالك (اختياري).
+            </p>
+          </div>
+        </div>
+      )}
       <div className="mb-8 flex gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-blue-800">
         <Info className="h-5 w-5 shrink-0" />
         <div className="text-sm">
@@ -95,7 +145,7 @@ export function InstructorProfileClient({
         value={avatar}
         onChange={setAvatar}
         onError={setError}
-        label="الصورة الشخصية"
+        label={firstProfile ? 'الصورة الشخصية *' : 'الصورة الشخصية'}
         folder="alrehla/avatars"
       />
 
@@ -103,7 +153,7 @@ export function InstructorProfileClient({
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">الاسم المعروض</label>
+          <label className="text-sm font-bold text-slate-700">الاسم المعروض{req}</label>
           <input
             className={inputClass}
             value={displayName}
@@ -122,7 +172,12 @@ export function InstructorProfileClient({
           />
         </div>
         <div className="space-y-2 md:col-span-2">
-          <label className="text-sm font-bold text-slate-700">نبذة عنك</label>
+          <label className="text-sm font-bold text-slate-700">
+            نبذة عنك{req}
+            {firstProfile && (
+              <span className="font-medium text-slate-500"> — {BIO_MIN} حرف على الأقل</span>
+            )}
+          </label>
           <textarea
             rows={5}
             className={`${inputClass} resize-none`}
@@ -132,7 +187,7 @@ export function InstructorProfileClient({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">سنوات الخبرة</label>
+          <label className="text-sm font-bold text-slate-700">سنوات الخبرة{req}</label>
           <input
             type="number"
             min={0}
@@ -142,7 +197,7 @@ export function InstructorProfileClient({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">التخصصات (مفصولة بفاصلة)</label>
+          <label className="text-sm font-bold text-slate-700">التخصصات (مفصولة بفاصلة){req}</label>
           <input
             className={inputClass}
             value={specialties}
@@ -159,7 +214,7 @@ export function InstructorProfileClient({
           disabled={isSaving}
           className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
         >
-          {isSaving ? 'جارٍ الإرسال…' : 'إرسال للمراجعة'}
+          {isSaving ? 'جارٍ الإرسال…' : firstProfile ? 'ابعت ملفي للإدارة' : 'إرسال للمراجعة'}
         </button>
       </div>
     </div>
