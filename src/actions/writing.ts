@@ -135,4 +135,5 @@ export async function saveWritingPackage(formData: FormData) {
 
   revalidatePath('/dashboard/admin/writing/packages');
   revalidatePath('/creative-writing/packages');
+  revalidatePath('/creative-writing/packages/[slug]', 'page');
 }

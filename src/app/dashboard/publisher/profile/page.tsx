@@ -2,6 +2,8 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getCurrentUser } from '@/data/domains/auth';
 import { getMyPublisher } from '@/data/domains/products';
 import { LogoutButton } from '@/components/LogoutButton';
+import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 import { PublisherProfileClient } from './PublisherProfileClient';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +21,19 @@ export default async function PublisherProfilePage() {
       <DashboardPageHeader title="ملف الناشر" backHref="/dashboard/publisher" />
 
       {publisher ? (
-        <PublisherProfileClient publisher={publisher} email={user.email} />
+        <>
+          {/* صفحة الدار العامة — زي صفحة المدرب: اللوجو والنبذة وكل
+              إصداراتها المعتمدة. (سؤال فريق العمل: العميل يقدر يشوفها؟ أيوه.) */}
+          <Link
+            href={`/enha-lak/publisher/${encodeURIComponent(publisher.slug)}`}
+            target="_blank"
+            className="mb-6 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+          >
+            <ExternalLink className="h-4 w-4" />
+            شوف صفحتك زي ما العملاء بيشوفوها
+          </Link>
+          <PublisherProfileClient publisher={publisher} email={user.email} />
+        </>
       ) : (
         <p className="rounded-3xl border border-slate-200 bg-white py-16 text-center font-medium text-slate-500">
           لم يتم ربط حسابك بدار نشر بعد. تواصل مع الإدارة.

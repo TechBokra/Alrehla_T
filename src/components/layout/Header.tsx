@@ -31,8 +31,11 @@ export default async function Header() {
   const logo = settings.images.logo;
 
   return (
-    <div className="sticky top-0 z-[100] w-full px-4 pt-6 md:px-8">
-      <header className="mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-white/60 bg-white/70 px-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl transition-all md:px-8">
+    // `pointer-events-none` على الغلاف: ارتفاعه ثابت (حتى والصفّ مطوي —
+    // شوف `.nav-collapsible`)، فالجزء الفاضي منه مايمسكش الضغطات اللي
+    // على المحتوى تحته. الهيدر والصفّ بيرجّعوها لنفسهم.
+    <div className="pointer-events-none sticky top-0 z-[100] w-full px-4 pt-6 md:px-8">
+      <header className="pointer-events-auto mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-white/60 bg-white/70 px-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl transition-all md:px-8">
         <div className="flex items-center gap-8">
           <Link
             href="/"
@@ -78,7 +81,7 @@ export default async function Header() {
              التنسيق في `globals.css` تحت `.nav-collapsible`،
              والمراقب مكوّن عميل صغير مابيرسمش حاجة — فالهيدر
              بيفضل **مكوّن خادم** زي ما هو. */}
-      <div className="nav-collapsible">
+      <div className="nav-collapsible pointer-events-auto">
         <NavLinksMobile />
       </div>
       <NavCollapseOnScroll />

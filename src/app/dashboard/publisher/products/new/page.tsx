@@ -31,7 +31,13 @@ export default async function Page() {
       <DashboardPageHeader title="إضافة منتج جديد" backHref="/dashboard/publisher/products" />
       
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <ActionForm action={saveProduct} className="space-y-6">
+        {/* ⚠️ بعد الإضافة بيرجع لـ«منتجاتي». قبل كده النموذج كان بيفضل متملّي
+            من غير أي علامة نجاح، فالناشر يضغط تاني — والتانية بتترفض. */}
+        <ActionForm
+          action={saveProduct}
+          successHref="/dashboard/publisher/products"
+          className="space-y-6"
+        >
           <input type="hidden" name="id" value="" />
           <input type="hidden" name="slug" value="" />
           <input type="hidden" name="ownerType" value="publisher" />

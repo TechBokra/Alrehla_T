@@ -91,7 +91,13 @@ export function validateProductInput(raw: {
   price?: unknown;
   electronicPrice?: unknown;
 }): ProductInputResult {
-  const parsed = productInputSchema.safeParse(raw);
+  // ⚠️ `formData.get` بيرجّع `null` للخانة الغايبة من النموذج — وzod
+  //    بيقبل «مش موجود» لا `null`، فكان بيرفض بـ«Invalid input» بالإنجليزي
+  //    (نفس عطل صورة المدرب). الغايب = مش موجود.
+  const clean = Object.fromEntries(
+    Object.entries(raw).map(([k, v]) => [k, v === null ? undefined : v]),
+  );
+  const parsed = productInputSchema.safeParse(clean);
   if (parsed.success) return { ok: true, data: parsed.data };
 
   const first = parsed.error.issues[0];

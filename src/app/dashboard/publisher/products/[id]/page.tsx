@@ -39,7 +39,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <DashboardPageHeader title="تعديل المنتج" backHref="/dashboard/publisher/products" />
       
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <ActionForm action={saveProduct} className="space-y-6">
+        <ActionForm
+          action={saveProduct}
+          successMessage="اتحفظ ✓ — التعديل راح للإدارة تراجعه."
+          className="space-y-6"
+        >
           <input type="hidden" name="id" value={target.id} />
           <input type="hidden" name="slug" value={target.slug} />
           <input type="hidden" name="ownerType" value="publisher" />

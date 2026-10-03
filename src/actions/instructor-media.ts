@@ -1,11 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { requireInstructor, requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins } from '@/lib/notifications';
+import { MAX_WORKS, parseMediaInput } from '@/lib/instructor-media-input';
 
 /**
  * صور بروفايل المدرب — غلاف وأعمال، بموافقة الإدارة (ملف 127).
@@ -28,29 +28,6 @@ import { notifyAdmins } from '@/lib/notifications';
  *    كان بيملاها. كل المخارج بترجّع `{ ok }`.
  */
 
-const MAX_WORKS = 12;
-
-const mediaInput = z.object({
-  imageUrl: z
-    .string({ required_error: 'ارفع صورة الأول' })
-    .trim()
-    .min(1, 'ارفع صورة الأول')
-    // ⚠️ **الرابط لازم يكون من Cloudinary بتاعنا.** الخانة دي
-    //    بتوصل للخادم كنصّ، وأي حد يقدر يبعت أي رابط — وساعتها
-    //    الموقع بيعرض صورة من سيرفر تاني في صفحة عامة، بلا أي
-    //    تحكّم فيها ولا في وقت اختفائها.
-    .refine((u) => /^https:\/\/res\.cloudinary\.com\//.test(u), {
-      message: 'الصورة لازم تترفع من الموقع نفسه',
-    }),
-  title: z.string().trim().max(120, 'العنوان طويل أوي').optional().or(z.literal('')),
-  contribution: z
-    .string()
-    .trim()
-    .max(80, 'وصف المشاركة طويل أوي')
-    .optional()
-    .or(z.literal('')),
-});
-
 export type MediaResult = { ok: true } | { ok: false; error: string };
 
 /** رفع غلاف أو عمل — بيدخل **معلَّقًا** دايمًا. */
@@ -70,14 +47,8 @@ export async function submitInstructorMedia(formData: FormData): Promise<MediaRe
     return { ok: false, error: 'نوع الصورة غير معروف' };
   }
 
-  const parsed = mediaInput.safeParse({
-    imageUrl: formData.get('imageUrl'),
-    title: formData.get('title'),
-    contribution: formData.get('contribution'),
-  });
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'بيانات غير صالحة' };
-  }
+  const parsed = parseMediaInput(formData);
+  if (!parsed.ok) return { ok: false, error: parsed.error };
 
   const supabase = await createClient();
 

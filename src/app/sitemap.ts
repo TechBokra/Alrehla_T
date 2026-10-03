@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
 import { getBlogPosts } from '@/data/domains/content';
 import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
-import { getPublicInstructors } from '@/data/domains/writing';
+import { getPublicInstructors, getWritingPackages } from '@/data/domains/writing';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
@@ -66,8 +66,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
+  // صفحة تفاصيل كل باقة (الرابط نفسه من `packageHref` في الكارت).
+  const packages = await getWritingPackages();
+  const packageRoutes = packages
+    .filter((p) => p.isActive)
+    .map((p) => ({
+      url: `${baseUrl}/creative-writing/packages/${encodeURIComponent(p.slug || p.id)}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    }));
+
   return [
     ...staticRoutes,
+    ...packageRoutes,
     ...blogRoutes,
     ...productRoutes,
     ...publisherRoutes,

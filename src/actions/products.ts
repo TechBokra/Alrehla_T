@@ -186,7 +186,7 @@ export async function saveProduct(formData: FormData) {
   //
   // ⚠️ **والرابط بيتعمل للجديد وبس.** تغيير رابط منتج قائم بيكسر
   //    كل رابط اتبعت له قبل كده، والزائر بيوصل لـ404 بلا سبب ظاهر.
-  const slug = isNew
+  let slug = isNew
     ? slugFromName(checked.data.name)
     : ((formData.get('slug') as string) || slugFromName(checked.data.name));
   
@@ -263,13 +263,31 @@ export async function saveProduct(formData: FormData) {
   let savedId = id;
 
   if (isNew) {
-    const { data, error } = await supabase
+    // ⚠️ **الرابط لازم يكون فريد** (قيد في القاعدة). كتابين بنفس الاسم
+    //    — من ناشرين مختلفين، أو نفس الكتاب بطبعة تانية — كان التاني
+    //    بيترفض بـ«تعذّر إنشاء المنتج» من غير سبب مفهوم. لو الرابط
+    //    متاخد بنزوّد رقم ونجرّب تاني.
+    //
+    //    ⚠️ بنجرّب الإدراج نفسه بدل ما نسأل «الرابط متاخد؟» الأول: الناشر
+    //       مابيشوفش منتجات غيره المتوقفة، فالسؤال كان هيقول «فاضي» غلط.
+    const baseSlug = slug;
+    let attempt = await supabase
       .from('personalized_products')
-      .insert([dbPayload])
+      .insert([{ ...dbPayload, slug }])
       .select('id')
       .single();
-      
-    if (error) {
+    for (let n = 2; n <= 20 && attempt.error?.code === '23505'; n++) {
+      if (!/slug/i.test(attempt.error.message ?? '')) break;
+      slug = `${baseSlug}-${n}`;
+      attempt = await supabase
+        .from('personalized_products')
+        .insert([{ ...dbPayload, slug }])
+        .select('id')
+        .single();
+    }
+    const { data, error } = attempt;
+
+    if (error || !data) {
       console.error('Error inserting product:', error);
       return { ok: false as const, error: 'تعذّر إنشاء المنتج. جرّب تاني.' };
     }
@@ -338,6 +356,7 @@ export async function saveProduct(formData: FormData) {
   revalidatePath('/enha-lak');
   revalidatePath('/enha-lak/product/[slug]', 'page');
   revalidatePath('/enha-lak/publisher/[slug]', 'page');
+  return { ok: true as const };
 }
 
 export type ProductStateResult = { ok: true } | { ok: false; error: string };

@@ -282,30 +282,34 @@ body {
   }
 }
 
-/* ⚠️ **الحركة هنا على `max-height` — وده استثناء مقصود.**
-      القاعدة عندنا إن الحركة تبقى على `transform` و`opacity` وحدهم
-      لأنهم مابيعيدوش حساب التخطيط. لكن الطيّ **لازمه يرجّع المساحة
-      فعلًا**، ومافيش `transform` بيعمل كده.
+/* ⚠️ **الطيّ مابيغيّرش الارتفاع — وده إصلاح «الصفحة بتترعش» على الموبايل.**
+      كان بيطوي بـ`max-height` فالهيدر (وهو `sticky` جوّه تدفّق الصفحة)
+      بيقصر 2.5rem ← **كل المحتوى تحته بيتزحزح لفوق** ← المتصفح بيعدّل
+      مكان التمرير ← المراقب بيقرا «طالع» ← القائمة ترجع ← المحتوى
+      ينزل ← «نازل» ← تتطوى… حلقة بتترعش. (ملاحظة فريق العمل + لقطات.)
 
-      والاستثناء مقبول لأنه **عنصر واحد في الصفحة** بيتحرّك مرة عند
-      تغيير اتجاه التمرير — مش عشرات العناصر مع كل مرور ماوس.
-
-      ومع «تقليل الحركة» بيختفي فورًا بلا أي انتقال. */
+      دلوقتي المساحة ثابتة، والصفّ بيختفي بـ`opacity` و`transform` بس —
+      ومن غير ما يتزحزح ولا بكسل في الصفحة. وقائمة القسم بتطلع مكانه
+      (`--subnav-top`). */
 .nav-collapsible {
-  overflow: hidden;
   max-height: 4rem;
 }
 
 :root[data-nav-collapsed] .nav-collapsible {
-  max-height: 0;
   opacity: 0;
+  transform: translateY(-0.5rem);
+  visibility: hidden;
+  pointer-events: none;
 }
 
+/* ⚠️ الانتقال **عند الظهور بس**. الاختفاء فوري: قائمة القسم بتطلع
+      مكانه في نفس اللحظة، ولو الصفّ فضل يبهت 150ms كانوا هيتراكبوا
+      (ده اللي باين في اللقطات). */
 @media (prefers-reduced-motion: no-preference) {
-  .nav-collapsible {
+  :root:not([data-nav-collapsed]) .nav-collapsible {
     transition:
-      max-height var(--dur-ui) var(--ease-ui),
-      opacity var(--dur-fast) var(--ease-ui);
+      opacity var(--dur-fast) var(--ease-ui),
+      transform var(--dur-fast) var(--ease-ui);
   }
 }
 
@@ -316,6 +320,9 @@ body {
   :root[data-nav-collapsed] .nav-collapsible {
     max-height: none;
     opacity: 1;
+    transform: none;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
 

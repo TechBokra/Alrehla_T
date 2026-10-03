@@ -44,6 +44,16 @@ describe('سعر المنتج', () => {
   });
 });
 
+describe('🔴 الخانة الغايبة من النموذج (`null`)', () => {
+  it('ماترجّعش «Invalid input» بالإنجليزي', () => {
+    // `formData.get` بيرجّع `null` للخانة اللي مش في النموذج.
+    expect(validateProductInput({ ...base, shortDescription: null, electronicPrice: null }).ok).toBe(true);
+    const r = validateProductInput({ ...base, name: null });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe('اسم المنتج: اكتب اسم المنتج');
+  });
+});
+
 describe('اسم المنتج', () => {
   it('الفاضي بيترفض', () => {
     const r = validateProductInput({ ...base, name: '   ' });
