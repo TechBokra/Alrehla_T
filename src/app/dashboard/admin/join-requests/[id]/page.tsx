@@ -48,6 +48,18 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   // طلب مدرب: «اتعمل» = فيه **ملف مدرب** للحساب ده، مش مجرد حساب (ممكن
   // يكون مسجّل كعميل من قبل — وساعتها لسه محتاج يتحوّل لمدرب).
+  // طلب ناشر: «اتعمل» = الحساب **دوره ناشر** — مش مجرد حساب عميل قديم.
+  let publisherReady = true;
+  if (target.requestedRole === 'publisher' && account?.userId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', account.userId)
+      .maybeSingle();
+    publisherReady = data?.role === 'publisher';
+  }
+
   let instructorId: string | null = null;
   if (target.requestedRole === 'instructor' && account?.userId) {
     const supabase = await createClient();
@@ -168,7 +180,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 instructorId={instructorId}
                 manualHref={next.nextHref}
               />
-            ) : target.status === 'approved' && account?.exists ? (
+            ) : target.status === 'approved' && account?.exists && publisherReady ? (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
                 <CheckCircle className="h-5 w-5" />
                 الطلب مقبول والحساب اتعمل.
@@ -189,7 +201,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   والخانات متملّية من الطلب — تكمّل الباقي (التخصصات، سنين
                   الخبرة…) وتضغط إنشاء، وبعدها تبعت له بيانات الدخول.
                 </p>
-                {next.nextHref ? (
+                {account?.exists ? (
+                  // عنده حساب من قبل (كعميل مثلًا) — إنشاء حساب جديد بنفس البريد
+                  // هيترفض. الصح يتغيّر دوره من صفحة حسابه.
+                  <Link
+                    href={`/dashboard/admin/users/${account.userId}`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800"
+                  >
+                    عنده حساب بالبريد ده — افتحه وغيّر دوره
+                  </Link>
+                ) : next.nextHref ? (
                   <Link
                     href={next.nextHref}
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800"

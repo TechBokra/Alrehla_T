@@ -2,13 +2,21 @@ import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getSupportSessionRequests } from '@/data/domains/admin';
 import { getCurrentUser } from '@/data/domains/auth';
-import { hasAdminPermission, formatDate } from '@/lib/utils';
+import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { StatusBadge } from '@/components/StatusBadge';
+import { SessionRequestsClient } from './SessionRequestsClient';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * «طلبات الجلسات المخصصة» — العميل بيطلب مساعدة في اختيار مدرب أو باقة
+ * (من «حسابي ← الدعم ← طلب مساعدة في الحجز»).
+ *
+ * ⚠️ كانت جدول عرض بس: من غير رقم التليفون (وهو الطريق الوحيد للرد) ولا
+ *    أي زرار يغيّر الحالة — وحالة «مغلقة» مكتوبة بقيمة مش موجودة في القاعدة.
+ *    بقت في قسم «الجلسات» (ملاحظة تامر)، وكل طلب كارت فيه الرقم وواتساب
+ *    والحساب وأزرار الحالة.
+ */
 export default async function Page() {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageSupport')) {
@@ -16,31 +24,11 @@ export default async function Page() {
   }
 
   const requests = await getSupportSessionRequests();
-  
-  const formatted = requests.map(r => ({
-    ...r,
-    idDisplay: <span className="font-bold text-slate-700">#{r.id.split('-')[1]}</span>,
-    dateDisplay: formatDate(r.createdAt),
-    statusDisplay: (
-      <StatusBadge
-          type={r.status === 'contacted' ? 'success' : r.status === 'closed' ? 'neutral' : 'warning'}
-          label={r.status === 'contacted' ? 'تم التواصل' : r.status === 'closed' ? 'مغلقة' : 'قيد الانتظار'}
-        />
-    )
-  }));
-
-  const columns = [
-    { header: 'رقم الطلب', accessorKey: 'idDisplay' },
-    { header: 'الطالب', accessorKey: 'contactName' },
-    { header: 'الموضوع', accessorKey: 'message' },
-    { header: 'التاريخ', accessorKey: 'dateDisplay' },
-    { header: 'الحالة', accessorKey: 'statusDisplay' }
-  ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
+    <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
       <DashboardPageHeader title="طلبات الجلسات المخصصة" />
-      <SimpleDataTable columns={columns} data={formatted} />
+      <SessionRequestsClient requests={requests} />
     </div>
   );
 }

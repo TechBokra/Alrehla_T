@@ -7,6 +7,7 @@ import { submitJoinRequest } from '@/actions/join-requests';
 
 const ROLES = [
   { value: 'instructor', label: 'مدرب/ة في «بداية الرحلة»' },
+  { value: 'publisher', label: 'دار نشر — تعرض إصداراتها في مكتبة «إنها لك»' },
   { value: 'illustrator', label: 'رسام/ة لقصص «إنها لك»' },
   { value: 'voiceover', label: 'معلق/ة صوتي/ة' },
   { value: 'author', label: 'كاتب/ة قصص أطفال' },

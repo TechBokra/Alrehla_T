@@ -25,12 +25,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.
   if (!target) notFound();
+  // كل منتج بيرجع لقسمه — المنصة أو الناشرين.
+  const isPlatform = target.ownerType === 'platform';
   const publishers = await getPublishers();
   const pricingSettings = await getPublisherPricingSettings();
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="تعديل المنتج" backHref="/dashboard/admin/products" />
+      <DashboardPageHeader
+        title={isPlatform ? 'تعديل منتج المنصة' : 'تعديل منتج دار نشر'}
+        backHref={isPlatform ? '/dashboard/admin/products/platform' : '/dashboard/admin/products'}
+      />
       
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <ProductEditFormClient product={target} publishers={publishers} pricingSettings={pricingSettings} />

@@ -26,9 +26,21 @@ describe('قايمة لوحة الإدارة', () => {
 
   it('الشاشة الداخلية بتعلّم قسمها، مش قسم لوحدها', () => {
     const a = activeIn(all, '/dashboard/admin/products/customization-fields');
-    expect(a?.section.label).toBe('المنتجات');
+    expect(a?.section.label).toBe('منتجات المنصة');
     expect(a?.tab.label).toBe('خانات التخصيص');
     expect(activeIn(all, '/dashboard/admin/products/hero-order')?.section.id).toBe('products');
+  });
+
+  it('منتجات المنصة ومنتجات الناشرين قسمين منفصلين', () => {
+    // منتج منصة (من عنوان القسم) ≠ منتج ناشر — حتى في التعديل والجديد.
+    expect(activeIn(all, '/dashboard/admin/products/platform/abc')?.section.id).toBe('products');
+    expect(activeIn(all, '/dashboard/admin/products/platform/new')?.section.id).toBe('products');
+    expect(activeIn(all, '/dashboard/admin/products/abc')?.section.id).toBe('publishers');
+    expect(activeIn(all, '/dashboard/admin/products/new')?.tab.label).toBe('منتجات الناشرين');
+    expect(activeIn(all, '/dashboard/admin/products/review')?.tab.label).toBe('مراجعة المنتجات');
+    // الناشرون جوّه «إنها لك» — المكتبة جزء منها.
+    const group = all.find((g) => g.sections.some((s) => s.id === 'publishers'));
+    expect(group?.title).toBe('إنها لك');
   });
 
   it('أطول رابط هو اللي بيكسب', () => {

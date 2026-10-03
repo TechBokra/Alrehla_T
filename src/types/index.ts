@@ -702,8 +702,11 @@ export type SupportSessionRequest = {
   contactName: string;
   contactPhone: string;
   message: string;
-  status: 'pending' | 'contacted' | 'closed';
+  /** ⚠️ كانت `'closed'` — والقاعدة مافيهاش غير `resolved`، فـ«مغلقة» مكانتش بتظهر أبدًا. */
+  status: 'pending' | 'contacted' | 'resolved';
   createdAt: string;
+  /** الحساب اللي بعت الطلب — فاضي لو الزائر مش داخل. */
+  userId?: string;
 };
 
 export type AuditLog = {

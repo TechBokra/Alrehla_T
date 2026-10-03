@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
+import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import type { NotificationEvent } from '@/lib/notification-events';
 
 /**
@@ -86,6 +87,41 @@ export async function notifyAdmins(params: {
 
   try {
     const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // 🔴 **زائر مش داخل = الإشعار كان بيسقط.** دالة `notify_admins` في القاعدة
+    //    بترفض أي نداء من غير حساب («must be signed in»)، والخطأ كان بيتسجّل
+    //    وبس. وأغلب طلبات الانضمام وطلبات المساعدة بتيجي من زوّار — فالإدارة
+    //    ماكانتش بتعرف إن فيه طلب. هنا بنبعته بمفتاح الخدمة لنفس المستلمين
+    //    بالظبط (الإداريين)، والعنوان والرابط من كود الخادم مش من الزائر.
+    if (!user) {
+      if (!isAdminApiConfigured()) {
+        console.error('notifyAdmins: no session and no service key — notification dropped');
+        return;
+      }
+      const admin = createAdminClient();
+      const { data: admins, error: listError } = await admin
+        .from('user_profiles')
+        .select('id')
+        .in('role', ['super_admin', 'general_supervisor']);
+      if (listError || !admins?.length) {
+        if (listError) console.error('Error listing admins for notification', listError);
+        return;
+      }
+      const { error } = await admin.from('notifications').insert(
+        admins.map((a) => ({
+          recipient_profile_id: String(a.id),
+          title: params.title.trim(),
+          message: params.message?.trim() || null,
+          link: params.link ?? null,
+        })),
+      );
+      if (error) console.error('Error notifying admins (no session)', error);
+      return;
+    }
+
     const { error } = await supabase.rpc('notify_admins', {
       p_title: params.title,
       p_message: params.message ?? null,

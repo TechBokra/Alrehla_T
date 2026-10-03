@@ -299,7 +299,7 @@ export default async function AdminDashboard() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Action href="/dashboard/admin/content/blog/new" label="مقال جديد" permission="canManageContent" user={user} />
           <Action href="/dashboard/admin/writing/packages/new" label="باقة جديدة" permission="canManageCatalog" user={user} />
-          <Action href="/dashboard/admin/products/new" label="منتج جديد" permission="canManagePublishers" user={user} />
+          <Action href="/dashboard/admin/products/platform/new" label="منتج جديد للمنصة" permission="canManagePublishers" user={user} />
           <Action href="/dashboard/admin/notifications/send" label="إرسال إشعار" permission="canManageContent" user={user} />
           <Action href="/dashboard/admin/content/settings" label="الإعدادات وشريط التنبيه" permission="canManageContent" user={user} />
           <Action href="/dashboard/admin/content/images" label="صور الموقع" permission="canManageContent" user={user} />

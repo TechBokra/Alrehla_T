@@ -8,19 +8,28 @@ import { saveProduct } from '@/actions/products';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
+import { useRouter } from 'next/navigation';
 import {
   ASSIGNABLE_PRODUCT_CATEGORIES,
+  PUBLISHER_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
 } from '@/lib/product-categories';
 
 interface Props {
   publishers: Publisher[];
   pricingSettings: PricingFormulaSettings;
+  /** المنصة ولا ناشر — من القسم اللي النموذج اتفتح منه. */
+  owner: 'platform' | 'publisher';
+  /** بعد الإضافة يرجع هنا (قايمة القسم). */
+  listHref: string;
 }
 
-export function ProductFormClient({ publishers, pricingSettings }: Props) {
-  const [ownerType, setOwnerType] = useState('platform');
-  const [category, setCategory] = useState<string>(ASSIGNABLE_PRODUCT_CATEGORIES[0]);
+export function ProductFormClient({ publishers, pricingSettings, owner, listHref }: Props) {
+  const router = useRouter();
+  const ownerType = owner;
+  // منتج الناشر «مكتبة» بس — «مخصص» بيتكتب في المنصة من الصفر.
+  const categories = owner === 'publisher' ? PUBLISHER_PRODUCT_CATEGORIES : ASSIGNABLE_PRODUCT_CATEGORIES;
+  const [category, setCategory] = useState<string>(categories[0]);
   const [basePrice, setBasePrice] = useState(0);
   const [finalPrice, setFinalPrice] = useState(0);
   const [coverImageUrl, setCoverImageUrl] = useState('');
@@ -50,7 +59,14 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
     startTransition(async () => {
       setError('');
       const result = await saveProduct(formData);
-      if (result && !result.ok) setError(result.error);
+      if (result && !result.ok) {
+        setError(result.error);
+        return;
+      }
+      // ⚠️ كانت بتسكت بعد الحفظ والنموذج متملّي — نفس عطل «اتضاف ومع ذلك
+      //    خطأ» عند الناشر: ضغطة تانية = منتج مكرّر.
+      router.push(listHref);
+      router.refresh();
     });
 
   return (
@@ -74,7 +90,7 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
                 و«اشتراك» اتشال لأن مفيش ولا شاشة بتعرضه: شاشة
                 الاشتراك بتقرا من `box_subscription_plans`، فالمنتج
                 كان يتحفظ ويختفي. */}
-            {ASSIGNABLE_PRODUCT_CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c}>
                 {PRODUCT_CATEGORY_LABELS[c]}
               </option>
@@ -85,17 +101,13 @@ export function ProductFormClient({ publishers, pricingSettings }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">المالك</label>
-          <select 
-            name="ownerType" 
-            value={ownerType}
-            onChange={(e) => setOwnerType(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none mb-4"
-          >
-            <option value="platform">المنصة</option>
-            <option value="publisher">ناشر (شريك)</option>
-          </select>
-          
+          {/* ⚠️ **المالك ثابت** — كان قايمة «المنصة / ناشر» في النموذج. المنصة
+              والناشرين بقوا مفصولين في اللوحة (ملاحظة تامر)، فالمنتج بيتعمل
+              من قسمه، والمالك بيتحدد من القسم مش من اختيار. */}
+          <input type="hidden" name="ownerType" value={ownerType} />
+          <p className="mb-4 text-sm font-bold text-slate-700">
+            المالك: {ownerType === 'publisher' ? 'دار نشر (شريك)' : 'المنصة'}
+          </p>
           {ownerType === 'publisher' && (
             <>
               <label className="block text-sm font-bold text-slate-700 mb-2">اختر الناشر</label>

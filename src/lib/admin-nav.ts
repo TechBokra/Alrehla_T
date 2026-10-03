@@ -62,32 +62,37 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'طلبات الانضمام', href: `${A}/join-requests`, permission: 'canManageSupport' },
         ],
       },
-      {
-        id: 'publishers',
-        label: 'الناشرون',
-        icon: 'BookOpen',
-        tabs: [
-          { label: 'الناشرون', href: `${A}/publishers`, permission: 'canManagePublishers' },
-          { label: 'تسعير الناشرين', href: `${A}/settings/publisher-pricing`, permission: 'canManagePublishers' },
-        ],
-      },
     ],
   },
   {
     title: 'إنها لك',
     sections: [
+      // ══ اللي المنصة بتقدّمه ≠ اللي الناشرين بيقدّموه (ملاحظة تامر) ══
+      //
+      // كانت «كل المنتجات» قايمة واحدة فيها الاتنين. دلوقتي قسمين،
+      // وكل منتج بيفتح من قسم مالكه (`/products/platform/<id>` للمنصة،
+      // `/products/<id>` للناشر) فالتبويب الصح بيتعلّم.
       {
         id: 'products',
-        label: 'المنتجات',
+        label: 'منتجات المنصة',
         icon: 'Box',
         tabs: [
-          { label: 'كل المنتجات', href: `${A}/products`, permission: 'canManagePublishers' },
-          { label: 'منتجات المنصة', href: `${A}/products/platform`, permission: 'canManagePublishers' },
-          // ⚠️ من غيرها المنتج المعلَّق بيفضل واقف عن البيع للأبد.
-          { label: 'المراجعة', href: `${A}/products/review`, permission: 'canManageCatalog' },
+          { label: 'المنتجات', href: `${A}/products/platform`, permission: 'canManagePublishers' },
           { label: 'ترتيب «أنت البطل هنا»', href: `${A}/products/hero-order`, permission: 'canManageCatalog' },
           { label: 'خانات التخصيص', href: `${A}/products/customization-fields`, permission: 'canManageCatalog' },
           { label: 'الإضافات', href: `${A}/addons`, permission: 'canManageCatalog' },
+        ],
+      },
+      {
+        id: 'publishers',
+        label: 'الناشرون',
+        icon: 'BookOpen',
+        tabs: [
+          { label: 'دور النشر', href: `${A}/publishers`, permission: 'canManagePublishers' },
+          { label: 'منتجات الناشرين', href: `${A}/products`, permission: 'canManagePublishers' },
+          // ⚠️ من غيرها منتج الناشر المعلَّق بيفضل واقف عن البيع للأبد.
+          { label: 'مراجعة المنتجات', href: `${A}/products/review`, permission: 'canManageCatalog' },
+          { label: 'تسعير الناشرين', href: `${A}/settings/publisher-pricing`, permission: 'canManagePublishers' },
         ],
       },
       {
@@ -133,6 +138,8 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'التقويم', href: `${A}/bookings/calendar`, permission: 'canManageBookings' },
           { label: 'الجلسات والتقارير', href: `${A}/sessions`, permission: 'canManageBookings' },
           { label: 'الغرف المباشرة', href: `${A}/rooms`, permission: 'canManageBookings' },
+          // «طلب مساعدة في الحجز» من حساب العميل — مكانه مع الجلسات (ملاحظة تامر).
+          { label: 'طلبات الجلسات المخصصة', href: `${A}/support/session-requests`, permission: 'canManageSupport' },
         ],
       },
       {
@@ -192,7 +199,6 @@ export const ADMIN_NAV: AdminGroup[] = [
         icon: 'LifeBuoy',
         tabs: [
           { label: 'رسائل الدعم', href: `${A}/support/tickets`, permission: 'canManageSupport' },
-          { label: 'طلبات جلسات الدعم', href: `${A}/support/session-requests`, permission: 'canManageSupport' },
         ],
       },
       {
@@ -234,7 +240,7 @@ export function navFor(can: (p: AdminPermission) => boolean, nav: AdminGroup[] =
  * القسم والتبويب من العنوان — **أطول رابط بيطابق بداية العنوان**.
  *
  * عشان `/dashboard/admin/orders/services/123` يتعلّم «الخدمات الإبداعية ←
- * الطلبات» مش «طلبات المنتجات»، و`/products/review` مش «كل المنتجات».
+ * الطلبات» مش «طلبات المنتجات»، و`/products/review` مش «منتجات الناشرين».
  */
 export function activeIn(
   groups: NavGroup[],
