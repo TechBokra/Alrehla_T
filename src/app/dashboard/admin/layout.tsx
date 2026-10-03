@@ -50,6 +50,8 @@ const GROUPS: RawGroup[] = [
       { label: 'المنتجات والمكتبة', href: '/dashboard/admin/products', icon: 'Box', permission: 'canManagePublishers' },
       { label: 'منتجات المنصة', href: '/dashboard/admin/products/platform', icon: 'Box', permission: 'canManagePublishers' },
       { label: 'إضافات المنتجات', href: '/dashboard/admin/addons', icon: 'Package', permission: 'canManageCatalog' },
+      { label: 'ترتيب «أنت البطل هنا»', href: '/dashboard/admin/products/hero-order', icon: 'ListOrdered', permission: 'canManageCatalog' },
+      { label: 'خانات التخصيص', href: '/dashboard/admin/products/customization-fields', icon: 'TextCursorInput', permission: 'canManageCatalog' },
       { label: 'خطط صندوق الرحلة', href: '/dashboard/admin/subscriptions/box/plans', icon: 'Package', permission: 'canManageSubscriptions' },
       { label: 'تسعير الكتابة', href: '/dashboard/admin/settings/creative-writing-pricing', icon: 'Settings', permission: 'canManageCatalog' },
       { label: 'تسعير الناشرين', href: '/dashboard/admin/settings/publisher-pricing', icon: 'Settings', permission: 'canManagePublishers' },

@@ -61,6 +61,20 @@ describe('describeCustomization', () => {
     ]);
   });
 
+  it('⭐ ملف 06: خانات الإدارة بتظهر بالاسم اللي اتحفظ وقت الطلب', () => {
+    const v = describeCustomization({
+      childName: 'ليلى',
+      extraFields: [
+        { id: 'x1', label: 'اللون المفضل', value: 'أزرق' },
+        { id: 'x2', label: 'فاضية', value: '' },
+      ],
+    });
+    expect(v.fields).toEqual([
+      { label: 'اسم الطفل', value: 'ليلى' },
+      { label: 'اللون المفضل', value: 'أزرق' },
+    ]);
+  });
+
   it('بيانات فاضية أو تالفة = مفيش تفاصيل، من غير خطأ', () => {
     for (const raw of [null, undefined, 'x', [], {}, { addons: 'x' }, { addons: [null, { price: 3 }] }]) {
       expect(hasCustomization(describeCustomization(raw))).toBe(false);

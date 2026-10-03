@@ -14,6 +14,8 @@
  * نصية مش معروفة بتظهر تحت «بيانات أخرى» بدل ما تختفي.
  */
 
+import { readExtraAnswers } from './customization-fields';
+
 export type CustomizationPhoto =
   | { label: string; kind: 'private'; publicId: string; format: string }
   | { label: string; kind: 'public'; url: string };
@@ -62,6 +64,8 @@ const INTERNAL = new Set([
   'recipientType', 'childId', 'selectedAddonIds', 'customizedAddonIds', 'addons',
   // صندوق الرحلة (ملف 140) — بيتعرضوا من `describeBoxDetails`.
   'monthlyGoals', 'plan',
+  // خانات الإدارة (ملف 06) — بتتعرض بأسمائها تحت.
+  'extraFields',
 ]);
 
 function text(v: unknown): string | null {
@@ -104,6 +108,11 @@ export function describeCustomization(raw: unknown): CustomizationView {
       label,
       value: key === 'storyGoal' ? (STORY_GOALS[value] ?? value) : value,
     });
+  }
+
+  // ⭐ ملف 06: خانات الإدارة — بالاسم اللي العميل جاوب عليه وقت الطلب.
+  for (const a of readExtraAnswers(data.extraFields)) {
+    view.fields.push(a);
   }
 
   for (const [key, label] of PRIVATE_PHOTOS) {

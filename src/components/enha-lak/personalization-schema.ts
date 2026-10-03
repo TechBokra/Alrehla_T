@@ -72,6 +72,12 @@ export const wizardSchema = z.object({
   /** هدف كل شهر في الاشتراك — الفاضي = «تختاره الإدارة». */
   monthlyGoals: z.array(z.string()).optional(),
 
+  /**
+   * خانات التخصيص اللي الإدارة ضافتها (ملف 06) — `{ f_<id>: إجابة }`.
+   * الإلزام بيتفحص برّه المخطّط (`checkExtraAnswers`): الخانات من القاعدة.
+   */
+  extraFields: z.record(z.string()).optional(),
+
 }).superRefine((data, ctx) => {
   if (data.mode !== 'subscription' && data.storyGoal.trim().length < 2) {
     ctx.addIssue({

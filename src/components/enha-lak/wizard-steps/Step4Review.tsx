@@ -5,14 +5,19 @@ import { PersonalizedProduct } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { FormatChooser } from './FormatChooser';
 import { cartNeedsShipping } from '@/lib/item-format';
+import type { CustomizationField } from '@/lib/customization-fields';
+import { ExtraFieldsReview } from './ExtraFieldsSection';
 
 export function Step4Review({
   onPrev,
   product,
   pending = false,
   subscriptionMonths,
+  extraFields = [],
 }: {
   onPrev: () => void;
+  /** خانات الإدارة (ملف 06). */
+  extraFields?: CustomizationField[];
   product: PersonalizedProduct;
   /** الطلب بيتبعت دلوقتي — الزر بيقفل ويقول. */
   pending?: boolean;
@@ -82,6 +87,7 @@ export function Step4Review({
               <span className="text-slate-500 block mb-1">وصف البطل:</span>
               <span className="font-bold text-slate-800">{values.heroDescription}</span>
             </div>
+            <ExtraFieldsReview fields={extraFields} answers={values.extraFields} />
             <div>
               <span className="text-slate-500 block mb-1">الصور المرفقة:</span>
               <span className="font-bold text-slate-800">

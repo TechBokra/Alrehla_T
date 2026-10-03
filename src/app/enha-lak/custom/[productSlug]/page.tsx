@@ -19,12 +19,14 @@ import Link from 'next/link';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/subscriptions';
+import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;
-  const [product, addons] = await Promise.all([
+  const [product, addons, extraFields] = await Promise.all([
     getProductBySlug(productSlug),
     getAddonProducts(),
+    getActiveCustomizationFields(),
   ]);
 
   // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136).
@@ -62,6 +64,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         product={product}
         addons={addons}
         addonDiscountPercent={await getMyAddonDiscount()}
+        extraFields={extraFields}
       />
     </div>
   );

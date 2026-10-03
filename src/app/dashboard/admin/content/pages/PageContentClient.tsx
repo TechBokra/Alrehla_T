@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Check, ExternalLink, RotateCcw, Search } from 'lucide-react';
+import { Check, ExternalLink, Search } from 'lucide-react';
 import { CONTENT_GROUPS, type ContentField } from '@/lib/site-content';
 import { savePageContent } from '@/actions/content';
 import type { SiteContent } from '@/lib/site-content';
@@ -67,8 +67,8 @@ export function PageContentClient({ content }: { content: SiteContent }) {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
-        كل نص هنا مكتوب عليه مكانه على الموقع. لو مسحت خانة أو رجّعتها لنصها
-        الأصلي، الموقع بيعرض النص الأصلي — يعني مستحيل تسيب مكان فاضي بالغلط.
+        كل نص هنا مكتوب عليه مكانه على الموقع. لو مسحت خانة وحفظت، الموقع
+        بيعرض النص الأصلي — يعني مستحيل تسيب مكان فاضي بالغلط.
       </div>
 
       <div className="relative">
@@ -185,23 +185,11 @@ function Field({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const isChanged = value.trim() !== field.fallback.trim();
-
+  // زرار «استعادة النص الأصلي» اتشال (طلب تامر). مسح الخانة والحفظ لسه
+  // بيرجّع النص الأصلي على الموقع — الحماية دي في `savePageContent`.
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-4">
-        <label className="text-sm font-bold text-slate-700">{field.label}</label>
-        {isChanged && (
-          <button
-            type="button"
-            onClick={() => onChange(field.fallback)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            استعادة النص الأصلي
-          </button>
-        )}
-      </div>
+      <label className="block text-sm font-bold text-slate-700">{field.label}</label>
 
       {field.type === 'text' ? (
         <input

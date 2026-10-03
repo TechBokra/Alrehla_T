@@ -19,6 +19,7 @@ import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/subscriptions';
+import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
 
 interface PageProps {
   params: Promise<{ productSlug: string }>;
@@ -28,9 +29,10 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   const { productSlug } = await params;
   // ⚠️ الاتنين على التوازي: التسلسل هنا كان بيزوّد زمن فتح الصفحة
   //    بلا سبب — الإضافات مش متوقّفة على المنتج.
-  const [product, addons] = await Promise.all([
+  const [product, addons, extraFields] = await Promise.all([
     getProductBySlug(productSlug),
     getAddonProducts(),
+    getActiveCustomizationFields(),
   ]);
 
   if (!product || product.category !== 'library') {
@@ -50,6 +52,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
           product={product}
           addons={addons}
           addonDiscountPercent={await getMyAddonDiscount()}
+          extraFields={extraFields}
         />
       </Section>
     </PageContainer>

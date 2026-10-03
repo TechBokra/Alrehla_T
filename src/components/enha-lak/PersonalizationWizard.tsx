@@ -17,6 +17,11 @@ import { Step3Addons } from './wizard-steps/Step3Addons';
 import { Step4Review } from './wizard-steps/Step4Review';
 import { useCart } from '@/context/CartContext';
 import { resolveWizardChild } from '@/app/actions/family';
+import {
+  checkExtraAnswers,
+  snapshotAnswers,
+  type CustomizationField,
+} from '@/lib/customization-fields';
 
 /**
  * كل حقل والخطوة اللي بيتملا فيها واسمه بالعربي.
@@ -58,8 +63,11 @@ export function PersonalizationWizard({
   addons = [],
   subscription,
   addonDiscountPercent = 0,
+  extraFields = [],
 }: {
   product: PersonalizedProduct;
+  /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
+  extraFields?: CustomizationField[];
   /** الإضافات المتاحة — بتيجي من القاعدة عن طريق الصفحة. */
   addons?: AddonProduct[];
   /**
@@ -86,6 +94,7 @@ export function PersonalizationWizard({
       format: 'printed',
       mode: subscription ? 'subscription' : 'single',
       monthlyGoals: subscription ? Array.from({ length: subscription.months }, () => '') : undefined,
+      extraFields: {},
     },
     mode: 'onChange',
   });
@@ -122,6 +131,14 @@ export function PersonalizationWizard({
       //    خلّى الخطوة ١ مقفولة على كل عميل عنده أطفال قبل كده.
       setUploadError(describeErrors(stepFields as string[]));
       return;
+    }
+    // خانات الإدارة (ملف 06) — برّه مخطّط zod لأنها جاية من القاعدة.
+    if (currentStep === 2) {
+      const problem = checkExtraAnswers(extraFields, getValues('extraFields'));
+      if (problem) {
+        setUploadError(problem);
+        return;
+      }
     }
     const values = getValues();
     const { facePhotoFile, secondPhotoFile, ...rest } = values;
@@ -168,6 +185,18 @@ export function PersonalizationWizard({
   };
 
   const onSubmit = async (data: WizardFormValues) => {
+    // خانات الإدارة الإلزامية — جلسة قديمة في المتصفح ممكن تعدّي الخطوة ٢
+    // من غير ما تتفحص (الإدارة ضافت خانة إلزامية بعدها).
+    const extraProblem = checkExtraAnswers(extraFields, data.extraFields);
+    if (extraProblem) {
+      setUploadError(extraProblem);
+      if (currentStep !== 2) router.push(`${pathname}?step=2`);
+      return;
+    }
+    // إجابات خانات الإدارة **ومعاها اسم الخانة** — الطلب يفضل مقروء لو
+    // الخانة اتغيّرت أو اتمسحت بعدين.
+    const extraAnswers = snapshotAnswers(extraFields, data.extraFields);
+
     // 0. Upload the photos the customer chose.
     //
     // Only the file NAME used to be kept: the File itself was dropped, so the
@@ -232,6 +261,7 @@ export function PersonalizationWizard({
           dedicationText: data.dedicationText?.trim() || undefined,
           familyMemberNames: data.familyMemberNames,
           monthlyGoals: (data.monthlyGoals ?? []).map((g) => g.trim()),
+          ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         },
       });
       sessionStorage.removeItem(`wizard_state_${product.id}`);
@@ -270,6 +300,7 @@ export function PersonalizationWizard({
             : data.storyGoal,
         dedicationText: data.dedicationText?.trim() || undefined,
         familyMemberNames: data.familyMemberNames,
+        ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         selectedAddonIds: data.selectedAddonIds,
         customizedAddonIds: data.customizedAddonIds ?? [],
       },
@@ -312,6 +343,7 @@ export function PersonalizationWizard({
               {currentStep === 2 && (
                 <Step2Details
                   monthlyGoals={subscription?.months}
+                  extraFields={extraFields}
                   onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile', 'monthlyGoals'])}
                   onPrev={handlePrev}
                 />
@@ -323,6 +355,7 @@ export function PersonalizationWizard({
                   product={product}
                   pending={isSubmitting}
                   subscriptionMonths={subscription?.months}
+                  extraFields={extraFields}
                 />
               )}
             </div>

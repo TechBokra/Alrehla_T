@@ -20,6 +20,11 @@ import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step3LibraryReview } from './wizard-steps/Step3LibraryReview';
 import Image from 'next/image';
 import { resolveWizardChild } from '@/app/actions/family';
+import {
+  checkExtraAnswers,
+  snapshotAnswers,
+  type CustomizationField,
+} from '@/lib/customization-fields';
 
 const librarySchema = z.object({
   familyMemberId: z.string().optional(),
@@ -47,6 +52,8 @@ const librarySchema = z.object({
   //    المستعمل في مخطط المسار المخصّص بالظبط.
   selectedAddonIds: z.array(z.string()),
   customizedAddonIds: z.array(z.string()).optional(),
+  /** خانات الإدارة (ملف 06) — `{ f_<id>: إجابة }`، والإلزام برّه المخطّط. */
+  extraFields: z.record(z.string()).optional(),
 }).refine(data => data.familyMemberId || data.newChildName, {
   message: 'يجب اختيار طفل من العائلة أو إضافة طفل جديد',
   path: ['newChildName'],
@@ -77,8 +84,11 @@ export function LibraryCustomizationWizard({
   product,
   addons = [],
   addonDiscountPercent = 0,
+  extraFields = [],
 }: {
   product: PersonalizedProduct;
+  /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
+  extraFields?: CustomizationField[];
   /** خصم المشترك في صندوق الرحلة (ملف 140) — للعرض. */
   addonDiscountPercent?: number;
   /**
@@ -108,6 +118,7 @@ export function LibraryCustomizationWizard({
       coverPhotoFile: undefined,
       selectedAddonIds: [],
       customizedAddonIds: [],
+      extraFields: {},
     }
   });
 
@@ -197,6 +208,14 @@ export function LibraryCustomizationWizard({
       setUploadError(describeErrors(failed));
       return;
     }
+    // خانات الإدارة (ملف 06) — برّه مخطّط zod لأنها جاية من القاعدة.
+    if (currentStep === 2) {
+      const problem = checkExtraAnswers(extraFields, methods.getValues('extraFields'));
+      if (problem) {
+        setUploadError(problem);
+        return;
+      }
+    }
     goToStep(currentStep + 1);
   };
 
@@ -216,6 +235,15 @@ export function LibraryCustomizationWizard({
   };
 
   const onSubmit = async (data: LibraryFormValues) => {
+    const extraProblem = checkExtraAnswers(extraFields, data.extraFields);
+    if (extraProblem) {
+      setUploadError(extraProblem);
+      if (currentStep !== 2) goToStep(2);
+      return;
+    }
+    // بالاسم وقت الطلب — شوف `snapshotAnswers`.
+    const extraAnswers = snapshotAnswers(extraFields, data.extraFields);
+
     // The chosen cover photo used to be dropped here entirely: the order went
     // through with a child's name and a dedication, and no picture.
     // ⚠️ صورة الطفل على الغلاف **خاصة** (`@/lib/cloudinary-private`).
@@ -265,6 +293,7 @@ export function LibraryCustomizationWizard({
         childName,
         dedicationText: data.dedicationText,
         coverPhoto,
+        ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         selectedAddonIds: data.selectedAddonIds,
         customizedAddonIds: data.customizedAddonIds ?? [],
       },
@@ -340,7 +369,7 @@ export function LibraryCustomizationWizard({
               )}
               <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)}>
                 {currentStep === 1 && <Step1ChildInfo onNext={onNext} />}
-                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} />}
+                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} extraFields={extraFields} />}
                 {/* نفس مكوّن الإضافات بتاع المسار المخصّص — مش نسخة
                     تانية: النسخة التانية كانت هتفترق عنه أول ما حد
                     يعدّل في واحد منهم. */}
@@ -352,6 +381,7 @@ export function LibraryCustomizationWizard({
                     onPrev={onPrev}
                     product={product}
                     pending={methods.formState.isSubmitting}
+                    extraFields={extraFields}
                   />
                 )}
               </form>

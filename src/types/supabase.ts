@@ -1186,6 +1186,7 @@ export type Database = {
           max_age: number | null
           /** روابط قديمة بتحوّل للحالي — ملف 136. */
           previous_slugs: string[]
+          sort_order: number
         }
         Insert: {
           id?: string
@@ -1211,6 +1212,7 @@ export type Database = {
           min_age?: number | null
           max_age?: number | null
           previous_slugs?: string[]
+          sort_order?: number
         }
         Update: {
           id?: string
@@ -1236,6 +1238,7 @@ export type Database = {
           min_age?: number | null
           max_age?: number | null
           previous_slugs?: string[]
+          sort_order?: number
         }
         Relationships: []
       }
@@ -1789,6 +1792,39 @@ export type Database = {
         Relationships: []
       }
       /** الأدوار الإدارية بأسماء — ملف schema/05. مدير النظام مالوش صف (الكل دايمًا). */
+      customization_fields: {
+        Row: {
+          id: string
+          label: string
+          placeholder: string | null
+          is_required: boolean
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          placeholder?: string | null
+          is_required?: boolean
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          placeholder?: string | null
+          is_required?: boolean
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_roles: {
         Row: {
           id: string

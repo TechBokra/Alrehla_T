@@ -19,6 +19,7 @@ import { Section } from '@/components/ui/Section';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { PersonalizedProduct } from '@/types';
 import { requireShopper } from '@/lib/require-shopper';
+import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
 
 interface PageProps {
   params: Promise<{ tierId: string }>;
@@ -65,6 +66,7 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
         <PersonalizationWizard
           product={product}
           subscription={{ planId: tier.id, months: tier.durationMonths }}
+          extraFields={await getActiveCustomizationFields()}
         />
       </Section>
     </PageContainer>

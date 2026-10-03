@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
+import type { CustomizationField } from '@/lib/customization-fields';
+import { ExtraFieldsSection } from './ExtraFieldsSection';
 
 /** نفس اختيارات الهدف — للقصة الواحدة وللاشتراك. */
 const GOAL_OPTIONS = [
@@ -14,9 +16,12 @@ export function Step2Details({
   onNext,
   onPrev,
   monthlyGoals,
+  extraFields = [],
 }: {
   onNext: () => void;
   onPrev: () => void;
+  /** خانات الإدارة (ملف 06). */
+  extraFields?: CustomizationField[];
   /** اشتراك صندوق الرحلة (ملف 140): عدد الشهور — هدف لكل شهر بدل هدف واحد. */
   monthlyGoals?: number;
 }) {
@@ -144,6 +149,8 @@ export function Step2Details({
           placeholder="أدخل أسماء يمكن تضمينهم في أحداث القصة..."
         />
       </div>
+
+      <ExtraFieldsSection fields={extraFields} />
 
       <div className="grid md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
         <div className="space-y-2">

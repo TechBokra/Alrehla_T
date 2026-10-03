@@ -1,8 +1,19 @@
 import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
+import type { CustomizationField } from '@/lib/customization-fields';
+import { ExtraFieldsSection } from './ExtraFieldsSection';
 
-export function Step2CoverDetails({ onNext, onPrev }: { onNext: () => void, onPrev: () => void }) {
+export function Step2CoverDetails({
+  onNext,
+  onPrev,
+  extraFields = [],
+}: {
+  onNext: () => void;
+  onPrev: () => void;
+  /** خانات الإدارة (ملف 06). */
+  extraFields?: CustomizationField[];
+}) {
   const { register, watch, setValue, formState: { errors } } = useFormContext();
   
   const coverPhotoFile = watch('coverPhotoFile');
@@ -39,6 +50,8 @@ export function Step2CoverDetails({ onNext, onPrev }: { onNext: () => void, onPr
         />
         {errors.dedicationText && <span className="text-sm text-red-500">{errors.dedicationText.message as string}</span>}
       </div>
+
+      <ExtraFieldsSection fields={extraFields} />
 
       <div className="space-y-2 pt-4 border-t border-slate-100">
         {/* ⚠️ «(اختياري)» اتشالت: التخصيص **هو** الصورة. الكلمة دي

@@ -87,7 +87,23 @@ function mapProductRow(p: any): PersonalizedProduct {
     reviewNote: p.review_note || undefined,
     isActive: p.is_active ?? true,
     createdAt: p.created_at ?? undefined,
+    sortOrder: typeof p.sort_order === 'number' ? p.sort_order : 0,
   };
+}
+
+/**
+ * ترتيب الإدارة (ملف 06) فوق ترتيب «الأحدث».
+ *
+ * ⚠️ **بيتعمل هنا مش في الاستعلام** عن قصد: `.order('sort_order')` قبل ما
+ *    ملف 06 يتشغّل كان هيرجّع خطأ «العمود مش موجود» — والصفحات العامة
+ *    بتعتبر الخطأ «مفيش منتجات»، يعني المتجر كله يفضى. هنا العمود الغايب
+ *    = صفر للكل = نفس الترتيب القديم.
+ *
+ *    والترتيب في JavaScript ثابت (stable)، فالمتساويين (كل المكتبة، أو
+ *    الجديد اللي لسه ماترتّبش) بيفضلوا بالأحدث أولًا.
+ */
+export function byDisplayOrder(a: PersonalizedProduct, b: PersonalizedProduct): number {
+  return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
 }
 
 /**
@@ -121,7 +137,7 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
     return [];
   }
 
-  return Promise.all(data.map(mapProductRow).map(withWatermark));
+  return Promise.all(data.map(mapProductRow).sort(byDisplayOrder).map(withWatermark));
 };
 
 /**

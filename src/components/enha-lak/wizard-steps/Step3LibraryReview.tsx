@@ -3,14 +3,19 @@ import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
 import { PersonalizedProduct } from '@/types';
 import { Button } from '@/components/ui/Button';
+import type { CustomizationField } from '@/lib/customization-fields';
+import { ExtraFieldsReview } from './ExtraFieldsSection';
 
 export function Step3LibraryReview({
   onPrev,
   product,
   pending = false,
+  extraFields = [],
 }: {
   onPrev: () => void;
   product: PersonalizedProduct;
+  /** خانات الإدارة (ملف 06). */
+  extraFields?: CustomizationField[];
   /** الطلب بيتبعت دلوقتي. */
   pending?: boolean;
 }) {
@@ -57,6 +62,7 @@ export function Step3LibraryReview({
               <span className="text-slate-500 block mb-1">نص الإهداء:</span>
               <span className="font-bold text-slate-800">{values.dedicationText || 'بدون إهداء'}</span>
             </div>
+            <ExtraFieldsReview fields={extraFields} answers={values.extraFields} />
             <div>
               <span className="text-slate-500 block mb-1">الصور المرفقة:</span>
               <span className="font-bold text-slate-800">
