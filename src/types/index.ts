@@ -188,6 +188,19 @@ export type CreativeService = {
   sortOrder?: number;
   /** خدمة موقوفة تختفي من الموقع، وطلباتها القديمة تفضل زي ما هي. */
   isActive: boolean;
+  // ── ملف 09: صفحة الخدمة ──────────────────────────────────
+  /** صورة الخدمة — الكارت وأول صفحة التفاصيل. */
+  coverImageUrl?: string;
+  /** نماذج من شغل قبل كده (لحد ٨). */
+  galleryImageUrls?: string[];
+  /** «عن الخدمة» — الوصف الكامل. `description` هو الوصف القصير للكارت. */
+  longDescription?: string;
+  /** «هتاخد إيه» — نقط. */
+  deliverables?: string[];
+  /** «محتاجين منك إيه» — بيظهر في صفحة الخدمة ووقت الطلب. */
+  requirements?: string;
+  /** مدة التسليم بالأيام. */
+  deliveryDays?: number;
 };
 
 /** One instructor's offer to provide one creative service, at a price. */

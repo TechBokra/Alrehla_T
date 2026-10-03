@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
+import { cleanServiceDetails, type ServiceDetailsInput } from '@/lib/service-details';
 
 /**
  * Managing the standalone creative services ("الخدمات الإبداعية").
@@ -17,9 +18,10 @@ async function requireCatalogAdmin() {
   return requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة الخدمات');
 }
 
-export interface ServiceInput {
+export interface ServiceInput extends ServiceDetailsInput {
   name: string;
   price: number;
+  /** الوصف القصير — الكارت في صفحة الخدمات. */
   description: string;
   category: string;
   priceType: 'fixed' | 'starts_from';
@@ -32,7 +34,14 @@ function validate(input: ServiceInput) {
   if (!Number.isFinite(input.price) || input.price < 0) {
     throw new Error('السعر غير صحيح');
   }
+  if (input.description.trim().length > 300) {
+    throw new Error('الوصف القصير أطول من 300 حرف — الباقي مكانه «عن الخدمة»');
+  }
+  // ملف 09: الصورة والنماذج والوصف الكامل و«هتاخد إيه»…
+  const details = cleanServiceDetails(input);
+  if (!details.ok) throw new Error(details.error);
   return {
+    ...details.row,
     name,
     price: input.price,
     description: input.description.trim() || null,
@@ -68,6 +77,7 @@ export async function createStandaloneService(input: ServiceInput) {
 
   revalidatePath('/dashboard/admin/writing/services');
   revalidatePath('/creative-writing/services');
+  revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
   return { success: true };
 }
@@ -101,6 +111,7 @@ export async function updateStandaloneService(id: string, input: ServiceInput) {
 
   revalidatePath('/dashboard/admin/writing/services');
   revalidatePath('/creative-writing/services');
+  revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
   return { success: true };
 }
@@ -143,6 +154,7 @@ export async function setStandaloneServiceActive(id: string, isActive: boolean) 
 
   revalidatePath('/dashboard/admin/writing/services');
   revalidatePath('/creative-writing/services');
+  revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
   return { success: true };
 }

@@ -1883,6 +1883,12 @@ export type Database = {
           sort_order: number | null
           price_type: string
           is_active: boolean
+          cover_image_url: string | null
+          gallery_image_urls: string[] | null
+          long_description: string | null
+          deliverables: string[] | null
+          requirements: string | null
+          delivery_days: number | null
         }
         Insert: {
           id?: string
@@ -1893,6 +1899,12 @@ export type Database = {
           sort_order?: number | null
           price_type?: string
           is_active?: boolean
+          cover_image_url?: string | null
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
+          deliverables?: string[] | null
+          requirements?: string | null
+          delivery_days?: number | null
         }
         Update: {
           id?: string
@@ -1903,6 +1915,12 @@ export type Database = {
           sort_order?: number | null
           price_type?: string
           is_active?: boolean
+          cover_image_url?: string | null
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
+          deliverables?: string[] | null
+          requirements?: string | null
+          delivery_days?: number | null
         }
         Relationships: []
       }

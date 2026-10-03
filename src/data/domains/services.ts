@@ -25,9 +25,9 @@ export async function getStandaloneServices(options?: {
   includeInactive?: boolean;
 }): Promise<CreativeService[]> {
   const supabase = await createClient();
-  let query = supabase
-    .from('standalone_services')
-    .select('id, name, price, description, category, price_type, sort_order, is_active');
+  // ⚠️ `*` عن قصد: خانات ملف 09 (الصورة والنماذج…) لو اتطلبت بالاسم قبل ما
+  //    الملف يتشغّل، الاستعلام كله بيقع ← الصفحة تقول «مفيش خدمات».
+  let query = supabase.from('standalone_services').select('*');
 
   if (!options?.includeInactive) query = query.eq('is_active', true);
 
@@ -46,6 +46,12 @@ export async function getStandaloneServices(options?: {
     priceType: row.price_type === 'starts_from' ? 'starts_from' : 'fixed',
     sortOrder: row.sort_order ?? undefined,
     isActive: row.is_active,
+    coverImageUrl: row.cover_image_url || undefined,
+    galleryImageUrls: row.gallery_image_urls?.length ? row.gallery_image_urls : undefined,
+    longDescription: row.long_description || undefined,
+    deliverables: row.deliverables?.length ? row.deliverables : undefined,
+    requirements: row.requirements || undefined,
+    deliveryDays: row.delivery_days ?? undefined,
   }));
 }
 

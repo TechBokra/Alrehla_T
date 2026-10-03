@@ -1,212 +1,151 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { pageMetadata } from '@/lib/seo';
+import { getStandaloneServices, getProvidersForService } from '@/data/domains/services';
+import { getSiteContent } from '@/data/domains/content';
+import { getWatermarkLayer } from '@/lib/watermark';
+import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
+import { PageContainer } from '@/components/PageContainer';
+import { Section } from '@/components/ui/Section';
+import {
+  ServiceCard,
+  ServiceSteps,
+  type ServiceCardData,
+} from '@/components/creative-writing/ServiceCard';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: 'الخدمات الإبداعية',
-    description: 'خدمات إبداعية مستقلة من منصة الرحلة: مراجعة النصوص، الاستشارات، التحرير، والتعليق الصوتي.',
+    description:
+      'خدمات إبداعية مستقلة من منصة الرحلة: مراجعة النصوص، الاستشارات، التحرير، والتعليق الصوتي.',
     path: '/creative-writing/services',
   });
 }
 
-import { formatPrice } from '@/lib/utils';
-import Link from 'next/link';
-import { ArrowLeft, FileEdit, Video, BookOpen, MessageCircle, Headphones, Sparkles } from 'lucide-react';
-import { getStandaloneServices, getProvidersForService } from '@/data/domains/services';
-import { PageContainer } from '@/components/PageContainer';
-import { SectionHeader } from '@/components/SectionHeader';
-import { Section } from '@/components/ui/Section';
-import { Button } from '@/components/ui/Button';
-import { getSiteContent } from '@/data/domains/content';
-
-
 /**
- * The catalogue itself now comes from the database. Only presentation —
- * which icon and colour a category wears — stays in code. This page used to
- * hold its own copy of the services; the two lists drifted apart and a
- * placeholder entry ended up live on the site.
+ * صفحة الخدمات الإبداعية — كروت بصور، وفلتر بالتصنيف، و«إزاي بتشتغل».
+ *
+ * ── اللي اتغيّر (ملاحظة تامر: «أضعف جزء في الموقع») ──────────
+ *
+ * • كانت كروت نص بس، متجمّعة تحت عناوين تصنيفات كبيرة، والسعر هو أكبر
+ *   حاجة في الكارت. دلوقتي صورة الخدمة (ملف 09) ووصف قصير ومدة التسليم.
+ * • زرار «اطلب الآن» كان بيودّي للدفع على طول. دلوقتي الكارت كله بيفتح
+ *   **صفحة الخدمة** (التفاصيل والنماذج و«هتاخد إيه») ومنها الطلب.
+ * • التصنيفات بقت أزرار فلتر فوق (`?category=`) — رابط يتبعت كمان.
+ *
+ * ⚠️ السعر من **أرخص مقدّم معتمد** — نفس المصدر اللي الخادم بيحاسب منه
+ *    (`getProvidersForService`). سعر الكتالوج بيظهر بس لو مفيش مقدّم.
  */
-const CATEGORY_STYLE: Record<string, { icon: typeof FileEdit; color: string; borderColor: string }> = {
-  'مراجعات': { icon: FileEdit, color: 'bg-blue-50 text-blue-600', borderColor: 'border-blue-100' },
-  'قصص فيديو': { icon: Video, color: 'bg-purple-50 text-purple-600', borderColor: 'border-purple-100' },
-  'نشر': { icon: BookOpen, color: 'bg-emerald-50 text-emerald-600', borderColor: 'border-emerald-100' },
-  'استشارات': { icon: MessageCircle, color: 'bg-amber-50 text-amber-600', borderColor: 'border-amber-100' },
-  'قصص مسموعة': { icon: Headphones, color: 'bg-rose-50 text-rose-600', borderColor: 'border-rose-100' },
-};
-
-const DEFAULT_STYLE = { icon: Sparkles, color: 'bg-slate-50 text-slate-600', borderColor: 'border-slate-100' };
-
-type ServiceCard = {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  priceType: 'fixed' | 'starts_from';
-  ctaText: string;
-  ctaLink: string;
-  available: boolean;
-};
-
-async function buildCategories() {
-  const services = await getStandaloneServices();
-
-  const cards: (ServiceCard & { category: string })[] = await Promise.all(
-    services.map(async (service) => {
-      // السعر بييجي من عرض مقدّم الخدمة المعتمد، **لكل الخدمات** — مش من
-      // كتالوج الخدمات.
-      //
-      // قبل كده الخدمة ذات السعر الثابت كانت بتعرض سعر الكتالوج وتروح
-      // لصفحة الطلب على طول. ده كان بيعمل حاجتين غلط: الطلب بيتعمل من
-      // غير مقدّم خدمة مكلَّف بيه (فمحدش بياخد إشعار ومش بيظهر في لوحة
-      // حد)، وأول ما يتعدّل سعر المنصة من اللوحة يختلف المعروض عن
-      // المحاسَب.
+async function buildCards(): Promise<(ServiceCardData & { sortKey: number })[]> {
+  const [services, wm] = await Promise.all([getStandaloneServices(), getWatermarkLayer()]);
+  return Promise.all(
+    services.map(async (service, index) => {
       const providers = await getProvidersForService(service.id);
+      const prices = providers.map((p) => p.price);
       const available = providers.length > 0;
-      const price = available ? providers[0].price : service.price;
-
-      // مقدّم واحد: الزائر ما يحتاجش يختار من واحد. أكتر من واحد: يختار.
-      const single = providers.length === 1 ? providers[0] : null;
-
       return {
         id: service.id,
-        category: service.category ?? 'خدمات أخرى',
-        title: service.name,
+        name: service.name,
         description: service.description,
-        price,
-        priceType: service.priceType,
-        ctaText: !available
-          ? 'قريباً'
-          : single
-            ? 'اطلب الآن'
-            : 'عرض مقدمي الخدمة',
-        ctaLink: single
-          ? `/creative-writing/services/${service.id}/order?provider=${single.providerId}`
-          : `/creative-writing/services/${service.id}`,
+        category: service.category,
+        price: available ? Math.min(...prices) : service.price,
+        startsFrom: service.priceType === 'starts_from' || new Set(prices).size > 1,
+        deliveryDays: service.deliveryDays,
+        imageUrl: service.coverImageUrl
+          ? addWatermark(optimizedImageUrl(service.coverImageUrl, 800), wm)
+          : undefined,
         available,
+        sortKey: index,
       };
-    })
+    }),
   );
-
-  const grouped: { title: string; icon: typeof FileEdit; color: string; borderColor: string; services: ServiceCard[] }[] = [];
-  for (const card of cards) {
-    const { category, ...rest } = card;
-    const existing = grouped.find((g) => g.title === category);
-    if (existing) {
-      existing.services.push(rest);
-    } else {
-      const style = CATEGORY_STYLE[category] ?? DEFAULT_STYLE;
-      grouped.push({ title: category, ...style, services: [rest] });
-    }
-  }
-  return grouped;
 }
 
-export default async function ServicesPage() {
-  const [serviceCategories, content] = await Promise.all([buildCategories(), getSiteContent()]);
+export default async function ServicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const [{ category: rawCategory }, cards, content] = await Promise.all([
+    searchParams,
+    buildCards(),
+    getSiteContent(),
+  ]);
+
+  // المتاح الأول، و«قريبًا» في الآخر — بنفس ترتيب الإدارة جوّه كل مجموعة.
+  const sorted = [...cards].sort(
+    (a, b) => Number(b.available) - Number(a.available) || a.sortKey - b.sortKey,
+  );
+  const categories = [...new Set(sorted.map((c) => c.category).filter((c): c is string => Boolean(c)))];
+  const active = rawCategory && categories.includes(rawCategory) ? rawCategory : null;
+  const shown = active ? sorted.filter((c) => c.category === active) : sorted;
+
+  const chip = (label: string, href: string, on: boolean) => (
+    <Link
+      key={label}
+      href={href}
+      scroll={false}
+      aria-current={on ? 'page' : undefined}
+      className={`inline-flex min-h-[44px] items-center rounded-full px-5 text-sm font-bold transition-colors ${
+        on ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+      }`}
+    >
+      {label}
+    </Link>
+  );
+
   return (
     <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
-      <Section containerClassName="pt-16 pb-12 text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+      <Section containerClassName="mx-auto max-w-3xl pt-16 pb-8 text-center">
+        <h1 className="mb-5 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
           {content['services.title']}
         </h1>
-        <p className="text-lg md:text-xl font-medium text-slate-600 leading-relaxed">
+        <p className="text-lg leading-relaxed font-medium text-slate-600 md:text-xl">
           {content['services.description']}
         </p>
-
       </Section>
 
-      {/* Services Categories */}
-      <Section containerClassName="mx-auto w-full max-w-6xl pb-24 space-y-16">
-        {serviceCategories.map((category) => {
-          const CategoryIcon = category.icon;
-          return (
-            <div key={category.title} className="relative">
-              {/* Category Header */}
-              <div className="flex items-center gap-4 mb-8">
-                <div className={`flex h-16 w-16 items-center justify-center rounded-3xl ${category.color}`}>
-                  <CategoryIcon className="h-8 w-8" />
-                </div>
-                <h2 className="text-3xl font-black text-slate-800">{category.title}</h2>
-              </div>
-              
-              {/* Category Services Grid */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {category.services.map((service) => (
-                  <div 
-                    key={service.id} 
-                    className={`flex flex-col rounded-3xl border-2 ${category.borderColor} bg-white p-8 shadow-sm transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:shadow-lg`}
-                  >
-                    <div className="mb-6 flex-1">
-                      <div className="mb-3">
-                        <h3 className="text-2xl font-black text-slate-800">
-                          {service.title}
-                        </h3>
-                      </div>
-                      <p className="text-sm font-medium leading-relaxed text-slate-600 min-h-[40px]">
-                        {service.description}
-                      </p>
-                    </div>
-                    
-                    <div className="mt-auto border-t border-slate-100 pt-6">
-                      <div className="mb-6 flex flex-col items-center text-center">
-                        <span className="text-sm font-bold text-slate-500 mb-1">
-                          {service.priceType === 'starts_from' ? 'يبدأ من' : 'السعر'}
-                        </span>
-                        <span className={`text-3xl font-black ${category.color.split(' ')[1]}`}>
-                          {formatPrice(service.price)}
-                        </span>
-                      </div>
-                      
-                      {/* ⚠️ **الزرّ ده كان `bg-amber-500 text-white` مكتوبًا
-                          بالإيد — وقياسه على الموقع المنشور طلع 2.13:1**،
-                          أسوأ نتيجة في الموقع كله، وعلى زرّ الشراء نفسه.
+      <Section containerClassName="mx-auto w-full max-w-6xl pb-20">
+        {categories.length > 1 && (
+          <nav aria-label="تصنيفات الخدمات" className="mb-8 flex flex-wrap justify-center gap-2">
+            {chip('الكل', '/creative-writing/services', !active)}
+            {categories.map((c) =>
+              chip(c, `/creative-writing/services?category=${encodeURIComponent(c)}`, active === c),
+            )}
+          </nav>
+        )}
 
-                          ودي **نفس الحالة اللي المرحلة ١ أصلحتها** (أبيض
-                          على amber-500 = 2.15) — بس الإصلاح وقتها اتعمل
-                          في مكوّن `Button`، والصفحة دي مكانتش بتستعمله.
-
-                          القاعدة المكتوبة عندنا: اللون الحيّ زيّ ما هو
-                          والنص داكن، والـhover **بيفتح لا بيغمّق** (مع
-                          النص الداكن، التغميق بينزّل التباين). كل ده
-                          موجود في `Button` — فالصفحة بقت تستعمله بدل ما
-                          تعيد كتابته. */}
-                      <Button
-                        href={service.available ? service.ctaLink : '#'}
-                        variant={service.priceType === 'starts_from' ? 'secondary' : 'primary'}
-                        accentColor="brand"
-                        disabled={!service.available}
-                        className="group w-full justify-center py-4"
-                      >
-                        {service.ctaText}
-                        <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+        {shown.length === 0 ? (
+          <p className="rounded-3xl border border-slate-200 bg-white py-16 text-center font-bold text-slate-500">
+            الخدمات بتتجهّز — ارجعلنا قريب.
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {shown.map(({ sortKey: _sortKey, ...card }) => (
+              <ServiceCard key={card.id} service={card} />
+            ))}
+          </div>
+        )}
       </Section>
 
-      {/* Packages Link */}
+      <Section containerClassName="mx-auto w-full max-w-6xl pb-16">
+        <h2 className="mb-6 text-center text-2xl font-black text-slate-800">إزاي بتشتغل؟</h2>
+        <ServiceSteps />
+      </Section>
+
       <Section containerClassName="pb-16">
         <div className="mx-auto w-full max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center shadow-sm">
-          <h3 className="mb-4 text-2xl font-black text-slate-800">
-            {content['services.ctaTitle']}
-          </h3>
-          <p className="mb-8 text-slate-600 font-medium">{content['services.ctaText']}</p>
+          <h3 className="mb-4 text-2xl font-black text-slate-800">{content['services.ctaTitle']}</h3>
+          <p className="mb-8 font-medium text-slate-600">{content['services.ctaText']}</p>
           <Link
             href="/creative-writing/packages"
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-lg font-bold text-white shadow-md transition-all hover:bg-slate-800 hover:-translate-y-1 hover:shadow-lg"
+            className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-lg font-bold text-white shadow-md transition-all hover:-translate-y-1 hover:bg-slate-800 hover:shadow-lg"
           >
             استعرض باقات الكتابة <ArrowLeft className="h-5 w-5" />
           </Link>
         </div>
       </Section>
-
-
     </PageContainer>
   );
 }

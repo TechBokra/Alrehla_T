@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
@@ -31,14 +31,33 @@ export function GalleryField({
   folder,
   value = [],
   library = false,
+  label,
+  hint,
+  onChange,
 }: {
   name: string;
   folder: string;
   value?: string[];
+  /** عنوان الخانة — الافتراضي «صور إضافية للمنتج». */
+  label?: string;
+  hint?: string;
+  /** للنماذج اللي مش FormData (شاشة الخدمات مثلًا) — بيتنادى مع كل تغيير. */
+  onChange?: (urls: string[]) => void;
   /** زرار «من المكتبة» — **للإدارة بس** (نموذجا الناشر من غيره). */
   library?: boolean;
 }) {
   const [urls, setUrls] = useState<string[]>(value);
+  // بلغ الأب بعد أي تغيير (رفع، مسح، ترتيب) — من غير أول رسم.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    onChange?.(urls);
+    // `onChange` بيتغيّر مع كل رسم للأب — المهم القيم.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urls]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -76,9 +95,9 @@ export function GalleryField({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-bold text-slate-700">
-        صور إضافية للمنتج{' '}
+        {label ?? 'صور إضافية للمنتج'}{' '}
         <span className="font-medium text-slate-500">
-          (صفحات من جوّه الكتاب، الغلاف الخلفي… حد أقصى {MAX})
+          ({hint ?? 'صفحات من جوّه الكتاب، الغلاف الخلفي…'} حد أقصى {MAX})
         </span>
       </label>
 

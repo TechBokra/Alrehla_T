@@ -48,7 +48,9 @@ export default async function OrderServicePage({
 
   const user = await getCurrentUser();
   if (user.role === 'visitor') {
-    redirect('/sign-in');
+    // بيرجع لنفس الطلب بعد الدخول — كان بيرجع للرئيسية ويدوّر من الأول.
+    const back = `/creative-writing/services/${serviceId}/order${providerParam ? `?provider=${providerParam}` : ''}`;
+    redirect(`/sign-in?next=${encodeURIComponent(back)}`);
   }
 
   // The price shown must be the one the server will actually charge, so it is
@@ -81,11 +83,7 @@ export default async function OrderServicePage({
     <PageContainer className="py-12 space-y-12 md:py-16">
       <Section containerClassName="mx-auto w-full max-w-2xl pt-16 pb-24">
         <Link
-          href={
-            service.priceType === 'starts_from'
-              ? `/creative-writing/services/${serviceId}`
-              : '/creative-writing/services'
-          }
+          href={`/creative-writing/services/${serviceId}`}
           className="mb-8 inline-flex items-center gap-2 font-bold text-slate-500 transition-colors hover:text-emerald-600"
         >
           <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -99,6 +97,8 @@ export default async function OrderServicePage({
           paymentQrUrl={settings.paymentQrUrl}
           serviceId={serviceId}
           serviceName={service.name}
+          serviceImageUrl={service.coverImageUrl}
+          requirements={service.requirements}
           providerId={providerId}
           providerName={providerName}
           amount={amount}

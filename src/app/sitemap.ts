@@ -3,6 +3,7 @@ import { SITE_URL } from '@/lib/seo';
 import { getBlogPosts } from '@/data/domains/content';
 import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
 import { getPublicInstructors, getWritingPackages } from '@/data/domains/writing';
+import { getStandaloneServices } from '@/data/domains/services';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
@@ -77,9 +78,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
+  // صفحة كل خدمة إبداعية (ملف 09).
+  const services = await getStandaloneServices();
+  const serviceRoutes = services.map((sv) => ({
+    url: `${baseUrl}/creative-writing/services/${encodeURIComponent(sv.id)}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+
   return [
     ...staticRoutes,
     ...packageRoutes,
+    ...serviceRoutes,
     ...blogRoutes,
     ...productRoutes,
     ...publisherRoutes,

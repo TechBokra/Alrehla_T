@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Eye, EyeOff, X, Check } from 'lucide-react';
 import { CreativeService } from '@/types';
@@ -11,6 +12,9 @@ import {
   setStandaloneServiceActive,
   type ServiceInput,
 } from '@/actions/standalone-services';
+import { ImageField } from '@/components/dashboard/ImageField';
+import { GalleryField } from '@/components/dashboard/GalleryField';
+import { optimizedImageUrl } from '@/lib/cloudinary';
 
 interface Props {
   services: CreativeService[];
@@ -23,11 +27,41 @@ const EMPTY: ServiceInput = {
   category: '',
   priceType: 'fixed',
   sortOrder: null,
+  coverImageUrl: '',
+  galleryImageUrls: [],
+  longDescription: '',
+  deliverablesText: '',
+  requirements: '',
+  deliveryDays: null,
 };
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
 
+function Field({
+  label,
+  hint,
+  children,
+  wide = false,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`space-y-1.5 ${wide ? 'md:col-span-2' : ''}`}>
+      <label className="text-xs font-bold text-slate-700">{label}</label>
+      {children}
+      {hint && <p className="text-xs font-medium text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+/**
+ * نموذج الخدمة — بقسمين: «الكارت» (اللي بيظهر في صفحة الخدمات) و«صفحة
+ * الخدمة» (ملف 09: الصورة والنماذج والوصف الكامل و«هتاخد إيه»…).
+ */
 function ServiceForm({
   initial,
   onSave,
@@ -40,76 +74,139 @@ function ServiceForm({
   busy: boolean;
 }) {
   const [value, setValue] = useState<ServiceInput>(initial);
+  const set = (patch: Partial<ServiceInput>) => setValue((v) => ({ ...v, ...patch }));
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">اسم الخدمة</label>
-          <input
-            className={inputClass}
-            value={value.name}
-            onChange={(e) => setValue({ ...value, name: e.target.value })}
-            placeholder="مثال: مراجعة نص"
-          />
+    <div className="space-y-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+      <section className="space-y-4">
+        <h3 className="text-sm font-black text-slate-800">الكارت في صفحة الخدمات</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="اسم الخدمة">
+            <input
+              className={inputClass}
+              value={value.name}
+              onChange={(e) => set({ name: e.target.value })}
+              placeholder="مثال: مراجعة نص"
+            />
+          </Field>
+          <Field label="التصنيف" hint="الخدمات بتتجمّع بيه، وبيظهر كزرار فلتر فوق الصفحة.">
+            <input
+              className={inputClass}
+              value={value.category}
+              onChange={(e) => set({ category: e.target.value })}
+              placeholder="مثال: مراجعات"
+            />
+          </Field>
+          <Field label="السعر (ج.م)">
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={value.price}
+              onChange={(e) => set({ price: Number(e.target.value) })}
+            />
+          </Field>
+          <Field label="نوع السعر">
+            <select
+              className={inputClass}
+              value={value.priceType}
+              onChange={(e) => set({ priceType: e.target.value as ServiceInput['priceType'] })}
+            >
+              <option value="fixed">سعر ثابت</option>
+              <option value="starts_from">يبدأ من (حسب المدرب)</option>
+            </select>
+          </Field>
+          <Field label="مدة التسليم (أيام)" hint="بتظهر «التسليم خلال ٧ أيام». فاضي = مابتظهرش.">
+            <input
+              type="number"
+              min={1}
+              max={90}
+              className={inputClass}
+              value={value.deliveryDays ?? ''}
+              onChange={(e) =>
+                set({ deliveryDays: e.target.value === '' ? null : Number(e.target.value) })
+              }
+            />
+          </Field>
+          <Field label="ترتيب العرض">
+            <input
+              type="number"
+              className={inputClass}
+              value={value.sortOrder ?? ''}
+              onChange={(e) =>
+                set({ sortOrder: e.target.value === '' ? null : Number(e.target.value) })
+              }
+              placeholder="اتركه فارغًا للترتيب التلقائي"
+            />
+          </Field>
+          <Field label="الوصف القصير" hint="سطرين في الكارت — لحد 300 حرف." wide>
+            <textarea
+              rows={2}
+              maxLength={300}
+              className={`${inputClass} resize-none`}
+              value={value.description}
+              onChange={(e) => set({ description: e.target.value })}
+            />
+          </Field>
+          <div className="md:col-span-2">
+            <ImageField
+              name="coverImageUrl"
+              label="صورة الخدمة"
+              folder="alrehla/services"
+              value={value.coverImageUrl}
+              onChange={(url) => set({ coverImageUrl: url })}
+              aspect="wide"
+              library
+              hint="عرضية (4:3 أو 16:9) — بتظهر في الكارت وأول صفحة الخدمة."
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">السعر (ج.م)</label>
-          <input
-            type="number"
-            min={0}
-            className={inputClass}
-            value={value.price}
-            onChange={(e) => setValue({ ...value, price: Number(e.target.value) })}
-          />
+      </section>
+
+      <section className="space-y-4 border-t border-amber-200 pt-5">
+        <h3 className="text-sm font-black text-slate-800">صفحة الخدمة</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="عن الخدمة" hint="الوصف الكامل — السطور الجديدة بتتحترم." wide>
+            <textarea
+              rows={6}
+              maxLength={5000}
+              className={`${inputClass} resize-y`}
+              value={value.longDescription}
+              onChange={(e) => set({ longDescription: e.target.value })}
+            />
+          </Field>
+          <Field label="هتاخد إيه" hint="سطر لكل نقطة — لحد 8.">
+            <textarea
+              rows={5}
+              className={`${inputClass} resize-y`}
+              value={value.deliverablesText}
+              onChange={(e) => set({ deliverablesText: e.target.value })}
+              placeholder={'نسخة مراجَعة من النص\nملاحظات مكتوبة على كل فقرة\nجلسة 15 دقيقة لشرح الملاحظات'}
+            />
+          </Field>
+          <Field label="محتاجين منك إيه" hint="بيظهر في صفحة الخدمة وفوق خانة «تفاصيل طلبك».">
+            <textarea
+              rows={5}
+              maxLength={1500}
+              className={`${inputClass} resize-y`}
+              value={value.requirements}
+              onChange={(e) => set({ requirements: e.target.value })}
+              placeholder="النص اللي عايز تراجعه، وسنّ الكاتب، وأي ملاحظة مهمة."
+            />
+          </Field>
+          <div className="md:col-span-2">
+            <GalleryField
+              name="galleryImageUrls"
+              folder="alrehla/services"
+              value={value.galleryImageUrls}
+              onChange={(urls) => set({ galleryImageUrls: urls })}
+              label="نماذج من شغل قبل كده"
+              hint="صفحات، أغلفة، لقطات…"
+              library
+            />
+          </div>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">التصنيف</label>
-          <input
-            className={inputClass}
-            value={value.category}
-            onChange={(e) => setValue({ ...value, category: e.target.value })}
-            placeholder="مثال: مراجعات"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">نوع السعر</label>
-          <select
-            className={inputClass}
-            value={value.priceType}
-            onChange={(e) =>
-              setValue({ ...value, priceType: e.target.value as ServiceInput['priceType'] })
-            }
-          >
-            <option value="fixed">سعر ثابت</option>
-            <option value="starts_from">يبدأ من (حسب المدرب)</option>
-          </select>
-        </div>
-        <div className="md:col-span-2 space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">الوصف</label>
-          <textarea
-            rows={2}
-            className={`${inputClass} resize-none`}
-            value={value.description}
-            onChange={(e) => setValue({ ...value, description: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">ترتيب العرض</label>
-          <input
-            type="number"
-            className={inputClass}
-            value={value.sortOrder ?? ''}
-            onChange={(e) =>
-              setValue({
-                ...value,
-                sortOrder: e.target.value === '' ? null : Number(e.target.value),
-              })
-            }
-            placeholder="اتركه فارغًا للترتيب التلقائي"
-          />
-        </div>
-      </div>
+      </section>
 
       <div className="flex justify-end gap-2">
         <button
@@ -162,6 +259,12 @@ export function ServicesManagerClient({ services }: Props) {
     category: s.category ?? '',
     priceType: s.priceType,
     sortOrder: s.sortOrder ?? null,
+    coverImageUrl: s.coverImageUrl ?? '',
+    galleryImageUrls: s.galleryImageUrls ?? [],
+    longDescription: s.longDescription ?? '',
+    deliverablesText: (s.deliverables ?? []).join('\n'),
+    requirements: s.requirements ?? '',
+    deliveryDays: s.deliveryDays ?? null,
   });
 
   return (
@@ -215,6 +318,22 @@ export function ServicesManagerClient({ services }: Props) {
               key={service.id}
               className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5"
             >
+              <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                {service.coverImageUrl ? (
+                  <Image
+                    src={optimizedImageUrl(service.coverImageUrl, 200)}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="flex h-full items-center justify-center text-[10px] font-bold text-slate-400">
+                    مفيش صورة
+                  </span>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-black text-slate-800">{service.name}</h3>

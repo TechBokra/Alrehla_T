@@ -8,6 +8,7 @@ import { hasAdminPermission, calculateFinalSessionPrice } from '@/lib/utils';
 import { notifyUser, notifyAdmins, getInstructorUserId, getProviderUserId } from '@/lib/notifications';
 import { SERVICE_DUE_DAYS } from '@/lib/service-delivery';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { briefMessage } from '@/lib/service-details';
 
 /**
  * Ordering a standalone creative service.
@@ -36,6 +37,13 @@ export async function createServiceOrder(params: {
    */
   participantType?: 'self' | 'child';
   childId?: string | null;
+  /**
+   * «تفاصيل طلبك» — العميل بيكتب هو عايز إيه بالظبط.
+   *
+   * ⚠️ مالهاش خانة في الطلب عن قصد: بتتحفظ **كأول رسالة في محادثة
+   *    الطلب**، فمقدّم الخدمة بيلاقيها في نفس المكان اللي هيرد فيه.
+   */
+  brief?: string | null;
 }) {
   const supabase = await createClient();
 
@@ -197,6 +205,23 @@ export async function createServiceOrder(params: {
     throw new Error('تعذّر إنشاء الطلب');
   }
 
+  // «تفاصيل طلبك» ← أول رسالة في المحادثة. فشلها مايوقعش الطلب: الطلب
+  // اتعمل والعميل يقدر يكتبها تاني في المحادثة — بس بنقوله.
+  let warning: string | undefined;
+  const brief = briefMessage(params.brief);
+  if (brief) {
+    const { error: briefError } = await supabase.from('service_order_messages').insert({
+      order_id: order.id,
+      sender_profile_id: user.id,
+      body: brief,
+      is_delivery: false,
+    });
+    if (briefError) {
+      console.error('تعذّر حفظ تفاصيل الطلب', briefError);
+      warning = 'الطلب اتسجّل، بس تفاصيلك ماوصلتش — اكتبها في محادثة الطلب من «طلباتي».';
+    }
+  }
+
   // المنصة كمقدّم مالهاش حساب شخص يتبعتله إشعار — الطلب بيظهر في
   // لوحة الإدارة أصلًا.
   if (providerId) {
@@ -220,6 +245,7 @@ export async function createServiceOrder(params: {
     orderId: order.id,
     amount,
     paymentReference: order.payment_reference ?? '',
+    warning,
   };
 }
 

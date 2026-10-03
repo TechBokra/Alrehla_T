@@ -2,7 +2,10 @@
 
 import React, { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2 } from 'lucide-react';
+import Image from 'next/image';
+import { CheckCircle2, ClipboardList } from 'lucide-react';
+import { optimizedImageUrl } from '@/lib/cloudinary';
+import { BRIEF_MAX } from '@/lib/service-details';
 import { formatPrice } from '@/lib/utils';
 import { createServiceOrder, submitServiceOrderPayment } from '@/actions/service-orders';
 import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/PaymentProofForm';
@@ -14,6 +17,10 @@ interface Props {
   paymentQrUrl?: string;
   serviceId: string;
   serviceName: string;
+  /** صورة الخدمة (ملف 09) — في ملخّص الطلب. */
+  serviceImageUrl?: string;
+  /** «محتاجين منك إيه» — فوق خانة «تفاصيل طلبك». */
+  requirements?: string;
   providerId: string | null;
   providerName: string | null;
   amount: number;
@@ -30,6 +37,8 @@ interface Props {
 export function OrderServiceClient({
   serviceId,
   serviceName,
+  serviceImageUrl,
+  requirements,
   providerId,
   providerName,
   amount,
@@ -52,6 +61,9 @@ export function OrderServiceClient({
   );
   const [childId, setChildId] = useState(presetChildId ?? '');
   const [family, setFamily] = useState<{ id: string; name: string }[]>([]);
+  // «تفاصيل طلبك» — بتوصل لمقدّم الخدمة كأول رسالة في محادثة الطلب.
+  const [brief, setBrief] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     import('@/app/actions/family')
@@ -73,7 +85,9 @@ export function OrderServiceClient({
           providerId,
           participantType,
           childId: participantType === 'child' ? childId : null,
+          brief,
         });
+        setNotice(result.warning ?? null);
         setPlaced({ id: result.orderId, reference: result.paymentReference });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'تعذّر إنشاء الطلب');
@@ -100,6 +114,19 @@ export function OrderServiceClient({
       <div className="rounded-3xl border border-slate-200 bg-white p-8">
         <h2 className="mb-6 text-xl font-black text-slate-800">ملخص الطلب</h2>
 
+        {serviceImageUrl && (
+          <div className="relative mb-4 aspect-[16/7] w-full overflow-hidden rounded-2xl bg-slate-100">
+            <Image
+              src={optimizedImageUrl(serviceImageUrl, 800)}
+              alt={serviceName}
+              fill
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
+
         <div className="flex justify-between border-b border-slate-100 py-3">
           <span className="font-medium text-slate-500">الخدمة</span>
           <span className="font-bold text-slate-800">{serviceName}</span>
@@ -121,6 +148,11 @@ export function OrderServiceClient({
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {error}
+        </div>
+      )}
+      {notice && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+          {notice}
         </div>
       )}
 
@@ -203,6 +235,33 @@ export function OrderServiceClient({
                 </select>
               )}
             </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-8">
+            <label htmlFor="service-brief" className="mb-1 block text-lg font-black text-slate-800">
+              تفاصيل طلبك
+            </label>
+            <p className="mb-4 text-sm font-medium text-slate-500">
+              قول لمقدّم الخدمة عايز إيه بالظبط — بتوصله أول رسالة في محادثة الطلب،
+              وتقدر تبعتله ملفات وتكمّل الكلام هناك بعد الدفع.
+            </p>
+            {requirements && (
+              <div className="mb-4 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm font-medium text-amber-900">
+                <ClipboardList className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                <p className="whitespace-pre-line">
+                  <strong>محتاجين منك:</strong> {requirements}
+                </p>
+              </div>
+            )}
+            <textarea
+              id="service-brief"
+              rows={5}
+              maxLength={BRIEF_MAX}
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              placeholder="مثال: قصة كتبتها بنتي (١٠ سنين) عن رحلة للبحر، عايزين مراجعة لغوية وملاحظات على الحبكة."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none focus:border-emerald-500 focus:bg-white"
+            />
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-sm font-medium text-slate-600">
