@@ -2,21 +2,23 @@ import { formatPrice } from '@/lib/utils';
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
+import { customizedAddonIdsFor } from '@/lib/item-format';
 
 /**
  * الإضافات بتيجي من قاعدة البيانات (جدول `addon_products`) عن طريق
  * الصفحة، مش مكتوبة هنا. قبل كده كانت تلات إضافات بأسعار في كود
  * المتصفح، وبعدين قايمة فاضية ثابتة.
  *
- * ── التخصيص ────────────────────────────────────────────────
+ * ── التخصيص (ملف 07 — قرار تامر) ───────────────────────────
  *
- * إضافة ممكن تتطلب **بتخصيص أو بدونه**، ولكل حالة سعرها. والتخصيص
- * بياخد نفس بيانات الطفل المدخلة في الخطوة ١ — فمفيش حقول جديدة
- * يملاها العميل هنا، اختيار وبس.
+ * **التخصيص مش اختياري — هو هدف المشروع.** كان فيه «بتخصيص / بدون»؛
+ * دلوقتي أي إضافة بتقبل التخصيص بتتخصص دايمًا بنفس اسم الطفل وصورته
+ * اللي اتكتبوا للقصة أو الغلاف، وسعرها المعروض شامل التخصيص. مفيش
+ * خانات جديدة يملاها العميل.
  *
  * ⚠️ الأسعار المعروضة هنا للعرض فقط. `create_customer_order` بتقرا
- *    السعر و`customization_price` من الجدول وبترفض أي تخصيص لإضافة
- *    `supports_customization = false`. يعني تلاعب المتصفح مبيعدّيش.
+ *    السعر و`customization_price` من الجدول، **وبتخصّص لوحدها** أي
+ *    إضافة بتقبل التخصيص — تلاعب المتصفح مبيعدّيش.
  */
 export function Step3Addons({
   onNext,
@@ -29,32 +31,23 @@ export function Step3Addons({
 }) {
   const { watch, setValue } = useFormContext();
   const selectedAddons: string[] = watch('selectedAddonIds') || [];
-  const customizedAddons: string[] = watch('customizedAddonIds') || [];
 
   const toggleAddon = (id: string) => {
-    if (selectedAddons.includes(id)) {
-      setValue('selectedAddonIds', selectedAddons.filter((a) => a !== id));
-      // إلغاء الإضافة بيلغي تخصيصها كمان — عشان مايفضلش رقم معلّق
-      // لإضافة مش مطلوبة أصلًا.
-      setValue('customizedAddonIds', customizedAddons.filter((a) => a !== id));
-    } else {
-      setValue('selectedAddonIds', [...selectedAddons, id]);
-    }
-  };
-
-  const setCustomized = (id: string, customized: boolean) => {
-    setValue(
-      'customizedAddonIds',
-      customized
-        ? [...customizedAddons.filter((a) => a !== id), id]
-        : customizedAddons.filter((a) => a !== id),
-    );
+    const next = selectedAddons.includes(id)
+      ? selectedAddons.filter((a) => a !== id)
+      : [...selectedAddons, id];
+    setValue('selectedAddonIds', next);
+    // التخصيص ماشي ورا الاختيار — مش قرار منفصل.
+    setValue('customizedAddonIds', customizedAddonIdsFor(addons, next));
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-black text-slate-800">إضافات مميزة (اختياري)</h2>
-      <p className="text-slate-600">اجعل هديتك أكثر تميزاً بإضافة بعض اللمسات الخاصة.</p>
+      <p className="text-slate-600">
+        كل إضافة عليها علامة «باسم الطفل وصورته» بتتعمل مخصوص لطفلك — بنفس الاسم
+        والصورة اللي كتبتهم.
+      </p>
 
       <div className="space-y-4 mt-6">
         {addons.length === 0 && (
@@ -64,9 +57,9 @@ export function Step3Addons({
         )}
         {addons.map((addon) => {
           const isSelected = selectedAddons.includes(addon.id);
-          const isCustomized = customizedAddons.includes(addon.id);
+          // السعر شامل التخصيص لأنه مش اختياري.
           const shownPrice =
-            addon.price + (isCustomized ? addon.customizationPrice : 0);
+            addon.price + (addon.supportsCustomization ? addon.customizationPrice : 0);
 
           return (
             <div
@@ -100,49 +93,15 @@ export function Step3Addons({
                   {addon.description && (
                     <p className="text-sm text-slate-600 mt-1">{addon.description}</p>
                   )}
-                  {addon.supportsCustomization && !isSelected && (
-                    <p className="mt-2 text-xs font-bold text-emerald-700">
-                      تقبل التخصيص باسم الطفل
+                  {addon.supportsCustomization && (
+                    <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                      باسم الطفل وصورته
                     </p>
                   )}
                 </div>
                 <div className="font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
               </div>
 
-              {/* اختيار التخصيص بيظهر بعد الاختيار وبس — قبل كده مالوش معنى. */}
-              {isSelected && addon.supportsCustomization && (
-                <div
-                  role="radiogroup"
-                  aria-label={`تخصيص ${addon.name}`}
-                  className="grid gap-3 border-t border-emerald-200 p-5 sm:grid-cols-2"
-                >
-                  {[
-                    {
-                      value: true,
-                      title: 'بتخصيص',
-                      note: `باسم الطفل وبياناته · +${formatPrice(addon.customizationPrice)}`,
-                    },
-                    { value: false, title: 'بدون تخصيص', note: 'الشكل الأساسي' },
-                  ].map((choice) => {
-                    const active = isCustomized === choice.value;
-                    return (
-                      <button
-                        key={choice.title}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        onClick={() => setCustomized(addon.id, choice.value)}
-                        className={`rounded-xl border-2 p-4 text-start transition-colors ${active ? 'border-emerald-600 bg-white' : 'border-slate-200 bg-white/60 hover:border-slate-300'}`}
-                      >
-                        <span className="block font-bold text-slate-800">{choice.title}</span>
-                        <span className="mt-1 block text-xs font-medium text-slate-600">
-                          {choice.note}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           );
         })}

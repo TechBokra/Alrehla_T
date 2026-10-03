@@ -17,6 +17,7 @@ import { pageMetadata } from '@/lib/seo';
 import { productSchema, breadcrumbSchema } from '@/lib/structured-data';
 import { getSiteSettings } from '@/data/domains/content';
 import { ShareSection } from '@/components/share/ShareSection';
+import { ShareButton } from '@/components/share/ShareButton';
 import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
@@ -258,6 +259,21 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     }} 
                   />
                 )}
+                {/* مشاركة جنب زرار الشراء — قرار تامر 3 أكتوبر: الصور والروابط
+                    اللي الأهل بيبعتوها ترويج. قسم المشاركة الكامل لسه تحت في
+                    آخر الصفحة، بس محدش بيوصله. */}
+                <ShareButton
+                  variant="subtle"
+                  theme="rose"
+                  label="ابعته لحد يحبه"
+                  className="mt-3 w-full"
+                  data={{
+                    title: product.name,
+                    description: product.shortDescription,
+                    url: `/enha-lak/product/${product.slug}`,
+                    shortPath: `/s/p/${product.id ? product.id.split('-')[0] : product.slug}`,
+                  }}
+                />
               </div>
             </Card>
           </div>

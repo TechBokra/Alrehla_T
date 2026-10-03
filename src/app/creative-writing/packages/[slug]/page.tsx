@@ -11,6 +11,7 @@ import { breadcrumbSchema } from '@/lib/structured-data';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { ShareButton } from '@/components/share/ShareButton';
 import {
   PackageBookButton,
   PackageStats,
@@ -133,7 +134,19 @@ export default async function PackageDetailsPage({ params }: { params: Promise<{
               </div>
             )}
 
-            <PackageBookButton pkg={pkg} isDependent={isDependent} className="w-full md:w-auto md:px-10" />
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <PackageBookButton pkg={pkg} isDependent={isDependent} className="w-full md:w-auto md:px-10" />
+              <ShareButton
+                variant="subtle"
+                theme="emerald"
+                label="شارك الباقة"
+                data={{
+                  title: pkg.name,
+                  description: pkg.shortDescription,
+                  url: packageHref(pkg),
+                }}
+              />
+            </div>
           </Card>
         </div>
       </Section>

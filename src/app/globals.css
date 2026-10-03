@@ -168,23 +168,6 @@ body {
      غير نصي ومحتاج 3:1 على الأقل. `amber-500` على خلفية الموقع =
      **2.11:1** وبيسقط، و`amber-600` = 3.14:1 وبينجح.
 */
-/* ── منع حفظ الصور — نصّ الـCSS من القرار (والنصّ التاني `ImageGuard`)
-   • `-webkit-touch-callout: none`: قايمة «حفظ الصورة» في الضغط الطويل
-     على آيفون. آيفون مابيبعتش حدث للجافاسكربت يتقفل منه — ده الطريق
-     الوحيد.
-   • `-webkit-user-drag: none` + `user-select: none`: سحب الصورة لسطح
-     المكتب، وتظليلها مع النص.
-   ⚠️ ردع لا حماية: لقطة الشاشة مابتتمنعش (`lib/image-guard.ts`).
-   ⚠️ و`[data-allow-save]` هو الاستثناء الوحيد — نفس علامة الجافاسكربت. */
-@layer base {
-  img:not([data-allow-save] img):not([data-allow-save]),
-  video:not([data-allow-save]) {
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
-    user-select: none;
-  }
-}
-
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-brand-border);

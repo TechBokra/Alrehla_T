@@ -1,7 +1,7 @@
 'use client';
 
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
-import { addonsDisplayTotal, basePriceForFormat, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
+import { addonsDisplayTotal, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -272,6 +272,10 @@ export function PersonalizationWizard({
     const format: ItemFormat =
       electronicAvailable(product) && data.format ? data.format : 'printed';
 
+    // ملف 07: كل إضافة بتقبل التخصيص بتتخصص — من الإضافة نفسها، مش من
+    // اختيار في النموذج (جلسة قديمة كان ممكن يكون فيها «بدون تخصيص»).
+    const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
+
     // 2. Add to cart
     addItem({
       id: product.id + '-' + Date.now(),
@@ -281,7 +285,7 @@ export function PersonalizationWizard({
       // القصة لوحده، والعميل يتقاله «حوّل» رقمًا أقل من طلبه.
       price:
         basePriceForFormat(product, format) +
-        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? [], addonDiscountPercent),
+        addonsDisplayTotal(addons, data.selectedAddonIds, customizedAddonIds, addonDiscountPercent),
       format,
       quantity: 1,
       type: product.category === 'subscription' ? 'subscription' : 'custom',
@@ -302,11 +306,11 @@ export function PersonalizationWizard({
         familyMemberNames: data.familyMemberNames,
         ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         selectedAddonIds: data.selectedAddonIds,
-        customizedAddonIds: data.customizedAddonIds ?? [],
+        customizedAddonIds,
       },
       addonIds: data.selectedAddonIds,
       // القاعدة بتضيف سعر التخصيص للإضافات دي وحدها.
-      customizedAddonIds: data.customizedAddonIds ?? [],
+      customizedAddonIds,
     });
 
     // Clear session storage

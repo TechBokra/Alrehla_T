@@ -1,7 +1,7 @@
 'use client';
 
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
-import { addonsDisplayTotal } from '@/lib/item-format';
+import { addonsDisplayTotal, customizedAddonIdsFor } from '@/lib/item-format';
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState, useEffect } from 'react';
@@ -276,6 +276,9 @@ export function LibraryCustomizationWizard({
       return;
     }
 
+    // ملف 07: كل إضافة بتقبل التخصيص بتتخصص باسم الطفل وصورته.
+    const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
+
     addItem({
       id: `${product.id}-${Date.now()}`,
       productId: product.id,
@@ -283,7 +286,7 @@ export function LibraryCustomizationWizard({
       // ⚠️ بالإضافات — كان سعر الكتاب لوحده والطلب بالإضافات (`addonsDisplayTotal`).
       price:
         product.price +
-        addonsDisplayTotal(addons, data.selectedAddonIds, data.customizedAddonIds ?? [], addonDiscountPercent),
+        addonsDisplayTotal(addons, data.selectedAddonIds, customizedAddonIds, addonDiscountPercent),
       quantity: 1,
       type: 'book',
       imageUrl: product.coverImageUrl || undefined,
@@ -295,7 +298,7 @@ export function LibraryCustomizationWizard({
         coverPhoto,
         ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         selectedAddonIds: data.selectedAddonIds,
-        customizedAddonIds: data.customizedAddonIds ?? [],
+        customizedAddonIds,
       },
       // ⚠️ **بره `customizationData` كمان** — دي مش تكرار: القاعدة
       //    بتقرا `addonIds` من جذر البند عشان تسعّرها وتضيفها
@@ -303,7 +306,7 @@ export function LibraryCustomizationWizard({
       //    لو اتحطّت في الوصف بس، العميل كان هيختار إضافة ومايتحسبش
       //    عليه تمنها ومحدش يشحنهاله.
       addonIds: data.selectedAddonIds,
-      customizedAddonIds: data.customizedAddonIds ?? [],
+      customizedAddonIds,
     });
 
     sessionStorage.removeItem(`library_wizard_${product.id}`);

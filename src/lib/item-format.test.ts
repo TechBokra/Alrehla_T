@@ -65,3 +65,17 @@ describe('addonsDisplayTotal', () => {
     expect(addonsDisplayTotal(addons, ['a'], [], 200)).toBe(12); // سقف ٩٠٪
   });
 });
+
+import { customizedAddonIdsFor } from './item-format';
+describe('customizedAddonIdsFor (ملف 07 — التخصيص مش اختياري)', () => {
+  const addons = [
+    { id: 'mug', supportsCustomization: true },
+    { id: 'pen', supportsCustomization: false },
+    { id: 'bag', supportsCustomization: true },
+  ];
+  it('كل المختار اللي بيقبل التخصيص بيتخصص — والباقي لأ', () => {
+    expect(customizedAddonIdsFor(addons, ['mug', 'pen'])).toEqual(['mug']);
+    expect(customizedAddonIdsFor(addons, [])).toEqual([]);
+    expect(customizedAddonIdsFor(addons, ['bag', 'mug'])).toEqual(['mug', 'bag']);
+  });
+});

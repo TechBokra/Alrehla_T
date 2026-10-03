@@ -101,7 +101,7 @@ export function OrderItemCustomization({
                 <span className="font-medium">{a.name}</span>
                 {a.customized && (
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
-                    مخصّصة
+                    باسم الطفل وصورته (فوق)
                   </span>
                 )}
                 {a.price != null && <span className="text-slate-600">{formatPrice(a.price)}</span>}

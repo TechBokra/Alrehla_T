@@ -17,7 +17,8 @@ const EMPTY = {
   price: 0,
   isActive: true,
   sortOrder: 0,
-  supportsCustomization: false,
+  // ملف 07: الإضافة الجديدة بتتخصص افتراضيًا — التخصيص هدف المشروع.
+  supportsCustomization: true,
   customizationPrice: 0,
 };
 
@@ -151,8 +152,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               <span className="text-sm font-bold text-slate-700">معروضة للعملاء</span>
             </label>
 
-            {/* التخصيص — العميل بيختار «بتخصيص / بدون» في خطوة الإضافات،
-                والتخصيص بياخد بيانات الطفل المدخلة في المعالج. */}
+            {/* التخصيص (ملف 07 — قرار تامر): **مش اختياري للعميل.** الإضافة اللي
+                عليها العلامة دي بتتخصص دايمًا باسم الطفل وصورته اللي اتكتبوا
+                للقصة، والقاعدة بتحسب سعر التخصيص لوحدها. */}
             <label className="flex items-center gap-3 md:col-span-2">
               <input
                 type="checkbox"
@@ -163,7 +165,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                 className="h-5 w-5 rounded border-slate-300"
               />
               <span className="text-sm font-bold text-slate-700">
-                تقبل التخصيص باسم الطفل وبياناته
+                بتتخصص باسم الطفل وصورته
               </span>
             </label>
 
@@ -182,8 +184,8 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                   }
                 />
                 <p className="text-xs font-medium text-slate-500">
-                  بيتضاف على السعر الأساسي لو العميل اختار «بتخصيص». صفر يعني
-                  التخصيص مجاني.
+                  بيتضاف على السعر الأساسي دايمًا — العميل بيشوف السعر الإجمالي
+                  بس. صفر يعني التخصيص من غير زيادة.
                 </p>
               </div>
             )}
@@ -233,7 +235,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               <div className="font-black text-slate-800">{formatPrice(addon.price)}</div>
               {addon.supportsCustomization && (
                 <div className="mt-0.5 text-xs font-bold text-emerald-700">
-                  بتخصيص: {formatPrice(addon.price + addon.customizationPrice)}
+                  للعميل (باسم الطفل وصورته): {formatPrice(addon.price + addon.customizationPrice)}
                 </div>
               )}
             </div>

@@ -10,6 +10,7 @@ import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { fetchFamilyMembers } from '@/app/actions/family';
 import {
   addonsDisplayTotal,
+  customizedAddonIdsFor,
   basePriceForFormat,
   electronicAvailable,
   FORMAT_LABELS,
@@ -33,7 +34,6 @@ export function OrderSummarySidebar({
 }) {
   const { watch } = useFormContext();
   const selectedAddonIds: string[] = watch('selectedAddonIds') || [];
-  const customizedAddonIds: string[] = watch('customizedAddonIds') || [];
   const facePhotoFile = watch('facePhotoFile');
   const familyMemberId = watch('familyMemberId');
   const newChildName = watch('newChildName');
@@ -75,6 +75,8 @@ export function OrderSummarySidebar({
   //    وقبل كده كان `addonsTotal = 0` ثابتًا — يعني العميل كان بيشوف
   //    إجماليًا من غير الإضافات ويدفع إجماليًا بيها.
   const chosenAddons = addons.filter((a) => selectedAddonIds.includes(a.id));
+  // ملف 07: التخصيص بيتحدد من الإضافة نفسها، مش من اختيار العميل.
+  const customizedAddonIds = customizedAddonIdsFor(addons, selectedAddonIds);
   const addonsTotal = addonsDisplayTotal(
     chosenAddons,
     selectedAddonIds,
@@ -147,7 +149,7 @@ export function OrderSummarySidebar({
                   <span>
                     {addon.name}
                     {customized && (
-                      <span className="text-emerald-700 font-bold"> · بتخصيص</span>
+                      <span className="text-emerald-700 font-bold"> · باسم الطفل وصورته</span>
                     )}
                   </span>
                   <span className="shrink-0">

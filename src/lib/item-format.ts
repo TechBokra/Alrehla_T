@@ -68,6 +68,23 @@ export function isValidDeliveryEmail(v: string): boolean {
 }
 
 /**
+ * الإضافات اللي **هتتخصص** من المختارة — كل اللي بتقبل التخصيص.
+ *
+ * ⚠️ قرار تامر (ملف 07): **التخصيص مش اختياري.** كان فيه «بتخصيص / بدون»،
+ *    دلوقتي أي إضافة بتقبل التخصيص بتتخصص باسم الطفل وصورته. والقاعدة
+ *    بتعمل نفس الحساب لوحدها — الدالة دي عشان الشاشة تعرض نفس الرقم،
+ *    وعشان جلسة قديمة في المتصفح (قبل القرار) ماتبعتش «بدون».
+ */
+export function customizedAddonIdsFor(
+  addons: { id: string; supportsCustomization?: boolean }[],
+  selectedIds: string[] = [],
+): string[] {
+  return addons
+    .filter((a) => a.supportsCustomization && selectedIds.includes(a.id))
+    .map((a) => a.id);
+}
+
+/**
  * إجمالي الإضافات المختارة — **للعرض**، بنفس حساب القاعدة (السعر +
  * فرق التخصيص للمخصّصة بس).
  *
