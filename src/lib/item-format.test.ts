@@ -67,15 +67,24 @@ describe('addonsDisplayTotal', () => {
 });
 
 import { customizedAddonIdsFor } from './item-format';
-describe('customizedAddonIdsFor (ملف 07 — التخصيص مش اختياري)', () => {
+describe('customizedAddonIdsFor (ملفات 07 و08 — التخصيص على الكل)', () => {
   const addons = [
     { id: 'mug', supportsCustomization: true },
     { id: 'pen', supportsCustomization: false },
     { id: 'bag', supportsCustomization: true },
   ];
-  it('كل المختار اللي بيقبل التخصيص بيتخصص — والباقي لأ', () => {
-    expect(customizedAddonIdsFor(addons, ['mug', 'pen'])).toEqual(['mug']);
+  it('⭐ ملف 08: كل المختار بيتخصص — مفيش إضافة عادية', () => {
+    expect(customizedAddonIdsFor(addons, ['mug', 'pen'])).toEqual(['mug', 'pen']);
     expect(customizedAddonIdsFor(addons, [])).toEqual([]);
     expect(customizedAddonIdsFor(addons, ['bag', 'mug'])).toEqual(['mug', 'bag']);
+  });
+});
+
+import { addonCustomerPrice } from './item-format';
+describe('addonCustomerPrice', () => {
+  it('السعر اللي العميل بيدفعه شامل التخصيص', () => {
+    expect(addonCustomerPrice({ price: 100, customizationPrice: 30 })).toBe(130);
+    expect(addonCustomerPrice({ price: 130, customizationPrice: 0 })).toBe(130);
+    expect(addonCustomerPrice({ price: 50 })).toBe(50);
   });
 });

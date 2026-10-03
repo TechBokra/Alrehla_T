@@ -2,7 +2,7 @@ import { formatPrice } from '@/lib/utils';
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
-import { customizedAddonIdsFor } from '@/lib/item-format';
+import { addonCustomerPrice, customizedAddonIdsFor } from '@/lib/item-format';
 
 /**
  * الإضافات بتيجي من قاعدة البيانات (جدول `addon_products`) عن طريق
@@ -45,8 +45,8 @@ export function Step3Addons({
     <div className="space-y-6">
       <h2 className="text-2xl font-black text-slate-800">إضافات مميزة (اختياري)</h2>
       <p className="text-slate-600">
-        كل إضافة عليها علامة «باسم الطفل وصورته» بتتعمل مخصوص لطفلك — بنفس الاسم
-        والصورة اللي كتبتهم.
+        كل إضافة بتتعمل مخصوص لطفلك — بنفس الاسم والصورة اللي كتبتهم، والسعر
+        شامل التخصيص.
       </p>
 
       <div className="space-y-4 mt-6">
@@ -57,9 +57,8 @@ export function Step3Addons({
         )}
         {addons.map((addon) => {
           const isSelected = selectedAddons.includes(addon.id);
-          // السعر شامل التخصيص لأنه مش اختياري.
-          const shownPrice =
-            addon.price + (addon.supportsCustomization ? addon.customizationPrice : 0);
+          // السعر شامل التخصيص — كل الإضافات بتتخصص (ملف 08).
+          const shownPrice = addonCustomerPrice(addon);
 
           return (
             <div
@@ -93,11 +92,9 @@ export function Step3Addons({
                   {addon.description && (
                     <p className="text-sm text-slate-600 mt-1">{addon.description}</p>
                   )}
-                  {addon.supportsCustomization && (
-                    <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                      باسم الطفل وصورته
-                    </p>
-                  )}
+                  <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                    باسم الطفل وصورته
+                  </p>
                 </div>
                 <div className="font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
               </div>

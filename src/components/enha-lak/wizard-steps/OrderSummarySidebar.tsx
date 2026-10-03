@@ -11,6 +11,7 @@ import { fetchFamilyMembers } from '@/app/actions/family';
 import {
   addonsDisplayTotal,
   customizedAddonIdsFor,
+  addonCustomerPrice,
   basePriceForFormat,
   electronicAvailable,
   FORMAT_LABELS,
@@ -143,17 +144,14 @@ export function OrderSummarySidebar({
           </h4>
           <ul className="space-y-1.5">
             {chosenAddons.map((addon) => {
-              const customized = customizedAddonIds.includes(addon.id);
               return (
                 <li key={addon.id} className="flex justify-between gap-3 text-sm text-slate-600">
                   <span>
                     {addon.name}
-                    {customized && (
-                      <span className="text-emerald-700 font-bold"> · باسم الطفل وصورته</span>
-                    )}
+                    <span className="text-emerald-700 font-bold"> · باسم الطفل وصورته</span>
                   </span>
                   <span className="shrink-0">
-                    +{formatPrice(addon.price + (customized ? addon.customizationPrice : 0))}
+                    +{formatPrice(addonCustomerPrice(addon))}
                   </span>
                 </li>
               );

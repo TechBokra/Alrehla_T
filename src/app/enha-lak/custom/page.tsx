@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { formatPrice } from '@/lib/utils';
 import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
+import { addonCustomerPrice } from '@/lib/item-format';
 import { PenTool, Plus } from 'lucide-react';
 import { getSiteContent } from '@/data/domains/content';
 
@@ -120,9 +121,11 @@ export default async function CustomPage() {
               </div>
               <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
                 <span className="text-lg font-black text-rose-700">
-                  {formatPrice(addon.price)}
+                  {/* شامل التخصيص — كان سعر الإضافة من غيره (ملاحظة تامر). */}
+                  {formatPrice(addonCustomerPrice(addon))}
                 </span>
-                <span className="text-xs font-bold text-slate-600">
+                <span className="text-end text-xs font-bold text-slate-600">
+                  <span className="block text-emerald-800">باسم الطفل وصورته</span>
                   {content['custom.addons.badge']}
                 </span>
               </div>

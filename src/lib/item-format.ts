@@ -76,12 +76,23 @@ export function isValidDeliveryEmail(v: string): boolean {
  *    وعشان جلسة قديمة في المتصفح (قبل القرار) ماتبعتش «بدون».
  */
 export function customizedAddonIdsFor(
-  addons: { id: string; supportsCustomization?: boolean }[],
+  addons: { id: string }[],
   selectedIds: string[] = [],
 ): string[] {
-  return addons
-    .filter((a) => a.supportsCustomization && selectedIds.includes(a.id))
-    .map((a) => a.id);
+  // ملف 08 (قرار تامر: «التخصيص على الكل»): **كل** إضافة بتتخصص — مفيش
+  // إضافة عادية. والقاعدة عليها قيد بيمنع غير كده.
+  return addons.filter((a) => selectedIds.includes(a.id)).map((a) => a.id);
+}
+
+/**
+ * سعر الإضافة **اللي العميل بيدفعه** — شامل التخصيص.
+ *
+ * ⚠️ صفحة «أنت البطل هنا» كانت بتعرض `price` وحده (من غير التخصيص) —
+ *    ملاحظة تامر. ومن ملف 08 «فرق التخصيص» صفر والسعر واحد، بس الدالة
+ *    بتجمعهم عشان أي شاشة تعرض نفس الرقم مهما كان شكل البيانات.
+ */
+export function addonCustomerPrice(a: { price: number; customizationPrice?: number }): number {
+  return a.price + (a.customizationPrice ?? 0);
 }
 
 /**

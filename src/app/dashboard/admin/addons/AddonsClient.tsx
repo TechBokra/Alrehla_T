@@ -17,9 +17,6 @@ const EMPTY = {
   price: 0,
   isActive: true,
   sortOrder: 0,
-  // ملف 07: الإضافة الجديدة بتتخصص افتراضيًا — التخصيص هدف المشروع.
-  supportsCustomization: true,
-  customizationPrice: 0,
 };
 
 export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
@@ -37,8 +34,6 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
       price: addon.price,
       isActive: addon.isActive,
       sortOrder: addon.sortOrder,
-      supportsCustomization: addon.supportsCustomization,
-      customizationPrice: addon.customizationPrice,
     });
     setOpen(true);
     setError('');
@@ -54,8 +49,6 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
       price: Number(form.price),
       isActive: form.isActive,
       sortOrder: Number(form.sortOrder),
-      supportsCustomization: form.supportsCustomization,
-      customizationPrice: Number(form.customizationPrice),
     });
     setBusy(false);
 
@@ -116,7 +109,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700">السعر (جنيه)</label>
+              <label className="text-sm font-bold text-slate-700">
+                السعر للعميل (جنيه) — شامل التخصيص باسم الطفل وصورته
+              </label>
               <input
                 type="number"
                 min={0}
@@ -152,43 +147,11 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               <span className="text-sm font-bold text-slate-700">معروضة للعملاء</span>
             </label>
 
-            {/* التخصيص (ملف 07 — قرار تامر): **مش اختياري للعميل.** الإضافة اللي
-                عليها العلامة دي بتتخصص دايمًا باسم الطفل وصورته اللي اتكتبوا
-                للقصة، والقاعدة بتحسب سعر التخصيص لوحدها. */}
-            <label className="flex items-center gap-3 md:col-span-2">
-              <input
-                type="checkbox"
-                checked={form.supportsCustomization}
-                onChange={(e) =>
-                  setForm({ ...form, supportsCustomization: e.target.checked })
-                }
-                className="h-5 w-5 rounded border-slate-300"
-              />
-              <span className="text-sm font-bold text-slate-700">
-                بتتخصص باسم الطفل وصورته
-              </span>
-            </label>
-
-            {form.supportsCustomization && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">
-                  فرق سعر التخصيص (جنيه)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  className={inputClass}
-                  value={form.customizationPrice}
-                  onChange={(e) =>
-                    setForm({ ...form, customizationPrice: Number(e.target.value) })
-                  }
-                />
-                <p className="text-xs font-medium text-slate-500">
-                  بيتضاف على السعر الأساسي دايمًا — العميل بيشوف السعر الإجمالي
-                  بس. صفر يعني التخصيص من غير زيادة.
-                </p>
-              </div>
-            )}
+            {/* ملف 08 (قرار تامر): **كل الإضافات بتتخصص** باسم الطفل وصورته اللي
+                اتكتبوا للقصة — مفيش اختيار هنا ولا «فرق تخصيص»: سعر واحد. */}
+            <p className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800 md:col-span-2">
+              كل إضافة بتتعمل باسم الطفل وصورته — العميل مابيختارش ده، وبيشوف السعر ده بالظبط.
+            </p>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -233,11 +196,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
 
             <div className="text-end">
               <div className="font-black text-slate-800">{formatPrice(addon.price)}</div>
-              {addon.supportsCustomization && (
-                <div className="mt-0.5 text-xs font-bold text-emerald-700">
-                  للعميل (باسم الطفل وصورته): {formatPrice(addon.price + addon.customizationPrice)}
-                </div>
-              )}
+              <div className="mt-0.5 text-xs font-bold text-emerald-700">
+                باسم الطفل وصورته
+              </div>
             </div>
 
             <div className="flex gap-2">
