@@ -46,7 +46,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="طلبات حذف الحسابات" backHref="/dashboard/admin/users" />
+      <DashboardPageHeader title="طلبات حذف الحسابات" />
 
       <p className="mb-8 max-w-3xl text-sm font-medium leading-relaxed text-slate-500">
         العميل بيطلب، وإنت بتراجع. اتأكد الأول إن مفيش طلبات مدفوعة أو حجوزات

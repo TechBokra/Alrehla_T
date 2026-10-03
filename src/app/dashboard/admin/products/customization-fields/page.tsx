@@ -19,7 +19,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="خانات التخصيص" backHref="/dashboard/admin/products" />
+      <DashboardPageHeader title="خانات التخصيص" />
       <div className="mb-6 space-y-2 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
         <p>
           الخانات دي بتظهر للعميل في خطوة التخصيص في <strong>كل المنتجات</strong>: القصة

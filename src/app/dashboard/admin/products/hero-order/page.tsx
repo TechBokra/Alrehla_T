@@ -36,7 +36,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="ترتيب «أنت البطل هنا»" backHref="/dashboard/admin/products" />
+      <DashboardPageHeader title="ترتيب «أنت البطل هنا»" />
       <p className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
         حرّك المنتج بالأسهم — الترتيب بيتحفظ مع كل ضغطة وبيظهر على الموقع على
         طول. المنتج الجديد بيظهر أول القايمة لحد ما ترتّبه.

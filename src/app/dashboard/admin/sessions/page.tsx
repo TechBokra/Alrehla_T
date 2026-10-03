@@ -135,7 +135,6 @@ export default async function Page({
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
       <DashboardPageHeader
         title="الجلسات وتقارير المدربين"
-        backHref="/dashboard/admin"
       />
 
       <div className="mb-6 flex flex-wrap gap-2">

@@ -222,7 +222,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="الغرف والجلسات المباشرة" backHref="/dashboard/admin" />
+      <DashboardPageHeader title="الغرف والجلسات المباشرة" />
 
       {!check.ok && (
         <section className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">

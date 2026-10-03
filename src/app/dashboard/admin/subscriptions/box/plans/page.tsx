@@ -32,7 +32,6 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
       <DashboardPageHeader
         title="خطط صندوق الرحلة"
-        backHref="/dashboard/admin/subscriptions/box"
       />
       <BoxPlansClient plans={plans} addons={addons.map((a) => ({ id: a.id, name: a.name }))} />
     </div>

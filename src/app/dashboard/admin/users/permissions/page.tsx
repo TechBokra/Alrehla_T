@@ -68,7 +68,6 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
       <DashboardPageHeader
         title="الصلاحيات"
-        backHref="/dashboard/admin/users"
       />
 
       <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50 p-6">

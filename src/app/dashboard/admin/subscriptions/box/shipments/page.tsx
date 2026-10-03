@@ -20,7 +20,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-6 py-12">
-      <DashboardPageHeader title="صناديق الشهر" backHref="/dashboard/admin/subscriptions/box" />
+      <DashboardPageHeader title="صناديق الشهر" />
       <p className="text-sm text-slate-700">
         {rows.length === 0
           ? 'مفيش صناديق مستحقة الشهر ده.'

@@ -64,7 +64,6 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
       <DashboardPageHeader
         title="صور الموقع على Cloudinary"
-        backHref="/dashboard/admin"
       />
 
       {!ready && (

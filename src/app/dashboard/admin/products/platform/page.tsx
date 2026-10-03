@@ -49,7 +49,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="منتجات المنصة" backHref="/dashboard/admin/products" />
+      <DashboardPageHeader title="منتجات المنصة" />
       <SimpleDataTable columns={columns} data={formattedProducts} />
     </div>
   );

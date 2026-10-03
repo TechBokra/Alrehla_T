@@ -40,7 +40,7 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="تقويم الحجوزات (جدول زمني)" backHref="/dashboard/admin/bookings" />
+      <DashboardPageHeader title="تقويم الحجوزات (جدول زمني)" />
       <SimpleDataTable columns={columns} data={formatted} />
     </div>
   );
