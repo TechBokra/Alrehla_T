@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { getSupabaseUrl, getSupabaseAnonKey, getSupabaseFetch } from './env';
 
 /**
  * عميل للقراءة العامة — **من غير كوكيز**.
@@ -17,9 +18,13 @@ import type { Database } from '@/types/supabase';
  * يبقى فيه قاعدة صلاحيات غلط. ولمّا تحتاج تكتب، استخدم العميل العادي.
  */
 export function createPublicClient() {
+  const customFetch = getSupabaseFetch();
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
+    getSupabaseUrl(),
+    getSupabaseAnonKey(),
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: customFetch ? { fetch: customFetch } : undefined,
+    },
   );
 }

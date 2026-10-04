@@ -19,7 +19,7 @@ const roles = [
   },
 ];
 const labels = {
-  student: 'عميل / طالب',
+  student: 'حساب مستخدم',
   publisher: 'ناشر',
   general_supervisor: 'إداري',
   super_admin: 'مدير نظام',
@@ -82,7 +82,7 @@ describe('قايمة الدور بالأدوار الإدارية', () => {
     expect(forSupervisor).toEqual(['student', 'publisher']);
     const forSuper = roleChoices([...all], roles, labels, true);
     expect(forSuper.map((c) => c.label)).toEqual([
-      'عميل / طالب',
+      'حساب مستخدم',
       'ناشر',
       'إداري — مشرف عام',
       'إداري — محاسب',

@@ -4,17 +4,31 @@ import { LogOut, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { signOut } from '@/actions/auth'
 import { clearStoredCart } from '@/lib/cart-storage'
+import { createClient } from '@/lib/supabase/client'
 
 export function LogoutButton({ className = '' }: { className?: string }) {
   const [pending, setPending] = useState(false)
 
   const handleLogout = async () => {
+    if (pending) return
     setPending(true)
-    // السلة المحفوظة فيها اسم الطفل وصورته — اللي بعدك على نفس الجهاز
-    // مايشوفهاش (`lib/cart-storage.ts`).
-    clearStoredCart()
-    await signOut()
-    // It redirects so no need to set pending to false
+    try {
+      // السلة المحفوظة فيها اسم الطفل وصورته — اللي بعدك على نفس الجهاز
+      // مايشوفهاش (`lib/cart-storage.ts`).
+      clearStoredCart()
+      const supabase = createClient()
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+    } catch {}
+
+    try {
+      await signOut()
+    } catch (e: unknown) {
+      const err = e as { digest?: string }
+      if (err?.digest?.startsWith('NEXT_REDIRECT')) {
+        return
+      }
+    }
+    window.location.href = '/'
   }
 
   return (

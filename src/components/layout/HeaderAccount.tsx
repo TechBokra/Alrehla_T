@@ -7,11 +7,16 @@ import { Bell, User } from 'lucide-react';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { UserRole } from '@/types';
 
-type Session = { role: UserRole; fullName: string; unreadCount: number };
+type Session = {
+  role: UserRole;
+  fullName: string;
+  unreadCount: number;
+  dashboardLabel?: string;
+};
 
 const DASHBOARD_LABEL: Partial<Record<UserRole, string>> = {
   customer: 'حسابي',
-  student: 'لوحة المتدرب',
+  student: 'حساب مستخدم',
   instructor: 'لوحة المدرب',
   service_provider: 'لوحة مقدّم الخدمة',
   publisher: 'لوحة الناشر',
@@ -109,7 +114,7 @@ export function HeaderAccount() {
 
       <AccountMenu
         accountHref={ACCOUNT_HREF[session.role] ?? '/account'}
-        dashboardLabel={DASHBOARD_LABEL[session.role] ?? 'حسابي'}
+        dashboardLabel={session.dashboardLabel || DASHBOARD_LABEL[session.role] || 'حسابي'}
         displayName={session.fullName}
       />
     </>

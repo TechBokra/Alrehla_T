@@ -84,10 +84,22 @@ export function AccountMenu({ accountHref, dashboardLabel, displayName }: Props)
             role="menuitem"
             disabled={pending}
             onClick={async () => {
+              if (pending) return;
               setPending(true);
-              // السلة المحفوظة فيها اسم الطفل وصورته (`lib/cart-storage.ts`).
-              clearStoredCart();
-              await signOut();
+              try {
+                // السلة المحفوظة فيها اسم الطفل وصورته (`lib/cart-storage.ts`).
+                clearStoredCart();
+                const { createClient } = await import('@/lib/supabase/client');
+                await createClient().auth.signOut({ scope: 'local' }).catch(() => {});
+              } catch {}
+
+              try {
+                await signOut();
+              } catch (e: unknown) {
+                const err = e as { digest?: string };
+                if (err?.digest?.startsWith('NEXT_REDIRECT')) return;
+              }
+              window.location.href = '/';
             }}
             className="flex w-full items-center gap-3 border-t border-slate-100 px-4 py-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-70"
           >

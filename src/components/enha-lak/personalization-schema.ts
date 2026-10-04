@@ -93,10 +93,10 @@ export const wizardSchema = z.object({
       path: ['customStoryGoal'],
     });
   }
-  if (!data.familyMemberId && !data.newChildName) {
+  if (!data.familyMemberId && !data.newChildName?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'الرجاء اختيار طفل أو إضافة طفل جديد',
+      message: 'الرجاء إدخال البيانات أو اختيار شخص',
       path: ['newChildName']
     });
   }

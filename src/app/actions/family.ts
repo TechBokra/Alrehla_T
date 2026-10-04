@@ -172,6 +172,17 @@ export async function deleteFamilyMember(id: string): Promise<boolean> {
  * الدالة دي هي المكان الواحد اللي بيحسم الحكاية: بترجّع رقم المشارك
  * واسمه الحقيقي، وبتعيد استخدام الملف الموجود بدل ما تعمل نسخة.
  */
+export async function getWizardUserInfo(): Promise<{
+  id?: string;
+  fullName?: string;
+  isVisitor: boolean;
+}> {
+  const { getCurrentUser } = await import('@/data/domains/auth');
+  const user = await getCurrentUser();
+  if (user.role === 'visitor') return { isVisitor: true };
+  return { id: user.id, fullName: user.fullName, isVisitor: false };
+}
+
 export async function resolveWizardChild(params: {
   familyMemberId?: string;
   newChildName?: string;
@@ -183,6 +194,12 @@ export async function resolveWizardChild(params: {
   //    من غير ما يكمّل أي طلب: الشراء نفسه مقفول عليه، ودي مكانتش.
   const user = await requireNotDependent('الشراء');
   const supabase = await createClient();
+
+  // (0) طلب لنفسه: الاسم هو اسم حسابه (أو الاسم المدخل لو عدّله)
+  if (params.familyMemberId === 'self') {
+    const name = (params.newChildName ?? '').trim() || user.fullName;
+    return { childName: name };
+  }
 
   // (1) اختار واحد من عيلته: الاسم بييجي من الملف نفسه، مش من الواجهة.
   if (params.familyMemberId) {

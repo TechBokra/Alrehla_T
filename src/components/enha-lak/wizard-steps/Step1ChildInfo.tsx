@@ -1,48 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { FamilyMember } from '@/types';
-import { fetchFamilyMembers } from '@/app/actions/family';
+import { User, Users, UserPlus, Check } from 'lucide-react';
+import { ChildProfile } from '@/types';
+import { fetchFamilyMembers, getWizardUserInfo } from '@/app/actions/family';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 
+type TargetMode = 'self' | 'family' | 'new_child';
+
 export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
   const { register, watch, setValue, formState: { errors } } = useFormContext();
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const [showNewForm, setShowNewForm] = useState(false);
-
-  useEffect(() => {
-    fetchFamilyMembers().then(setMembers);
-  }, []);
+  const [members, setMembers] = useState<ChildProfile[]>([]);
+  const [userInfo, setUserInfo] = useState<{ fullName?: string; isVisitor: boolean }>({ isVisitor: true });
+  const [loaded, setLoaded] = useState(false);
 
   const familyMemberId = watch('familyMemberId');
+  const currentName = watch('newChildName');
 
-  const handleSelectExisting = (id: string) => {
-    setValue('familyMemberId', id);
-    setValue('newChildName', '');
-    setValue('newChildBirthDate', '');
-    setValue('newChildGender', '');
-    setShowNewForm(false);
+  // تحديد الوضع الحالي بناءً على القيمة المحفوظة
+  const [mode, setMode] = useState<TargetMode>('self');
+
+  useEffect(() => {
+    Promise.all([fetchFamilyMembers(), getWizardUserInfo()]).then(([family, user]) => {
+      setMembers(family);
+      setUserInfo(user);
+      setLoaded(true);
+
+      // تحديد الوضع الأنسب عند أول تحميل
+      if (familyMemberId === 'self') {
+        setMode('self');
+      } else if (familyMemberId && family.some((m) => m.id === familyMemberId)) {
+        setMode('family');
+      } else if (family.length > 0 && !familyMemberId && !currentName) {
+        setMode('family');
+        handleSelectMember(family[0]);
+      } else if (!familyMemberId && currentName && currentName !== user.fullName) {
+        setMode('new_child');
+      } else {
+        setMode('self');
+        if (!currentName && user.fullName) {
+          setValue('familyMemberId', 'self', { shouldValidate: true });
+          setValue('newChildName', user.fullName, { shouldValidate: true });
+        }
+      }
+    });
+  }, []);
+
+  const handleSelectSelf = () => {
+    setMode('self');
+    setValue('familyMemberId', 'self', { shouldValidate: true });
+    if (!currentName || members.some((m) => m.fullName === currentName)) {
+      setValue('newChildName', userInfo.fullName || '', { shouldValidate: true });
+    }
   };
 
-  const handleShowNew = () => {
-    setValue('familyMemberId', '');
-    setShowNewForm(true);
+  const handleSelectFamilyMode = () => {
+    setMode('family');
+    // إذا لم يكن هناك عضو محدد، نحدد أول فرد
+    if (!familyMemberId || familyMemberId === 'self') {
+      if (members.length > 0) {
+        handleSelectMember(members[0]);
+      }
+    }
+  };
+
+  const handleSelectMember = (m: ChildProfile) => {
+    setValue('familyMemberId', m.id, { shouldValidate: true });
+    setValue('newChildName', m.fullName, { shouldValidate: true });
+    setValue('newChildBirthDate', m.birthDate || '', { shouldValidate: true });
+    setValue('newChildGender', m.gender || '', { shouldValidate: true });
+  };
+
+  const handleSelectNewChild = () => {
+    setMode('new_child');
+    setValue('familyMemberId', '', { shouldValidate: true });
+    if (currentName === userInfo.fullName || members.some((m) => m.fullName === currentName)) {
+      setValue('newChildName', '', { shouldValidate: true });
+      setValue('newChildBirthDate', '', { shouldValidate: true });
+      setValue('newChildGender', '', { shouldValidate: true });
+    }
+  };
+
+  const handleNextStep = () => {
+    if (mode === 'family') {
+      if (!familyMemberId || familyMemberId === 'self') {
+        if (members.length > 0) {
+          handleSelectMember(members[0]);
+        }
+      }
+    } else if (mode === 'self') {
+      setValue('familyMemberId', 'self', { shouldValidate: true });
+      if (!watch('newChildName')?.trim() && userInfo.fullName) {
+        setValue('newChildName', userInfo.fullName, { shouldValidate: true });
+      }
+    }
+    onNext();
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-black text-slate-800">بيانات الطفل</h2>
-      
-      {/*
-        ⚠️ **كل أخطاء الخطوة، مش `newChildName` وحده.**
+      <div>
+        <h2 className="text-2xl font-black text-slate-800">البيانات</h2>
+        <p className="mt-1 text-sm font-medium text-slate-500">
+          اختر لمن هذا الطلب وأدخل البيانات المطلوبة لتخصيص القصة أو الكتاب.
+        </p>
+      </div>
 
-        الخطوة بتفحص أربع حقول (`familyMemberId` · `newChildName` ·
-        `newChildBirthDate` · `newChildGender`)، وكانت بتعرض خطأ واحد
-        منهم بس. فأي خطأ في التلاتة التانيين كان **بيقفل الزرار في صمت**:
-        المستخدم بيضغط «الخطوة التالية» وما بيحصلش حاجة وما بيعرفش ليه.
-
-        ودي نفس فكرة قاعدة (و): عملية بتفشل من غير ما تقول.
-      */}
+      {/* تنبيهات الأخطاء */}
       {(['newChildName', 'newChildGender', 'newChildBirthDate', 'familyMemberId'] as const)
         .map((f) => errors[f]?.message)
         .filter(Boolean)
@@ -52,82 +116,191 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
           </div>
         ))}
 
-      {members.length > 0 && (
-        <div className="space-y-4">
-          <p className="font-bold text-slate-700">اختر من العائلة:</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {members.map(m => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => handleSelectExisting(m.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-colors
-                  ${familyMemberId === m.id ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-              >
-                {/*
-                  ⚠️ دي كانت دايرة رمادية بالحرف الأول **دايمًا** —
-                  ومش لأن العرض نسي يسأل، لأ: `child_profiles.avatar_url`
-                  مكانش فيه قيمة أصلًا، مفيش شاشة في الموقع كانت بتكتبه.
+      {/* خيارات لمن هذا الطلب */}
+      <div className="space-y-3">
+        <label className="text-sm font-bold text-slate-700">لمن هذا الطلب؟</label>
+        <div className={`grid gap-3 ${members.length > 0 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
+          {/* خيار 1: لنفسي */}
+          <button
+            type="button"
+            onClick={handleSelectSelf}
+            className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-right transition-all ${
+              mode === 'self'
+                ? 'border-blue-600 bg-blue-50/70 text-blue-900 shadow-xs'
+                : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+            }`}
+          >
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+              mode === 'self' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">طلب لنفسي</div>
+              <div className="text-xs text-slate-500">أنا صاحب هذا الطلب</div>
+            </div>
+          </button>
 
-                  دلوقتي ولي الأمر بيحطّ الصورة من المركز العائلي،
-                  والحرف الأول باقٍ لمن مالوش صورة.
-                */}
-                <PersonAvatar
-                  name={m.fullName}
-                  avatarUrl={m.avatarUrl}
-                  size={64}
-                  className="mb-3"
-                />
-                <span className="font-bold text-slate-800">{m.fullName}</span>
-              </button>
-            ))}
+          {/* خيار 2: من المركز العائلي (إذا توفر) */}
+          {members.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSelectFamilyMode}
+              className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-right transition-all ${
+                mode === 'family'
+                  ? 'border-blue-600 bg-blue-50/70 text-blue-900 shadow-xs'
+                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+              }`}
+            >
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                mode === 'family' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm">من أفراد العائلة</div>
+                <div className="text-xs text-slate-500">اختيار من المركز العائلي ({members.length})</div>
+              </div>
+            </button>
+          )}
+
+          {/* خيار 3: إضافة طفل / مستفيد جديد */}
+          <button
+            type="button"
+            onClick={handleSelectNewChild}
+            className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-right transition-all ${
+              mode === 'new_child'
+                ? 'border-blue-600 bg-blue-50/70 text-blue-900 shadow-xs'
+                : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+            }`}
+          >
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+              mode === 'new_child' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              <UserPlus className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-sm">إضافة طفل / مستفيد جديد</div>
+              <div className="text-xs text-slate-500">طلب لطفل آخر أو إهداء</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* عرض الأفراد من المركز العائلي */}
+      {mode === 'family' && members.length > 0 && (
+        <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
+          <div className="flex items-center justify-between">
+            <p className="font-bold text-slate-800 text-sm">اختر الشخص من أفراد عائلتك:</p>
+            <span className="text-xs text-slate-500 font-medium">انقر لاختيار الفرد</span>
           </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {members.map((m) => {
+              const selected = familyMemberId === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => handleSelectMember(m)}
+                  className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all text-center ${
+                    selected
+                      ? 'border-blue-600 bg-white shadow-sm ring-2 ring-blue-600/20'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  {selected && (
+                    <div className="absolute top-2 left-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  )}
+                  <PersonAvatar
+                    name={m.fullName}
+                    avatarUrl={m.avatarUrl}
+                    size={56}
+                    className="mb-2"
+                  />
+                  <span className="font-bold text-slate-800 text-sm">{m.fullName}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* بطاقة تفاصيل الفرد المختار */}
+          {(() => {
+            const selectedMember = members.find((m) => m.id === familyMemberId);
+            if (!selectedMember) return null;
+            return (
+              <div className="mt-4 rounded-2xl bg-white border border-blue-200 p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <PersonAvatar
+                    name={selectedMember.fullName}
+                    avatarUrl={selectedMember.avatarUrl}
+                    size={44}
+                  />
+                  <div>
+                    <p className="font-bold text-slate-900">{selectedMember.fullName}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {selectedMember.birthDate ? `تاريخ الميلاد: ${selectedMember.birthDate}` : ''}
+                      {selectedMember.birthDate && selectedMember.gender ? ' · ' : ''}
+                      {selectedMember.gender === 'male' ? 'ذكر' : selectedMember.gender === 'female' ? 'أنثى' : ''}
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-full">
+                  <Check className="h-3.5 w-3.5" /> تم تحديد المستفيد
+                </span>
+              </div>
+            );
+          })()}
         </div>
       )}
 
-      <div className="pt-4 border-t border-slate-100">
-        <button
-          type="button"
-          onClick={handleShowNew}
-          className={`flex w-full items-center justify-center gap-2 p-4 rounded-2xl border-2 border-dashed transition-colors
-            ${showNewForm ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' : 'border-slate-300 text-slate-500 hover:border-slate-400 font-bold'}`}
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          إضافة طفل جديد للملف العائلي
-        </button>
-      </div>
-
-      {showNewForm && (
-        <div className="grid gap-4 md:grid-cols-2 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+      {/* نموذج إدخال البيانات (للنفس أو لطفل/مستفيد جديد) */}
+      {(mode === 'self' || mode === 'new_child') && (
+        <div className="grid gap-4 md:grid-cols-2 p-6 bg-slate-50 rounded-3xl border border-slate-200">
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-bold text-slate-700">الاسم الأول</label>
-            <input 
-              type="text" 
+            <label className="text-sm font-bold text-slate-700">
+              {mode === 'self' ? 'الاسم الظاهر في القصة / الكتاب' : 'الاسم'}
+            </label>
+            <input
+              type="text"
               {...register('newChildName')}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="اسم الطفل..."
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-800"
+              placeholder={mode === 'self' ? 'اسمك كما تود ظهوره في القصة...' : 'اكتب الاسم هنا...'}
             />
+            {mode === 'self' && (
+              <p className="text-xs text-slate-500 font-medium">
+                تم ملء اسمك تلقائياً ويمكنك تعديله إذا كنت تفضل لقباً أو صيغة معينة في القصة.
+              </p>
+            )}
+            {mode === 'new_child' && (
+              <p className="text-xs text-slate-500 font-medium">
+                سيتم حفظ هذا الملف في حسابك لتتمكن من إعادة استخدامه بسهولة في المرات القادمة.
+              </p>
+            )}
           </div>
+
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">تاريخ الميلاد</label>
-            {/* كانت سنة بس، والكود بيكمّلها «أول يناير» — فكل طفل اتضاف
-                من المعالج بقى عيد ميلاده 1 يناير. */}
+            <label className="text-sm font-bold text-slate-700">
+              {mode === 'self' ? 'تاريخ الميلاد (اختياري)' : 'تاريخ الميلاد'}
+            </label>
             <BirthDatePicker
               value={watch('newChildBirthDate') || ''}
               onChange={(v) => setValue('newChildBirthDate', v, { shouldValidate: true })}
             />
           </div>
+
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">الجنس</label>
-            <select 
+            <label className="text-sm font-bold text-slate-700">
+              {mode === 'self' ? 'الجنس (اختياري)' : 'الجنس'}
+            </label>
+            <select
               {...register('newChildGender')}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-800"
             >
               <option value="">اختر...</option>
-              <option value="male">ولد</option>
-              <option value="female">بنت</option>
+              <option value="male">{mode === 'self' ? 'ذكر' : 'ولد / ذكر'}</option>
+              <option value="female">{mode === 'self' ? 'أنثى' : 'بنت / أنثى'}</option>
             </select>
           </div>
         </div>
@@ -136,8 +309,8 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
       <div className="flex justify-end pt-6">
         <button
           type="button"
-          onClick={onNext}
-          className="rounded-xl bg-blue-600 px-8 py-3 font-bold text-white transition-colors hover:bg-blue-700"
+          onClick={handleNextStep}
+          className="rounded-xl bg-blue-600 px-8 py-3.5 font-bold text-white transition-colors hover:bg-blue-700 shadow-md"
         >
           الخطوة التالية
         </button>

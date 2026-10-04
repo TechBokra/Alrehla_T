@@ -46,7 +46,7 @@ export function Step2CoverDetails({
         <textarea 
           {...register('dedicationText')}
           className="w-full h-24 rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="مثال: إلى بطلنا الصغير أحمد، نتمنى لك رحلة ممتعة مع هذه القصة..."
+          placeholder="مثال: إلى أحمد، نتمنى لك رحلة ممتعة مع هذا الكتاب..."
         />
         {errors.dedicationText && <span className="text-sm text-red-500">{errors.dedicationText.message as string}</span>}
       </div>
@@ -57,9 +57,9 @@ export function Step2CoverDetails({
         {/* ⚠️ «(اختياري)» اتشالت: التخصيص **هو** الصورة. الكلمة دي
             كانت بتخلّي العميل يعدّي الخطوة ويستلم نسخة عادية. */}
         <label className="text-sm font-bold text-slate-700">
-          صورة الطفل للغلاف <span className="text-danger">*</span>
+          الصورة الشخصية للغلاف <span className="text-danger">*</span>
         </label>
-        <p className="text-xs text-slate-500 mb-2">يمكنك إرفاق صورة ليتم إدراجها في الغلاف الداخلي أو الخارجي.</p>
+        <p className="text-xs text-slate-500 mb-2">يمكنك إرفاق صورة شخصية ليتم إدراجها في الغلاف الداخلي أو الخارجي.</p>
         <input 
           type="file" 
           accept="image/*"

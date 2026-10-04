@@ -40,19 +40,32 @@ export function Step4Review({
       <p className="text-slate-600">تأكد من صحة البيانات قبل إضافة المنتج للسلة.</p>
 
       <div className="space-y-6 mt-6">
-        {/* Child Info */}
+        {/* General Info */}
         <div className="rounded-2xl border border-slate-200 p-6 bg-slate-50 relative">
           <button type="button" onClick={() => goToStep(1)} className="absolute top-6 left-6 text-sm font-bold text-blue-600 hover:underline">تعديل</button>
-          <h3 className="font-bold text-slate-800 mb-4">بيانات الطفل</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <h3 className="font-bold text-slate-800 mb-4">البيانات</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-slate-500 block mb-1">الاسم:</span>
-              <span className="font-bold text-slate-800">{values.newChildName || 'مشارك من العائلة'}</span>
+              <span className="font-bold text-slate-800">
+                {values.newChildName || (values.familyMemberId === 'self' ? 'صاحب الحساب' : 'مشارك من العائلة')}
+              </span>
+              {values.familyMemberId === 'self' && (
+                <span className="mr-2 text-xs font-semibold text-blue-600">(طلب شخصي)</span>
+              )}
             </div>
             {values.newChildBirthDate && (
               <div>
-                <span className="text-slate-500 block mb-1">سنة الميلاد:</span>
+                <span className="text-slate-500 block mb-1">تاريخ الميلاد:</span>
                 <span className="font-bold text-slate-800">{values.newChildBirthDate}</span>
+              </div>
+            )}
+            {values.newChildGender && (
+              <div>
+                <span className="text-slate-500 block mb-1">الجنس:</span>
+                <span className="font-bold text-slate-800">
+                  {values.newChildGender === 'male' ? 'ذكر' : values.newChildGender === 'female' ? 'أنثى' : values.newChildGender}
+                </span>
               </div>
             )}
           </div>

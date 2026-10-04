@@ -7,8 +7,6 @@ import { hasAdminPermission , formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
-import { productCategoryLabel } from '@/lib/product-categories';
-import { ProductStateBadge } from '@/components/dashboard/ProductStateBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,17 +31,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     ...p,
     nameDisplay: <Link href={`/dashboard/admin/products/${p.id}`} className="font-bold text-blue-600 hover:underline">{p.name}</Link>,
     priceDisplay: `${formatPrice(p.price)}`,
-    // كان شرطًا ثلاثيًّا بيكتب «اشتراك» على أي تصنيف تاني.
-    categoryDisplay: productCategoryLabel(p.category),
-    // معروض ولا مستني ولا موقوف — من غير ما تفتح كل منتج.
-    stateDisplay: <ProductStateBadge product={p} />,
+    categoryDisplay: p.category === 'library' ? 'مكتبة' : p.category === 'custom' ? 'مخصص' : 'اشتراك'
   }));
 
   const columns = [
     { header: 'اسم المنتج', accessorKey: 'nameDisplay' },
     { header: 'النوع', accessorKey: 'categoryDisplay' },
-    { header: 'السعر', accessorKey: 'priceDisplay' },
-    { header: 'الحالة', accessorKey: 'stateDisplay' },
+    { header: 'السعر', accessorKey: 'priceDisplay' }
   ];
 
   return (
@@ -55,15 +49,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <p className="text-slate-600 leading-relaxed">{target.bio}</p>
       </div>
 
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h3 className="text-xl font-bold text-slate-800">منتجات الناشر</h3>
-        <Link
-          href={`/dashboard/admin/products?publisher=${target.id}`}
-          className="text-sm font-bold text-blue-600 underline-offset-4 hover:underline"
-        >
-          في «منتجات الناشرين» ←
-        </Link>
-      </div>
+      <h3 className="text-xl font-bold text-slate-800 mb-6">منتجات الناشر</h3>
       <SimpleDataTable columns={columns} data={formattedProducts} />
     </div>
   );

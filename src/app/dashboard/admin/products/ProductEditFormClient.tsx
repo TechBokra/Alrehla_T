@@ -10,7 +10,6 @@ import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
 import {
   ASSIGNABLE_PRODUCT_CATEGORIES,
-  PUBLISHER_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
 } from '@/lib/product-categories';
 
@@ -21,9 +20,7 @@ interface Props {
 }
 
 export function ProductEditFormClient({ product, publishers, pricingSettings }: Props) {
-  // المالك ثابت بعد الإنشاء — نقل منتج من المنصة لناشر (أو العكس) بيغيّر
-  // مين بياخد الفلوس، ومكانه مش نموذج تعديل.
-  const ownerType = product.ownerType;
+  const [ownerType, setOwnerType] = useState(product.ownerType);
   const [category, setCategory] = useState<string>(product.category);
   // ⚠️ **الرقم الابتدائي كان `product.price` دايمًا** — وده سعر
   //    العميل. فشاشة تعديل منتج ناشر كانت بتفتح والنصيب مكتوب فيه
@@ -43,7 +40,6 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
 
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
 
   // ⚠️ الأكشن كان بيرمي، وNext بيمسح نصّ الاستثناء في الإنتاج
   //    (قاعدة «هـ») — فالإداري بيشوف صفحة خطأ عامة بدل ما يعرف
@@ -52,20 +48,13 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
   const submit = (formData: FormData) =>
     startTransition(async () => {
       setError('');
-      setNotice('');
       const result = await saveProduct(formData);
       if (result && !result.ok) setError(result.error);
-      else setNotice('اتحفظ ✓');
     });
 
   return (
     <form action={submit} className="space-y-6">
       <FormError message={error} />
-      {notice && (
-        <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
-          {notice}
-        </p>
-      )}
       <input type="hidden" name="id" value={product.id} />
       <input type="hidden" name="slug" value={product.slug} />
       
@@ -83,7 +72,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
                 و«اشتراك» اتشال لأن مفيش ولا شاشة بتعرضه: شاشة
                 الاشتراك بتقرا من `box_subscription_plans`، فالمنتج
                 كان يتحفظ ويختفي. */}
-            {(ownerType === 'publisher' ? PUBLISHER_PRODUCT_CATEGORIES : ASSIGNABLE_PRODUCT_CATEGORIES).map((c) => (
+            {ASSIGNABLE_PRODUCT_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {PRODUCT_CATEGORY_LABELS[c]}
               </option>
@@ -94,13 +83,17 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
         <div>
-          {/* ⚠️ **المالك ثابت** — كان قايمة «المنصة / ناشر» في النموذج. المنصة
-              والناشرين بقوا مفصولين في اللوحة (ملاحظة تامر)، فالمنتج بيتعمل
-              من قسمه، والمالك بيتحدد من القسم مش من اختيار. */}
-          <input type="hidden" name="ownerType" value={ownerType} />
-          <p className="mb-4 text-sm font-bold text-slate-700">
-            المالك: {ownerType === 'publisher' ? 'دار نشر (شريك)' : 'المنصة'}
-          </p>
+          <label className="block text-sm font-bold text-slate-700 mb-2">المالك</label>
+          <select 
+            name="ownerType" 
+            value={ownerType}
+            onChange={(e) => setOwnerType(e.target.value as 'platform' | 'publisher')}
+            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none mb-4"
+          >
+            <option value="platform">المنصة</option>
+            <option value="publisher">ناشر (شريك)</option>
+          </select>
+          
           {ownerType === 'publisher' && (
             <>
               <label className="block text-sm font-bold text-slate-700 mb-2">اختر الناشر</label>

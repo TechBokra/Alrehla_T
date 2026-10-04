@@ -58,6 +58,17 @@ const stepOneErrors = (values: Record<string, unknown>) => {
 };
 
 describe('الخطوة ١ — اختيار الطفل', () => {
+  it('طلب لنفسه بيعدّي', () => {
+    expect(
+      stepOneErrors(
+        atStepOne({
+          familyMemberId: 'self',
+          newChildName: 'أحمد',
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it('اختيار طفل من العائلة بيعدّي', () => {
     expect(stepOneErrors(atStepOne({ familyMemberId: 'child-123' }))).toEqual([]);
   });
@@ -98,7 +109,7 @@ describe('الخطوة ١ — اختيار الطفل', () => {
     const message = result.success
       ? ''
       : result.error.issues.find((i) => i.path[0] === 'newChildName')?.message;
-    expect(message).toBe('الرجاء اختيار طفل أو إضافة طفل جديد');
+    expect(message).toBe('الرجاء إدخال البيانات أو اختيار شخص');
   });
 
   it('جنس غير معروف بيتمنع', () => {

@@ -23,11 +23,23 @@ export async function GET() {
     const user = await getCurrentUser();
     const isVisitor = user.role === 'visitor';
 
+    let dashboardLabel: string | undefined;
+    if (user.role === 'student') {
+      try {
+        const { getDependentGuardian } = await import('@/lib/auth-guard');
+        const dependent = await getDependentGuardian(user.id);
+        dashboardLabel = dependent ? 'حساب الطالب' : 'حساب مستخدم';
+      } catch {
+        dashboardLabel = 'حساب مستخدم';
+      }
+    }
+
     return NextResponse.json(
       {
         role: user.role,
         fullName: isVisitor ? '' : user.fullName,
         unreadCount: isVisitor ? 0 : await getUnreadNotificationCount(),
+        dashboardLabel,
       },
       { headers: { 'Cache-Control': 'no-store, private' } },
     );

@@ -38,18 +38,12 @@ const contentSecurityPolicy = [
   // Supabase (REST + realtime عبر websocket) ورفع Cloudinary المباشر.
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com",
 
-  "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
   "object-src 'none'",
 ].join('; ');
 
 const securityHeaders = [
-  // يمنع أي موقع تاني من تحميل الموقع جوّه iframe — الحماية من
-  // clickjacking: صفحة مزيّفة بتحطّ موقعك شفافًا فوقها والعميل بيضغط
-  // على أزرارك وهو فاكر إنه بيضغط على حاجة تانية.
-  { key: 'X-Frame-Options', value: 'DENY' },
-
   // يمنع المتصفح من «تخمين» نوع الملف. من غيره ملف مرفوع من عميل ممكن
   // المتصفح يقرره سكربت وينفّذه.
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -75,6 +69,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,

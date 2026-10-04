@@ -1,7 +1,7 @@
 import React from 'react';
 
 const steps = [
-  { step: 1, label: 'بيانات الطفل' },
+  { step: 1, label: 'البيانات' },
   { step: 2, label: 'تفاصيل القصة' },
   { step: 3, label: 'الإضافات' },
   { step: 4, label: 'المراجعة' },

@@ -2,7 +2,6 @@ import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getAllOrders } from '@/data/domains/orders';
-import { getManagedProducts } from '@/data/domains/products';
 import { getSiteSettings } from '@/data/domains/content';
 import { createClient } from '@/lib/supabase/server';
 import { cancelStalePendingOrders, cancelledMessage } from '@/lib/stale-orders';
@@ -35,16 +34,13 @@ export default async function Page() {
     }
   }
 
-  const [orders, products] = await Promise.all([getAllOrders(), getManagedProducts()]);
-  // اسم كل منتج — عشان القايمة تقول الطلب فيه إيه ومخصّص لمين (ملاحظة تامر:
-  // «طلبات التخصيص مرتبطة باسم المنتج»). كانت رقم طلب وتاريخ ومبلغ بس.
-  const productNames = Object.fromEntries(products.map((p) => [p.id, p.name]));
+  const orders = await getAllOrders();
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       {/* طلبات الخدمات بقت في قسم «الخدمات الإبداعية» (`lib/admin-nav`). */}
       <DashboardPageHeader title="طلبات المنتجات" />
-      <OrdersClient initialOrders={orders} productNames={productNames} />
+      <OrdersClient initialOrders={orders} />
     </div>
   );
 }

@@ -24,7 +24,7 @@ const inputClass =
 export const ROLE_LABELS: Record<string, string> = {
   visitor: 'زائر',
   customer: 'عميل',
-  student: 'عميل / طالب',
+  student: 'حساب مستخدم',
   instructor: 'مدرب',
   service_provider: 'مقدّم خدمة',
   publisher: 'ناشر',

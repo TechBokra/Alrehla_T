@@ -45,7 +45,7 @@ export function Step3Addons({
     <div className="space-y-6">
       <h2 className="text-2xl font-black text-slate-800">إضافات مميزة (اختياري)</h2>
       <p className="text-slate-600">
-        كل إضافة بتتعمل مخصوص لطفلك — بنفس الاسم والصورة اللي كتبتهم، والسعر
+        كل إضافة بتتعمل مخصوص بالاسم والصورة اللي حددتهم، والسعر
         شامل التخصيص.
       </p>
 
@@ -93,7 +93,7 @@ export function Step3Addons({
                     <p className="text-sm text-slate-600 mt-1">{addon.description}</p>
                   )}
                   <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-                    باسم الطفل وصورته
+                    مخصصة بالاسم والصورة
                   </p>
                 </div>
                 <div className="font-black text-emerald-700">+{formatPrice(shownPrice)}</div>

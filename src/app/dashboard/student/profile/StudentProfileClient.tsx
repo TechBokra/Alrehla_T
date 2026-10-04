@@ -16,26 +16,14 @@ export function StudentProfileClient({
   fullName: initialName,
   email,
   avatarUrl: initialAvatar,
+  isDependent = false,
 }: {
   fullName: string;
   email: string;
   avatarUrl: string;
+  isDependent?: boolean;
 }) {
   const router = useRouter();
-  /**
-   * ⚠️ **الاسم مش بيتحفظ من هنا — بيتبعت كطلب لولي الأمر.**
-   *
-   * كان `input` عادي بيتحفظ مع الصورة في `user_profiles.full_name`.
-   * والتعديل كان **بينجح فعلًا** — وميظهرش لحد: في اسمين لنفس الطفل،
-   * ودوال القاعدة مكتوبة `COALESCE(ch.full_name, up.full_name, …)`
-   * فاسم المركز العائلي بيكسب دايمًا.
-   *
-   * يعني الطالب يغيّر اسمه ويشوفه في لوحته، وولي الأمر والمدرب
-   * والطلبات **والكتاب اللي هيتطبع** كلهم على الاسم القديم.
-   *
-   * والاسم ده بيتطبع على الكتاب، فالقرار إنه ملك ولي الأمر —
-   * والطالب يقترح (ملف SQL 93).
-   */
   const [fullName, setFullName] = useState(initialName);
   const [avatarUrl, setAvatarUrl] = useState(initialAvatar);
   const [busy, setBusy] = useState(false);
@@ -54,13 +42,15 @@ export function StudentProfileClient({
     fallbackError: 'تعذّر إرسال طلب تغيير الاسم.',
   });
 
-  /** الصورة بتتحفظ على طول — هي ملك الطالب، مش بتتطبع على الكتاب. */
   const save = async () => {
     setBusy(true);
     setError('');
     setSaved(false);
     try {
-      await updateMyProfile({ fullName: initialName, avatarUrl });
+      // للمستخدم الفردي: الاسم بيتحفظ مباشرة دون حاجة لموافقة.
+      // للطفل التابع: الاسم بيضبطه ولي أمره، والصورة بتتحفظ على طول.
+      const targetName = isDependent ? initialName : fullName.trim();
+      await updateMyProfile({ fullName: targetName, avatarUrl });
       setSaved(true);
       router.refresh();
     } catch (err) {
@@ -79,7 +69,7 @@ export function StudentProfileClient({
       )}
       {saved && (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-          <CheckCircle2 className="h-5 w-5" /> تم الحفظ.
+          <CheckCircle2 className="h-5 w-5" /> تم الحفظ بنجاح.
         </div>
       )}
 
@@ -101,24 +91,32 @@ export function StudentProfileClient({
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
-          <p className="text-xs font-medium text-slate-500">
-            اسمك بيظبطه ولي أمرك — لأنه اللي بيتطبع على كتابك ويشوفه مدربك.
-            اكتب الاسم اللي عايزه واطلب منه يوافق.
-          </p>
-          <FormError message={nameRequest.error} />
-          <FormSuccess message={nameSent} />
-          <button
-            type="button"
-            disabled={nameRequest.pending || fullName.trim() === initialName.trim()}
-            aria-busy={nameRequest.pending || undefined}
-            onClick={() => {
-              setNameSent('');
-              nameRequest.run(fullName);
-            }}
-            className="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-5 font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
-          >
-            {nameRequest.pending ? 'جارٍ الإرسال…' : 'اطلب تغيير الاسم'}
-          </button>
+          {isDependent ? (
+            <>
+              <p className="text-xs font-medium text-slate-500">
+                اسمك بيظبطه ولي أمرك — لأنه اللي بيتطبع على كتابك ويشوفه مدربك.
+                اكتب الاسم اللي عايزه واطلب منه يوافق.
+              </p>
+              <FormError message={nameRequest.error} />
+              <FormSuccess message={nameSent} />
+              <button
+                type="button"
+                disabled={nameRequest.pending || fullName.trim() === initialName.trim()}
+                aria-busy={nameRequest.pending || undefined}
+                onClick={() => {
+                  setNameSent('');
+                  nameRequest.run(fullName);
+                }}
+                className="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-5 font-bold text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+              >
+                {nameRequest.pending ? 'جارٍ الإرسال…' : 'اطلب تغيير الاسم'}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs font-medium text-slate-500">
+              اسمك الكامل الظاهر في حسابك والجلسات والتقارير. يمكنك تعديله وحفظه مباشرة.
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
@@ -139,7 +137,7 @@ export function StudentProfileClient({
         <button
           type="button"
           onClick={save}
-          disabled={busy}
+          disabled={busy || (!isDependent && fullName.trim().length < 2)}
           className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
         >
           {busy ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}

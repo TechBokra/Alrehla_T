@@ -66,9 +66,9 @@ export function OrderSummarySidebar({
   }, [facePhotoFile]);
   
   const selectedMember = members.find((m) => m.id === familyMemberId) ?? null;
-  // اسم الطفل الحقيقي بدل «مشارك من العائلة» — كان نصًا ثابتًا.
+  // اسم المستفيد الحقيقي أو صاحب الحساب
   const childName = newChildName || selectedMember?.fullName
-    || (familyMemberId ? 'مشارك من العائلة' : null);
+    || (familyMemberId === 'self' ? 'صاحب الحساب' : familyMemberId ? 'مشارك من العائلة' : null);
 
   // ⚠️ العرض هنا **تقدير**: الحساب الحقيقي بيتم في
   //    `create_customer_order` من أسعار الجدول. المتصفح مبيبعتش سعرًا.
@@ -112,13 +112,13 @@ export function OrderSummarySidebar({
 
       {childName && (
         <div className="mb-6 pb-6 border-b border-slate-100">
-          <h4 className="font-bold text-slate-700 text-sm mb-2">الطفل:</h4>
+          <h4 className="font-bold text-slate-700 text-sm mb-2">المستفيد:</h4>
           <div className="flex items-center gap-3">
             {facePhotoPreviewUrl ? (
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                 <Image
                   src={facePhotoPreviewUrl}
-                  alt="صورة وجه الطفل للطلب"
+                  alt="صورة الوجه للطلب"
                   fill
                   sizes="96px"
                   unoptimized
@@ -132,7 +132,14 @@ export function OrderSummarySidebar({
                 size={40}
               />
             )}
-            <span className="font-bold text-slate-800">{childName}</span>
+            <div>
+              <span className="font-bold text-slate-800 block">{childName}</span>
+              {familyMemberId === 'self' && (
+                <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                  طلب شخصي
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -148,7 +155,7 @@ export function OrderSummarySidebar({
                 <li key={addon.id} className="flex justify-between gap-3 text-sm text-slate-600">
                   <span>
                     {addon.name}
-                    <span className="text-emerald-700 font-bold"> · باسم الطفل وصورته</span>
+                    <span className="text-emerald-700 font-bold"> · مخصصة بالاسم والصورة</span>
                   </span>
                   <span className="shrink-0">
                     +{formatPrice(addonCustomerPrice(addon))}

@@ -55,14 +55,14 @@ const librarySchema = z.object({
   /** خانات الإدارة (ملف 06) — `{ f_<id>: إجابة }`، والإلزام برّه المخطّط. */
   extraFields: z.record(z.string()).optional(),
 }).refine(data => data.familyMemberId || data.newChildName, {
-  message: 'يجب اختيار طفل من العائلة أو إضافة طفل جديد',
+  message: 'يجب اختيار شخص أو إدخال البيانات',
   path: ['newChildName'],
 // ⚠️ **الشرط على الكائن لا على الحقل** عن قصد: `refine` على الحقل
 //    بيخلّي النوع الخارج `File` والداخل `undefined`، فمحلّل النموذج
 //    بيرفض التطابق — نفس المصيدة اللي وقعت فيها مع `.default([])`.
 //    والشكل ده هو نفسه المستعمل لشرط الطفل فوق.
 }).refine(data => data.coverPhotoFile instanceof File, {
-  message: 'اختار صورة الطفل للغلاف',
+  message: 'اختار الصورة للغلاف',
   path: ['coverPhotoFile'],
 });
 
@@ -70,10 +70,10 @@ type LibraryFormValues = z.infer<typeof librarySchema>;
 
 /** اسم كل حقل بالعربي وخطوته — عشان الرفض يطلع برسالة مفهومة. */
 const FIELD_STEP: Record<string, { step: number; label: string }> = {
-  familyMemberId: { step: 1, label: 'اختيار الطفل' },
-  newChildName: { step: 1, label: 'اسم الطفل' },
-  newChildBirthDate: { step: 1, label: 'تاريخ ميلاد الطفل' },
-  newChildGender: { step: 1, label: 'نوع الطفل' },
+  familyMemberId: { step: 1, label: 'البيانات / اختيار المستفيد' },
+  newChildName: { step: 1, label: 'الاسم' },
+  newChildBirthDate: { step: 1, label: 'تاريخ الميلاد' },
+  newChildGender: { step: 1, label: 'الجنس' },
   dedicationText: { step: 2, label: 'الإهداء' },
   coverPhotoFile: { step: 2, label: 'صورة الغلاف' },
   selectedAddonIds: { step: 3, label: 'الإضافات' },
@@ -291,7 +291,7 @@ export function LibraryCustomizationWizard({
       type: 'book',
       imageUrl: product.coverImageUrl || undefined,
       customizationData: {
-        recipientType: 'child',
+        recipientType: data.familyMemberId === 'self' ? 'self' : 'child',
         childId,
         childName,
         dedicationText: data.dedicationText,
@@ -325,7 +325,7 @@ export function LibraryCustomizationWizard({
       <div className="mb-12 px-4 md:px-12">
         <div className="flex w-full items-center justify-between">
           {[
-            { step: 1, label: 'بيانات الطفل' },
+            { step: 1, label: 'البيانات' },
             { step: 2, label: 'تخصيص الغلاف' },
             { step: 3, label: 'الإضافات' },
             { step: 4, label: 'المراجعة' },

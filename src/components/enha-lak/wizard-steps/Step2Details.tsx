@@ -67,7 +67,7 @@ export function Step2Details({
         <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
           <legend className="px-2 text-sm font-bold text-slate-700">هدف قصة كل شهر (اختياري)</legend>
           <p className="text-xs text-slate-600">
-            اختار من القايمة أو اكتب بكلامك. اللي تسيبه فاضي فريقنا بيختاره حسب سنّ الطفل.
+            اختار من القايمة أو اكتب بكلامك. اللي تسيبه فاضي فريقنا بيختاره بما يناسب القصة والعمر.
           </p>
           <datalist id="goal-options">
             {GOAL_OPTIONS.map((o) => (
@@ -163,7 +163,7 @@ export function Step2Details({
             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
           {facePhotoPreviewUrl && (
-             <Image src={facePhotoPreviewUrl} alt="معاينة صورة الوجه المختارة للطفل" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
+             <Image src={facePhotoPreviewUrl} alt="معاينة الصورة الشخصية المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
           )}
           {errors.facePhotoFile && <span className="text-sm text-red-500">{errors.facePhotoFile.message as string}</span>}
         </div>

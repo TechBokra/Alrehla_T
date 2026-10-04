@@ -41,10 +41,10 @@ import {
  * العميل للخطوة اللي فيها المشكلة.
  */
 const FIELD_STEP: Record<string, { step: number; label: string }> = {
-  familyMemberId: { step: 1, label: 'اختيار الطفل' },
-  newChildName: { step: 1, label: 'اسم الطفل' },
-  newChildBirthDate: { step: 1, label: 'تاريخ ميلاد الطفل' },
-  newChildGender: { step: 1, label: 'نوع الطفل' },
+  familyMemberId: { step: 1, label: 'البيانات / اختيار المستفيد' },
+  newChildName: { step: 1, label: 'الاسم' },
+  newChildBirthDate: { step: 1, label: 'تاريخ الميلاد' },
+  newChildGender: { step: 1, label: 'الجنس' },
   heroDescription: { step: 2, label: 'وصف البطل' },
   familyMemberNames: { step: 2, label: 'أسماء أفراد العائلة' },
   storyGoal: { step: 2, label: 'الهدف التربوي' },
@@ -252,7 +252,7 @@ export function PersonalizationWizard({
         boxPlanId: subscription.planId,
         boxMonths: subscription.months,
         customizationData: {
-          recipientType: 'child',
+          recipientType: data.familyMemberId === 'self' ? 'self' : 'child',
           childId: finalChildId || undefined,
           childName,
           childPhoto,
@@ -291,7 +291,7 @@ export function PersonalizationWizard({
       type: product.category === 'subscription' ? 'subscription' : 'custom',
       imageUrl: product.coverImageUrl || undefined,
       customizationData: {
-        recipientType: 'child',
+        recipientType: data.familyMemberId === 'self' ? 'self' : 'child',
         childId: finalChildId || undefined,
         childName,
         childPhoto,

@@ -152,7 +152,14 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
 
 export async function signOut() {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  try {
+    await Promise.race([
+      supabase.auth.signOut(),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ])
+  } catch (err) {
+    console.error('Error during signOut:', err)
+  }
   redirect('/')
 }
 
