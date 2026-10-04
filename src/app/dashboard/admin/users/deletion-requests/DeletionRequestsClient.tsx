@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { resolveDeletionRequest } from '@/actions/account-deletion';
 
@@ -10,6 +11,10 @@ type Row = {
   userId: string;
   userName: string;
   userEmail: string;
+  /** الحساب لسه موجود (مش ممسوح) — عشان رابط «افتح الحساب». */
+  userExists: boolean;
+  /** اتأرشف (حذف حساب عليه حركات). */
+  archived: boolean;
   reason: string;
   status: 'pending' | 'done' | 'rejected';
   adminNotes: string;
@@ -18,7 +23,7 @@ type Row = {
 
 const STATUS: Record<Row['status'], { label: string; type: StatusBadgeType }> = {
   pending: { label: 'قيد المراجعة', type: 'pending' },
-  done: { label: 'تم الحذف', type: 'success' },
+  done: { label: 'اتنفّذ', type: 'success' },
   rejected: { label: 'مرفوض', type: 'neutral' },
 };
 
@@ -61,7 +66,20 @@ export function DeletionRequestsClient({ requests }: { requests: Row[] }) {
         <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="font-bold text-slate-800">{r.userName}</h3>
+              <h3 className="font-bold text-slate-800">
+                {r.userExists ? (
+                  <Link href={`/dashboard/admin/users/${r.userId}`} className="text-blue-700 hover:underline">
+                    {r.userName}
+                  </Link>
+                ) : (
+                  r.userName
+                )}
+                {r.archived && (
+                  <span className="mr-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                    مؤرشف
+                  </span>
+                )}
+              </h3>
               {r.userEmail && (
                 <p dir="ltr" className="text-right text-sm text-slate-500">{r.userEmail}</p>
               )}
@@ -83,14 +101,25 @@ export function DeletionRequestsClient({ requests }: { requests: Row[] }) {
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
               />
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  disabled={busy === r.id}
-                  onClick={() => resolve(r.id, 'done')}
-                  className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  اتحذف — اقفل الطلب
-                </button>
+                {/* الحذف نفسه من صفحة الحساب: هي اللي بتعرف عليه حركات ولا لأ
+                    (يتمسح ولا يتأرشف)، وبتقفل الطلب ده لوحدها. */}
+                {r.userExists ? (
+                  <Link
+                    href={`/dashboard/admin/users/${r.userId}`}
+                    className="rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-rose-700"
+                  >
+                    افتح الحساب واحذفه
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy === r.id}
+                    onClick={() => resolve(r.id, 'done')}
+                    className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    الحساب ممسوح — اقفل الطلب
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={busy === r.id}

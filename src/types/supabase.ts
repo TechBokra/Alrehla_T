@@ -60,6 +60,46 @@ export type Database = {
         }
         Relationships: []
       }
+      /** آراء العملاء لكل خط — schema/10. */
+      customer_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          line: 'enha_lak' | 'creative_writing'
+          rating: number
+          comment: string | null
+          status: 'new' | 'seen'
+          admin_note: string | null
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          line: 'enha_lak' | 'creative_writing'
+          rating: number
+          comment?: string | null
+          status?: 'new' | 'seen'
+          admin_note?: string | null
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          line?: 'enha_lak' | 'creative_writing'
+          rating?: number
+          comment?: string | null
+          status?: 'new' | 'seen'
+          admin_note?: string | null
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+        }
+        Relationships: []
+      }
       addon_products: {
         Row: {
           id: string
@@ -2091,6 +2131,9 @@ export type Database = {
           /** موقوف عن الشراء من التاريخ ده — SQL 118. الدخول مابيتمنعش. */
           suspended_at: string | null
           suspension_reason: string | null
+          /** اتحذف وعليه حركات فاتأرشف — schema/10. */
+          archived_at: string | null
+          archived_by: string | null
         }
         Insert: {
           id: string
@@ -2103,6 +2146,8 @@ export type Database = {
           updated_at?: string
           suspended_at?: string | null
           suspension_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
         }
         Update: {
           id?: string
@@ -2115,6 +2160,8 @@ export type Database = {
           updated_at?: string
           suspended_at?: string | null
           suspension_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
         }
         Relationships: []
       }
@@ -2165,6 +2212,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      /** ملخص حركات الحساب (عدّ لكل نوع + total) — schema/10، للإدارة. */
+      account_activity: {
+        Args: { p_user: string }
+        Returns: Json
+      }
+      /** حذف حساب مالوش حركات — بمفتاح الخادم بس. بيرجّع أرقام الدخول اللي تتمسح. */
+      admin_purge_account: {
+        Args: { p_user: string }
+        Returns: string[]
+      }
+      used_line: {
+        Args: { p_user: string; p_line: string }
+        Returns: boolean
+      }
       create_box_subscription_order: {
         Args: { p_plan_id: string; p_details: Json; p_shipping: Json }
         Returns: string

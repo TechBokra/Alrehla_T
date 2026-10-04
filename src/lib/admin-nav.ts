@@ -102,6 +102,8 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'الطلبات', href: `${A}/orders`, permission: 'canManageOrders' },
           { label: 'أسعار الشحن', href: `${A}/settings/shipping`, permission: 'canManageOrders' },
+          // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
+          { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
         ],
       },
       {
@@ -127,6 +129,7 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'باقات الكتابة', href: `${A}/writing/packages`, permission: 'canManageCatalog' },
           { label: 'اشتراكات الباقات', href: `${A}/subscriptions/courses`, permission: 'canManageSubscriptions' },
           { label: 'تسعير الكتابة', href: `${A}/settings/creative-writing-pricing`, permission: 'canManageCatalog' },
+          { label: 'آراء العملاء', href: `${A}/feedback/creative-writing`, permission: 'canManageSupport' },
         ],
       },
       {

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { notifyAdmins } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
-import { joinRequestRoleLabel, joinNextStep } from '@/lib/join-roles';
+import { joinRequestRoleLabel, joinNextStep, JOIN_ROLE_LABELS } from '@/lib/join-roles';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 export type JoinRequestResult =
@@ -118,7 +118,10 @@ export async function submitJoinRequest(params: {
   if (!email || !email.includes('@')) {
     return { ok: false, error: 'اكتب بريدًا إلكترونيًا صحيحًا' };
   }
-  if (!params.requestedRole) return { ok: false, error: 'اختر الدور المطلوب' };
+  // نفس القايمة اللي في الفورم وفي قيد القاعدة (ملف 10).
+  if (!(params.requestedRole in JOIN_ROLE_LABELS)) {
+    return { ok: false, error: 'اختر الدور المطلوب' };
+  }
 
   // ⚠️ **`type="tel"` مش بيمنع الحروف** — بيغيّر لوحة مفاتيح الموبايل
   //    وبس. فالإدارة كانت بتفتح طلبًا عليه «تليفون» مكتوب فيه كلام،

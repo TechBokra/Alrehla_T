@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox,
-} from 'lucide-react';
+  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox, MessageSquareHeart } from 'lucide-react';
 
 /**
  * قائمة حساب العميل — **مصدر واحد**.
@@ -87,6 +86,8 @@ const groupsFor = (isGuardian: boolean): NavGroup[] => [
     title: 'أخرى',
     items: [
       { href: '/account/support', label: 'تذاكر الدعم', Icon: HelpCircle },
+      // الرأي بيروح لـ«إنها لك» أو «بداية الرحلة» حسب اللي استعمله (ملف 10).
+      { href: '/account/feedback', label: 'رأيك يهمنا', Icon: MessageSquareHeart },
       // الإشعارات خارج مساحة الحساب عن قصد: كل الأدوار بتوصلها من نفس
       // المكان. و`/account/notifications` بتحوّل هنا عشان الروابط
       // القديمة تفضل شغّالة.

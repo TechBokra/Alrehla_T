@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { logAuditAction } from '@/lib/audit';
 import type { UserRole } from '@/types';
 import { generateTempCode, MUST_SET_PASSWORD } from '@/lib/first-login';
@@ -500,6 +500,11 @@ export async function setUserSuspension(params: {
   userId: string;
   suspend: boolean;
   reason?: string;
+  /**
+   * **تعليق كامل** (ملاحظة تامر): فوق إيقاف الشراء، الدخول نفسه بيتقفل
+   * (حظر في Auth). فكّ الإيقاف بيفكّ الاتنين.
+   */
+  blockLogin?: boolean;
 }): Promise<UserActionResult> {
   let admin;
   try {
@@ -520,6 +525,12 @@ export async function setUserSuspension(params: {
   //    بيفضل لو حد سأل بعد شهور «ليه الحساب ده كان موقوف؟».
   if (params.suspend && reason.length < 3) {
     return { ok: false, error: 'اكتب سبب الإيقاف — بيتسجّل مع الحساب.' };
+  }
+
+  // الحظر في Auth محتاج مفتاح الخادم — لو مش موجود نقول قبل ما نكتب
+  // أي حاجة، بدل «اتعلّق» والحساب لسه بيدخل.
+  if (params.suspend && params.blockLogin && !isAdminApiConfigured()) {
+    return { ok: false, error: 'قفل الدخول محتاج مفتاح الخادم — مش متظبط حاليًا.' };
   }
 
   const supabase = await createClient();
@@ -553,10 +564,36 @@ export async function setUserSuspension(params: {
     return { ok: false, error: 'القاعدة رفضت الإجراء — الحسابات الإدارية مش بتتوقف.' };
   }
 
+  // ── الدخول ──────────────────────────────────────────────────
+  //
+  // التعليق الكامل = حظر في Auth (مايقدرش يسجّل دخول ولا يجدّد جلسته).
+  // وفكّ الإيقاف بيفكّ الحظر دايمًا — حتى لو الإيقاف كان شراء بس، الفكّ
+  // مالوش ضرر.
+  //
+  // ⚠️ حسابات الأطفال مش بتتلمس هنا: ولي الأمر بيقفلها ويفتحها بنفسه،
+  //    وفكّ إيقاف الأب ماينفعش يفتح حساب ابن هو قافله.
+  const blockLogin = Boolean(params.suspend && params.blockLogin);
+  if (isAdminApiConfigured()) {
+    const { error: banError } = await createAdminClient().auth.admin.updateUserById(params.userId, {
+      ban_duration: blockLogin ? '876000h' : 'none',
+    });
+    if (banError && blockLogin) {
+      console.error('Error banning user', banError);
+      return {
+        ok: false,
+        error: 'الشراء اتوقف، لكن قفل الدخول ما اتنفذش — جرّب تاني.',
+      };
+    }
+  }
+
   await logAuditAction({
     actorProfileId: admin.id,
     actorName: admin.fullName,
-    action: params.suspend ? 'إيقاف حساب عن الشراء' : 'فكّ إيقاف حساب',
+    action: params.suspend
+      ? blockLogin
+        ? 'تعليق حساب (منع الدخول والشراء)'
+        : 'إيقاف حساب عن الشراء'
+      : 'فكّ إيقاف حساب',
     entityType: 'UserProfile',
     entityId: params.userId,
     metadata: { reason: params.suspend ? reason : null },
@@ -564,5 +601,207 @@ export async function setUserSuspension(params: {
 
   revalidatePath(`/dashboard/admin/users/${params.userId}`);
   revalidatePath('/dashboard/admin/users');
+  return { ok: true };
+}
+
+
+// ══ حذف الحساب (ملاحظة تامر، ملف 10) ═════════════════════════════
+//
+// • **مفيش عليه حركات** ← بيتمسح كله: الملف والأطفال وحسابات دخولهم.
+// • **عليه حركات** (طلب، اشتراك، تذكرة، تقييم، حساب شغل…) ← **أرشيف**:
+//   الدخول بيتقفل للأبد، والحساب يختفي من القايمة، وكل طلباته وفلوسه
+//   بتفضل زي ما هي عشان الحسابات والمستحقات.
+//
+// «عليه حركات؟» بتقرره القاعدة (`account_activity`) — مكان واحد، والحذف
+// الكامل بيتأكد منه تاني جوّه نفس العملية (`admin_purge_account`).
+//
+// ⚠️ لمدير النظام بس، ومابيتعملش على حساب إداري ولا على نفسك.
+// ⚠️ وأي طلب حذف مفتوح للحساب بيتقفل معاه — ومابيتمسحش (ملف 10 شال
+//    الربط اللي كان بيمسحه مع الحساب).
+
+export type AccountActivity = Record<string, number> & { total: number };
+
+/** ملخص الحركات على الحساب — للشاشة. `null` لو ملف 10 لسه ماتشغّلش. */
+export async function getAccountActivity(userId: string): Promise<AccountActivity | null> {
+  try {
+    await requireAdmin('canManageUsers');
+  } catch {
+    return null;
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('account_activity', { p_user: userId });
+  if (error || !data) return null;
+  return data as unknown as AccountActivity;
+}
+
+async function requireSuperAdmin() {
+  const admin = await requireAdmin('canManageUsers', 'غير مصرح');
+  if (admin.role !== 'super_admin') throw new Error('حذف الحسابات لمدير النظام فقط');
+  return admin;
+}
+
+/** بيتجاهل «مش موجود» — المطلوب إن الحساب مايبقاش موجود، وده حاصل. */
+function authMissing(err: { message?: string; status?: number } | null) {
+  return !err || err.status === 404 || /not.?found/i.test(err.message ?? '');
+}
+
+export async function deleteUserAccount(params: {
+  userId: string;
+  reason: string;
+}): Promise<UserActionResult<{ mode: 'deleted' | 'archived' }>> {
+  let admin;
+  try {
+    admin = await requireSuperAdmin();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
+  }
+  if (params.userId === admin.id) return { ok: false, error: 'مينفعش تحذف حسابك.' };
+  const reason = params.reason.trim();
+  if (reason.length < 3) return { ok: false, error: 'اكتب سبب الحذف — بيتسجّل في السجل.' };
+  if (!isAdminApiConfigured()) {
+    return { ok: false, error: 'الحذف محتاج مفتاح الخادم — مش متظبط حاليًا.' };
+  }
+
+  const service = createAdminClient();
+  const { data: target } = await service
+    .from('user_profiles')
+    .select('id, full_name, role, archived_at, suspended_at')
+    .eq('id', params.userId)
+    .maybeSingle();
+  if (!target) return { ok: false, error: 'الحساب مش موجود.' };
+  if (target.role === 'super_admin' || target.role === 'general_supervisor') {
+    return { ok: false, error: 'الحسابات الإدارية مابتتحذفش — غيّر دوره الأول.' };
+  }
+  if (target.archived_at) {
+    return { ok: false, error: 'الحساب ده محذوف (مؤرشف) بالفعل.' };
+  }
+
+  const { data: activity, error: actError } = await service.rpc('account_activity', { p_user: params.userId });
+  if (actError || !activity) {
+    console.error('account_activity', actError);
+    return { ok: false, error: 'تعذّر فحص حركات الحساب — اتأكد إن ملف 10 اتشغّل.' };
+  }
+  const total = Number((activity as unknown as AccountActivity).total ?? 0);
+
+  // حسابات دخول الأطفال — بتتقفل/تتمسح مع ولي الأمر.
+  const { data: kids } = await service
+    .from('child_profiles')
+    .select('account_profile_id')
+    .eq('user_profile_id', params.userId)
+    .not('account_profile_id', 'is', null);
+  const loginIds = [params.userId, ...(kids ?? []).map((k) => k.account_profile_id as string)];
+
+  // ⚠️ **القفل الأول، قبل أي مسح أو أرشفة**: لو أي خطوة بعده وقعت،
+  //    الحساب على الأقل مايقدرش يدخل.
+  for (const id of loginIds) {
+    const { error } = await service.auth.admin.updateUserById(id, { ban_duration: '876000h' });
+    if (error && !authMissing(error)) {
+      console.error('ban before delete', error);
+      return { ok: false, error: 'تعذّر قفل الدخول — ما اتحذفش حاجة. جرّب تاني.' };
+    }
+  }
+
+  let mode: 'deleted' | 'archived';
+  if (total === 0) {
+    const { data: purged, error: purgeError } = await service.rpc('admin_purge_account', { p_user: params.userId });
+    if (purgeError) {
+      console.error('admin_purge_account', purgeError);
+      return { ok: false, error: purgeError.message || 'تعذّر الحذف.' };
+    }
+    for (const id of purged ?? loginIds) {
+      const { error } = await service.auth.admin.deleteUser(id);
+      if (!authMissing(error)) {
+        console.error('auth delete', error);
+        return {
+          ok: false,
+          error: 'البيانات اتمسحت والدخول مقفول، لكن حساب الدخول نفسه ما اتمسحش — جرّب تاني.',
+        };
+      }
+    }
+    mode = 'deleted';
+  } else {
+    const now = new Date().toISOString();
+    const { data: saved, error } = await service
+      .from('user_profiles')
+      .update({
+        archived_at: now,
+        archived_by: admin.id,
+        suspended_at: target.suspended_at ?? now,
+        suspension_reason: `حساب محذوف (مؤرشف): ${reason}`,
+        updated_at: now,
+      })
+      .eq('id', params.userId)
+      .select('id');
+    if (error || !saved?.length) {
+      console.error('archive', error);
+      return { ok: false, error: 'الدخول اتقفل، لكن الأرشفة ما اتسجّلتش — جرّب تاني.' };
+    }
+    mode = 'archived';
+  }
+
+  // طلبات الحذف المفتوحة للحساب ده بتتقفل معاه.
+  await service
+    .from('account_deletion_requests')
+    .update({
+      status: 'done',
+      handled_at: new Date().toISOString(),
+      handled_by: admin.id,
+      admin_notes: mode === 'deleted' ? 'اتمسح بالكامل (مكانش عليه حركات)' : 'اتقفل واتأرشف (عليه حركات)',
+    })
+    .eq('user_id', params.userId)
+    .eq('status', 'pending');
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: mode === 'deleted' ? 'حذف حساب بالكامل' : 'حذف حساب (أرشفة)',
+    entityType: 'UserProfile',
+    entityId: params.userId,
+    metadata: { name: target.full_name, reason, activity },
+  });
+
+  revalidatePath('/dashboard/admin/users');
+  revalidatePath(`/dashboard/admin/users/${params.userId}`);
+  revalidatePath('/dashboard/admin/users/deletion-requests');
+  return { ok: true, mode };
+}
+
+/** رجوع حساب مؤرشف بالغلط — الدخول والشراء بيرجعوا (الأطفال لأ: أهلهم يفتحوهم). */
+export async function restoreArchivedAccount(userId: string): Promise<UserActionResult> {
+  let admin;
+  try {
+    admin = await requireSuperAdmin();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
+  }
+  if (!isAdminApiConfigured()) {
+    return { ok: false, error: 'محتاج مفتاح الخادم — مش متظبط حاليًا.' };
+  }
+  const service = createAdminClient();
+  const { data: saved, error } = await service
+    .from('user_profiles')
+    .update({
+      archived_at: null,
+      archived_by: null,
+      suspended_at: null,
+      suspension_reason: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select('id');
+  if (error || !saved?.length) return { ok: false, error: 'تعذّر الرجوع — جرّب تاني.' };
+
+  const { error: banError } = await service.auth.admin.updateUserById(userId, { ban_duration: 'none' });
+  if (banError) return { ok: false, error: 'الحساب رجع للقايمة، لكن الدخول لسه مقفول — جرّب تاني.' };
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'رجوع حساب من الأرشيف',
+    entityType: 'UserProfile',
+    entityId: userId,
+  });
+  revalidatePath('/dashboard/admin/users');
+  revalidatePath(`/dashboard/admin/users/${userId}`);
   return { ok: true };
 }

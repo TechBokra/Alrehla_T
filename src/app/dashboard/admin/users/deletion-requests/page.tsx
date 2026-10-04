@@ -11,9 +11,9 @@ export const dynamic = 'force-dynamic';
 /**
  * طلبات حذف الحسابات.
  *
- * الشاشة دي بتعرض الطلبات وبتقفلها. **الحذف الفعلي مش منها** — بيتم من
- * لوحة Supabase بعد ما تتأكد إن مفيش طلبات أو مستحقات معلّقة. عملية
- * مالهاش رجعة ما ينفعش تتعمل بزرار في صفحة ويب.
+ * الطلب بيفتح صفحة الحساب، والحذف من هناك (ملف 10 — ملاحظة تامر): من غير
+ * حركات بيتمسح كله، وعليه حركات بيتقفل ويتأرشف. والطلب بيتقفل لوحده مع
+ * الحذف، وبيفضل موجود كدليل حتى بعد ما الحساب يتمسح.
  */
 export default async function Page() {
   const user = await getCurrentUser();
@@ -31,6 +31,7 @@ export default async function Page() {
   ]);
 
   const nameById = new Map(users.map((u) => [u.id, u.fullName]));
+  const archivedIds = new Set(users.filter((u) => u.archivedAt).map((u) => u.id));
   const emailById = new Map(users.map((u) => [u.id, u.email]));
 
   const rows = (requests ?? []).map((r) => ({
@@ -38,6 +39,8 @@ export default async function Page() {
     userId: r.user_id,
     userName: nameById.get(r.user_id) ?? 'مستخدم محذوف',
     userEmail: emailById.get(r.user_id) ?? '',
+    userExists: nameById.has(r.user_id),
+    archived: archivedIds.has(r.user_id),
     reason: r.reason ?? '',
     status: r.status as 'pending' | 'done' | 'rejected',
     adminNotes: r.admin_notes ?? '',
@@ -49,9 +52,9 @@ export default async function Page() {
       <DashboardPageHeader title="طلبات حذف الحسابات" />
 
       <p className="mb-8 max-w-3xl text-sm font-medium leading-relaxed text-slate-500">
-        العميل بيطلب، وإنت بتراجع. اتأكد الأول إن مفيش طلبات مدفوعة أو حجوزات
-        جارية أو مستحقات على الحساب. الحذف الفعلي بيتم من لوحة Supabase —
-        مش من هنا، لأنها عملية مالهاش رجعة.
+        افتح الحساب من الطلب واحذفه من هناك: لو مفيش عليه أي حركات بيتمسح
+        نهائيًا، ولو عليه طلبات أو اشتراكات بيتقفل للأبد ويتأرشف وحركاته تفضل
+        محفوظة. الطلب بيتقفل لوحده مع الحذف. (الحذف لمدير النظام.)
       </p>
 
       <DeletionRequestsClient requests={rows} />

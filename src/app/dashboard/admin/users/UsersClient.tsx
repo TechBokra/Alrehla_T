@@ -48,7 +48,9 @@ const ASSIGNABLE: UserRole[] = [
   'super_admin',
 ];
 
-const EMPTY_FILTERS = { search: '', role: '', guardian: '', account: '' };
+// `state` فاضي = الحسابات الموجودة — المحذوف (المؤرشف) مابيظهرش غير لو
+// اخترته (ملف 10: الحذف اللي عليه حركات بيأرشف بدل ما يمسح).
+const EMPTY_FILTERS = { search: '', role: '', guardian: '', account: '', state: '' };
 
 /** بيانات جاية من طلب انضمام مقبول — انظر `InstructorPrefill`. */
 export type UserPrefill = {
@@ -97,6 +99,9 @@ export function UsersClient({
       // «له حساب دخول» = عنده بريد مسجَّل في المصادقة.
       if (filters.account === 'with_email' && !u.email) return false;
       if (filters.account === 'no_email' && u.email) return false;
+      if (filters.state === 'archived') return Boolean(u.archivedAt);
+      if (u.archivedAt) return false;
+      if (filters.state === 'suspended' && !u.suspendedAt) return false;
       return true;
     });
   }, [users, filters]);
@@ -111,6 +116,11 @@ export function UsersClient({
         className="font-bold text-blue-600 hover:underline"
       >
         {user.fullName}
+        {user.archivedAt ? (
+          <span className="mr-2 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-600">محذوف</span>
+        ) : user.suspendedAt ? (
+          <span className="mr-2 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700">موقوف</span>
+        ) : null}
       </Link>
     ),
     emailDisplay: user.email ? (
@@ -192,7 +202,7 @@ export function UsersClient({
           />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-600">الدور</label>
             <select
@@ -230,6 +240,18 @@ export function UsersClient({
               <option value="">الكل</option>
               <option value="with_email">له بريد مسجَّل</option>
               <option value="no_email">بدون بريد</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-600">الحالة</label>
+            <select
+              className={inputClass}
+              value={filters.state}
+              onChange={(e) => set('state', e.target.value)}
+            >
+              <option value="">الحسابات الموجودة</option>
+              <option value="suspended">الموقوفة والمعلَّقة</option>
+              <option value="archived">المحذوفة (مؤرشفة)</option>
             </select>
           </div>
         </div>

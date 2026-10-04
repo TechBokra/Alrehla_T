@@ -15,6 +15,9 @@ import {
   type UserTicketRow,
 } from './AdminUserDetailClient';
 import { SuspensionPanel } from './SuspensionPanel';
+import { DeleteAccountPanel } from './DeleteAccountPanel';
+import { getAccountActivity } from '@/actions/admin-users';
+import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,12 +34,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   // جلب البريد المسجَّل في المصادقة (Supabase Auth) لو متاح
   let accountEmail = targetUser.email || '';
+  // محظور في Auth = التعليق كامل (مش شراء بس).
+  let loginBlocked = false;
   try {
     const adminAuth = createAdminClient();
     const { data: authData } = await adminAuth.auth.admin.getUserById(id);
     if (authData?.user?.email) {
       accountEmail = authData.user.email;
     }
+    const bannedUntil = (authData?.user as { banned_until?: string | null } | undefined)?.banned_until;
+    loginBlocked = Boolean(bannedUntil && new Date(bannedUntil).getTime() > Date.now());
   } catch {
     // العودة للبريد المحفوظ في الملف
   }
@@ -132,6 +139,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     createdAt: t.created_at,
   }));
 
+  const isAdminAccount = targetUser.role === 'super_admin' || targetUser.role === 'general_supervisor';
+  // الحذف لمدير النظام بس، ومابيتعملش على حساب إداري ولا على نفسك.
+  const canDelete = user.role === 'super_admin' && !isAdminAccount && targetUser.id !== user.id;
+  const [activity, { data: openRequest }] = await Promise.all([
+    canDelete ? getAccountActivity(id) : Promise.resolve(null),
+    supabase
+      .from('account_deletion_requests')
+      .select('reason, created_at')
+      .eq('user_id', id)
+      .eq('status', 'pending')
+      .maybeSingle(),
+  ]);
+
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <DashboardPageHeader
@@ -141,15 +161,40 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
       {/* ⚠️ الإيقاف بيمنع الشراء لا الدخول — الشاشة بتسرد المسموح
           والممنوع بدل ما تسمّي الإجراء وخلاص. */}
-      <SuspensionPanel
-        userId={targetUser.id}
-        fullName={targetUser.fullName}
-        suspendedAt={targetUser.suspendedAt}
-        suspensionReason={targetUser.suspensionReason}
-        isAdminAccount={
-          targetUser.role === 'super_admin' || targetUser.role === 'general_supervisor'
-        }
-      />
+      {!targetUser.archivedAt && (
+        <SuspensionPanel
+          userId={targetUser.id}
+          fullName={targetUser.fullName}
+          suspendedAt={targetUser.suspendedAt}
+          suspensionReason={targetUser.suspensionReason}
+          isAdminAccount={isAdminAccount}
+          loginBlocked={loginBlocked}
+        />
+      )}
+
+      {canDelete ? (
+        <DeleteAccountPanel
+          userId={targetUser.id}
+          fullName={targetUser.fullName}
+          activity={activity}
+          archivedAt={targetUser.archivedAt}
+          pendingRequest={
+            openRequest
+              ? { reason: openRequest.reason ?? '', createdAt: formatDate(openRequest.created_at) }
+              : null
+          }
+        />
+      ) : targetUser.archivedAt ? (
+        <p className="mb-6 rounded-2xl border border-slate-300 bg-slate-100 p-4 text-sm font-bold text-slate-700">
+          حساب محذوف (مؤرشف) — الدخول مقفول وحركاته محفوظة.
+        </p>
+      ) : (
+        openRequest && (
+          <p className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            العميل طالب حذف حسابه — الحذف بيعمله مدير النظام من هنا.
+          </p>
+        )
+      )}
 
       <AdminUserDetailClient
         user={targetUser}

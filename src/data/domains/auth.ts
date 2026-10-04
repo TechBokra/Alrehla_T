@@ -229,5 +229,7 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
     createdAt: profile.created_at || new Date().toISOString(),
     suspendedAt: profile.suspended_at ?? null,
     suspensionReason: profile.suspension_reason ?? null,
+    // ملف 10 — `select('*')` فلو الملف لسه ماتشغّلش بترجع فاضية بس.
+    archivedAt: (profile as { archived_at?: string | null }).archived_at ?? null,
   }));
 };

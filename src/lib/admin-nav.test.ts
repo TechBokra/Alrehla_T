@@ -43,6 +43,11 @@ describe('قايمة لوحة الإدارة', () => {
     expect(group?.title).toBe('إنها لك');
   });
 
+  it('آراء العملاء كل خط في قسمه', () => {
+    expect(activeIn(all, '/dashboard/admin/feedback/enha-lak')?.section.id).toBe('orders');
+    expect(activeIn(all, '/dashboard/admin/feedback/creative-writing')?.section.id).toBe('packages');
+  });
+
   it('أطول رابط هو اللي بيكسب', () => {
     // طلب خدمة جوّه /orders — لازم «الخدمات الإبداعية» مش «طلبات المنتجات».
     const s = activeIn(all, '/dashboard/admin/orders/services/abc');
