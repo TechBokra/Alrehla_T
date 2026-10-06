@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { UserRole } from '@/types';
 import { needsPasswordSetup, SET_PASSWORD_PATH } from '@/lib/first-login';
+import { getSupabasePublicKey, getSupabaseUrl } from '@/lib/supabase/env';
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -10,8 +11,8 @@ export async function middleware(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabasePublicKey(),
     {
       cookies: {
         getAll() {

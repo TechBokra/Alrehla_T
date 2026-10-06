@@ -43,7 +43,7 @@ export const wizardSchema = z.object({
   familyMemberNames: z.string().optional(),
   // ⚠️ الإلزام اتنقل لـ`superRefine` تحت: في الاشتراك (ملف 140) مفيش
   //    هدف واحد — فيه هدف لكل شهر، والفاضي «تختاره الإدارة».
-  storyGoal: z.string(),
+  storyGoal: z.string().optional(),
   /** لما العميل يختار «هدف آخر» بيكتب هدفه بكلامه هنا. */
   customStoryGoal: z.string().optional(),
   /** إهداء يتكتب في أول الكتاب — نفس فكرة معالج المكتبة. */
@@ -79,7 +79,7 @@ export const wizardSchema = z.object({
   extraFields: z.record(z.string()).optional(),
 
 }).superRefine((data, ctx) => {
-  if (data.mode !== 'subscription' && data.storyGoal.trim().length < 2) {
+  if (data.mode !== 'subscription' && (data.storyGoal?.trim().length ?? 0) < 2) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'الرجاء اختيار الهدف التربوي',

@@ -1,9 +1,10 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase' // We will create this or use a generic one
+import { getSupabasePublicKey, getSupabaseUrl } from './env'
 
 export function createClient() {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    getSupabaseUrl(),
+    getSupabasePublicKey()
   )
 }

@@ -4,7 +4,7 @@ export const PLACEHOLDER_SUPABASE_ANON_KEY =
 
 export function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const key = getConfiguredSupabasePublicKey();
   return Boolean(url && url.startsWith('http') && key);
 }
 
@@ -16,12 +16,24 @@ export function getSupabaseUrl(): string {
   return PLACEHOLDER_SUPABASE_URL;
 }
 
-export function getSupabaseAnonKey(): string {
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+function getConfiguredSupabasePublicKey(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  );
+}
+
+export function getSupabasePublicKey(): string {
+  const key = getConfiguredSupabasePublicKey();
   if (key) {
     return key;
   }
   return PLACEHOLDER_SUPABASE_ANON_KEY;
+}
+
+/** @deprecated Use getSupabasePublicKey; retained for existing imports. */
+export function getSupabaseAnonKey(): string {
+  return getSupabasePublicKey();
 }
 
 /**

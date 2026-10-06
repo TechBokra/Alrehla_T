@@ -214,6 +214,10 @@ describe('وضع الاشتراك (ملف 140)', () => {
     const { wizardSchema } = await import('./personalization-schema');
     expect(wizardSchema.safeParse({ ...base, storyGoal: '', mode: 'subscription', monthlyGoals: ['', 'ثقة'] }).success).toBe(true);
   });
+  it('الاشتراك بيعدّي لو حقل الهدف الفردي مش موجود أصلًا', async () => {
+    const { wizardSchema } = await import('./personalization-schema');
+    expect(wizardSchema.safeParse({ ...base, mode: 'subscription', monthlyGoals: ['', 'ثقة'] }).success).toBe(true);
+  });
   it('القصة الواحدة لسه محتاجة هدف', async () => {
     const { wizardSchema } = await import('./personalization-schema');
     const r = wizardSchema.safeParse({ ...base, storyGoal: '' });

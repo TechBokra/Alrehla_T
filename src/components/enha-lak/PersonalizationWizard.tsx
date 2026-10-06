@@ -91,6 +91,7 @@ export function PersonalizationWizard({
     defaultValues: {
       selectedAddonIds: [],
       customizedAddonIds: [],
+      storyGoal: '',
       format: 'printed',
       mode: subscription ? 'subscription' : 'single',
       monthlyGoals: subscription ? Array.from({ length: subscription.months }, () => '') : undefined,
@@ -301,7 +302,7 @@ export function PersonalizationWizard({
         storyGoal:
           data.storyGoal === 'other'
             ? (data.customStoryGoal ?? '').trim()
-            : data.storyGoal,
+            : data.storyGoal ?? '',
         dedicationText: data.dedicationText?.trim() || undefined,
         familyMemberNames: data.familyMemberNames,
         ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
