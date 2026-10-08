@@ -4,6 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
+import { isMissingSchemaError } from '@/lib/applies-to';
+
+/** نفس قيد القاعدة (ملف 12) — صور Cloudinary بتاعنا بس. */
+const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
 
 /**
  * إدارة الإضافات.
@@ -35,6 +39,8 @@ export async function saveAddon(params: {
   price: number;
   isActive: boolean;
   sortOrder: number;
+  /** صورة اختيارية (ملف 12) — فاضي = من غير صورة. */
+  imageUrl?: string | null;
 }): Promise<AddonResult> {
   const admin = await requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة الإضافات');
 
@@ -44,8 +50,13 @@ export async function saveAddon(params: {
     return { ok: false, error: 'السعر غير صحيح' };
   }
 
+  const imageUrl = typeof params.imageUrl === 'string' ? params.imageUrl.trim() : '';
+  if (imageUrl && !imageUrl.startsWith(CLOUDINARY_PREFIX)) {
+    return { ok: false, error: 'صورة الإضافة لازم تترفع من زرار «رفع صورة» أو المكتبة — مش رابط من برّه' };
+  }
+
   const supabase = await createClient();
-  const row = {
+  const base = {
     name,
     description: params.description.trim() || null,
     price: params.price,
@@ -58,10 +69,20 @@ export async function saveAddon(params: {
     customization_price: 0,
     updated_at: new Date().toISOString(),
   };
+  const row = { ...base, image_url: imageUrl || null };
 
-  const { error } = params.id
-    ? await supabase.from('addon_products').update(row).eq('id', params.id)
-    : await supabase.from('addon_products').insert({ ...row, slug: slugify(name) });
+  const write = (r: typeof base) =>
+    params.id
+      ? supabase.from('addon_products').update(r).eq('id', params.id)
+      : supabase.from('addon_products').insert({ ...r, slug: slugify(name) });
+
+  let { error } = await write(row);
+  // ⚠️ قبل ملف 12 العمود مش موجود: من غير صورة = السلوك القديم، فنحفظ من
+  //    غيره بدل ما تعديل الإضافات يقف لحد ما الملف يتشغّل.
+  if (error && isMissingSchemaError(error)) {
+    if (imageUrl) return { ok: false, error: 'صورة الإضافة محتاجة ملف 12 يتشغّل الأول — احفظ من غير صورة دلوقتي' };
+    ({ error } = await write(base));
+  }
 
   if (error) {
     console.error('Error saving addon', error);

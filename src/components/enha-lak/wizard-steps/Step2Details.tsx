@@ -2,30 +2,35 @@ import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { CustomizationField } from '@/lib/customization-fields';
+import { DEFAULT_GOALS, type StoryGoal } from '@/lib/story-goals';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
-
-/** نفس اختيارات الهدف — للقصة الواحدة وللاشتراك. */
-const GOAL_OPTIONS = [
-  { value: 'شجاعة', label: 'الشجاعة والتغلب على الخوف' },
-  { value: 'ثقة', label: 'بناء الثقة بالنفس' },
-  { value: 'حل المشكلات', label: 'تعلم حل المشكلات' },
-  { value: 'تعاون', label: 'التعاون مع الآخرين' },
-];
 
 export function Step2Details({
   onNext,
   onPrev,
   monthlyGoals,
   extraFields = [],
+  goals = [],
 }: {
   onNext: () => void;
   onPrev: () => void;
   /** خانات الإدارة (ملف 06). */
   extraFields?: CustomizationField[];
+  /**
+   * أهداف الإدارة للمنتج ده (ملف 12) — نفس القايمة للقصة الواحدة وللاشتراك.
+   *
+   * ⚠️ القيمة المحفوظة = نص الهدف نفسه، مش رقمه: لو الإدارة غيّرته أو
+   *    مسحته بعدين، الطلب بيفضل مقروء. (الطلبات الأقدم حافظة كلمة قصيرة
+   *    زي «شجاعة» وبتتترجم في `order-customization.ts`.)
+   */
+  goals?: StoryGoal[];
   /** اشتراك صندوق الرحلة (ملف 140): عدد الشهور — هدف لكل شهر بدل هدف واحد. */
   monthlyGoals?: number;
 }) {
   const { register, watch, setValue, formState: { errors } } = useFormContext();
+  // فاضية = الإدارة أوقفت كله أو حددته لمنتجات تانية — الهدف إلزامي، فنرجع
+  // للأربعة الأساسيين بدل ما العميل يضطر يكتب «هدف آخر».
+  const goalOptions = goals.length > 0 ? goals : DEFAULT_GOALS;
   
   const facePhotoFile = watch('facePhotoFile');
   const secondPhotoFile = watch('secondPhotoFile');
@@ -70,8 +75,8 @@ export function Step2Details({
             اختار من القايمة أو اكتب بكلامك. اللي تسيبه فاضي فريقنا بيختاره بما يناسب القصة والعمر.
           </p>
           <datalist id="goal-options">
-            {GOAL_OPTIONS.map((o) => (
-              <option key={o.value} value={o.label} />
+            {goalOptions.map((g) => (
+              <option key={g.id} value={g.label} />
             ))}
           </datalist>
           {Array.from({ length: monthlyGoals }, (_, i) => (
@@ -98,10 +103,11 @@ export function Step2Details({
           className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
           <option value="">اختر الهدف من القصة...</option>
-          <option value="شجاعة">الشجاعة والتغلب على الخوف</option>
-          <option value="ثقة">بناء الثقة بالنفس</option>
-          <option value="حل المشكلات">تعلم حل المشكلات</option>
-          <option value="تعاون">التعاون مع الآخرين</option>
+          {goalOptions.map((g) => (
+            <option key={g.id} value={g.label}>
+              {g.label}
+            </option>
+          ))}
           <option value="other">هدف آخر — أكتبه بنفسي</option>
         </select>
         {errors.storyGoal && <span className="text-sm text-red-500">{errors.storyGoal.message as string}</span>}

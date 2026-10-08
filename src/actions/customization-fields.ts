@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { FIELDS_MAX, validateFieldInput } from '@/lib/customization-fields';
+import { isMissingSchemaError, normalizeAppliesTo } from '@/lib/applies-to';
 
 /**
  * خانات التخصيص من اللوحة (ملف 06 — ملاحظة فريق العمل ٧).
@@ -41,6 +42,8 @@ export async function saveCustomizationField(input: {
   placeholder?: string;
   isRequired: boolean;
   isActive: boolean;
+  /** ملف 12 — `null` = كل المنتجات والصندوق. */
+  appliesTo?: string[] | null;
 }): Promise<FieldResult> {
   const g = await guard();
   if (!g.ok) return g;
@@ -48,21 +51,38 @@ export async function saveCustomizationField(input: {
   const checked = validateFieldInput(input);
   if (!checked.ok) return checked;
 
+  const appliesTo = normalizeAppliesTo(input.appliesTo);
+
   const supabase = await createClient();
-  const row = {
+  const base = {
     label: checked.label,
     placeholder: checked.placeholder,
     is_required: Boolean(input.isRequired),
     is_active: Boolean(input.isActive),
     updated_at: new Date().toISOString(),
   };
+  const row = { ...base, applies_to: appliesTo };
 
   if (input.id) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('customization_fields')
       .update(row)
       .eq('id', input.id)
       .select('id');
+    // ⚠️ قبل ملف 12 العمود مش موجود: «كل المنتجات» هو السلوك القديم أصلًا،
+    //    فنحفظ من غيره بدل ما تعديل الخانات يقف لحد ما الملف يتشغّل.
+    if (error && isMissingSchemaError(error) && appliesTo === null) {
+      ({ data, error } = await supabase
+        .from('customization_fields')
+        .update(base)
+        .eq('id', input.id)
+        .select('id'));
+    }
+    if (error && isMissingSchemaError(error)) {
+      return { ok: false, error: 'اختيار «منتجات بعينها» محتاج ملف 12 يتشغّل الأول' };
+    }
+    // محفّز ملف 12 بيرفض منتج اتمسح — رسالته عربي ومفهومة فبنعرضها.
+    if (error?.code === 'P0001') return { ok: false, error: error.message };
     if (error) {
       console.error('تعذّر تعديل خانة التخصيص', error);
       return { ok: false, error: 'تعذّر حفظ الخانة — جرّب تاني' };
@@ -83,10 +103,21 @@ export async function saveCustomizationField(input: {
     }
     // الجديدة في آخر القايمة.
     const last = Math.max(0, ...(existing ?? []).map((r) => r.sort_order ?? 0));
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('customization_fields')
       .insert({ ...row, sort_order: last + 10 })
       .select('id');
+    if (error && isMissingSchemaError(error) && appliesTo === null) {
+      ({ data, error } = await supabase
+        .from('customization_fields')
+        .insert({ ...base, sort_order: last + 10 })
+        .select('id'));
+    }
+    if (error && isMissingSchemaError(error)) {
+      return { ok: false, error: 'اختيار «منتجات بعينها» محتاج ملف 12 يتشغّل الأول' };
+    }
+    // محفّز ملف 12 بيرفض منتج اتمسح — رسالته عربي ومفهومة فبنعرضها.
+    if (error?.code === 'P0001') return { ok: false, error: error.message };
     if (error || !data || data.length === 0) {
       console.error('تعذّر إضافة خانة التخصيص', error);
       return { ok: false, error: 'تعذّر إضافة الخانة — جرّب تاني' };
@@ -99,7 +130,7 @@ export async function saveCustomizationField(input: {
     action: input.id ? 'customization_field_updated' : 'customization_field_created',
     entityType: 'CustomizationField',
     entityId: input.id,
-    metadata: { label: checked.label },
+    metadata: { label: checked.label, appliesTo },
   });
   refresh();
   return { ok: true };

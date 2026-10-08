@@ -475,6 +475,8 @@ export type AddonProduct = {
   supportsCustomization: boolean;
   /** الفرق اللي بيتضاف على السعر لو العميل اختار «بتخصيص». */
   customizationPrice: number;
+  /** صورة اختيارية من Cloudinary (ملف 12) — بتظهر للعميل في خطوة الإضافات. */
+  imageUrl?: string;
 };
 
 // خطة اشتراك

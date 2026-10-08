@@ -208,7 +208,9 @@ export const getAddonProducts = async (
 
   const query = supabase
     .from('addon_products')
-    .select('id, slug, name, description, price, is_active, sort_order, supports_customization, customization_price')
+    // ⚠️ `*` مش قايمة أعمدة: `image_url` جاي من ملف 12، ولو الكود اتنشر
+    //    قبل الملف، تسمية العمود كانت هترجّع خطأ وتخفي كل الإضافات.
+    .select('*')
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
 
@@ -228,6 +230,7 @@ export const getAddonProducts = async (
     sortOrder: a.sort_order,
     supportsCustomization: a.supports_customization ?? false,
     customizationPrice: a.customization_price ?? 0,
+    imageUrl: a.image_url || undefined,
   }));
 };
 

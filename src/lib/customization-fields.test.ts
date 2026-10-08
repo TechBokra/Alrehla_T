@@ -15,6 +15,7 @@ const field = (id: string, label: string, isRequired = false): CustomizationFiel
   isRequired,
   isActive: true,
   sortOrder: 0,
+  appliesTo: null,
 });
 
 const fields = [field('1a', 'لون مفضل', true), field('2b', 'اسم الأخ')];

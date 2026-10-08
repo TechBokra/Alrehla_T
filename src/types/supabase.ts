@@ -111,6 +111,8 @@ export type Database = {
           sort_order: number
           supports_customization: boolean
           customization_price: number
+          /** ملف 12 — Cloudinary بس. */
+          image_url: string | null
           created_at: string
           updated_at: string
         }
@@ -124,6 +126,7 @@ export type Database = {
           sort_order?: number
           supports_customization?: boolean
           customization_price?: number
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -137,6 +140,7 @@ export type Database = {
           sort_order?: number
           supports_customization?: boolean
           customization_price?: number
+          image_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -1837,6 +1841,8 @@ export type Database = {
           id: string
           label: string
           placeholder: string | null
+          /** ملف 12 — NULL = كل المنتجات والصندوق. */
+          applies_to: string[] | null
           is_required: boolean
           is_active: boolean
           sort_order: number
@@ -1847,6 +1853,7 @@ export type Database = {
           id?: string
           label: string
           placeholder?: string | null
+          applies_to?: string[] | null
           is_required?: boolean
           is_active?: boolean
           sort_order?: number
@@ -1857,7 +1864,39 @@ export type Database = {
           id?: string
           label?: string
           placeholder?: string | null
+          applies_to?: string[] | null
           is_required?: boolean
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      story_goals: {
+        Row: {
+          id: string
+          label: string
+          /** NULL = كل المنتجات والصندوق؛ وإلا أرقام منتجات و/أو 'box'. */
+          applies_to: string[] | null
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          applies_to?: string[] | null
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          applies_to?: string[] | null
           is_active?: boolean
           sort_order?: number
           created_at?: string

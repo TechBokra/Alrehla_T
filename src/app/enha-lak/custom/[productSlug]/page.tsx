@@ -20,14 +20,11 @@ import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWiza
 import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/subscriptions';
 import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
+import { getActiveStoryGoals } from '@/data/domains/story-goals';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;
-  const [product, addons, extraFields] = await Promise.all([
-    getProductBySlug(productSlug),
-    getAddonProducts(),
-    getActiveCustomizationFields(),
-  ]);
+  const [product, addons] = await Promise.all([getProductBySlug(productSlug), getAddonProducts()]);
 
   // رابط قديم (`prod-<رقم>`) ← الرابط الحالي، تحويل دائم (ملف 136).
   if (product) {
@@ -58,13 +55,22 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
 
   await requireShopper(`/enha-lak/custom/${encodeURIComponent(product.slug)}`);
 
+  // الخانات والأهداف بتتفلتر بالمنتج (ملف 12) — فلازم رقمه الأول.
+  const target = { productId: product.id };
+  const [extraFields, goals, addonDiscountPercent] = await Promise.all([
+    getActiveCustomizationFields(target),
+    getActiveStoryGoals(target),
+    getMyAddonDiscount(),
+  ]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <PersonalizationWizard
         product={product}
         addons={addons}
-        addonDiscountPercent={await getMyAddonDiscount()}
+        addonDiscountPercent={addonDiscountPercent}
         extraFields={extraFields}
+        goals={goals}
       />
     </div>
   );

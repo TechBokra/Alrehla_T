@@ -29,11 +29,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
   const { productSlug } = await params;
   // ⚠️ الاتنين على التوازي: التسلسل هنا كان بيزوّد زمن فتح الصفحة
   //    بلا سبب — الإضافات مش متوقّفة على المنتج.
-  const [product, addons, extraFields] = await Promise.all([
-    getProductBySlug(productSlug),
-    getAddonProducts(),
-    getActiveCustomizationFields(),
-  ]);
+  const [product, addons] = await Promise.all([getProductBySlug(productSlug), getAddonProducts()]);
 
   if (!product || product.category !== 'library') {
     notFound();
@@ -45,13 +41,20 @@ export default async function CustomLibraryPage({ params }: PageProps) {
 
   await requireShopper(`/enha-lak/custom-library/${encodeURIComponent(product.slug)}`);
 
+  // الخانات بتتفلتر بالمنتج (ملف 12) — فلازم رقمه الأول.
+  // ⚠️ مفيش أهداف هنا: تخصيص الغلاف مالوش خطوة «هدف القصة» أصلًا.
+  const [extraFields, addonDiscountPercent] = await Promise.all([
+    getActiveCustomizationFields({ productId: product.id }),
+    getMyAddonDiscount(),
+  ]);
+
   return (
     <PageContainer className="!py-0 !space-y-0">
       <Section>
         <LibraryCustomizationWizard
           product={product}
           addons={addons}
-          addonDiscountPercent={await getMyAddonDiscount()}
+          addonDiscountPercent={addonDiscountPercent}
           extraFields={extraFields}
         />
       </Section>

@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Plus, X } from 'lucide-react';
+import { ImageIcon, Plus, X } from 'lucide-react';
 import { saveAddon, setAddonActive } from '@/actions/addons';
 import { formatPrice } from '@/lib/utils';
+import { optimizedImageUrl } from '@/lib/cloudinary';
+import { ImageField } from '@/components/dashboard/ImageField';
 import type { AddonProduct } from '@/types';
 import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
@@ -18,6 +21,7 @@ const EMPTY = {
   price: 0,
   isActive: true,
   sortOrder: 0,
+  imageUrl: '',
 };
 
 export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
@@ -37,6 +41,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
       price: addon.price,
       isActive: addon.isActive,
       sortOrder: addon.sortOrder,
+      imageUrl: addon.imageUrl ?? '',
     });
     setOpen(true);
     setError('');
@@ -56,6 +61,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
         price: Number(form.price),
         isActive: form.isActive,
         sortOrder: Number(form.sortOrder),
+        imageUrl: form.imageUrl || null,
       });
     } catch {
       setError(UNEXPECTED);
@@ -141,6 +147,21 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                 onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
               />
             </Field>
+            <div className="md:col-span-2">
+              {/* ⚠️ `key`: الحقل بيمسك الصورة في حالته من أول مرة — من غيره
+                  فتح إضافة تانية للتعديل كان هيعرض صورة اللي قبلها. */}
+              <ImageField
+                key={form.id || 'new'}
+                name="imageUrl"
+                label="صورة الإضافة (اختياري)"
+                folder="alrehla/addons"
+                aspect="square"
+                library
+                value={form.imageUrl}
+                onChange={(imageUrl) => setForm((f) => ({ ...f, imageUrl }))}
+                hint="بتظهر للعميل صغيرة جنب الإضافة في خطوة الإضافات."
+              />
+            </div>
             <Checkbox
               className="md:pt-9"
               label="معروضة للعملاء"
@@ -176,6 +197,21 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
             key={addon.id}
             className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center"
           >
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+              {addon.imageUrl ? (
+                <Image
+                  src={optimizedImageUrl(addon.imageUrl, 200)}
+                  alt={addon.name}
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-slate-300" aria-hidden="true">
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+              )}
+            </div>
             <div className="flex-1">
               <div className="flex items-center gap-3">
                 <h3 className="font-bold text-slate-800">{addon.name}</h3>

@@ -1,5 +1,7 @@
 import { formatPrice } from '@/lib/utils';
 import React from 'react';
+import Image from 'next/image';
+import { optimizedImageUrl } from '@/lib/cloudinary';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
 import { addonCustomerPrice, customizedAddonIdsFor } from '@/lib/item-format';
@@ -87,7 +89,19 @@ export function Step3Addons({
                     </svg>
                   )}
                 </div>
-                <div className="flex-1">
+                {/* صورة اختيارية (ملف 12) — صغيرة عشان الموبايل يفضل فيه مكان للاسم والسعر. */}
+                {addon.imageUrl && (
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 sm:h-20 sm:w-20">
+                    <Image
+                      src={optimizedImageUrl(addon.imageUrl, 240)}
+                      alt={addon.name}
+                      fill
+                      sizes="(min-width: 640px) 80px, 56px"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-slate-800">{addon.name}</h3>
                   {addon.description && (
                     <p className="text-sm text-slate-600 mt-1">{addon.description}</p>
@@ -96,7 +110,7 @@ export function Step3Addons({
                     مخصصة بالاسم والصورة
                   </p>
                 </div>
-                <div className="font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
+                <div className="shrink-0 font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
               </div>
 
             </div>

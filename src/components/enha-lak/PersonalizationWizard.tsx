@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { wizardSchema, type WizardFormValues } from './personalization-schema';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { AddonProduct, PersonalizedProduct } from '@/types';
+import type { StoryGoal } from '@/lib/story-goals';
 
 import { WizardStepper } from './wizard-steps/WizardStepper';
 import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
@@ -64,10 +65,13 @@ export function PersonalizationWizard({
   subscription,
   addonDiscountPercent = 0,
   extraFields = [],
+  goals = [],
 }: {
   product: PersonalizedProduct;
   /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
   extraFields?: CustomizationField[];
+  /** أهداف التخصيص للمنتج ده (ملف 12) — فاضية = الأربعة الأساسيين. */
+  goals?: StoryGoal[];
   /** الإضافات المتاحة — بتيجي من القاعدة عن طريق الصفحة. */
   addons?: AddonProduct[];
   /**
@@ -349,6 +353,7 @@ export function PersonalizationWizard({
                 <Step2Details
                   monthlyGoals={subscription?.months}
                   extraFields={extraFields}
+                  goals={goals}
                   onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile', 'monthlyGoals'])}
                   onPrev={handlePrev}
                 />

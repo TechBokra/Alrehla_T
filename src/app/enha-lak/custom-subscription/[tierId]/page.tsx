@@ -20,6 +20,7 @@ import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWiza
 import { PersonalizedProduct } from '@/types';
 import { requireShopper } from '@/lib/require-shopper';
 import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
+import { getActiveStoryGoals } from '@/data/domains/story-goals';
 
 interface PageProps {
   params: Promise<{ tierId: string }>;
@@ -35,6 +36,10 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
   }
 
   await requireShopper(`/enha-lak/custom-subscription/${encodeURIComponent(tier.id)}`);
+
+  // الصندوق = 'box' في «يظهر فين» (ملف 12) — مش رقم الخطة.
+  const target = { box: true };
+  const [extraFields, goals] = await Promise.all([getActiveCustomizationFields(target), getActiveStoryGoals(target)]);
 
   const product: PersonalizedProduct = {
     id: tier.id,
@@ -66,7 +71,8 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
         <PersonalizationWizard
           product={product}
           subscription={{ planId: tier.id, months: tier.durationMonths }}
-          extraFields={await getActiveCustomizationFields()}
+          extraFields={extraFields}
+          goals={goals}
         />
       </Section>
     </PageContainer>

@@ -15,14 +15,33 @@ import {
   moveItem,
   type CustomizationField,
 } from '@/lib/customization-fields';
+import { appliesToSummary, type AppliesToProduct } from '@/lib/applies-to';
 import { FormError } from '@/components/ui/FormError';
 import { BusyButton, Checkbox, Field, TextInput } from '@/components/forms/Form';
+import { AppliesToPicker } from '@/components/admin/AppliesToPicker';
 
-type Draft = { id?: string; label: string; placeholder: string; isRequired: boolean; isActive: boolean };
+type Draft = {
+  id?: string;
+  label: string;
+  placeholder: string;
+  isRequired: boolean;
+  isActive: boolean;
+  appliesTo: string[] | null;
+};
 
-const empty: Draft = { label: '', placeholder: '', isRequired: false, isActive: true };
+const empty: Draft = { label: '', placeholder: '', isRequired: false, isActive: true, appliesTo: null };
 
-export function CustomizationFieldsClient({ fields }: { fields: CustomizationField[] }) {
+export function CustomizationFieldsClient({
+  fields,
+  products,
+  appliesToReady,
+}: {
+  fields: CustomizationField[];
+  /** للـ«يظهر فين» — المخصص والمكتبة بس. */
+  products: AppliesToProduct[];
+  /** ملف 12 اتشغّل؟ قبله «كل المنتجات» بس. */
+  appliesToReady: boolean;
+}) {
   const router = useRouter();
   const [rows, setRows] = useState(fields);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -95,7 +114,16 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
         {rows.map((f, i) =>
           draft?.id === f.id ? (
             <li key={f.id}>
-              <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} saving={busy && errorInForm} error={formError} />
+              <FieldForm
+                draft={draft}
+                setDraft={setDraft}
+                onSave={save}
+                busy={busy}
+                saving={busy && errorInForm}
+                error={formError}
+                products={products}
+                appliesToReady={appliesToReady}
+              />
             </li>
           ) : (
             <li
@@ -113,6 +141,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
                 {f.placeholder && (
                   <p className="truncate text-xs font-medium text-slate-500">مثال: {f.placeholder}</p>
                 )}
+                <p className="text-xs font-bold text-blue-700">{appliesToSummary(f.appliesTo)}</p>
               </div>
               <div className="flex shrink-0 gap-1">
                 <IconButton label={`حرّك ${f.label} لفوق`} disabled={i === 0 || busy} onClick={() => move(i, -1)}>
@@ -135,6 +164,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
                       placeholder: f.placeholder ?? '',
                       isRequired: f.isRequired,
                       isActive: f.isActive,
+                      appliesTo: f.appliesTo,
                     })
                   }
                 >
@@ -150,7 +180,16 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
       </ol>
 
       {draft && !draft.id ? (
-        <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} saving={busy && errorInForm} error={formError} />
+        <FieldForm
+          draft={draft}
+          setDraft={setDraft}
+          onSave={save}
+          busy={busy}
+          saving={busy && errorInForm}
+          error={formError}
+          products={products}
+          appliesToReady={appliesToReady}
+        />
       ) : (
         !draft &&
         rows.length < FIELDS_MAX && (
@@ -203,6 +242,8 @@ function FieldForm({
   busy,
   saving,
   error,
+  products,
+  appliesToReady,
 }: {
   draft: Draft;
   setDraft: (d: Draft | null) => void;
@@ -211,6 +252,8 @@ function FieldForm({
   /** الحفظ بالذات هو اللي شغّال (مش ترتيب أو مسح) — عشان «جارٍ الحفظ…». */
   saving: boolean;
   error: string;
+  products: AppliesToProduct[];
+  appliesToReady: boolean;
 }) {
   return (
     <div className="space-y-4 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
@@ -243,6 +286,13 @@ function FieldForm({
           onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
         />
       </div>
+      <AppliesToPicker
+        value={draft.appliesTo}
+        onChange={(appliesTo) => setDraft({ ...draft, appliesTo })}
+        products={products}
+        disabled={busy}
+        unavailable={!appliesToReady}
+      />
       <div className="flex gap-2">
         <BusyButton busy={saving} disabled={busy} onClick={onSave}>
           حفظ
