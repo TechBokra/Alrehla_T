@@ -76,6 +76,17 @@ import {
   confirmServiceOrderPayment,
 } from '@/actions/service-orders';
 
+/**
+ * `updateUserRole` بيتأكد الأول إن الحساب مش حساب طفل تابع (`child_profiles`)
+ * — الاختبارات دي عن الحساب العادي، فالفحص بيرجّع «مش طفل».
+ */
+const noChildLink = (from: (t: string) => unknown) =>
+  vi.fn((t: string) =>
+    t === 'child_profiles'
+      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }
+      : from(t),
+  );
+
 describe('Zero-Row Mutation Hardening Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -95,7 +106,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
-      mockSupabase = { from: fromMock };
+      mockSupabase = { from: noChildLink(fromMock) };
 
       const result = await updateUserRole('target-user-1', 'general_supervisor');
 
@@ -117,7 +128,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
       const eqMock = vi.fn().mockReturnValue({ select: selectMock });
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      mockSupabase = { from: vi.fn().mockReturnValue({ update: updateMock }) };
+      mockSupabase = { from: noChildLink(vi.fn().mockReturnValue({ update: updateMock })) };
 
       await updateUserRole('t', 'general_supervisor', roleId);
       expect(updateMock.mock.calls[0][0]).toMatchObject({ admin_role_id: roleId });
@@ -150,15 +161,37 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
-      mockSupabase = { from: fromMock };
+      mockSupabase = { from: noChildLink(fromMock) };
 
-      const result = await updateUserRole('non-existent-user', 'student');
+      const result = await updateUserRole('non-existent-user', 'customer');
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
         expect(result.error).toContain('المستخدم غير موجود أو تعذّر تحديث دوره');
       }
       expect(mockLogAuditAction).not.toHaveBeenCalled();
+    });
+
+    it('«طالب» مايتحددش من هنا — حساب الطالب بيتعمل من «أفراد العائلة»', async () => {
+      mockRequireAdmin.mockResolvedValue({ id: 'admin-1', fullName: 'Super Admin', role: 'super_admin' });
+      const result = await updateUserRole('someone', 'student');
+      expect(result.ok).toBe(false);
+      expect(mockLogAuditAction).not.toHaveBeenCalled();
+    });
+
+    it('حساب الطفل التابع مايتغيّرش دوره', async () => {
+      mockRequireAdmin.mockResolvedValue({ id: 'admin-1', fullName: 'Super Admin', role: 'super_admin' });
+      const updateMock = vi.fn();
+      mockSupabase = {
+        from: vi.fn((t: string) =>
+          t === 'child_profiles'
+            ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'kid' }, error: null }) }) }) }
+            : { update: updateMock },
+        ),
+      };
+      const result = await updateUserRole('kid-login', 'customer');
+      expect(result.ok).toBe(false);
+      expect(updateMock).not.toHaveBeenCalled();
     });
 
     it('enforces authorization restriction (non-admin rejection)', async () => {

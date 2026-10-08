@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 import { notifyAdmins } from '@/lib/notifications';
 import { createClient } from '@/lib/supabase/server';
+import { logAuditAction } from '@/lib/audit';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 /**
@@ -182,4 +183,52 @@ export async function closeSupportTicket(ticketId: string) {
   revalidatePath('/dashboard/admin/support/tickets');
   revalidatePath('/dashboard/admin');
   return { success: true };
+}
+
+
+export type SessionRequestStatus = 'pending' | 'contacted' | 'resolved';
+
+/**
+ * الإدارة بتحدّث حالة «طلب مساعدة في الحجز».
+ *
+ * ⚠️ **الشاشة كانت عرض بس** — من غير رقم التليفون (الطريق الوحيد للرد) ولا
+ *    أي زرار. يعني الطلب بيوصل والإدارة مش قادرة تعمل بيه حاجة ولا تعلّم إنها
+ *    ردّت، والطلب يفضل «قيد الانتظار» للأبد.
+ */
+export async function setSessionRequestStatus(
+  id: string,
+  status: SessionRequestStatus,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let actor;
+  try {
+    actor = await requireAdmin('canManageSupport', 'غير مصرح لك بإدارة طلبات الدعم');
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+  }
+  if (!['pending', 'contacted', 'resolved'].includes(status)) {
+    return { ok: false, error: 'حالة غير معروفة' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('support_session_requests')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
+  if (error || !data || data.length === 0) {
+    console.error('تعذّر تحديث طلب المساعدة', error);
+    return { ok: false, error: 'التحديث ما اتحفظش — حدّث الصفحة وجرّب تاني' };
+  }
+
+  await logAuditAction({
+    actorProfileId: actor.id,
+    actorName: actor.fullName,
+    action: 'support_session_request_status',
+    entityType: 'SupportSessionRequest',
+    entityId: id,
+    metadata: { status },
+  });
+  revalidatePath('/dashboard/admin/support/session-requests');
+  revalidatePath('/account/support');
+  return { ok: true };
 }

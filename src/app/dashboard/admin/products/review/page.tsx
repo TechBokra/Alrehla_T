@@ -30,12 +30,15 @@ export const dynamic = 'force-dynamic';
  */
 export default async function ProductReviewPage() {
   await requireAdmin('canManageCatalog');
-  const pending = await getPendingProducts();
+  // منتجات الناشرين بس — منتج المنصة الإدارة هي اللي بتعمله، فمالوش
+  // مراجعة (بيتعتمد مع الحفظ). القديم المعلّق منه بيتعتمد بحفظة من
+  // «منتجات المنصة».
+  const pending = (await getPendingProducts()).filter((p) => p.ownerType !== 'platform');
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <header className="mb-6 space-y-1">
-        <h1 className="text-2xl font-black text-slate-900">مراجعة المنتجات</h1>
+        <h1 className="text-2xl font-black text-slate-900">مراجعة منتجات الناشرين</h1>
         <p className="text-sm font-medium text-slate-600">
           المنتج — بصوره وتفاصيله — مايظهرش للعميل قبل الاعتماد. وأي تعديل من
           الناشر بيرجّعه هنا من تاني.

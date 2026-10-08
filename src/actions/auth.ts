@@ -150,17 +150,26 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
   redirect(next === '/' ? '/dashboard' : next)
 }
 
-export async function signOut() {
+/**
+ * تسجيل الخروج — **من غير `redirect`**: الصفحة بتعمل تحميل كامل للرئيسية
+ * بعدها (`lib/logout.ts`).
+ *
+ * ⚠️ كان بيستنى `signOut()` (نداء لـSupabase لإلغاء الجلسة) وبعدين
+ *    `redirect('/')`. لو النداء ده اتأخر أو وقع، الزرار كان بيفضل يلف
+ *    للأبد والمستخدم لسه داخل (ملاحظة تامر: «تسجيل الخروج بيعلق»).
+ *    دلوقتي: مهلة ٤ ثواني، وبعدها الكوكيز بتتمسح محليًا في كل الأحوال.
+ */
+export async function signOut(): Promise<void> {
   const supabase = await createClient()
+  const timeout = new Promise<'timeout'>((r) => setTimeout(() => r('timeout'), 4000))
   try {
-    await Promise.race([
-      supabase.auth.signOut(),
-      new Promise((resolve) => setTimeout(resolve, 1200)),
-    ])
-  } catch (err) {
-    console.error('Error during signOut:', err)
+    const result = await Promise.race([supabase.auth.signOut(), timeout])
+    if (result === 'timeout' || result.error) {
+      await supabase.auth.signOut({ scope: 'local' })
+    }
+  } catch {
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
   }
-  redirect('/')
 }
 
 /**

@@ -35,7 +35,7 @@ export default async function Page({
       ? {
           email: one('email').slice(0, 200),
           fullName: one('name').slice(0, 120),
-          role: (one('role') || 'student') as UserRole,
+          role: (one('role') || 'customer') as UserRole,
         }
       : null;
 

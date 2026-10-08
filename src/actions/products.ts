@@ -139,11 +139,51 @@ export async function saveProduct(formData: FormData) {
 
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
-  const ownerType = formData.get('ownerType') as 'platform' | 'publisher';
+  let ownerType: 'platform' | 'publisher' =
+    formData.get('ownerType') === 'platform' ? 'platform' : 'publisher';
 
   const currentUser = await getCurrentUser();
-  const isAdmin = hasAdminPermission(currentUser, 'canManageCatalog');
+  // ⚠️ شاشات المنتجات في اللوحة بصلاحية «الناشرون والمنتجات» — والحفظ
+  //    كان بيفحص «الباقات والخدمات» بس، فالإداري اللي معاه الأولى بس
+  //    كان بيتعامل كناشر وحفظه يترفض.
+  const isAdmin =
+    hasAdminPermission(currentUser, 'canManageCatalog') ||
+    hasAdminPermission(currentUser, 'canManagePublishers');
   let effectivePublisherId = publisherId;
+
+  // ══ المنصة ولا دار نشر — فصل كامل (ملاحظة تامر) ══════════════
+  //
+  // ⚠️ **المالك من القسم، والقسم من الخادم.** المنتج القائم مالكه
+  //    بيتقري من القاعدة مش من النموذج — فمنتج ناشر مايتحوّلش
+  //    للمنصة (ولا العكس) بتعديل خانة مخفية.
+  // ⚠️ **منتج الناشر لازم ناشر حقيقي**: كان الإداري يقدر يحفظ «منتج
+  //    ناشر» من غير ناشر (الخانة `required` في المتصفح بس)، فيطلع
+  //    منتج يتيم في المكتبة مالوش حد يتحاسب.
+  if (isAdmin) {
+    if (!isNew) {
+      const { data: existing } = await supabase
+        .from('personalized_products')
+        .select('owner_type, publisher_id')
+        .eq('id', id)
+        .maybeSingle();
+      if (!existing) return { ok: false as const, error: 'المنتج مش موجود' };
+      ownerType = existing.owner_type === 'platform' ? 'platform' : 'publisher';
+    }
+    if (ownerType === 'platform') {
+      effectivePublisherId = null;
+    } else {
+      if (!PUBLISHER_PRODUCT_CATEGORIES.includes(category)) {
+        return {
+          ok: false as const,
+          error: 'منتجات دور النشر بتتعرض في المكتبة بس — «مخصص» من المنصة.',
+        };
+      }
+      const { data: pub } = publisherId
+        ? await supabase.from('publishers').select('id').eq('id', publisherId).maybeSingle()
+        : { data: null };
+      if (!pub) return { ok: false as const, error: 'اختار دار النشر صاحبة المنتج' };
+    }
+  }
 
   if (!isAdmin) {
     // مش إداري؟ يبقى لازم يكون ناشر، والمنتج لازم يكون بتاعه.
@@ -164,6 +204,8 @@ export async function saveProduct(formData: FormData) {
         error: 'التصنيف ده مش متاح للناشرين — منتجاتك بتتعرض في المكتبة.',
       };
     }
+    // الناشر منتجاته منتجات ناشر — مهما اتبعت في النموذج.
+    ownerType = 'publisher';
 
     if (!isNew) {
       const { data: existing } = await supabase
@@ -258,6 +300,19 @@ export async function saveProduct(formData: FormData) {
     cover_image_url: coverImageUrl,
     publisher_id: effectivePublisherId,
     owner_type: ownerType,
+    // ⚠️ **اللي الإدارة بتضيفه معتمد من أول لحظة.** كان المنتج الجديد
+    //    من اللوحة بيدخل «مستني المراجعة» (القيمة الافتراضية في
+    //    القاعدة) ومايظهرش في الموقع — والإداري هو المُراجِع أصلًا.
+    //    ومنتج المنصة مالوش مراجعة خالص، فتعديله بيعتمده كمان. أما
+    //    تعديل الإدارة لمنتج ناشر قائم فمابيلمسش حالة مراجعته.
+    ...(isAdmin && (isNew || ownerType === 'platform')
+      ? {
+          review_status: 'approved',
+          review_note: null,
+          // الحارس بيختم الوقت في التعديل بس — الإدراج بنختمه هنا.
+          ...(isNew ? { reviewed_at: new Date().toISOString() } : {}),
+        }
+      : {}),
   };
 
   let savedId = id;
@@ -348,6 +403,7 @@ export async function saveProduct(formData: FormData) {
   });
 
   revalidatePath('/dashboard/admin/products');
+  revalidatePath('/dashboard/admin/products/platform');
   revalidatePath('/dashboard/publisher/products');
   revalidatePath('/enha-lak/library');
   revalidatePath('/enha-lak/custom');

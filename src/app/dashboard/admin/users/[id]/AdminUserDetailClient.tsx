@@ -1251,7 +1251,7 @@ export function AdminUserDetailClient({
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-slate-800"
               >
                 {roleChoices(
-                  ['student', 'service_provider', 'publisher', 'general_supervisor', 'super_admin'],
+                  ['customer', 'service_provider', 'publisher', 'general_supervisor', 'super_admin'],
                   adminRoles,
                   ROLE_LABELS,
                   isSuperAdmin

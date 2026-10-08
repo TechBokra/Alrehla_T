@@ -2,33 +2,14 @@
 
 import { LogOut, Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { signOut } from '@/actions/auth'
-import { clearStoredCart } from '@/lib/cart-storage'
-import { createClient } from '@/lib/supabase/client'
+import { logout } from '@/lib/logout'
 
 export function LogoutButton({ className = '' }: { className?: string }) {
   const [pending, setPending] = useState(false)
 
   const handleLogout = async () => {
-    if (pending) return
     setPending(true)
-    try {
-      // السلة المحفوظة فيها اسم الطفل وصورته — اللي بعدك على نفس الجهاز
-      // مايشوفهاش (`lib/cart-storage.ts`).
-      clearStoredCart()
-      const supabase = createClient()
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-    } catch {}
-
-    try {
-      await signOut()
-    } catch (e: unknown) {
-      const err = e as { digest?: string }
-      if (err?.digest?.startsWith('NEXT_REDIRECT')) {
-        return
-      }
-    }
-    window.location.href = '/'
+    await logout()
   }
 
   return (

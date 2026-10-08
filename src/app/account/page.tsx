@@ -37,8 +37,15 @@ export default async function AccountOverviewPage() {
             <h1 className="text-2xl sm:text-3xl font-black text-slate-800">
               {firstName ? `أهلاً بك، ${firstName}!` : 'أهلاً بك في حسابك!'}
             </h1>
+            {/* نوع الحساب ظاهر (ملاحظة تامر): الفرد غير ولي الأمر — وحساب
+                الطالب التابع ليه مساحته لوحده (`/dashboard/student`). */}
+            <span className="mt-2 inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              {user.isGuardian ? 'حساب ولي أمر' : 'حساب مستخدم'}
+            </span>
             <p className="text-slate-500 font-medium text-sm mt-1">
-              هنا يمكنك إدارة جميع أنشطة وحجوزات واشتراكات عائلتك في منصة الرحلة.
+              {user.isGuardian
+                ? 'هنا تتابع طلبات وحجوزات واشتراكات عائلتك.'
+                : 'هنا تتابع طلباتك وحجوزاتك واشتراكاتك. ولو عايز تحجز لأولادك، ضيفهم من «أفراد العائلة».'}
             </p>
           </div>
           <Link

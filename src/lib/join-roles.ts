@@ -12,6 +12,9 @@
  */
 export const JOIN_ROLE_LABELS: Record<string, string> = {
   instructor: 'مدرب',
+  // ⚠️ كان القيد في القاعدة بيقبل «ناشر» والنموذج مابيعرضوش، والإدارة لو
+  //    جالها طلب ناشر كانت بتشوف الكلمة الإنجليزي ورسالة «دور آخر».
+  publisher: 'دار نشر',
   illustrator: 'رسام',
   voiceover: 'معلّق صوتي',
   author: 'كاتب قصص',
@@ -67,6 +70,16 @@ export function joinNextStep(
     return {
       nextHref: `/dashboard/admin/users?${q.toString()}`,
       nextLabel: 'كمّل إنشاء حساب مقدّم الخدمة',
+    };
+  }
+
+  // الناشر: حساب بدور «ناشر» — وصف دار النشر بيتعمل لوحده
+  // (`ensurePublisherRow`) أول ما الدور يتحدد.
+  if (requestedRole === 'publisher') {
+    q.set('role', 'publisher');
+    return {
+      nextHref: `/dashboard/admin/users?${q.toString()}`,
+      nextLabel: 'كمّل إنشاء حساب دار النشر',
     };
   }
 

@@ -23,8 +23,13 @@ const inputClass =
 
 export const ROLE_LABELS: Record<string, string> = {
   visitor: 'زائر',
-  customer: 'عميل',
-  student: 'حساب مستخدم',
+  // ⚠️ «طالب» = حساب طفل تابع لولي أمر (بيتعمل من «أفراد العائلة» بس).
+  //    كان اسمه «عميل / طالب» وكان الدور الافتراضي في «إضافة مستخدم» —
+  //    فأي فرد اتضاف من هنا كان بيتعمل حساب طفل من غير ولي أمر: لوحة
+  //    «متدرب»، وطلباته «بتروح لولي أمره» اللي مش موجود، ومايقدرش يفتح
+  //    طلباته ومدفوعاته (ملاحظة تامر).
+  customer: 'حساب مستخدم (فرد / ولي أمر)',
+  student: 'حساب طالب (تابع لولي أمر)',
   instructor: 'مدرب',
   service_provider: 'مقدّم خدمة',
   publisher: 'ناشر',
@@ -41,7 +46,7 @@ export const ROLE_LABELS: Record<string, string> = {
  * بتظهر كنص ثابت مش قايمة — عشان ما يتغيّرش بالغلط.
  */
 const ASSIGNABLE: UserRole[] = [
-  'student',
+  'customer',
   'service_provider',
   'publisher',
   'general_supervisor',
@@ -404,7 +409,7 @@ function AddUserForm({
     email: prefill?.email ?? '',
     fullName: prefill?.fullName ?? '',
     // «اختيار» مش دور خام — الأدوار الإدارية بأسمائها (`@/lib/role-choice`).
-    role: roleToChoice((prefill?.role ?? 'student') as UserRole, null, adminRoles),
+    role: roleToChoice((prefill?.role ?? 'customer') as UserRole, null, adminRoles),
     password: '',
   });
   const [busy, setBusy] = useState(false);
@@ -412,7 +417,7 @@ function AddUserForm({
   const [link, setLink] = useState('');
   const [created, setCreated] = useState<{ fullName: string; email: string; password: string } | null>(null);
 
-  const reset = () => setForm({ email: '', fullName: '', role: 'student', password: '' });
+  const reset = () => setForm({ email: '', fullName: '', role: 'customer', password: '' });
 
   const submit = async () => {
     setBusy(true);

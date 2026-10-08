@@ -155,7 +155,9 @@ export async function createIndividualProvider(params: {
     .eq('id', found.user_id)
     .maybeSingle();
 
-  if (profile && ['visitor', 'customer', 'student'].includes(profile.role)) {
+  // ⚠️ مش «طالب»: ده حساب طفل تابع لولي أمره، وترقيته كانت بتطلّعه من
+  //    حماية الحساب العائلي.
+  if (profile && ['visitor', 'customer'].includes(profile.role)) {
     const { error: roleError } = await supabase
       .from('user_profiles')
       .update({ role: 'service_provider', updated_at: new Date().toISOString() })

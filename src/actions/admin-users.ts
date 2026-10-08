@@ -41,7 +41,11 @@ export type UserActionResult<T = unknown> =
  * فاضية وحساب مكسور. المدرب بيتضاف من شاشة «المدربين» وحدها.
  */
 const ASSIGNABLE_ROLES: UserRole[] = [
-  'student',
+  // ⚠️ «حساب مستخدم» (customer) مش «طالب»: الطالب حساب طفل تابع لولي
+  //    أمره وبيتعمل من «أفراد العائلة» بس (`student-accounts`). كان
+  //    «طالب» هو اللي هنا، فكل فرد بتضيفه الإدارة كان بيطلع حساب طفل
+  //    من غير ولي أمر (ملاحظة تامر).
+  'customer',
   'service_provider',
   'publisher',
   'general_supervisor',
@@ -54,6 +58,9 @@ function checkRole(role: UserRole, actorRole: UserRole): string | null {
   if (!ASSIGNABLE_ROLES.includes(role)) {
     if (role === 'instructor') {
       return 'دور المدرب بيتحدد من شاشة «المدربين» عشان يتعمل له ملف مدرب كامل.';
+    }
+    if (role === 'student') {
+      return 'حساب الطالب بيتعمل من «أفراد العائلة» في حساب ولي الأمر — للفرد اختار «حساب مستخدم».';
     }
     return 'الدور المختار غير صالح';
   }
@@ -341,6 +348,22 @@ export async function updateUserRole(
   }
 
   const supabase = await createClient();
+
+  // ⚠️ **حساب الطفل مايتغيّرش دوره من هنا.** لو اتحوّل «حساب مستخدم»
+  //    بيفلت من ولي أمره: يشتري ويدخل مساحة الحساب العائلي. بيتقفل أو
+  //    يتشال من «أفراد العائلة» عند ولي أمره.
+  const { data: childLink } = await supabase
+    .from('child_profiles')
+    .select('id')
+    .eq('account_profile_id', userId)
+    .maybeSingle();
+  if (childLink) {
+    return {
+      ok: false,
+      error: 'ده حساب طفل تابع لولي أمره — دوره مايتغيّرش. ولي الأمر بيقفله أو يفتحه من «أفراد العائلة».',
+    };
+  }
+
   const { data, error } = await supabase
     .from('user_profiles')
     .update({
