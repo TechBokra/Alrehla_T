@@ -28,16 +28,32 @@
  *    عميلًا — والرقم الغلط الإدارة بتتصل بيه وتكتشفه.
  */
 
+/** الأرقام العربية (٠١٢…) والفارسية (۰۱۲…) ← 012… — العميل بيكتب بكيبورد عربي. */
+function toLatinDigits(value: string): string {
+  return value
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+}
+
 /** بيشيل التنسيق ويسيب الأرقام و`+` الأولى. */
 export function normalizePhone(value: string | null | undefined): string {
   if (typeof value !== 'string') return '';
-  const trimmed = value.trim();
+  const trimmed = toLatinDigits(value.trim());
   const plus = trimmed.startsWith('+') ? '+' : '';
   return plus + trimmed.replace(/[^\d]/g, '');
 }
 
+/**
+ * ⚠️ **بيفحص اللي العميل كتبه نفسه، مش بعد التنظيف** (اختبار «إنها لك» 3.8):
+ *    كان بيشيل الحروف الأول وبعدين يعدّ الأرقام — فـ«abc01012345678»
+ *    كانت بتعدّي. دلوقتي أي حرف = رفض. المسموح: أرقام (لاتيني أو عربي)،
+ *    ومسافات وشرط ونقط وأقواس، و`+` في الأول بس.
+ */
 export function isValidPhone(value: string | null | undefined): boolean {
-  const digits = normalizePhone(value).replace('+', '');
+  if (typeof value !== 'string') return false;
+  const raw = toLatinDigits(value.trim());
+  if (!/^\+?[0-9\s().-]+$/.test(raw)) return false;
+  const digits = normalizePhone(raw).replace('+', '');
   return digits.length >= 7 && digits.length <= 15;
 }
 
@@ -54,6 +70,8 @@ export const PHONE_ERROR = 'اكتب رقم تليفون صحيح — أرقام
 export const PHONE_INPUT_PROPS = {
   type: 'tel' as const,
   inputMode: 'tel' as const,
-  pattern: '[+]?[0-9\\s()-]{7,20}',
+  // ⚠️ الأقواس والشرطة **لازم escape**: المتصفحات بتقرا `pattern` بعلامة
+  //    `v`، واللي من غير escape بيبقى نمط غلط والمتصفح بيتجاهله بهدوء.
+  pattern: '[+]?[0-9\u0660-\u0669\u06F0-\u06F9\\s\\(\\)\\.\\-]{7,20}',
   dir: 'ltr' as const,
 };

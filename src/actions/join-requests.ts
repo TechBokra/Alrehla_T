@@ -127,7 +127,7 @@ export async function submitJoinRequest(params: {
   //    وبس. فالإدارة كانت بتفتح طلبًا عليه «تليفون» مكتوب فيه كلام،
   //    وماتقدرش تتواصل — والمتقدّم فاكر إنه سجّل صح.
   const phone = normalizePhone(params.phone);
-  if (phone && !isValidPhone(phone)) {
+  if (params.phone?.trim() && !isValidPhone(params.phone)) {
     return { ok: false, error: PHONE_ERROR };
   }
 

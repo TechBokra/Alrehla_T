@@ -4,6 +4,7 @@ import { useFormContext } from 'react-hook-form';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { DEFAULT_GOALS, type StoryGoal } from '@/lib/story-goals';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
+import { photoFileProblem } from '@/lib/private-upload-client';
 
 export function Step2Details({
   onNext,
@@ -27,7 +28,7 @@ export function Step2Details({
   /** اشتراك صندوق الرحلة (ملف 140): عدد الشهور — هدف لكل شهر بدل هدف واحد. */
   monthlyGoals?: number;
 }) {
-  const { register, watch, setValue, formState: { errors } } = useFormContext();
+  const { register, watch, setValue, setError, formState: { errors } } = useFormContext();
   // فاضية = الإدارة أوقفت كله أو حددته لمنتجات تانية — الهدف إلزامي، فنرجع
   // للأربعة الأساسيين بدل ما العميل يضطر يكتب «هدف آخر».
   const goalOptions = goals.length > 0 ? goals : DEFAULT_GOALS;
@@ -59,9 +60,17 @@ export function Step2Details({
   }, [secondPhotoFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setValue(fieldName, e.target.files[0], { shouldValidate: true });
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // الغلط يظهر **هنا** تحت الخانة، مش في آخر خطوة (اختبار HS0L).
+    const problem = photoFileProblem(file);
+    if (problem) {
+      e.target.value = '';
+      setValue(fieldName, undefined);
+      setError(fieldName, { type: 'manual', message: problem });
+      return;
     }
+    setValue(fieldName, file, { shouldValidate: true });
   };
 
   return (
@@ -186,6 +195,7 @@ export function Step2Details({
           {secondPhotoPreviewUrl && (
              <Image src={secondPhotoPreviewUrl} alt="معاينة الصورة الإضافية المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
           )}
+          {errors.secondPhotoFile && <span className="text-sm text-red-500">{errors.secondPhotoFile.message as string}</span>}
         </div>
       </div>
 

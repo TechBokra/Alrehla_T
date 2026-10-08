@@ -254,6 +254,8 @@ export function LibraryCustomizationWizard({
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
+      // الصورة اتختارت في خطوة ٢ — نرجّعه هناك يغيّرها (اختبار HS0L).
+      if (currentStep !== 2) router.push(`${pathname}?step=2`);
       return;
     }
 

@@ -424,8 +424,18 @@ export async function getPublisherOrders(): Promise<PublisherOrder[]> {
   if (!products || products.length === 0) return [];
   const productById = new Map(products.map((p) => [p.id, p]));
 
+  // ⚠️ **بعميل الإدارة — وده كان سبب اختبار «إنها لك» 7.7** («صفحة طلبات
+  //    الناشر مابتعرضش طلبات كتبه»): قواعد الحماية بتسمح للعميل يقرا
+  //    طلباته **هو** بس، فالناشر كان بيسأل عن طلبات غيره والقاعدة ترجّع
+  //    فاضي من غير غلط. ماحطّيناش قاعدة حماية للناشر عن قصد: كانت هتفتح
+  //    له صف الطلب كله (عنوان العميل وتليفونه). هنا الخادم بيقرا
+  //    **أعمدة بعينها** (الكمية والسعر والحالة والتاريخ) لمنتجات الناشر
+  //    ده بس — واللي اتأكدنا منه فوق بحسابه هو.
+  const { createAdminClient, isAdminApiConfigured } = await import('@/lib/supabase/admin');
+  const reader = isAdminApiConfigured() ? createAdminClient() : supabase;
+
   // بنودها في الطلبات.
-  const { data: items } = await supabase
+  const { data: items } = await reader
     .from('order_items')
     .select('id, order_id, product_id, quantity, unit_price, publisher_cost_snapshot')
     .in('product_id', Array.from(productById.keys()));
@@ -434,7 +444,7 @@ export async function getPublisherOrders(): Promise<PublisherOrder[]> {
 
   // الطلبات نفسها — للحالة والتاريخ.
   const orderIds = Array.from(new Set(items.map((i) => i.order_id)));
-  const { data: orders } = await supabase
+  const { data: orders } = await reader
     .from('orders')
     .select('id, status, created_at')
     .in('id', orderIds);

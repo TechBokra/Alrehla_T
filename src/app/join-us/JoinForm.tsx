@@ -1,5 +1,6 @@
 'use client';
 
+import { PHONE_INPUT_PROPS } from '@/lib/phone';
 import React, { useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -106,7 +107,7 @@ export function JoinForm() {
           <input
             type="tel"
                     inputMode="tel"
-                    pattern="[+]?[0-9\s()-]{7,20}"
+                    pattern={PHONE_INPUT_PROPS.pattern}
             dir="ltr"
             className={`${inputClass} text-right`}
             placeholder="رقم الهاتف مع رمز الدولة"

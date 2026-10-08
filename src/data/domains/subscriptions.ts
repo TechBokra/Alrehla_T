@@ -91,6 +91,51 @@ export const getMyBoxSubscriptions = async (): Promise<BoxSubscription[]> => {
   return withShipments(data ?? []);
 };
 
+/** طلب اشتراك صندوق لسه ماتأكدش — سطر في صفحة «اشتراكي». */
+export type PendingBoxOrder = {
+  orderId: string;
+  planName: string;
+  status: 'pending' | 'awaiting_verification';
+  paymentReference?: string;
+  createdAt: string;
+};
+
+/**
+ * طلبات الصندوق اللي لسه مستنية الدفع أو تأكيده.
+ *
+ * ⚠️ اختبار «إنها لك» 5.8: الاشتراك نفسه بيتعمل **بعد** تأكيد الدفع،
+ *    فالصفحة كانت بتقول «لا يوجد اشتراك» لعميل لسه دافع — ومفيش أي
+ *    إشارة إن طلبه وصل. دلوقتي الطلب بيظهر بحالته لحد ما يتأكد.
+ */
+export const getMyPendingBoxOrders = async (): Promise<PendingBoxOrder[]> => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('id, status, payment_reference, created_at, box_plan_id')
+    .eq('user_id', user.id)
+    .not('box_plan_id', 'is', null)
+    .in('status', ['pending', 'awaiting_verification'])
+    .order('created_at', { ascending: false });
+  if (!orders || orders.length === 0) return [];
+
+  const planIds = Array.from(new Set(orders.map((o) => o.box_plan_id as string)));
+  const { data: plans } = await supabase
+    .from('box_subscription_plans')
+    .select('id, name')
+    .in('id', planIds);
+  const nameById = new Map((plans ?? []).map((p) => [p.id, p.name]));
+
+  return orders.map((o) => ({
+    orderId: o.id,
+    planName: nameById.get(o.box_plan_id as string) ?? 'صندوق الرحلة',
+    status: o.status as PendingBoxOrder['status'],
+    paymentReference: o.payment_reference ?? undefined,
+    createdAt: o.created_at,
+  }));
+};
+
 /**
  * خصم المشترك الحالي على الإضافات — **للعرض**. القاعدة بتحسبه لوحدها
  * في `create_customer_order` (ملف 140)؛ ده عشان الرقم في المعالج

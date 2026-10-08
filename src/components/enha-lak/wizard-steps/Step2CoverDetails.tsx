@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
+import { photoFileProblem } from '@/lib/private-upload-client';
 
 export function Step2CoverDetails({
   onNext,
@@ -14,7 +15,7 @@ export function Step2CoverDetails({
   /** خانات الإدارة (ملف 06). */
   extraFields?: CustomizationField[];
 }) {
-  const { register, watch, setValue, formState: { errors } } = useFormContext();
+  const { register, watch, setValue, setError, formState: { errors } } = useFormContext();
   
   const coverPhotoFile = watch('coverPhotoFile');
 
@@ -31,9 +32,17 @@ export function Step2CoverDetails({
   }, [coverPhotoFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setValue('coverPhotoFile', e.target.files[0], { shouldValidate: true });
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // الغلط يظهر **هنا** تحت الخانة، مش في آخر خطوة (اختبار HS0L).
+    const problem = photoFileProblem(file);
+    if (problem) {
+      e.target.value = '';
+      setValue('coverPhotoFile', undefined);
+      setError('coverPhotoFile', { type: 'manual', message: problem });
+      return;
     }
+    setValue('coverPhotoFile', file, { shouldValidate: true });
   };
 
   return (
@@ -69,6 +78,8 @@ export function Step2CoverDetails({
         {coverPhotoPreviewUrl && (
             <Image src={coverPhotoPreviewUrl} alt="معاينة صورة الغلاف المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
         )}
+        {/* كانت الصورة إلزامية بس الرسالة ماكانتش بتظهر تحت الخانة (اختبار 2.17). */}
+        {errors.coverPhotoFile && <span className="text-sm text-red-500">{errors.coverPhotoFile.message as string}</span>}
       </div>
 
       <div className="flex justify-between pt-6 border-t border-slate-100">

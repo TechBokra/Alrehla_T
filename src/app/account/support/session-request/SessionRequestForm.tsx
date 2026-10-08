@@ -1,5 +1,6 @@
 'use client';
 
+import { PHONE_INPUT_PROPS } from '@/lib/phone';
 import React, { useState } from 'react';
 import { Send, CheckCircle2 } from 'lucide-react';
 import { submitSupportSessionRequest } from '@/actions/support';
@@ -81,7 +82,7 @@ export function SessionRequestForm() {
           <input
             type="tel"
                     inputMode="tel"
-                    pattern="[+]?[0-9\s()-]{7,20}"
+                    pattern={PHONE_INPUT_PROPS.pattern}
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}

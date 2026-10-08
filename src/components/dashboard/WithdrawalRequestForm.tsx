@@ -1,5 +1,6 @@
 'use client';
 
+import { PHONE_INPUT_PROPS } from '@/lib/phone';
 import React, { useState } from 'react';
 import { Building, CreditCard } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -146,7 +147,7 @@ export function WithdrawalRequestForm({
                   required
                   type="tel"
                     inputMode="tel"
-                    pattern="[+]?[0-9\s()-]{7,20}"
+                    pattern={PHONE_INPUT_PROPS.pattern}
                   dir="ltr"
                   value={walletNumber}
                   onChange={(e) => setWalletNumber(e.target.value)}

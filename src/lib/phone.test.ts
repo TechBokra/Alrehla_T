@@ -49,6 +49,19 @@ describe('التحقّق', () => {
     expect(isValidPhone('1234567890123456')).toBe(false);
   });
 
+  it('⚠️ بيرفض الرقم اللي فيه حروف حتى لو الأرقام كفاية (اختبار 3.8)', () => {
+    expect(isValidPhone('abc01012345678')).toBe(false);
+    expect(isValidPhone('call me 0101234567')).toBe(false);
+    expect(isValidPhone('010x12345678')).toBe(false);
+    expect(isValidPhone('010+12345678')).toBe(false);
+  });
+
+  it('بيقبل الأرقام العربية', () => {
+    expect(isValidPhone('٠١٠١٢٣٤٥٦٧٨')).toBe(true);
+    expect(normalizePhone('٠١٠ ١٢٣٤ ٥٦٧٨')).toBe('01012345678');
+    expect(isValidPhone('۰۱۰۱۲۳۴۵۶۷۸')).toBe(true);
+  });
+
   it('⚠️ بيقبل الرقم المكتوب بتنسيق — الرفض الكاذب بيخسّر عميلًا', () => {
     expect(isValidPhone('010 1234 5678')).toBe(true);
     expect(isValidPhone('(010) 1234-5678')).toBe(true);

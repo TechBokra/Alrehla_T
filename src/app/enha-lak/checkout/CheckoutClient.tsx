@@ -1,4 +1,5 @@
 'use client';
+import { PHONE_INPUT_PROPS, PHONE_ERROR, isValidPhone } from '@/lib/phone';
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState } from 'react';
@@ -62,6 +63,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
     email: user.email || '',
   });
   const [emailError, setEmailError] = useState('');
+  // ⚠️ اختبار «إنها لك» (HS0L): غلط الرقم كان بيظهر في خطوة الدفع، بعد
+  //    ما العميل يعدّي صفحة البيانات. دلوقتي بيتفحص هنا وتحت الخانة نفسها.
+  const [phoneError, setPhoneError] = useState('');
 
   const subtotal = cartTotal;
   // Shipping is not flat: it comes from the rate set for the chosen
@@ -97,8 +101,15 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidPhone(shippingInfo.phone)) {
+      setPhoneError(PHONE_ERROR);
+      document.getElementById('shipping-phone')?.focus();
+      return;
+    }
+    setPhoneError('');
     if (hasElectronic && !isValidDeliveryEmail(shippingInfo.email)) {
       setEmailError('اكتب إيميل صحيح — النسخة الإلكترونية هتوصلك عليه');
+      document.getElementById('delivery-email')?.focus();
       return;
     }
     setEmailError('');
@@ -163,6 +174,12 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
 
       if (!result.ok) {
         // العربة ما بتتفضّاش عند الفشل: العميل يصحّح ويعيد المحاولة.
+        // غلط في الرقم ← نرجّعه لصفحة البيانات وتحت الخانة، مش هنا.
+        if (result.error === PHONE_ERROR) {
+          setPhoneError(PHONE_ERROR);
+          setStep(1);
+          return;
+        }
         setOrderError(result.error);
         return;
       }
@@ -256,10 +273,15 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                   <input type="text" required value={shippingInfo.name} onChange={e => setShippingInfo({...shippingInfo, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
-                  <input type="tel"
+                  <label htmlFor="shipping-phone" className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
+                  <input id="shipping-phone" type="tel"
                     inputMode="tel"
-                    pattern="[+]?[0-9\s()-]{7,20}" required value={shippingInfo.phone} onChange={e => setShippingInfo({...shippingInfo, phone: e.target.value})} dir="ltr" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white text-right" />
+                    aria-invalid={phoneError ? true : undefined}
+                    aria-describedby={phoneError ? 'shipping-phone-error' : undefined}
+                    pattern={PHONE_INPUT_PROPS.pattern} required value={shippingInfo.phone}
+                    onChange={e => { setShippingInfo({...shippingInfo, phone: e.target.value}); if (phoneError) setPhoneError(''); }}
+                    dir="ltr" className={`w-full rounded-xl border bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white text-right ${phoneError ? 'border-red-500' : 'border-slate-200'}`} />
+                  {phoneError && <p id="shipping-phone-error" role="alert" className="mt-2 text-xs font-bold text-red-700">{phoneError}</p>}
                 </div>
               </div>
 

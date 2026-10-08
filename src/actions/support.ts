@@ -26,10 +26,10 @@ export async function submitSupportSessionRequest(
 
   // ⚠️ الرقم ده هو **الطريق الوحيد** للرد على الطلب — لو فيه حروف
   //    الطلب بيوصل وميتردّش عليه. و`type="tel"` مش بيمنع الحروف.
-  const phone = normalizePhone(contactPhone);
-  if (!isValidPhone(phone)) {
+  if (!isValidPhone(contactPhone)) {
     throw new Error(PHONE_ERROR);
   }
+  const phone = normalizePhone(contactPhone);
 
   const { error } = await supabase.from('support_session_requests').insert({
     user_id: user?.id ?? null,
