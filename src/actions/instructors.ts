@@ -19,9 +19,30 @@ import { isProfileComplete, validateFirstProfile } from '@/lib/instructor-onboar
  * clear error and again by row-level security, which is the real guard.
  */
 
+/**
+ * ⚠️ **دوال الإدارة في الملف ده بترجّع ولا بترمي** (قاعدة «هـ»). كانت
+ *    بترمي، وNext بيمسح نصّ الاستثناء في الإنتاج — فالإداري كان بيشوف
+ *    رسالة إنجليزي عامة بدل «سنوات الخبرة غير صحيحة» مثلًا.
+ *    و`field` = اسم الخانة اللي عليها الخطأ، والشاشة بتعلّمها.
+ *    (دوال المدرب نفسه — `submitInstructor…` — لسه بترمي زي ما هي.)
+ */
+export type InstructorAdminResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: string };
+
+const fail = (error: string, field?: string): { ok: false; error: string; field?: string } =>
+  field ? { ok: false, error, field } : { ok: false, error };
+
+const DENIED = 'غير مصرح لك بإدارة المدربين';
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireInstructorAdmin() {
-  return requireAdmin('canManageInstructors', 'غير مصرح لك بإدارة المدربين');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»).
+  try {
+    return await requireAdmin('canManageInstructors', DENIED);
+  } catch {
+    return null;
+  }
 }
 
 /** The instructor must be asking about their own profile. */
@@ -150,8 +171,11 @@ export async function submitInstructorPackageUpdateRequest(
   return { success: true };
 }
 
-export async function approveProfileUpdateRequest(requestId: string) {
+export async function approveProfileUpdateRequest(
+  requestId: string,
+): Promise<InstructorAdminResult> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const { data: request, error: readError } = await supabase
@@ -160,8 +184,8 @@ export async function approveProfileUpdateRequest(requestId: string) {
     .eq('id', requestId)
     .single();
 
-  if (readError || !request) throw new Error('الطلب غير موجود');
-  if (request.status !== 'pending') throw new Error('تم البتّ في هذا الطلب من قبل');
+  if (readError || !request) return fail('الطلب غير موجود');
+  if (request.status !== 'pending') return fail('تم البتّ في هذا الطلب من قبل');
 
   const changes = (request.requested_changes ?? {}) as Partial<Instructor>;
 
@@ -218,7 +242,7 @@ export async function approveProfileUpdateRequest(requestId: string) {
 
     if (pricingError || !savedPricing || savedPricing.length === 0) {
       console.error('Error saving instructor pricing', pricingError);
-      throw new Error('تعذّر حفظ تسعير المدرب — الطلب لسه معلّق.');
+      return fail('تعذّر حفظ تسعير المدرب — الطلب لسه معلّق.');
     }
   }
 
@@ -240,7 +264,7 @@ export async function approveProfileUpdateRequest(requestId: string) {
     });
     if (packagesError) {
       console.error('Error applying approved packages', packagesError);
-      throw new Error('تعذّر تطبيق باقات المدرب — الطلب لسه معلّق.');
+      return fail('تعذّر تطبيق باقات المدرب — الطلب لسه معلّق.');
     }
   }
 
@@ -254,13 +278,13 @@ export async function approveProfileUpdateRequest(requestId: string) {
 
   if (updateError) {
     console.error('Error applying approved changes', updateError);
-    throw new Error('تعذّر تطبيق التعديلات');
+    return fail('تعذّر تطبيق التعديلات');
   }
 
   // صفر صفوف = المدرب مش موجود أو الصلاحيات رفضت بصمت. من غير الفحص
   // ده الطلب كان بيتقفل «تمت الموافقة» والمدرب ما اتغيّرش فيه حاجة.
   if (!updatedInstructor) {
-    throw new Error('التعديلات مروّحتش للقاعدة — ملف المدرب مش موجود أو الصلاحيات مش سامحة.');
+    return fail('التعديلات مروّحتش للقاعدة — ملف المدرب مش موجود أو الصلاحيات مش سامحة.');
   }
 
   const { data: statusRows, error: statusError } = await supabase
@@ -269,9 +293,9 @@ export async function approveProfileUpdateRequest(requestId: string) {
     .eq('id', requestId)
     .select('id')
     .maybeSingle();
-  if (statusError) throw new Error('تعذّر تحديث حالة الطلب');
+  if (statusError) return fail('تعذّر تحديث حالة الطلب');
   if (!statusRows) {
-    throw new Error('الطلب مش موجود أو اتقفل قبل كده.');
+    return fail('الطلب مش موجود أو اتقفل قبل كده.');
   }
 
   await logAuditAction({
@@ -295,11 +319,15 @@ export async function approveProfileUpdateRequest(requestId: string) {
   revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
-  return { success: true };
+  return { ok: true };
 }
 
-export async function rejectProfileUpdateRequest(requestId: string, adminFeedback: string) {
+export async function rejectProfileUpdateRequest(
+  requestId: string,
+  adminFeedback: string,
+): Promise<InstructorAdminResult> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const { data: request, error: readError } = await supabase
@@ -308,7 +336,7 @@ export async function rejectProfileUpdateRequest(requestId: string, adminFeedbac
     .eq('id', requestId)
     .single();
 
-  if (readError || !request) throw new Error('الطلب غير موجود');
+  if (readError || !request) return fail('الطلب غير موجود');
 
   const { data: rejectedRows, error } = await supabase
     .from('profile_update_requests')
@@ -316,9 +344,9 @@ export async function rejectProfileUpdateRequest(requestId: string, adminFeedbac
     .eq('id', requestId)
     .select('id');
 
-  if (error) throw new Error('تعذّر تحديث حالة الطلب');
+  if (error) return fail('تعذّر تحديث حالة الطلب');
   if (!rejectedRows || rejectedRows.length === 0) {
-    throw new Error('الطلب مش موجود أو اتقفل قبل كده.');
+    return fail('الطلب مش موجود أو اتقفل قبل كده.');
   }
 
   await logAuditAction({
@@ -342,11 +370,15 @@ export async function rejectProfileUpdateRequest(requestId: string, adminFeedbac
   revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
-  return { success: true };
+  return { ok: true };
 }
 
-export async function updateInstructorCertification(instructorId: string, passed: boolean) {
+export async function updateInstructorCertification(
+  instructorId: string,
+  passed: boolean,
+): Promise<InstructorAdminResult> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const { data: saved, error } = await supabase
@@ -364,7 +396,7 @@ export async function updateInstructorCertification(instructorId: string, passed
 
   if (error) {
     console.error('Error saving certification', error);
-    throw new Error('تعذّر حفظ حالة الاعتماد');
+    return fail('تعذّر حفظ حالة الاعتماد');
   }
 
   // The instructor record carries the same flag, so keep the two in step.
@@ -380,7 +412,7 @@ export async function updateInstructorCertification(instructorId: string, passed
 
   if (flagError || !flagRows || flagRows.length === 0) {
     console.error('Error syncing instructor training flag', flagError);
-    throw new Error('الشهادة اتسجّلت بس حالة التدريب على ملف المدرب مااتحدّثتش.');
+    return fail('الشهادة اتسجّلت بس حالة التدريب على ملف المدرب مااتحدّثتش.');
   }
 
   await logAuditAction({
@@ -393,7 +425,7 @@ export async function updateInstructorCertification(instructorId: string, passed
   });
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -435,6 +467,7 @@ export async function setInstructorPackages(
   packageIds: string[],
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const clean = Array.from(new Set((packageIds ?? []).filter((id) => typeof id === 'string' && id)));
@@ -472,6 +505,7 @@ export async function setInstructorStatus(
   status: 'pending_training' | 'pending_approval' | 'active' | 'suspended',
 ): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const { data: current, error: readError } = await supabase
@@ -586,14 +620,15 @@ export async function updateInstructorProfileByAdmin(
     specialties: string[];
     yearsExperience: number;
   }
-) {
+): Promise<InstructorAdminResult> {
   const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
   const supabase = await createClient();
 
   const displayName = details.displayName.trim();
-  if (!displayName) throw new Error('اسم المدرب مطلوب');
+  if (!displayName) return fail('اسم المدرب مطلوب', 'displayName');
   if (!Number.isFinite(details.yearsExperience) || details.yearsExperience < 0) {
-    throw new Error('سنوات الخبرة غير صحيحة');
+    return fail('سنوات الخبرة غير صحيحة', 'yearsExperience');
   }
 
   const { data: savedRows, error } = await supabase
@@ -610,10 +645,10 @@ export async function updateInstructorProfileByAdmin(
 
   if (error) {
     console.error('Error updating instructor profile', error);
-    throw new Error('تعذّر حفظ بيانات المدرب');
+    return fail('تعذّر حفظ بيانات المدرب');
   }
   if (!savedRows || savedRows.length === 0) {
-    throw new Error('الحفظ مروّحش للقاعدة — المدرب مش موجود أو الصلاحيات مش سامحة.');
+    return fail('الحفظ مروّحش للقاعدة — المدرب مش موجود أو الصلاحيات مش سامحة.');
   }
 
   await logAuditAction({
@@ -629,5 +664,5 @@ export async function updateInstructorProfileByAdmin(
   revalidatePath('/dashboard/admin/instructors');
   revalidatePath('/creative-writing/instructors');
   revalidatePath(`/creative-writing/instructors/${instructorId}`);
-  return { success: true };
+  return { ok: true };
 }

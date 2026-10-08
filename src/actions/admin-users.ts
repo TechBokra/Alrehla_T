@@ -31,7 +31,20 @@ async function currentOrigin(): Promise<string> {
  */
 export type UserActionResult<T = unknown> =
   | ({ ok: true } & T)
-  | { ok: false; error: string };
+  // `field`: اسم الخانة اللي عليها الخطأ — الشاشة بتعلّمها بالأحمر.
+  | { ok: false; error: string; field?: string };
+
+/**
+ * ⚠️ `requireAdmin` بترمي — والرمي رسالته بتتمسح في الإنتاج (قاعدة «هـ»).
+ *    فبتتلفّ هنا وترجع `null`، والأكشن يرجّع الرسالة كنتيجة.
+ */
+async function requireUsersAdmin(message: string) {
+  try {
+    return await requireAdmin('canManageUsers', message);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * الأدوار اللي تتحدد من شاشة المستخدمين.
@@ -139,22 +152,25 @@ export async function createUserDirectly(params: {
   adminRoleId?: string | null;
   password?: string;
 }): Promise<UserActionResult<{ userId: string; password: string }>> {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإضافة مستخدمين');
+  const admin = await requireUsersAdmin('غير مصرح لك بإضافة مستخدمين');
+  if (!admin) return { ok: false, error: 'غير مصرح لك بإضافة مستخدمين' };
 
   const email = params.email.trim().toLowerCase();
   const fullName = params.fullName.trim();
   const typed = params.password?.trim() ?? '';
 
-  if (!email || !email.includes('@')) return { ok: false, error: 'اكتب بريدًا إلكترونيًا صحيحًا' };
-  if (!fullName) return { ok: false, error: 'اكتب اسم الشخص' };
+  if (!email || !email.includes('@')) {
+    return { ok: false, error: 'اكتب بريدًا إلكترونيًا صحيحًا', field: 'email' };
+  }
+  if (!fullName) return { ok: false, error: 'اكتب اسم الشخص', field: 'fullName' };
   if (typed && typed.length < 8) {
-    return { ok: false, error: 'كلمة المرور لازم تكون 8 حروف على الأقل' };
+    return { ok: false, error: 'كلمة المرور لازم تكون 8 حروف على الأقل', field: 'password' };
   }
 
   const roleError = checkRole(params.role, admin.role);
-  if (roleError) return { ok: false, error: roleError };
+  if (roleError) return { ok: false, error: roleError, field: 'role' };
   const adminRole = cleanAdminRoleId(params.role, params.adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
+  if (!adminRole.ok) return { ok: false, error: adminRole.error, field: 'role' };
 
   const password = typed || generateTempCode();
   const supabaseAdmin = createAdminClient();
@@ -177,7 +193,7 @@ export async function createUserDirectly(params: {
   if (error) {
     console.error('Error creating user', error);
     if (error.message?.toLowerCase().includes('already')) {
-      return { ok: false, error: 'فيه حساب بالبريد ده بالفعل' };
+      return { ok: false, error: 'فيه حساب بالبريد ده بالفعل', field: 'email' };
     }
     return { ok: false, error: `تعذّر إنشاء الحساب: ${error.message}` };
   }
@@ -241,18 +257,21 @@ export async function inviteUser(params: {
   /** الدور الإداري لو الدور «إداري» — `null` = الافتراضي. */
   adminRoleId?: string | null;
 }): Promise<UserActionResult<{ userId: string; inviteLink: string }>> {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإضافة مستخدمين');
+  const admin = await requireUsersAdmin('غير مصرح لك بإضافة مستخدمين');
+  if (!admin) return { ok: false, error: 'غير مصرح لك بإضافة مستخدمين' };
 
   const email = params.email.trim().toLowerCase();
   const fullName = params.fullName.trim();
 
-  if (!email || !email.includes('@')) return { ok: false, error: 'اكتب بريدًا إلكترونيًا صحيحًا' };
-  if (!fullName) return { ok: false, error: 'اكتب اسم الشخص' };
+  if (!email || !email.includes('@')) {
+    return { ok: false, error: 'اكتب بريدًا إلكترونيًا صحيحًا', field: 'email' };
+  }
+  if (!fullName) return { ok: false, error: 'اكتب اسم الشخص', field: 'fullName' };
 
   const roleError = checkRole(params.role, admin.role);
-  if (roleError) return { ok: false, error: roleError };
+  if (roleError) return { ok: false, error: roleError, field: 'role' };
   const adminRole = cleanAdminRoleId(params.role, params.adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
+  if (!adminRole.ok) return { ok: false, error: adminRole.error, field: 'role' };
 
   const supabaseAdmin = createAdminClient();
 
@@ -265,7 +284,7 @@ export async function inviteUser(params: {
   if (error) {
     console.error('Error generating invite link', error);
     if (error.message?.toLowerCase().includes('already')) {
-      return { ok: false, error: 'فيه حساب بالبريد ده بالفعل' };
+      return { ok: false, error: 'فيه حساب بالبريد ده بالفعل', field: 'email' };
     }
     return { ok: false, error: `تعذّر إنشاء الدعوة: ${error.message}` };
   }
@@ -325,12 +344,13 @@ export async function updateUserRole(
   /** الدور الإداري لو الدور «إداري» — `null` = الافتراضي، ومن غيره = زي ما هو. */
   adminRoleId?: string | null,
 ): Promise<UserActionResult> {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بتعديل أدوار المستخدمين');
+  const admin = await requireUsersAdmin('غير مصرح لك بتعديل أدوار المستخدمين');
+  if (!admin) return { ok: false, error: 'غير مصرح لك بتعديل أدوار المستخدمين' };
 
   const roleError = checkRole(role, admin.role);
-  if (roleError) return { ok: false, error: roleError };
+  if (roleError) return { ok: false, error: roleError, field: 'role' };
   const adminRole = cleanAdminRoleId(role, adminRoleId);
-  if (!adminRole.ok) return { ok: false, error: adminRole.error };
+  if (!adminRole.ok) return { ok: false, error: adminRole.error, field: 'role' };
 
   // حماية من قفل النظام على نفسه: آخر مدير نظام ما يقدرش ينزّل دور نفسه.
   if (userId === admin.id && role !== admin.role && admin.role === 'super_admin') {
@@ -412,7 +432,8 @@ export async function resetUserPassword(params: {
   userId: string;
   customPassword?: string;
 }): Promise<UserActionResult<{ email: string; tempCode: string; isCustom: boolean }>> {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإدارة حسابات المستخدمين');
+  const admin = await requireUsersAdmin('غير مصرح لك بإدارة حسابات المستخدمين');
+  if (!admin) return { ok: false, error: 'غير مصرح لك بإدارة حسابات المستخدمين' };
 
   const supabaseAdmin = createAdminClient();
 
@@ -461,7 +482,11 @@ export async function resetUserPassword(params: {
   const email = userData.user.email ?? '';
   const typed = params.customPassword?.trim() ?? '';
   if (typed && typed.length < 8) {
-    return { ok: false, error: 'كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل' };
+    return {
+      ok: false,
+      error: 'كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل',
+      field: 'customPassword',
+    };
   }
 
   const password = typed || generateTempCode();
@@ -529,12 +554,8 @@ export async function setUserSuspension(params: {
    */
   blockLogin?: boolean;
 }): Promise<UserActionResult> {
-  let admin;
-  try {
-    admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإيقاف الحسابات');
-  } catch {
-    return { ok: false, error: 'غير مصرح لك بإيقاف الحسابات' };
-  }
+  const admin = await requireUsersAdmin('غير مصرح لك بإيقاف الحسابات');
+  if (!admin) return { ok: false, error: 'غير مصرح لك بإيقاف الحسابات' };
 
   // ⚠️ الإداري مايوقفش نفسه: الحساب ده بيعمل الإيقاف، ولو وقف نفسه
   //    بالغلط بيبقى محتاج حد تاني يفكّه. والقاعدة بترفضه أصلًا
@@ -547,7 +568,7 @@ export async function setUserSuspension(params: {
   // ⚠️ السبب مطلوب عند الإيقاف لا عند فكّه: ده الأثر الوحيد اللي
   //    بيفضل لو حد سأل بعد شهور «ليه الحساب ده كان موقوف؟».
   if (params.suspend && reason.length < 3) {
-    return { ok: false, error: 'اكتب سبب الإيقاف — بيتسجّل مع الحساب.' };
+    return { ok: false, error: 'اكتب سبب الإيقاف — بيتسجّل مع الحساب.', field: 'reason' };
   }
 
   // الحظر في Auth محتاج مفتاح الخادم — لو مش موجود نقول قبل ما نكتب
@@ -680,7 +701,9 @@ export async function deleteUserAccount(params: {
   }
   if (params.userId === admin.id) return { ok: false, error: 'مينفعش تحذف حسابك.' };
   const reason = params.reason.trim();
-  if (reason.length < 3) return { ok: false, error: 'اكتب سبب الحذف — بيتسجّل في السجل.' };
+  if (reason.length < 3) {
+    return { ok: false, error: 'اكتب سبب الحذف — بيتسجّل في السجل.', field: 'reason' };
+  }
   if (!isAdminApiConfigured()) {
     return { ok: false, error: 'الحذف محتاج مفتاح الخادم — مش متظبط حاليًا.' };
   }

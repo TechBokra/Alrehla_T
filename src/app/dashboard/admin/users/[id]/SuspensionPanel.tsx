@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Ban, RotateCcw, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { setUserSuspension } from '@/actions/admin-users';
 import { FormError } from '@/components/ui/FormError';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 import { formatCairo } from '@/lib/timezone';
 
 /**
@@ -49,6 +50,8 @@ export function SuspensionPanel({
   const [reason, setReason] = useState('');
   const [blockLogin, setBlockLogin] = useState(false);
   const [error, setError] = useState('');
+  // الخطأ على خانة السبب نفسها؟ بيظهر تحتها بدل الصندوق.
+  const [errorField, setErrorField] = useState<string | undefined>();
 
   const suspended = Boolean(suspendedAt);
 
@@ -81,9 +84,11 @@ export function SuspensionPanel({
 
     startTransition(async () => {
       setError('');
+      setErrorField(undefined);
       const result = await setUserSuspension({ userId, suspend, reason, blockLogin });
       if (!result.ok) {
         setError(result.error);
+        setErrorField(result.field);
         return;
       }
       setReason('');
@@ -131,7 +136,7 @@ export function SuspensionPanel({
         </ul>
       )}
 
-      <FormError message={error} />
+      <FormError message={errorField ? '' : error} />
 
       {suspended ? (
         <button
@@ -182,19 +187,19 @@ export function SuspensionPanel({
             ))}
           </fieldset>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold text-slate-600">
-              السبب (مطلوب)
-            </span>
-            <input
-              type="text"
+          <Field
+            label="السبب"
+            name="reason"
+            required
+            error={errorField === 'reason' ? error : undefined}
+          >
+            <TextInput
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               disabled={busy}
               placeholder="تحويل مرتجع، أو بلاغ قيد المراجعة…"
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-800"
             />
-          </label>
+          </Field>
 
           <p className="flex gap-2 text-xs font-medium text-slate-500">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
@@ -203,15 +208,16 @@ export function SuspensionPanel({
           </p>
 
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
+            <BusyButton
+              variant="danger"
+              busy={busy}
+              pendingLabel="جارٍ التنفيذ…"
               onClick={() => run(true)}
-              disabled={busy || reason.trim().length < 3}
-              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-40"
+              disabled={reason.trim().length < 3}
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
+              <Ban className="h-4 w-4" />
               {blockLogin ? 'علّق الحساب' : 'أوقف الشراء'}
-            </button>
+            </BusyButton>
             <button
               type="button"
               onClick={() => setOpen(false)}

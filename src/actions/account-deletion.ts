@@ -18,7 +18,10 @@ import { notifyAdmins } from '@/lib/notifications';
  * معاه يدويًا. الحذف الفعلي بيتم من لوحة Supabase عن قصد: عملية مالهاش
  * رجعة ما ينفعش تتعمل بزرار في صفحة ويب.
  */
-export type DeletionResult = { ok: true } | { ok: false; error: string };
+export type DeletionResult =
+  | { ok: true }
+  // `field`: الخانة اللي عليها الخطأ — الشاشة بتعلّمها بالأحمر.
+  | { ok: false; error: string; field?: string };
 
 export async function requestAccountDeletion(reason: string): Promise<DeletionResult> {
   // حساب الطفل مش بيطلب حذف نفسه — ولي الأمر هو اللي بيقفله من المركز
@@ -79,10 +82,16 @@ export async function resolveDeletionRequest(params: {
   status: 'done' | 'rejected';
   adminNotes?: string;
 }): Promise<DeletionResult> {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإدارة الحسابات');
+  // ⚠️ `requireAdmin` بترمي — والرسالة بتتمسح في الإنتاج (قاعدة «هـ»).
+  let admin;
+  try {
+    admin = await requireAdmin('canManageUsers', 'غير مصرح لك بإدارة الحسابات');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بإدارة الحسابات' };
+  }
 
   if (params.status === 'rejected' && !params.adminNotes?.trim()) {
-    return { ok: false, error: 'اكتب سبب الرفض — العميل المفروض يعرف' };
+    return { ok: false, error: 'اكتب سبب الرفض — العميل المفروض يعرف', field: 'adminNotes' };
   }
 
   const supabase = await createClient();

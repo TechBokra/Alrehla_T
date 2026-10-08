@@ -16,7 +16,10 @@ import { AdminPermission } from '@/types';
  *    بس. ومدير النظام نفسه مالوش دور يتعدّل: الكل دايمًا، عشان مايقفلش
  *    الباب على نفسه.
  */
-export type PermissionsResult = { ok: true } | { ok: false; error: string };
+export type PermissionsResult =
+  | { ok: true }
+  // `field`: الخانة اللي عليها الخطأ (`name` أو `permissions`).
+  | { ok: false; error: string; field?: string };
 
 const MISSING_TABLE =
   'جدول الأدوار الإدارية لسه مش موجود — شغّل ملف schema/05 في Supabase الأول.';
@@ -62,6 +65,7 @@ export async function saveAdminRole(params: {
     return {
       ok: false,
       error: `اسم الدور لازم يكون من ${NAME_MIN} لـ ${NAME_MAX} حرف.`,
+      field: 'name',
     };
   }
 
@@ -71,6 +75,7 @@ export async function saveAdminRole(params: {
       ok: false,
       error:
         'اختار صلاحية واحدة على الأقل — الدور من غير صلاحيات لوحته هتبقى فاضية',
+      field: 'permissions',
     };
   }
 
@@ -90,7 +95,8 @@ export async function saveAdminRole(params: {
 
   if (error) {
     console.error('Error saving admin role', error);
-    return { ok: false, error: dbError(error) };
+    // الاسم المكرر خطأ على خانة الاسم.
+    return { ok: false, error: dbError(error), ...(error.code === '23505' ? { field: 'name' } : {}) };
   }
   // صفر صفوف = القاعدة رفضت بصمت (قاعدة «و») — مانقولش «تم».
   if (!data) {

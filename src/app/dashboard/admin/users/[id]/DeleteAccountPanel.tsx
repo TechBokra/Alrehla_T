@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Trash2, Archive, Loader2, RotateCcw } from 'lucide-react';
 import { deleteUserAccount, restoreArchivedAccount } from '@/actions/admin-users';
 import { FormError } from '@/components/ui/FormError';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 import { formatCairo } from '@/lib/timezone';
 
 /** أسماء الحركات زي ما بترجع من `account_activity` (ملف 10). */
@@ -49,6 +50,8 @@ export function DeleteAccountPanel({
   const [open, setOpen] = useState(Boolean(pendingRequest));
   const [reason, setReason] = useState(pendingRequest ? 'بناءً على طلب العميل' : '');
   const [error, setError] = useState('');
+  // الخطأ على خانة السبب نفسها؟ بيظهر تحتها بدل الصندوق.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [done, setDone] = useState<'deleted' | null>(null);
 
   if (done === 'deleted') {
@@ -108,9 +111,11 @@ export function DeleteAccountPanel({
     if (!window.confirm(msg)) return;
     startTransition(async () => {
       setError('');
+      setErrorField(undefined);
       const r = await deleteUserAccount({ userId, reason });
       if (!r.ok) {
         setError(r.error);
+        setErrorField(r.field);
         return;
       }
       if (r.mode === 'deleted') setDone('deleted');
@@ -153,7 +158,7 @@ export function DeleteAccountPanel({
             )}
           </p>
 
-          <FormError message={error} />
+          <FormError message={errorField ? '' : error} />
 
           {!open ? (
             <button
@@ -166,33 +171,30 @@ export function DeleteAccountPanel({
             </button>
           ) : (
             <div className="space-y-3">
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-slate-600">سبب الحذف (مطلوب)</span>
-                <input
-                  type="text"
+              <Field
+                label="سبب الحذف"
+                name="reason"
+                required
+                error={errorField === 'reason' ? error : undefined}
+              >
+                <TextInput
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   disabled={busy}
                   placeholder="حساب تجريبي، أو بطلب العميل…"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-800"
                 />
-              </label>
+              </Field>
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
+                <BusyButton
+                  variant="danger"
+                  busy={busy}
+                  pendingLabel={willArchive ? 'جارٍ الأرشفة…' : 'جارٍ الحذف…'}
                   onClick={run}
-                  disabled={busy || reason.trim().length < 3}
-                  className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 font-bold text-white hover:bg-rose-700 disabled:opacity-40"
+                  disabled={reason.trim().length < 3}
                 >
-                  {busy ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : willArchive ? (
-                    <Archive className="h-4 w-4" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
+                  {willArchive ? <Archive className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                   {willArchive ? 'اقفله وأرشفه' : 'احذفه نهائيًا'}
-                </button>
+                </BusyButton>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}

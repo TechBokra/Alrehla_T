@@ -197,9 +197,9 @@ describe('Zero-Row Mutation Hardening Tests', () => {
     it('enforces authorization restriction (non-admin rejection)', async () => {
       mockRequireAdmin.mockRejectedValue(new Error('غير مصرح لك بتعديل أدوار المستخدمين'));
 
-      await expect(updateUserRole('target-user-1', 'student')).rejects.toThrow(
-        'غير مصرح لك بتعديل أدوار المستخدمين'
-      );
+      // بترجع النتيجة بدل ما ترمي — الرسالة بتوصل للشاشة في الإنتاج.
+      const result = await updateUserRole('target-user-1', 'student');
+      expect(result).toEqual({ ok: false, error: 'غير مصرح لك بتعديل أدوار المستخدمين' });
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
   });
@@ -651,7 +651,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       const result = await approveProfileUpdateRequest('req-1');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ ok: true });
       expect(instructorUpdateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           bio: 'New bio',
@@ -723,9 +723,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(approveProfileUpdateRequest('req-1')).rejects.toThrow(
-        'التعديلات مروّحتش للقاعدة — ملف المدرب مش موجود أو الصلاحيات مش سامحة.'
-      );
+      // بترجّع ولا بترمي (قاعدة «هـ»).
+      await expect(approveProfileUpdateRequest('req-1')).resolves.toEqual({
+        ok: false,
+        error: 'التعديلات مروّحتش للقاعدة — ملف المدرب مش موجود أو الصلاحيات مش سامحة.',
+      });
 
       // Invariant: Request must NEVER be marked as approved when instructor update affects 0 rows!
       expect(requestUpdateMock).not.toHaveBeenCalled();
@@ -778,7 +780,10 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(approveProfileUpdateRequest('req-1')).rejects.toThrow('تعذّر تطبيق التعديلات');
+      await expect(approveProfileUpdateRequest('req-1')).resolves.toEqual({
+        ok: false,
+        error: 'تعذّر تطبيق التعديلات',
+      });
 
       // Invariant: Request must NEVER be marked as approved on DB error
       expect(requestUpdateMock).not.toHaveBeenCalled();
@@ -789,7 +794,10 @@ describe('Zero-Row Mutation Hardening Tests', () => {
     it('enforces authorization rules (canManageInstructors required)', async () => {
       mockRequireAdmin.mockRejectedValue(new Error('غير مصرح لك بإدارة المدربين'));
 
-      await expect(approveProfileUpdateRequest('req-1')).rejects.toThrow('غير مصرح لك بإدارة المدربين');
+      await expect(approveProfileUpdateRequest('req-1')).resolves.toEqual({
+        ok: false,
+        error: 'غير مصرح لك بإدارة المدربين',
+      });
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
 
@@ -816,7 +824,10 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(approveProfileUpdateRequest('missing-req')).rejects.toThrow('الطلب غير موجود');
+      await expect(approveProfileUpdateRequest('missing-req')).resolves.toEqual({
+        ok: false,
+        error: 'الطلب غير موجود',
+      });
     });
 
     it('enforces business validation: rejects when request status is not pending', async () => {
@@ -847,7 +858,10 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(approveProfileUpdateRequest('req-1')).rejects.toThrow('تم البتّ في هذا الطلب من قبل');
+      await expect(approveProfileUpdateRequest('req-1')).resolves.toEqual({
+        ok: false,
+        error: 'تم البتّ في هذا الطلب من قبل',
+      });
     });
   });
 

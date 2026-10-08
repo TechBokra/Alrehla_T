@@ -10,12 +10,12 @@ import { reviewInstructorMedia } from '@/actions/instructor-media';
  * أكشنز صفحة «مراجعة ملفات المدربين» — المكان الواحد اللي بيتراجع فيه
  * ملف المدرب وصوره.
  *
- * الدوال الأصلية (`approveProfileUpdateRequest` …) بترمي عند الخطأ،
- * والصفحة دي نماذج خادم (`ActionForm`) محتاجة نتيجة `{ ok }` — فده
- * غلاف رفيع حواليها مش منطق جديد. الحماية والتسجيل والإشعار كلهم في
- * الأصلية زي ما هم.
+ * الدوال الأصلية (`approveProfileUpdateRequest` …) بقت بترجّع `{ ok, error }`
+ * بدل ما ترمي (قاعدة «هـ»)، والصفحة دي نماذج خادم (`ActionForm`) بتقرا
+ * نفس الشكل — فده غلاف رفيع حواليها مش منطق جديد (بيقرا القرار من
+ * النموذج). الحماية والتسجيل والإشعار كلهم في الأصلية زي ما هم.
  */
-export type ReviewResult = { ok: true } | { ok: false; error: string };
+export type ReviewResult = { ok: true } | { ok: false; error: string; field?: string };
 
 const REVIEW_PATH = '/dashboard/admin/instructors/review';
 
@@ -28,13 +28,15 @@ export async function reviewProfileRequest(formData: FormData): Promise<ReviewRe
 
   try {
     if (decision === 'approved') {
-      await approveProfileUpdateRequest(id);
+      const result = await approveProfileUpdateRequest(id);
+      if (!result.ok) return { ok: false, error: result.error };
     } else if (decision === 'rejected') {
       // الرفض بلا سبب بيسيب المدرب يبعت نفس الحاجة تاني.
       if (feedback.length < 3) {
-        return { ok: false, error: 'اكتب سبب الرفض عشان المدرب يعرف يصلّح إيه' };
+        return { ok: false, error: 'اكتب سبب الرفض عشان المدرب يعرف يصلّح إيه', field: 'feedback' };
       }
-      await rejectProfileUpdateRequest(id, feedback);
+      const result = await rejectProfileUpdateRequest(id, feedback);
+      if (!result.ok) return { ok: false, error: result.error };
     } else {
       return { ok: false, error: 'القرار غير معروف' };
     }
@@ -84,7 +86,8 @@ export async function approveAllForInstructor(formData: FormData): Promise<Revie
   // الطلبات بالترتيب: لو طلبين لنفس الخانة، الأحدث هو اللي بيفضل.
   for (const r of requests ?? []) {
     try {
-      await approveProfileUpdateRequest(r.id);
+      const result = await approveProfileUpdateRequest(r.id);
+      if (!result.ok) failures.push(result.error);
     } catch (err) {
       failures.push(err instanceof Error ? err.message : 'طلب تعديل ماتعتمدش');
     }

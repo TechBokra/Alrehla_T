@@ -10,6 +10,8 @@ import {
 } from '@/actions/instructor-services';
 import { formatPrice, calculateFinalSessionPrice } from '@/lib/utils';
 import type { PricingFormulaSettings } from '@/types';
+import { Field, TextInput, Checkbox, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   instructorId: string;
@@ -38,8 +40,23 @@ export function InstructorServicesSection({ instructorId, services, offers, form
   });
 
   const [isPending, startTransition] = useTransition();
+  // أنهي زرار اتداس (`save:<id>` / `reject:<id>`) — عشان هو بس اللي يكتب «جارٍ…».
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // الخطأ على خانة بعينها في صف بعينه — رسالته بتظهر تحت الخانة.
+  const [errorAt, setErrorAt] = useState<{ serviceId: string; field: string } | null>(null);
+  const fieldError = (serviceId: string, field: string) =>
+    errorAt?.serviceId === serviceId && errorAt.field === field ? (error ?? undefined) : undefined;
+
+  const showError = (message: string, serviceId?: string, field?: string) => {
+    setError(message);
+    setErrorAt(serviceId && field ? { serviceId, field } : null);
+  };
+  const clearError = () => {
+    setError(null);
+    setErrorAt(null);
+  };
 
   const update = (serviceId: string, patch: Partial<RowState>) =>
     setRows((prev) => ({ ...prev, [serviceId]: { ...prev[serviceId], ...patch } }));
@@ -48,47 +65,63 @@ export function InstructorServicesSection({ instructorId, services, offers, form
     const row = rows[serviceId];
     const parsed = row.price.trim() === '' ? null : Number(row.price);
     if (parsed !== null && (isNaN(parsed) || parsed <= 0)) {
-      setError('السعر لازم يكون رقم أكبر من صفر');
+      showError('السعر لازم يكون رقم أكبر من صفر', serviceId, 'price');
       return;
     }
-    setError(null);
+    clearError();
+    setActiveKey(`save:${serviceId}`);
     startTransition(async () => {
       try {
-        await saveInstructorServiceOffer({
+        const result = await saveInstructorServiceOffer({
           instructorId,
           serviceId,
           approvedPrice: parsed,
           isActive: row.isActive,
         });
+        if (!result.ok) {
+          showError(result.error, serviceId, result.field);
+          return;
+        }
         setSavedId(serviceId);
         setTimeout(() => setSavedId(null), 2500);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'تعذّر الحفظ');
+      } catch {
+        // الأكشن بيرجّع رسالته؛ ده للانقطاع وأي حاجة غير متوقعة.
+        showError('تعذّر الحفظ');
       }
     });
   };
 
   const handleReject = (serviceId: string) => {
-    setError(null);
+    clearError();
+    setActiveKey(`reject:${serviceId}`);
     startTransition(async () => {
       try {
-        await rejectInstructorServiceOffer(instructorId, serviceId, rejectNote);
+        const result = await rejectInstructorServiceOffer(instructorId, serviceId, rejectNote);
+        if (!result.ok) {
+          showError(result.error, serviceId, result.field);
+          return;
+        }
         setRejectingId(null);
         setRejectNote('');
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'تعذّر الرفض');
+      } catch {
+        showError('تعذّر الرفض');
       }
     });
   };
 
   const handleRemove = (serviceId: string) => {
-    setError(null);
+    clearError();
+    setActiveKey(`remove:${serviceId}`);
     startTransition(async () => {
       try {
-        await removeInstructorServiceOffer(instructorId, serviceId);
+        const result = await removeInstructorServiceOffer(instructorId, serviceId);
+        if (!result.ok) {
+          showError(result.error);
+          return;
+        }
         update(serviceId, { price: '', isActive: true });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'تعذّر الحذف');
+      } catch {
+        showError('تعذّر الحذف');
       }
     });
   };
@@ -111,11 +144,7 @@ export function InstructorServicesSection({ instructorId, services, offers, form
         لها حصيلة معتمدة تظهر للعملاء؛ والتي بلا حصيلة تبقى قيد المراجعة ولا تظهر.
       </p>
 
-      {error && (
-        <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {error && !errorAt && <FormError message={error} className="mb-4" />}
 
       <div className="flex flex-col gap-3">
         {services.map((service) => {
@@ -167,32 +196,28 @@ export function InstructorServicesSection({ instructorId, services, offers, form
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-bold text-slate-600" htmlFor={`price-${service.id}`}>
-                  حصيلة المدرب
-                </label>
-                <input
+              <Field
+                label="حصيلة المدرب (ج.م)"
+                name="price"
+                error={fieldError(service.id, 'price')}
+                className="w-40"
+              >
+                <TextInput
                   id={`price-${service.id}`}
                   type="number"
                   min={0}
                   inputMode="numeric"
                   placeholder="—"
-                  className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={row.price}
                   onChange={(e) => update(service.id, { price: e.target.value })}
                 />
-                <span className="text-sm text-slate-500">ج.م</span>
-              </div>
+              </Field>
 
-              <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded"
-                  checked={row.isActive}
-                  onChange={(e) => update(service.id, { isActive: e.target.checked })}
-                />
-                مفعّلة
-              </label>
+              <Checkbox
+                label="مفعّلة"
+                checked={row.isActive}
+                onChange={(e) => update(service.id, { isActive: e.target.checked })}
+              />
 
               <div className="flex min-w-[110px] items-center gap-1 text-xs font-bold">
                 {isApproved ? (
@@ -209,15 +234,14 @@ export function InstructorServicesSection({ instructorId, services, offers, form
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <BusyButton
+                  busy={isPending && activeKey === `save:${service.id}`}
                   disabled={isPending}
                   onClick={() => handleSave(service.id)}
-                  className="flex items-center gap-1 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
                   {savedId === service.id ? 'تم' : 'حفظ'}
-                </button>
+                </BusyButton>
                 {offer && offer.status !== 'rejected' && (
                   <button
                     type="button"
@@ -246,31 +270,31 @@ export function InstructorServicesSection({ instructorId, services, offers, form
 
               {rejectingId === service.id && (
                 <div className="w-full space-y-2 rounded-2xl border border-rose-200 bg-rose-50 p-3">
-                  <label className="text-xs font-bold text-rose-800">
-                    سبب الرفض (يصل للمدرب)
-                  </label>
-                  <input
-                    className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm"
-                    value={rejectNote}
-                    onChange={(e) => setRejectNote(e.target.value)}
-                    placeholder="مثال: السعر أعلى من المعتاد لهذه الخدمة"
-                  />
+                  <Field
+                    label="سبب الرفض (يصل للمدرب)"
+                    name="adminNotes"
+                    required
+                    error={fieldError(service.id, 'adminNotes')}
+                  >
+                    <TextInput
+                      value={rejectNote}
+                      onChange={(e) => setRejectNote(e.target.value)}
+                      placeholder="مثال: السعر أعلى من المعتاد لهذه الخدمة"
+                    />
+                  </Field>
                   <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRejectingId(null)}
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600"
-                    >
+                    <BusyButton busy={false} variant="secondary" onClick={() => setRejectingId(null)}>
                       إلغاء
-                    </button>
-                    <button
-                      type="button"
+                    </BusyButton>
+                    <BusyButton
+                      variant="danger"
+                      busy={isPending && activeKey === `reject:${service.id}`}
+                      pendingLabel="جارٍ الرفض…"
                       disabled={isPending}
                       onClick={() => handleReject(service.id)}
-                      className="rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
                     >
                       تأكيد الرفض
-                    </button>
+                    </BusyButton>
                   </div>
                 </div>
               )}

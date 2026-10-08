@@ -16,6 +16,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Field, TextInput, TextArea, SubmitButton } from '@/components/forms/Form';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
@@ -150,12 +151,13 @@ export default async function InstructorReviewPage() {
                       {item.status === 'approved' && (
                         <ActionForm action={revokeInstructorMedia} className="mt-auto space-y-2 pt-2">
                           <input type="hidden" name="id" value={item.id} />
-                          <input
-                            name="feedback"
-                            maxLength={300}
-                            placeholder="سبب السحب — بيوصل للمدرب"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
-                          />
+                          <Field label="سبب السحب" name="feedback" required hint="بيوصل للمدرب">
+                            <TextInput
+                              maxLength={300}
+                              placeholder="سبب السحب — بيوصل للمدرب"
+                              className="text-base md:text-sm"
+                            />
+                          </Field>
                           <Button type="submit" variant="secondary" accentColor="enhaLak">
                             سحب الاعتماد
                           </Button>
@@ -245,9 +247,7 @@ function InstructorGroup({
 
         <ActionForm action={approveAllForInstructor}>
           <input type="hidden" name="instructorId" value={group.instructorId} />
-          <Button type="submit" accentColor="journey">
-            اعتماد كل اللي مستني
-          </Button>
+          <SubmitButton pendingLabel="جارٍ الاعتماد…">اعتماد كل اللي مستني</SubmitButton>
         </ActionForm>
       </div>
 
@@ -328,17 +328,18 @@ function InstructorGroup({
                   المخفية كانت هتخلّي الرسالة عن خانة الإداري مش شايفها. */}
               {/* `textarea` مش `input`: Enter في خانة السبب كان هيدوس أول
                   زرار — «اعتماد» — وده عكس اللي الإداري بيكتب السبب عشانه. */}
-              <textarea
-                name="feedback"
-                rows={2}
-                maxLength={300}
-                placeholder="سبب الرفض — بيوصل للمدرب"
-                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
-              />
+              <Field label="سبب الرفض" name="feedback" hint="مطلوب لو هترفض بس — بيوصل للمدرب">
+                <TextArea
+                  rows={2}
+                  maxLength={300}
+                  placeholder="سبب الرفض — بيوصل للمدرب"
+                  className="resize-none text-base md:text-sm"
+                />
+              </Field>
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" name="decision" value="approved" accentColor="journey">
+                <SubmitButton name="decision" value="approved" pendingLabel="جارٍ الحفظ…">
                   اعتماد التعديل
-                </Button>
+                </SubmitButton>
                 <Button
                   type="submit"
                   name="decision"
@@ -386,17 +387,18 @@ function InstructorGroup({
                   )}
                   <ActionForm action={reviewInstructorMedia} className="mt-auto space-y-2 pt-2">
                     <input type="hidden" name="id" value={item.id} />
-                    <textarea
-                      name="feedback"
-                      rows={2}
-                      maxLength={300}
-                      placeholder="سبب الرفض — بيوصل للمدرب"
-                      className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
-                    />
+                    <Field label="سبب الرفض" name="feedback" hint="مطلوب لو هترفض بس — بيوصل للمدرب">
+                      <TextArea
+                        rows={2}
+                        maxLength={300}
+                        placeholder="سبب الرفض — بيوصل للمدرب"
+                        className="resize-none text-base md:text-sm"
+                      />
+                    </Field>
                     <div className="flex flex-wrap gap-2">
-                      <Button type="submit" name="decision" value="approved" accentColor="journey">
+                      <SubmitButton name="decision" value="approved" pendingLabel="جارٍ الحفظ…">
                         اعتماد
-                      </Button>
+                      </SubmitButton>
                       <Button
                         type="submit"
                         name="decision"

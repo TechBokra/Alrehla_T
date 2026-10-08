@@ -46,7 +46,8 @@ import {
 import { formatDate, formatPrice } from '@/lib/utils';
 import { formatCairo, PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { Pagination } from '@/components/dashboard/Pagination';
-import { FormError, FormSuccess } from '@/components/ui/FormError';
+import { FormError } from '@/components/ui/FormError';
+import { Field, TextInput, Select, BusyButton, fieldClass } from '@/components/forms/Form';
 
 export interface UserOrderRow {
   id: string;
@@ -139,6 +140,8 @@ export function AdminUserDetailClient({
   })();
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleFeedback, setRoleFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  // خطأ الخادم على خانة الدور نفسها (`field: 'role'`) — بيظهر تحتها.
+  const [roleFieldError, setRoleFieldError] = useState('');
 
   // Password reset state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -146,6 +149,8 @@ export function AdminUserDetailClient({
   const [customPasswordInput, setCustomPasswordInput] = useState('');
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  // خطأ على خانة كلمة المرور نفسها — بيظهر تحتها مش فوق النافذة.
+  const [passwordFieldError, setPasswordFieldError] = useState('');
   const [passwordResult, setPasswordResult] = useState<{
     email: string;
     tempCode: string;
@@ -167,9 +172,10 @@ export function AdminUserDetailClient({
   // Password Reset Handler
   const handleResetPassword = async () => {
     setPasswordError('');
+    setPasswordFieldError('');
     setPasswordResult(null);
     if (passwordMode === 'custom' && customPasswordInput.trim().length < 8) {
-      setPasswordError('كلمة المرور يجب أن تكون 8 خانات على الأقل.');
+      setPasswordFieldError('كلمة المرور يجب أن تكون 8 خانات على الأقل.');
       return;
     }
     setResettingPassword(true);
@@ -181,6 +187,8 @@ export function AdminUserDetailClient({
       if (res.ok) {
         setPasswordResult(res);
         setCustomPasswordInput('');
+      } else if (res.field === 'customPassword') {
+        setPasswordFieldError(res.error);
       } else {
         setPasswordError(res.error);
       }
@@ -210,6 +218,7 @@ export function AdminUserDetailClient({
   const handleRoleChange = async () => {
     setRoleSaving(true);
     setRoleFeedback(null);
+    setRoleFieldError('');
     try {
       const decoded = choiceToRole(selectedNewRole, adminRoles);
       if (!decoded) {
@@ -222,6 +231,8 @@ export function AdminUserDetailClient({
         setRoleFeedback({ ok: true, msg: 'تم تغيير دور المستخدم بنجاح.' });
         setTimeout(() => setShowRoleModal(false), 1500);
         router.refresh();
+      } else if (res.field === 'role') {
+        setRoleFieldError(res.error);
       } else {
         setRoleFeedback({ ok: false, msg: res.error });
       }
@@ -683,36 +694,40 @@ export function AdminUserDetailClient({
 
             {/* شريط البحث والفلترة */}
             <div className="flex items-center gap-2">
-              <div className="relative">
+              <div className="relative w-48">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
-                  type="text"
+                  type="search"
+                  aria-label="بحث في الطلبات"
                   placeholder="بحث في الطلبات…"
                   value={orderSearch}
                   onChange={(e) => {
                     setOrderSearch(e.target.value);
                     setOrderPage(1);
                   }}
-                  className="rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-800"
+                  className={`${fieldClass} pr-9 text-sm`}
                 />
               </div>
 
-              <select
-                value={orderStatusFilter}
-                onChange={(e) => {
-                  setOrderStatusFilter(e.target.value);
-                  setOrderPage(1);
-                }}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-800"
-              >
-                <option value="all">كل الحالات</option>
-                <option value="pending">بانتظار الدفع</option>
-                <option value="paid">مدفوع</option>
-                <option value="shipped">تم الشحن</option>
-                <option value="delivered">تم التسليم</option>
-                <option value="completed">مكتمل</option>
-                <option value="cancelled">ملغي</option>
-              </select>
+              <div className="w-40 shrink-0">
+                <select
+                  aria-label="حالة الطلب"
+                  value={orderStatusFilter}
+                  onChange={(e) => {
+                    setOrderStatusFilter(e.target.value);
+                    setOrderPage(1);
+                  }}
+                  className={`${fieldClass} text-sm`}
+                >
+                  <option value="all">كل الحالات</option>
+                  <option value="pending">بانتظار الدفع</option>
+                  <option value="paid">مدفوع</option>
+                  <option value="shipped">تم الشحن</option>
+                  <option value="delivered">تم التسليم</option>
+                  <option value="completed">مكتمل</option>
+                  <option value="cancelled">ملغي</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -845,34 +860,38 @@ export function AdminUserDetailClient({
             <h3 className="text-sm font-black text-slate-900">سجل الجلسات التدريبية ({sessions.length})</h3>
 
             <div className="flex items-center gap-2">
-              <div className="relative">
+              <div className="relative w-48">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                 <input
-                  type="text"
+                  type="search"
+                  aria-label="بحث بالباقة أو المدرب"
                   placeholder="بحث بالباقة أو المدرب…"
                   value={sessionSearch}
                   onChange={(e) => {
                     setSessionSearch(e.target.value);
                     setSessionPage(1);
                   }}
-                  className="rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-800"
+                  className={`${fieldClass} pr-9 text-sm`}
                 />
               </div>
 
-              <select
-                value={sessionStatusFilter}
-                onChange={(e) => {
-                  setSessionStatusFilter(e.target.value);
-                  setSessionPage(1);
-                }}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:border-slate-800"
-              >
-                <option value="all">كل الحالات</option>
-                <option value="scheduled">مجدولة</option>
-                <option value="confirmed">مؤكدة</option>
-                <option value="completed">مكتملة</option>
-                <option value="cancelled">ملغاة</option>
-              </select>
+              <div className="w-40 shrink-0">
+                <select
+                  aria-label="حالة الجلسة"
+                  value={sessionStatusFilter}
+                  onChange={(e) => {
+                    setSessionStatusFilter(e.target.value);
+                    setSessionPage(1);
+                  }}
+                  className={`${fieldClass} text-sm`}
+                >
+                  <option value="all">كل الحالات</option>
+                  <option value="scheduled">مجدولة</option>
+                  <option value="confirmed">مؤكدة</option>
+                  <option value="completed">مكتملة</option>
+                  <option value="cancelled">ملغاة</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1056,11 +1075,7 @@ export function AdminUserDetailClient({
               </div>
             </div>
 
-            {passwordError && (
-              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-bold text-red-700">
-                {passwordError}
-              </div>
-            )}
+            <FormError message={passwordError} className="mb-4" />
 
             {passwordResult ? (
               <div className="space-y-4">
@@ -1170,17 +1185,21 @@ export function AdminUserDetailClient({
                 </div>
 
                 {passwordMode === 'custom' && (
-                  <div className="space-y-1.5 pt-1">
-                    <label className="text-xs font-bold text-slate-700">كلمة المرور الجديدة (8 أحرف أو أرقام على الأقل)</label>
-                    <input
-                      type="text"
+                  <Field
+                    label="كلمة المرور الجديدة (8 أحرف أو أرقام على الأقل)"
+                    name="customPassword"
+                    required
+                    error={passwordFieldError || undefined}
+                    className="pt-1"
+                  >
+                    <TextInput
                       dir="ltr"
                       placeholder="اكتب كلمة المرور هنا…"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 font-mono text-sm text-slate-900 focus:border-indigo-500 focus:outline-hidden"
+                      className="font-mono"
                       value={customPasswordInput}
                       onChange={(e) => setCustomPasswordInput(e.target.value)}
                     />
-                  </div>
+                  </Field>
                 )}
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] text-amber-900 font-medium leading-relaxed">
@@ -1195,15 +1214,14 @@ export function AdminUserDetailClient({
                   >
                     إلغاء
                   </button>
-                  <button
-                    type="button"
-                    disabled={resettingPassword}
+                  <BusyButton
+                    busy={resettingPassword}
+                    pendingLabel="جارٍ التعيين…"
                     onClick={handleResetPassword}
-                    className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-xs"
                   >
                     <KeyRound className="h-4 w-4" />
-                    <span>{resettingPassword ? 'جارٍ التعيين…' : 'حفظ وتوليد كلمة المرور'}</span>
-                  </button>
+                    <span>حفظ وتوليد كلمة المرور</span>
+                  </BusyButton>
                 </div>
               </div>
             )}
@@ -1243,13 +1261,14 @@ export function AdminUserDetailClient({
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700">اختر الدور الجديد:</label>
-              <select
-                value={selectedNewRole}
-                onChange={(e) => setSelectedNewRole(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-slate-800"
-              >
+            <Field
+              label="اختر الدور الجديد:"
+              name="role"
+              required
+              error={roleFieldError || undefined}
+              hint="* ملاحظة: دور المدرب يتم تعيينه عبر شاشة «المدربين» لضمان إنشاء ملف تدريبي متكامل."
+            >
+              <Select value={selectedNewRole} onChange={(e) => setSelectedNewRole(e.target.value)}>
                 {roleChoices(
                   ['customer', 'service_provider', 'publisher', 'general_supervisor', 'super_admin'],
                   adminRoles,
@@ -1260,11 +1279,8 @@ export function AdminUserDetailClient({
                     {c.label}
                   </option>
                 ))}
-              </select>
-              <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                * ملاحظة: دور المدرب يتم تعيينه عبر شاشة «المدربين» لضمان إنشاء ملف تدريبي متكامل.
-              </p>
-            </div>
+              </Select>
+            </Field>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
               <button
@@ -1274,14 +1290,13 @@ export function AdminUserDetailClient({
               >
                 إلغاء
               </button>
-              <button
-                type="button"
-                disabled={roleSaving || selectedNewRole === currentRole}
+              <BusyButton
+                busy={roleSaving}
+                disabled={selectedNewRole === currentRole}
                 onClick={handleRoleChange}
-                className="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-40 transition-colors shadow-xs"
               >
-                {roleSaving ? 'جارٍ الحفظ…' : 'تأكيد تغيير الدور'}
-              </button>
+                تأكيد تغيير الدور
+              </BusyButton>
             </div>
           </div>
         </div>

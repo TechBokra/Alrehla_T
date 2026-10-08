@@ -17,9 +17,8 @@ import {
   roleDisplayName,
   type AdminRoleOption,
 } from '@/lib/role-choice';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
+import { Field, TextInput, Select, BusyButton, fieldClass } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 export const ROLE_LABELS: Record<string, string> = {
   visitor: 'زائر',
@@ -200,7 +199,9 @@ export function UsersClient({
         <div className="relative">
           <Search className="absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
-            className={`${inputClass} pr-11`}
+            type="search"
+            aria-label="ابحث بالاسم أو البريد الإلكتروني"
+            className={`${fieldClass} pr-11`}
             placeholder="ابحث بالاسم أو البريد الإلكتروني…"
             value={filters.search}
             onChange={(e) => set('search', e.target.value)}
@@ -208,57 +209,37 @@ export function UsersClient({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">الدور</label>
-            <select
-              className={inputClass}
-              value={filters.role}
-              onChange={(e) => set('role', e.target.value)}
-            >
+          <Field label="الدور">
+            <Select value={filters.role} onChange={(e) => set('role', e.target.value)}>
               <option value="">كل الأدوار</option>
               {Object.entries(ROLE_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>
                   {l}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">ولي أمر</label>
-            <select
-              className={inputClass}
-              value={filters.guardian}
-              onChange={(e) => set('guardian', e.target.value)}
-            >
+            </Select>
+          </Field>
+          <Field label="ولي أمر">
+            <Select value={filters.guardian} onChange={(e) => set('guardian', e.target.value)}>
               <option value="">الكل</option>
               <option value="yes">ولي أمر</option>
               <option value="no">ليس ولي أمر</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">البريد</label>
-            <select
-              className={inputClass}
-              value={filters.account}
-              onChange={(e) => set('account', e.target.value)}
-            >
+            </Select>
+          </Field>
+          <Field label="البريد">
+            <Select value={filters.account} onChange={(e) => set('account', e.target.value)}>
               <option value="">الكل</option>
               <option value="with_email">له بريد مسجَّل</option>
               <option value="no_email">بدون بريد</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">الحالة</label>
-            <select
-              className={inputClass}
-              value={filters.state}
-              onChange={(e) => set('state', e.target.value)}
-            >
+            </Select>
+          </Field>
+          <Field label="الحالة">
+            <Select value={filters.state} onChange={(e) => set('state', e.target.value)}>
               <option value="">الحسابات الموجودة</option>
               <option value="suspended">الموقوفة والمعلَّقة</option>
               <option value="archived">المحذوفة (مؤرشفة)</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
         {activeFilterCount > 0 && (
@@ -364,18 +345,22 @@ function RoleCell({
 
   return (
     <div className="space-y-1">
-      <select
-        value={value}
-        disabled={busy}
-        onChange={(e) => change(e.target.value)}
-        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700 focus:border-blue-500 focus:outline-none disabled:opacity-50"
-      >
-        {roleChoices(ASSIGNABLE, adminRoles, ROLE_LABELS, isSuperAdmin).map((c) => (
-          <option key={c.value} value={c.value}>
-            {c.label}
-          </option>
-        ))}
-      </select>
+      {/* خانة جوّه صف الجدول — العنوان «الدور» فوق العمود، فالاسم للقارئ الصوتي بس. */}
+      <div className="min-w-[12rem]">
+        <Select
+          aria-label="الدور"
+          value={value}
+          disabled={busy}
+          aria-invalid={Boolean(error) || undefined}
+          onChange={(e) => change(e.target.value)}
+        >
+          {roleChoices(ASSIGNABLE, adminRoles, ROLE_LABELS, isSuperAdmin).map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </Select>
+      </div>
       {error && <p className="max-w-[12rem] text-xs font-bold text-red-600">{error}</p>}
     </div>
   );
@@ -414,14 +399,19 @@ function AddUserForm({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — بتتعلّم بالأحمر والرسالة تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [link, setLink] = useState('');
   const [created, setCreated] = useState<{ fullName: string; email: string; password: string } | null>(null);
 
   const reset = () => setForm({ email: '', fullName: '', role: 'customer', password: '' });
 
+  const err = (f: string) => (errorField === f ? error : undefined);
+
   const submit = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     setLink('');
     setCreated(null);
     try {
@@ -435,6 +425,7 @@ function AddUserForm({
         const result = await createUserDirectly(payload);
         if (!result.ok) {
           setError(result.error);
+          setErrorField(result.field);
           return; // الفورم ما بيتفضّاش عند الفشل: التصحيح أسهل من إعادة الكتابة
         }
         setCreated({
@@ -446,6 +437,7 @@ function AddUserForm({
         const result = await inviteUser(payload);
         if (!result.ok) {
           setError(result.error);
+          setErrorField(result.field);
           return;
         }
         setLink(result.inviteLink);
@@ -465,6 +457,7 @@ function AddUserForm({
       onClick={() => {
         setMode(value);
         setError('');
+        setErrorField(undefined);
       }}
       className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-colors ${
         mode === value
@@ -491,11 +484,8 @@ function AddUserForm({
           : 'الحساب هيتعمل وهيظهرلك رابط تبعته للشخص (واتساب مثلًا) يحدد منه كلمة مروره. مفيش كلمة مرور بتمر عليك ولا بتتخزّن في أي مكان.'}
       </p>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {/* الخطأ اللي مش على خانة بعينها فوق؛ اللي على خانة بيظهر تحتها. */}
+      <FormError message={errorField ? '' : error} className="mb-4" />
       {link && <InviteLinkBox link={link} />}
       {created && (
         <NewAccountBox
@@ -506,52 +496,48 @@ function AddUserForm({
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
-          <input
+        <Field label="البريد الإلكتروني" name="email" required error={err('email')}>
+          <TextInput
             type="email"
             dir="ltr"
-            className={`${inputClass} text-left`}
+            className="text-left"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">الاسم الكامل</label>
-          <input
-            className={inputClass}
+        </Field>
+        <Field label="الاسم الكامل" name="fullName" required error={err('fullName')}>
+          <TextInput
             value={form.fullName}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">الدور</label>
-          <select
-            className={inputClass}
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-          >
+        </Field>
+        <Field label="الدور" name="role" required error={err('role')}>
+          <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             {roleChoices(ASSIGNABLE, adminRoles, ROLE_LABELS, isSuperAdmin).map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
         {mode === 'direct' && (
-          <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700">
-              كلمة المرور <span className="font-medium text-slate-600">(اختيارية)</span>
-            </label>
-            <input
-              type="text"
+          <Field
+            label={
+              <>
+                كلمة المرور <span className="font-medium text-slate-600">(اختيارية)</span>
+              </>
+            }
+            name="password"
+            error={err('password')}
+          >
+            <TextInput
               dir="ltr"
-              className={`${inputClass} text-left`}
+              className="text-left"
               placeholder="سيبها فاضية للتوليد التلقائي"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
-          </div>
+          </Field>
         )}
       </div>
 
@@ -576,18 +562,14 @@ function AddUserForm({
         >
           إغلاق
         </button>
-        <button
-          type="button"
+        <BusyButton
+          busy={busy}
+          pendingLabel="جارٍ الإنشاء…"
           onClick={submit}
-          disabled={busy || !form.email.trim() || !form.fullName.trim()}
-          className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
+          disabled={!form.email.trim() || !form.fullName.trim()}
         >
-          {busy
-            ? 'جارٍ الإنشاء…'
-            : mode === 'direct'
-              ? 'إنشاء الحساب'
-              : 'إنشاء الدعوة'}
-        </button>
+          {mode === 'direct' ? 'إنشاء الحساب' : 'إنشاء الدعوة'}
+        </BusyButton>
       </div>
     </div>
   );

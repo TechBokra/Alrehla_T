@@ -10,8 +10,10 @@ import {
   assignAdminRole,
 } from '@/actions/admin-permissions';
 import type { AdminRoleRow } from '@/data/domains/auth';
+import { Field, TextInput, Select, Checkbox, BusyButton } from '@/components/forms/Form';
 
-type Message = { ok: boolean; text: string } | null;
+// `field`: الخطأ على خانة بعينها (`name` أو `permissions`) — بيظهر تحتها.
+type Message = { ok: boolean; text: string; field?: string } | null;
 
 function Feedback({ message }: { message: Message }) {
   if (!message) return null;
@@ -31,28 +33,28 @@ function PermissionChecklist({
   labels,
   allPermissions,
   disabled,
+  error,
 }: {
   selected: AdminPermission[];
   setSelected: React.Dispatch<React.SetStateAction<AdminPermission[]>>;
   labels: Record<string, string>;
   allPermissions: AdminPermission[];
   disabled?: boolean;
+  /** «اختار صلاحية واحدة على الأقل» — بيظهر تحت القايمة نفسها. */
+  error?: string;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {allPermissions.map((permission) => {
-        const on = selected.includes(permission);
-        return (
-          <label
-            key={permission}
-            className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3 ${
-              on
-                ? 'border-amber-300 bg-amber-50/50'
-                : 'border-slate-200 hover:border-amber-300'
-            }`}
-          >
-            <input
-              type="checkbox"
+    <fieldset aria-invalid={Boolean(error) || undefined}>
+      <legend className="sr-only">الصلاحيات</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {allPermissions.map((permission) => {
+          const on = selected.includes(permission);
+          return (
+            <Checkbox
+              key={permission}
+              name="permissions"
+              value={permission}
+              label={<span className="text-sm">{labels[permission] ?? permission}</span>}
               disabled={disabled}
               checked={on}
               onChange={(e) =>
@@ -62,20 +64,27 @@ function PermissionChecklist({
                     : prev.filter((p) => p !== permission)
                 )
               }
-              className="h-5 w-5 rounded border-slate-300"
+              className={`rounded-2xl border p-3 ${
+                on
+                  ? 'border-amber-300 bg-amber-50/50'
+                  : 'border-slate-200 hover:border-amber-300'
+              }`}
             />
-            <span className="text-sm font-bold text-slate-700">
-              {labels[permission] ?? permission}
-            </span>
-          </label>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+      {error && <p className="mt-2 text-xs font-bold text-red-600">{error}</p>}
+    </fieldset>
   );
 }
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:border-amber-500';
+/** الخطأ على الخانة دي؟ رسالته — وإلا ولا حاجة. */
+const fieldError = (message: Message, field: string) =>
+  message && !message.ok && message.field === field ? message.text : undefined;
+
+/** الرسالة العامة — لو الخطأ على خانة بعينها بيظهر تحتها بدل هنا. */
+const generalMessage = (message: Message): Message =>
+  message && !message.ok && message.field ? null : message;
 
 /** دور إداري واحد: اسمه وصلاحياته ومين فيه — والحفظ بيسري على الكل. */
 export function AdminRoleEditor({
@@ -94,7 +103,8 @@ export function AdminRoleEditor({
   const [selected, setSelected] = React.useState<AdminPermission[]>(
     role.permissions
   );
-  const [busy, setBusy] = React.useState(false);
+  // أنهي زرار شغّال — عشان «جاري الحفظ…» ماتظهرش على زرار المسح.
+  const [busy, setBusy] = React.useState<'' | 'save' | 'remove'>('');
   const [message, setMessage] = React.useState<Message>(null);
 
   const changed =
@@ -103,16 +113,16 @@ export function AdminRoleEditor({
     selected.some((p) => !role.permissions.includes(p));
 
   async function save() {
-    setBusy(true);
+    setBusy('save');
     setMessage(null);
     const result = await saveAdminRole({
       id: role.id,
       name,
       permissions: selected,
     });
-    setBusy(false);
+    setBusy('');
     if (!result.ok) {
-      setMessage({ ok: false, text: result.error });
+      setMessage({ ok: false, text: result.error, field: result.field });
       return;
     }
     setMessage({
@@ -134,10 +144,10 @@ export function AdminRoleEditor({
         '\n\nتأكيد؟'
     );
     if (!sure) return;
-    setBusy(true);
+    setBusy('remove');
     setMessage(null);
     const result = await deleteAdminRole(role.id);
-    setBusy(false);
+    setBusy('');
     if (!result.ok) {
       setMessage({ ok: false, text: result.error });
       return;
@@ -149,14 +159,22 @@ export function AdminRoleEditor({
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-[14rem] flex-1 space-y-1.5">
-          <div className="flex items-center gap-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={40}
-              aria-label="اسم الدور"
-              className={`${inputClass} max-w-xs text-lg font-black`}
-            />
+          <div className="flex items-end gap-2">
+            <Field
+              label="اسم الدور"
+              name="name"
+              required
+              error={fieldError(message, 'name')}
+              className="w-full max-w-xs"
+            >
+              <TextInput
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={40}
+                disabled={busy !== ''}
+                className="text-lg font-black"
+              />
+            </Field>
             {role.isDefault && (
               <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
                 الافتراضي
@@ -184,30 +202,31 @@ export function AdminRoleEditor({
         setSelected={setSelected}
         labels={labels}
         allPermissions={allPermissions}
-        disabled={busy}
+        disabled={busy !== ''}
+        error={fieldError(message, 'permissions')}
       />
 
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <button
-          type="button"
+        <BusyButton
+          busy={busy === 'save'}
+          pendingLabel="جاري الحفظ…"
           onClick={save}
-          disabled={busy || !changed}
-          className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+          disabled={busy !== '' || !changed}
         >
-          {busy ? 'جاري الحفظ…' : 'حفظ'}
-        </button>
+          حفظ
+        </BusyButton>
         {!role.isDefault && (
           <button
             type="button"
             onClick={remove}
-            disabled={busy}
+            disabled={busy !== ''}
             className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
-            مسح الدور
+            {busy === 'remove' ? 'جاري المسح…' : 'مسح الدور'}
           </button>
         )}
-        <Feedback message={message} />
+        <Feedback message={generalMessage(message)} />
       </div>
     </div>
   );
@@ -234,7 +253,7 @@ export function NewAdminRole({
     const result = await saveAdminRole({ name, permissions: selected });
     setBusy(false);
     if (!result.ok) {
-      setMessage({ ok: false, text: result.error });
+      setMessage({ ok: false, text: result.error, field: result.field });
       return;
     }
     setName('');
@@ -259,30 +278,33 @@ export function NewAdminRole({
   return (
     <div className="rounded-3xl border-2 border-amber-300 bg-white p-6 shadow-sm">
       <p className="mb-3 text-lg font-black text-slate-800">دور إداري جديد</p>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        maxLength={40}
-        placeholder="اسم الدور — مثلًا: مسؤول دعم"
-        aria-label="اسم الدور الجديد"
-        className={`${inputClass} mb-4 max-w-sm`}
-      />
+      <Field
+        label="اسم الدور الجديد"
+        name="name"
+        required
+        error={fieldError(message, 'name')}
+        className="mb-4 max-w-sm"
+      >
+        <TextInput
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          disabled={busy}
+          placeholder="اسم الدور — مثلًا: مسؤول دعم"
+        />
+      </Field>
       <PermissionChecklist
         selected={selected}
         setSelected={setSelected}
         labels={labels}
         allPermissions={allPermissions}
         disabled={busy}
+        error={fieldError(message, 'permissions')}
       />
       <div className="mt-5 flex flex-wrap items-center gap-4">
-        <button
-          type="button"
-          onClick={create}
-          disabled={busy}
-          className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          {busy ? 'جاري الإضافة…' : 'إضافة الدور'}
-        </button>
+        <BusyButton busy={busy} pendingLabel="جاري الإضافة…" onClick={create}>
+          إضافة الدور
+        </BusyButton>
         <button
           type="button"
           onClick={() => {
@@ -294,7 +316,7 @@ export function NewAdminRole({
         >
           إلغاء
         </button>
-        <Feedback message={message} />
+        <Feedback message={generalMessage(message)} />
       </div>
     </div>
   );
@@ -367,19 +389,22 @@ function PersonRow({
       <span className="font-bold text-slate-800">{person.fullName}</span>
       <div className="flex items-center gap-3">
         <Feedback message={message} />
-        <select
-          value={value}
-          disabled={busy}
-          onChange={(e) => change(e.target.value)}
-          aria-label={`الدور الإداري لـ${person.fullName}`}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:border-amber-500 focus:outline-none disabled:opacity-60"
-        >
-          {roles.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
+        {/* خانة جوّه صف — اسم الشخص جنبها، فالعنوان للقارئ الصوتي بس. */}
+        <div className="w-56">
+          <Select
+            value={value}
+            disabled={busy}
+            onChange={(e) => change(e.target.value)}
+            aria-label={`الدور الإداري لـ${person.fullName}`}
+            aria-invalid={(message && !message.ok) || undefined}
+          >
+            {roles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
     </li>
   );

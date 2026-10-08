@@ -10,11 +10,16 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/dashboard/Pagination';
 import { createInstructor } from '@/actions/admin-instructors';
 import { TempCodeBox } from '@/components/dashboard/TempCodeBox';
-import { FormNotice } from '@/components/ui/FormError';
+import { FormError, FormNotice, FormSuccess } from '@/components/ui/FormError';
+import {
+  Field,
+  TextInput,
+  TextArea,
+  Select,
+  BusyButton,
+  fieldClass,
+} from '@/components/forms/Form';
 import type { InstructorAdminRow } from '@/data/domains/writing';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
 
 /** كل فلتر قيمته '' معناها «الكل» — عشان الشاشة تفتح بكل الصفوف. */
 const EMPTY_FILTERS = {
@@ -164,7 +169,9 @@ export function InstructorsClient({
         <div className="relative">
           <Search className="absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
-            className={`${inputClass} pr-11`}
+            type="search"
+            aria-label="ابحث بالاسم أو التخصص"
+            className={`${fieldClass} pr-11`}
             placeholder="ابحث بالاسم أو التخصص…"
             value={filters.search}
             onChange={(e) => set('search', e.target.value)}
@@ -172,7 +179,7 @@ export function InstructorsClient({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Select
+          <FilterSelect
             label="حالة الحساب"
             value={filters.status}
             onChange={(v) => set('status', v)}
@@ -183,7 +190,7 @@ export function InstructorsClient({
               ['suspended', 'موقوف'],
             ]}
           />
-          <Select
+          <FilterSelect
             label="طلب المراجعة"
             value={filters.review}
             onChange={(v) => set('review', v)}
@@ -192,7 +199,7 @@ export function InstructorsClient({
               ['none', 'لا يوجد'],
             ]}
           />
-          <Select
+          <FilterSelect
             label="التدريب"
             value={filters.training}
             onChange={(v) => set('training', v)}
@@ -201,7 +208,7 @@ export function InstructorsClient({
               ['not_passed', 'لم يجتز'],
             ]}
           />
-          <Select
+          <FilterSelect
             label="الخدمات الإبداعية"
             value={filters.services}
             onChange={(v) => set('services', v)}
@@ -210,7 +217,7 @@ export function InstructorsClient({
               ['none', 'غير مشترك'],
             ]}
           />
-          <Select
+          <FilterSelect
             label="نظام العمل"
             value={filters.workModel}
             onChange={(v) => set('workModel', v)}
@@ -251,7 +258,7 @@ export function InstructorsClient({
   );
 }
 
-function Select({
+function FilterSelect({
   label,
   value,
   onChange,
@@ -263,21 +270,16 @@ function Select({
   options: [string, string][];
 }) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-bold text-slate-600">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
-      >
+    <Field label={label}>
+      <Select value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">الكل</option>
         {options.map(([v, l]) => (
           <option key={v} value={v}>
             {l}
           </option>
         ))}
-      </select>
-    </div>
+      </Select>
+    </Field>
   );
 }
 
@@ -303,14 +305,19 @@ function AddInstructorForm({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — رسالتها بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [done, setDone] = useState('');
   const [code, setCode] = useState('');
   const [codeEmail, setCodeEmail] = useState('');
   const [providerWarning, setProviderWarning] = useState('');
 
+  const err = (f: string) => (errorField === f ? error : undefined);
+
   const submit = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     setDone('');
     setCode('');
     try {
@@ -323,6 +330,11 @@ function AddInstructorForm({
           .filter(Boolean),
         yearsExperience: Number(form.yearsExperience) || 0,
       });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       // ⚠️ التنبيه ده على عملية **تمّت**: المدرب اتعمل والرمز في إيد
       //    الإدارة، بس صف مقدّم الخدمة لأ. لونه أصفر لا أحمر عشان
       //    محدّش يعيد الإنشاء ويطلّع حسابين.
@@ -349,8 +361,9 @@ function AddInstructorForm({
         password: '',
       });
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر إضافة المدرب');
+    } catch {
+      // الأكشن بيرجّع رسالته؛ ده للانقطاع وأي حاجة غير متوقعة.
+      setError('تعذّر إضافة المدرب');
     } finally {
       setBusy(false);
     }
@@ -365,77 +378,54 @@ function AddInstructorForm({
         للعملاء إلا لما تفعّله من صفحته.
       </p>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
-      {done && (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-          {done}
-        </div>
-      )}
+      {error && !errorField && <FormError message={error} className="mb-4" />}
+      {done && <FormSuccess message={done} className="mb-4" />}
 
       <FormNotice message={providerWarning} className="mb-4" />
       {code && <TempCodeBox code={code} email={codeEmail} role="المدرب" />}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
-          <input
+        <Field label="البريد الإلكتروني" name="email" required error={err('email')}>
+          <TextInput
             type="email"
             dir="ltr"
-            className={`${inputClass} text-left`}
+            className="text-left"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">الاسم الكامل</label>
-          <input
-            className={inputClass}
+        </Field>
+        <Field label="الاسم الكامل" name="fullName" required error={err('fullName')}>
+          <TextInput
             value={form.fullName}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">
-            الاسم المعروض للطلاب
-          </label>
-          <input
-            className={inputClass}
+        </Field>
+        <Field label="الاسم المعروض للطلاب" name="displayName">
+          <TextInput
             placeholder="يُترك فارغًا = نفس الاسم الكامل"
             value={form.displayName}
             onChange={(e) => setForm({ ...form, displayName: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">سنوات الخبرة</label>
-          <input
+        </Field>
+        <Field label="سنوات الخبرة" name="yearsExperience">
+          <TextInput
             type="number"
             min={0}
-            className={inputClass}
             value={form.yearsExperience}
             onChange={(e) =>
               setForm({ ...form, yearsExperience: Number(e.target.value) })
             }
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">
-            التخصصات (مفصولة بفاصلة)
-          </label>
-          <input
-            className={inputClass}
+        </Field>
+        <Field label="التخصصات (مفصولة بفاصلة)" name="specialties">
+          <TextInput
             placeholder="الكتابة للأطفال، بناء الشخصيات"
             value={form.specialties}
             onChange={(e) => setForm({ ...form, specialties: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-slate-700">نظام العمل</label>
-          <select
-            className={inputClass}
+        </Field>
+        <Field label="نظام العمل" name="workModel">
+          <Select
             value={form.workModel}
             onChange={(e) =>
               setForm({ ...form, workModel: e.target.value as 'monthly' | 'per_session' })
@@ -443,49 +433,44 @@ function AddInstructorForm({
           >
             <option value="per_session">بالجلسة</option>
             <option value="monthly">اشتراك شهري</option>
-          </select>
-        </div>
-        <div className="space-y-1.5 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-bold text-slate-700">كلمة المرور الأولية (اختياري)</label>
-            <span className="text-xs text-slate-400 font-medium">اتركه فارغاً لتوليد رمز مؤقت آمن تلقائياً</span>
-          </div>
-          <input
-            type="text"
+          </Select>
+        </Field>
+        <Field
+          label="كلمة المرور الأولية (اختياري)"
+          name="password"
+          hint="اتركه فارغاً لتوليد رمز مؤقت آمن تلقائياً"
+          error={err('password')}
+          className="md:col-span-2"
+        >
+          <TextInput
             dir="ltr"
             placeholder="مثال: اختر كلمة مرور للمدرب (8 أحرف فأكثر) أو اتركه فارغاً"
-            className={`${inputClass} text-left font-mono`}
+            className="text-left font-mono"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-sm font-bold text-slate-700">نبذة</label>
-          <textarea
-            rows={3}
-            className={`${inputClass} resize-y`}
+        </Field>
+        <Field label="نبذة" name="bio" className="md:col-span-2">
+          <TextArea
+            className="resize-y"
             value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
           />
-        </div>
+        </Field>
       </div>
 
       <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={onDone}
-          className="rounded-xl px-6 py-3 font-bold text-slate-600 hover:text-slate-900"
-        >
+        <BusyButton busy={false} variant="secondary" onClick={onDone}>
           إغلاق
-        </button>
-        <button
-          type="button"
+        </BusyButton>
+        <BusyButton
+          busy={busy}
+          pendingLabel="جارٍ الإضافة…"
           onClick={submit}
-          disabled={busy || !form.email.trim() || !form.fullName.trim()}
-          className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
+          disabled={!form.email.trim() || !form.fullName.trim()}
         >
-          {busy ? 'جارٍ الإضافة…' : 'إضافة المدرب'}
-        </button>
+          إضافة المدرب
+        </BusyButton>
       </div>
     </div>
   );

@@ -35,9 +35,23 @@ import { notifyUser, getInstructorUserId } from '@/lib/notifications';
  * صلاحيات القاعدة على `provider_services`. الكود هنا **مش** الحارس.
  */
 
+/**
+ * ⚠️ **دوال الإدارة هنا (حفظ/رفض/حذف عرض) بترجّع ولا بترمي** (قاعدة
+ *    «هـ»): Next بيمسح نصّ الاستثناء في الإنتاج، فالإداري كان بيشوف
+ *    رسالة إنجليزي عامة. دوال المدرب نفسه (تحت) لسه بترمي زي ما هي.
+ */
+export type OfferAdminResult = { ok: true } | { ok: false; error: string; field?: string };
+
+const DENIED = 'غير مصرح لك بإدارة عروض المدربين';
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireInstructorAdmin() {
-  return requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة عروض المدربين');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»).
+  try {
+    return await requireAdmin('canManageCatalog', DENIED);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -122,14 +136,14 @@ export async function saveInstructorServiceOffer(params: {
   approvedPrice: number | null;
   isActive: boolean;
   adminNotes?: string;
-}) {
-  await requireInstructorAdmin();
+}): Promise<OfferAdminResult> {
+  if (!(await requireInstructorAdmin())) return { ok: false, error: DENIED };
   const supabase = await createClient();
 
   const { instructorId, serviceId, approvedPrice, isActive, adminNotes } = params;
 
   const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   // A price is what makes the offer real; without one it stays pending so it
   // never reaches a visitor half-configured.
@@ -153,10 +167,10 @@ export async function saveInstructorServiceOffer(params: {
 
   if (error) {
     console.error('Error saving instructor service offer', error);
-    throw new Error(`تعذّر حفظ الخدمة: ${error.message}`);
+    return { ok: false, error: `تعذّر حفظ الخدمة: ${error.message}` };
   }
   if (!saved || saved.length === 0) {
-    throw new Error('الحفظ مروّحش للقاعدة — الصلاحيات مش سامحة بالتعديل.');
+    return { ok: false, error: 'الحفظ مروّحش للقاعدة — الصلاحيات مش سامحة بالتعديل.' };
   }
 
   await notifyUser({
@@ -180,12 +194,12 @@ export async function saveInstructorServiceOffer(params: {
 export async function removeInstructorServiceOffer(
   instructorId: string,
   serviceId: string
-) {
-  await requireInstructorAdmin();
+): Promise<OfferAdminResult> {
+  if (!(await requireInstructorAdmin())) return { ok: false, error: DENIED };
   const supabase = await createClient();
 
   const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   const { error } = await supabase
     .from('provider_services')
@@ -195,7 +209,7 @@ export async function removeInstructorServiceOffer(
 
   if (error) {
     console.error('Error removing instructor service offer', error);
-    throw new Error(`تعذّر حذف الخدمة: ${error.message}`);
+    return { ok: false, error: `تعذّر حذف الخدمة: ${error.message}` };
   }
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
@@ -209,16 +223,16 @@ export async function rejectInstructorServiceOffer(
   instructorId: string,
   serviceId: string,
   adminNotes: string
-) {
-  await requireInstructorAdmin();
+): Promise<OfferAdminResult> {
+  if (!(await requireInstructorAdmin())) return { ok: false, error: DENIED };
   if (!adminNotes.trim()) {
-    throw new Error('اكتب سبب الرفض ليصل للمدرب');
+    return { ok: false, error: 'اكتب سبب الرفض ليصل للمدرب', field: 'adminNotes' };
   }
 
   const supabase = await createClient();
 
   const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   const { data: rejected, error } = await supabase
     .from('provider_services')
@@ -235,12 +249,12 @@ export async function rejectInstructorServiceOffer(
 
   if (error) {
     console.error('Error rejecting instructor service offer', error);
-    throw new Error(`تعذّر رفض الطلب: ${error.message}`);
+    return { ok: false, error: `تعذّر رفض الطلب: ${error.message}` };
   }
   // صفر صفوف = مفيش عرض بالمفتاحين دول. من غير الفحص ده الإدارة بتشوف
   // «اترفض» وبيوصل للمدرب إشعار رفض، والعرض لسه معتمد في القاعدة.
   if (!rejected || rejected.length === 0) {
-    throw new Error('العرض ده مش موجود — الرفض مروّحش للقاعدة.');
+    return { ok: false, error: 'العرض ده مش موجود — الرفض مروّحش للقاعدة.' };
   }
 
   await notifyUser({

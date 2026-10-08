@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Pencil, Check, X } from 'lucide-react';
 import { Instructor } from '@/types';
 import { updateInstructorProfileByAdmin } from '@/actions/instructors';
+import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   instructor: Instructor;
 }
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
 
 /**
  * Direct editing of an instructor's public profile by an admin.
@@ -24,6 +23,9 @@ export function InstructorProfileEditor({ instructor }: Props) {
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — رسالتها بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
+  const err = (f: string) => (errorField === f ? error : undefined);
 
   const [displayName, setDisplayName] = useState(instructor.displayName ?? '');
   const [bio, setBio] = useState(instructor.bio ?? '');
@@ -36,14 +38,16 @@ export function InstructorProfileEditor({ instructor }: Props) {
     setSpecialties((instructor.specialties ?? []).join('، '));
     setYearsExperience(instructor.yearsExperience ?? 0);
     setError('');
+    setErrorField(undefined);
     setEditing(false);
   };
 
   const save = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     try {
-      await updateInstructorProfileByAdmin(instructor.id, {
+      const result = await updateInstructorProfileByAdmin(instructor.id, {
         displayName: displayName.trim(),
         bio: bio.trim(),
         specialties: specialties
@@ -52,10 +56,16 @@ export function InstructorProfileEditor({ instructor }: Props) {
           .filter(Boolean),
         yearsExperience: Number(yearsExperience) || 0,
       });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setEditing(false);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر الحفظ');
+    } catch {
+      // الأكشن بيرجّع رسالته؛ ده للانقطاع وأي حاجة غير متوقعة.
+      setError('تعذّر الحفظ');
     } finally {
       setBusy(false);
     }
@@ -81,72 +91,46 @@ export function InstructorProfileEditor({ instructor }: Props) {
         )}
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {error && !errorField && <FormError message={error} className="mb-4" />}
 
       {editing ? (
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">الاسم المعروض</label>
-              <input
-                className={inputClass}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">سنوات الخبرة</label>
-              <input
+            <Field label="الاسم المعروض" name="displayName" required error={err('displayName')}>
+              <TextInput value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            </Field>
+            <Field label="سنوات الخبرة" name="yearsExperience" error={err('yearsExperience')}>
+              <TextInput
                 type="number"
                 min={0}
-                className={inputClass}
                 value={yearsExperience}
                 onChange={(e) => setYearsExperience(Number(e.target.value))}
               />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold text-slate-700">النبذة</label>
-              <textarea
+            </Field>
+            <Field label="النبذة" name="bio" className="md:col-span-2">
+              <TextArea
                 rows={4}
-                className={`${inputClass} resize-none`}
+                className="resize-none"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-bold text-slate-700">
-                التخصصات (مفصولة بفاصلة)
-              </label>
-              <input
-                className={inputClass}
+            </Field>
+            <Field label="التخصصات (مفصولة بفاصلة)" name="specialties" className="md:col-span-2">
+              <TextInput
                 value={specialties}
                 onChange={(e) => setSpecialties(e.target.value)}
                 placeholder="مثال: الكتابة للأطفال، بناء الشخصيات"
               />
-            </div>
+            </Field>
           </div>
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={cancel}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
-            >
+            <BusyButton busy={false} variant="secondary" onClick={cancel} disabled={busy}>
               <X className="h-4 w-4" /> إلغاء
-            </button>
-            <button
-              type="button"
-              onClick={save}
-              disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-            >
-              <Check className="h-4 w-4" /> {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-            </button>
+            </BusyButton>
+            <BusyButton busy={busy} onClick={save}>
+              <Check className="h-4 w-4" /> حفظ
+            </BusyButton>
           </div>
         </div>
       ) : (

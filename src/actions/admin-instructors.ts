@@ -8,6 +8,40 @@ import { logAuditAction } from '@/lib/audit';
 import { generateTempCode, MUST_SET_PASSWORD } from '@/lib/first-login';
 
 /**
+ * ⚠️ **الدوال هنا بترجّع ولا بترمي** (قاعدة «هـ»). كانت بترمي، وNext
+ *    بيمسح نصّ الاستثناء في الإنتاج — فالإداري اللي كتب بريدًا غلط كان
+ *    بيشوف رسالة إنجليزي عامة بدل «اكتب بريدًا إلكترونيًا صحيحًا».
+ *    و`field` = اسم الخانة اللي عليها الخطأ، والشاشة بتعلّمها.
+ */
+type Failure = { ok: false; error: string; field?: string };
+
+const fail = (error: string, field?: string): Failure =>
+  field ? { ok: false, error, field } : { ok: false, error };
+
+/** `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (نفس نمط `requireOrdersAdmin`). */
+async function tryRequireInstructorsAdmin(message: string) {
+  try {
+    return await requireAdmin('canManageInstructors', message);
+  } catch {
+    return null;
+  }
+}
+
+export type CreateInstructorResult =
+  | {
+      ok: true;
+      instructorId: string;
+      invited: boolean;
+      tempCode: string | null;
+      providerWarning: string | null;
+    }
+  | Failure;
+
+export type ResetInstructorPasswordResult =
+  | { ok: true; email: string; tempCode: string; isCustom: boolean }
+  | Failure;
+
+/**
  * إضافة مدرب من لوحة الإدارة.
  *
  * مدرب = حساب دخول + صف في جدول المدربين. العمودان مربوطان: جدول المدربين
@@ -38,18 +72,19 @@ export async function createInstructor(params: {
   yearsExperience: number;
   workModel: 'monthly' | 'per_session';
   password?: string;
-}) {
-  const admin = await requireAdmin('canManageInstructors', 'غير مصرح لك بإضافة مدربين');
+}): Promise<CreateInstructorResult> {
+  const admin = await tryRequireInstructorsAdmin('غير مصرح لك بإضافة مدربين');
+  if (!admin) return fail('غير مصرح لك بإضافة مدربين');
 
   const email = params.email.trim().toLowerCase();
   const fullName = params.fullName.trim();
   const displayName = params.displayName.trim() || fullName;
   const typedPassword = params.password?.trim() ?? '';
 
-  if (!email || !email.includes('@')) throw new Error('اكتب بريدًا إلكترونيًا صحيحًا');
-  if (!fullName) throw new Error('اكتب اسم المدرب');
+  if (!email || !email.includes('@')) return fail('اكتب بريدًا إلكترونيًا صحيحًا', 'email');
+  if (!fullName) return fail('اكتب اسم المدرب', 'fullName');
   if (typedPassword && typedPassword.length < 8) {
-    throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+    return fail('كلمة المرور يجب أن تكون 8 أحرف على الأقل', 'password');
   }
 
   const supabaseAdmin = createAdminClient();
@@ -77,7 +112,7 @@ export async function createInstructor(params: {
       .eq('user_id', userId)
       .maybeSingle();
     if (already) {
-      throw new Error('الشخص ده مسجَّل كمدرب بالفعل');
+      return fail('الشخص ده مسجَّل كمدرب بالفعل', 'email');
     }
   } else {
     const code = typedPassword || generateTempCode();
@@ -96,12 +131,12 @@ export async function createInstructor(params: {
     if (error) {
       console.error('Error creating instructor account', error);
       if (error.message?.toLowerCase().includes('already')) {
-        throw new Error('فيه حساب بالبريد ده بالفعل');
+        return fail('فيه حساب بالبريد ده بالفعل', 'email');
       }
-      throw new Error('تعذّر إنشاء الحساب');
+      return fail('تعذّر إنشاء الحساب');
     }
     if (!data.user?.id) {
-      throw new Error('تعذّر إنشاء الحساب');
+      return fail('تعذّر إنشاء الحساب');
     }
     userId = data.user.id;
     tempCode = code;
@@ -114,7 +149,7 @@ export async function createInstructor(params: {
 
   if (profileError) {
     console.error('Error setting instructor profile', profileError);
-    throw new Error('تعذّر حفظ بيانات المستخدم');
+    return fail('تعذّر حفظ بيانات المستخدم');
   }
 
   const { data: created, error: instructorError } = await supabaseAdmin
@@ -134,7 +169,7 @@ export async function createInstructor(params: {
 
   if (instructorError || !created) {
     console.error('Error creating instructor', instructorError);
-    throw new Error('تعذّر إنشاء ملف المدرب');
+    return fail('تعذّر إنشاء ملف المدرب');
   }
 
   // ── صف مقدّم الخدمة المرتبط بالمدرب ───────────────────────
@@ -199,8 +234,9 @@ export async function createInstructor(params: {
 export async function resetInstructorPassword(params: {
   instructorId: string;
   customPassword?: string;
-}): Promise<{ ok: true; email: string; tempCode: string; isCustom: boolean }> {
-  const admin = await requireAdmin('canManageInstructors', 'غير مصرح لك بإدارة حسابات المدربين');
+}): Promise<ResetInstructorPasswordResult> {
+  const admin = await tryRequireInstructorsAdmin('غير مصرح لك بإدارة حسابات المدربين');
+  if (!admin) return fail('غير مصرح لك بإدارة حسابات المدربين');
 
   const supabaseAdmin = createAdminClient();
 
@@ -212,7 +248,7 @@ export async function resetInstructorPassword(params: {
     .single();
 
   if (instructorError || !instructor || !instructor.user_id) {
-    throw new Error('المدرب غير موجود أو ليس لديه حساب مستخدم مرتبط');
+    return fail('المدرب غير موجود أو ليس لديه حساب مستخدم مرتبط');
   }
 
   // ⚠️ **نفس باب رفع الصلاحيات بتاع `resetUserPassword`.**
@@ -231,19 +267,19 @@ export async function resetInstructorPassword(params: {
     (ownerRole === 'super_admin' || ownerRole === 'general_supervisor') &&
     admin.role !== 'super_admin'
   ) {
-    throw new Error('الحساب ده إداري — إعادة تعيين كلمة مروره متاحة لمدير النظام وحده.');
+    return fail('الحساب ده إداري — إعادة تعيين كلمة مروره متاحة لمدير النظام وحده.');
   }
 
   // جلب بيانات الحساب من Auth
   const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(instructor.user_id);
   if (userError || !userData?.user) {
-    throw new Error('تعذّر العثور على حساب الدخول للمدرب');
+    return fail('تعذّر العثور على حساب الدخول للمدرب');
   }
 
   const email = userData.user.email ?? '';
   const typed = params.customPassword?.trim() ?? '';
   if (typed && typed.length < 8) {
-    throw new Error('كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل');
+    return fail('كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل', 'customPassword');
   }
 
   const password = typed || generateTempCode();
@@ -256,7 +292,7 @@ export async function resetInstructorPassword(params: {
 
   if (updateError) {
     console.error('Error resetting instructor password', updateError);
-    throw new Error(`تعذّر تعيين كلمة المرور: ${updateError.message}`);
+    return fail(`تعذّر تعيين كلمة المرور: ${updateError.message}`);
   }
 
   await logAuditAction({
@@ -296,9 +332,7 @@ export async function createInstructorFromJoinRequest(
   | { ok: true; tempCode: string | null; email: string; name: string; warning: string | null }
   | { ok: false; error: string }
 > {
-  try {
-    await requireAdmin('canManageInstructors', 'غير مصرح لك بإضافة مدربين');
-  } catch {
+  if (!(await tryRequireInstructorsAdmin('غير مصرح لك بإضافة مدربين'))) {
     return { ok: false, error: 'غير مصرح لك بإضافة مدربين' };
   }
 
@@ -328,6 +362,7 @@ export async function createInstructorFromJoinRequest(
       yearsExperience: 0,
       workModel: 'per_session',
     });
+    if (!result.ok) return { ok: false, error: result.error };
     return {
       ok: true,
       tempCode: result.tempCode,
