@@ -1,12 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useFormContext } from 'react-hook-form';
-import { User, Users, UserPlus, Check } from 'lucide-react';
+import { User, Users, UserPlus, Check, RefreshCw } from 'lucide-react';
 import { ChildProfile } from '@/types';
 import { fetchFamilyMembers, getWizardUserInfo } from '@/app/actions/family';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 
-type TargetMode = 'self' | 'family' | 'new_child';
+/**
+ * ⚠️ اختبار «إنها لك» (JKM9، قرار تامر): **مفيش إضافة طفل جديد من جوه
+ *    الطلب.** الطفل بيتضاف من «المركز العائلي» الأول (بياناته كاملة هناك)،
+ *    والمعالج بيختار منه بس. الرابط بيفتح في تاب جديد، وزرار «تحديث
+ *    القايمة» بيجيب الطفل الجديد من غير ما اللي اتكتب يضيع.
+ *    والخادم بيرفض نفس الحاجة (`resolveWizardChild`).
+ */
+type TargetMode = 'self' | 'family';
 
 export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
   const { register, watch, setValue, formState: { errors } } = useFormContext();
@@ -34,8 +42,6 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
       } else if (family.length > 0 && !familyMemberId && !currentName) {
         setMode('family');
         handleSelectMember(family[0]);
-      } else if (!familyMemberId && currentName && currentName !== user.fullName) {
-        setMode('new_child');
       } else {
         setMode('self');
         if (!currentName && user.fullName) {
@@ -45,6 +51,24 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
       }
     });
   }, []);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshMembers = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const family = await fetchFamilyMembers();
+      setMembers(family);
+      if (family.length > 0 && mode !== 'family') {
+        setMode('family');
+        setValue('familyMemberId', family[0].id, { shouldValidate: true });
+        setValue('newChildName', family[0].fullName, { shouldValidate: true });
+        setValue('newChildBirthDate', family[0].birthDate || '', { shouldValidate: true });
+        setValue('newChildGender', family[0].gender || '', { shouldValidate: true });
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [mode, setValue]);
 
   const handleSelectSelf = () => {
     setMode('self');
@@ -69,16 +93,6 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
     setValue('newChildName', m.fullName, { shouldValidate: true });
     setValue('newChildBirthDate', m.birthDate || '', { shouldValidate: true });
     setValue('newChildGender', m.gender || '', { shouldValidate: true });
-  };
-
-  const handleSelectNewChild = () => {
-    setMode('new_child');
-    setValue('familyMemberId', '', { shouldValidate: true });
-    if (currentName === userInfo.fullName || members.some((m) => m.fullName === currentName)) {
-      setValue('newChildName', '', { shouldValidate: true });
-      setValue('newChildBirthDate', '', { shouldValidate: true });
-      setValue('newChildGender', '', { shouldValidate: true });
-    }
   };
 
   const handleNextStep = () => {
@@ -119,7 +133,7 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
       {/* خيارات لمن هذا الطلب */}
       <div className="space-y-3">
         <label className="text-sm font-bold text-slate-700">لمن هذا الطلب؟</label>
-        <div className={`grid gap-3 ${members.length > 0 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
+        <div className={`grid gap-3 ${members.length > 0 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
           {/* خيار 1: لنفسي */}
           <button
             type="button"
@@ -164,28 +178,38 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
             </button>
           )}
 
-          {/* خيار 3: إضافة طفل / مستفيد جديد */}
-          <button
-            type="button"
-            onClick={handleSelectNewChild}
-            className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-right transition-all ${
-              mode === 'new_child'
-                ? 'border-blue-600 bg-blue-50/70 text-blue-900 shadow-xs'
-                : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
-            }`}
-          >
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-              mode === 'new_child' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-            }`}>
-              <UserPlus className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-bold text-sm">إضافة طفل / مستفيد جديد</div>
-              <div className="text-xs text-slate-500">طلب لطفل آخر أو إهداء</div>
-            </div>
-          </button>
         </div>
       </div>
+
+      {/* الطفل مش في القايمة؟ يتضاف من المركز العائلي (JKM9). */}
+      {loaded && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+          <div className="flex items-center gap-3">
+            <UserPlus className="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
+            <p className="text-sm font-medium text-slate-700">
+              {members.length > 0 ? 'الطفل مش في القايمة؟' : 'الطلب لطفل؟'} ضيفه الأول من{' '}
+              <Link
+                href="/account/family"
+                target="_blank"
+                rel="noopener"
+                className="font-bold text-blue-700 underline underline-offset-4"
+              >
+                المركز العائلي
+              </Link>{' '}
+              (بيفتح في تاب جديد)، وبعدين ارجع هنا.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refreshMembers}
+            disabled={refreshing}
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border-2 border-slate-200 px-4 text-sm font-bold text-slate-700 hover:border-slate-400 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+            تحديث القايمة
+          </button>
+        </div>
+      )}
 
       {/* عرض الأفراد من المركز العائلي */}
       {mode === 'family' && members.length > 0 && (
@@ -255,8 +279,8 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
         </div>
       )}
 
-      {/* نموذج إدخال البيانات (للنفس أو لطفل/مستفيد جديد) */}
-      {(mode === 'self' || mode === 'new_child') && (
+      {/* بيانات صاحب الحساب نفسه */}
+      {mode === 'self' && (
         <div className="grid gap-4 md:grid-cols-2 p-6 bg-slate-50 rounded-3xl border border-slate-200">
           <div className="space-y-2 md:col-span-2">
             <label className="text-sm font-bold text-slate-700">
@@ -271,11 +295,6 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
             {mode === 'self' && (
               <p className="text-xs text-slate-500 font-medium">
                 تم ملء اسمك تلقائياً ويمكنك تعديله إذا كنت تفضل لقباً أو صيغة معينة في القصة.
-              </p>
-            )}
-            {mode === 'new_child' && (
-              <p className="text-xs text-slate-500 font-medium">
-                سيتم حفظ هذا الملف في حسابك لتتمكن من إعادة استخدامه بسهولة في المرات القادمة.
               </p>
             )}
           </div>
