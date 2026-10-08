@@ -1,2 +1,2 @@
-Deployment integration check for TechBokra/Alrehla_T.
-This file was added to trigger a Git-based Vercel deployment.
+Deployment trigger for TechBokra/Alrehla_T.
+Last trigger: 2026-10-08 — test deploy after switching commit author to TechBokra.
