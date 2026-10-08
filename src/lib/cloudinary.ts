@@ -25,7 +25,44 @@ export type UploadedImage = {
   publicId: string;
 };
 
-export async function uploadImage(file: File, folder = 'alrehla'): Promise<UploadedImage> {
+/**
+ * بيرفع الملف لـCloudinary — بـ`XMLHttpRequest` مش `fetch` عشان نعرف
+ * النسبة: صورة ١٠ ميجا على موبايل بتاخد وقت، والزرار اللي بيقول
+ * «جارٍ الرفع…» بس من غير ما يتحرّك بيخلّي الناس تضغط تاني أو تقفل.
+ */
+export function cloudinaryPost(
+  url: string,
+  body: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as Record<string, unknown>);
+        } catch {
+          reject(new Error('تعذّر رفع الصورة'));
+        }
+      } else {
+        console.error('Cloudinary upload failed', xhr.status, xhr.responseText);
+        reject(new Error('تعذّر رفع الصورة، برجاء المحاولة مرة أخرى'));
+      }
+    };
+    xhr.onerror = () => reject(new Error('انقطع الاتصال أثناء الرفع — اتأكد من النت وجرّب تاني'));
+    xhr.send(body);
+  });
+}
+
+export async function uploadImage(
+  file: File,
+  folder = 'alrehla',
+  onProgress?: (percent: number) => void,
+): Promise<UploadedImage> {
   if (!ALLOWED.includes(file.type)) {
     throw new Error('نوع الملف غير مدعوم — استخدم صورة JPG أو PNG');
   }
@@ -38,18 +75,11 @@ export async function uploadImage(file: File, folder = 'alrehla'): Promise<Uploa
   body.append('upload_preset', UPLOAD_PRESET);
   body.append('folder', folder);
 
-  const response = await fetch(
+  const data = (await cloudinaryPost(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-    { method: 'POST', body }
-  );
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Cloudinary upload failed', response.status, detail);
-    throw new Error('تعذّر رفع الصورة، برجاء المحاولة مرة أخرى');
-  }
-
-  const data = (await response.json()) as { secure_url?: string; public_id?: string };
+    body,
+    onProgress,
+  )) as { secure_url?: string; public_id?: string };
   if (!data.secure_url) throw new Error('تعذّر رفع الصورة');
 
   return { url: data.secure_url, publicId: data.public_id ?? '' };

@@ -69,13 +69,19 @@ export function PaymentReviewPanel({
             rel="noopener noreferrer"
             className="relative block h-64 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
           >
-            <Image
-              src={optimizedImageUrl(receiptUrl, 800)}
-              alt="إيصال التحويل"
-              fill
-              sizes="(max-width: 768px) 100vw, 400px"
-              className="object-contain"
-            />
+            {/* الإيصال الخاص (`lib/receipt-ref`) رابطه مؤقت ومن `api.cloudinary.com`
+                — مايعدّيش على مُحسِّن الصور، بيتعرض زي ما هو. */}
+            {receiptUrl.startsWith('https://res.cloudinary.com/') ? (
+              <Image
+                src={optimizedImageUrl(receiptUrl, 800)}
+                alt="إيصال التحويل"
+                fill
+                sizes="(max-width: 768px) 100vw, 400px"
+                className="object-contain"
+              />
+            ) : (
+              <img src={receiptUrl} alt="إيصال التحويل" className="h-full w-full object-contain" />
+            )}
           </a>
         ) : (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">

@@ -9,6 +9,15 @@ import { PublisherCostField } from '@/components/dashboard/PublisherCostField';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 import {
+  Field,
+  FormActions,
+  FormSection,
+  Select,
+  SubmitButton,
+  TextArea,
+  TextInput,
+} from '@/components/forms/Form';
+import {
   PUBLISHER_PRODUCT_CATEGORIES,
   PRODUCT_CATEGORY_LABELS,
 } from '@/lib/product-categories';
@@ -43,14 +52,12 @@ export default async function Page() {
           <input type="hidden" name="ownerType" value="publisher" />
           <input type="hidden" name="publisherId" value={myPublisher.id} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">اسم المنتج</label>
-              <input type="text" name="name" required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">النوع / التصنيف</label>
-              <select name="category" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
+          <FormSection columns={2}>
+            <Field label="اسم المنتج" name="name" required>
+              <TextInput />
+            </Field>
+            <Field label="النوع / التصنيف" name="category" required>
+              <Select>
                 {/* ⚠️ **كانت أربعة، تلاتة منهم القاعدة بترفضهم**
                     («كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف).
                     والناشر بيعرض إصدارات جاهزة، فالمكتبة هي مساره —
@@ -62,9 +69,9 @@ export default async function Page() {
                     {PRODUCT_CATEGORY_LABELS[c]}
                   </option>
                 ))}
-              </select>
-            </div>
-          </div>
+              </Select>
+            </Field>
+          </FormSection>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <PublisherCostField formula={formula} />
@@ -73,10 +80,9 @@ export default async function Page() {
                 الخانة مش مبعوتة. */}
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">الوصف</label>
-            <textarea name="shortDescription" rows={3} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none"></textarea>
-          </div>
+          <Field label="الوصف" name="shortDescription" required hint="سطر قصير بيظهر على كارت المنتج.">
+            <TextArea rows={3} />
+          </Field>
           
           {/* ══ 🔴 النموذج ده كان ناقصه نص صفحة المنتج ══════════════
               مافيهوش الوصف الكامل ولا المعرض ولا التفاصيل — والحفظ كان
@@ -100,11 +106,9 @@ export default async function Page() {
             أي تعديل بيرجّع المنتج لمراجعة الإدارة، وبيقف عن البيع لحد ما يتوافق عليه.
           </p>
 
-          <div className="pt-6 border-t border-slate-100 flex justify-end">
-            <button type="submit" className="rounded-xl bg-amber-500 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-amber-600">
-              إضافة المنتج
-            </button>
-          </div>
+          <FormActions>
+            <SubmitButton>إضافة المنتج</SubmitButton>
+          </FormActions>
         </ActionForm>
       </div>
     </div>

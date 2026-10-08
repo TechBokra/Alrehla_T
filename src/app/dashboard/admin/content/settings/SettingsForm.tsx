@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
-import { useActionState } from 'react';
-import { useFormStatus } from 'react-dom';
-import { updateSiteSettings, SiteSettingsResult } from '@/actions/content';
+import React, { useState } from 'react';
+import { updateSiteSettings } from '@/actions/content';
+import { ActionForm } from '@/components/dashboard/ActionForm';
+import { FormActions, SubmitButton } from '@/components/forms/Form';
 
 /**
  * الفورم بيقول حصل إيه.
@@ -11,42 +11,36 @@ import { updateSiteSettings, SiteSettingsResult } from '@/actions/content';
  * قبل كده كان بينادي دالة الحفظ ومبيعرضش أي نتيجة: لا نجاح ولا فشل.
  * فلو القاعدة رفضت الكتابة، الشاشة كانت بتتحدّث والقيم ترجع زي ما هي،
  * ومحدش يعرف السبب.
+ *
+ * دلوقتي جوّه `ActionForm` الموحّد: الخطأ بيظهر فوق النموذج (مش جنب
+ * الزرار تحت صفحة طويلة)، والخانات بتتقفل وهو بيحفظ، والضغطة التانية
+ * مابتتبعتش. الأكشن نفسه زي ما هو — بنبعتله `null` مكان الحالة القديمة
+ * اللي كان `useActionState` بيبعتها، وهو أصلًا مابيستعملهاش.
  */
 export function SettingsForm({ children }: { children: React.ReactNode }) {
-  const [state, action] = useActionState<SiteSettingsResult | null, FormData>(
-    updateSiteSettings,
-    null
-  );
+  // «اتحفظ» جنب الزرار مش فوق: الصفحة طويلة والإداري بيبقى تحت عند
+  // الزرار، فرسالة نجاح فوق ماحدش هيشوفها. وبتختفي أول ما يبعت تاني
+  // أو يعدّل أي خانة — عشان ماتفضلش «اتحفظ» قدام تعديل لسه ماتحفظش.
+  const [saved, setSaved] = useState(false);
 
   return (
-    <form action={action} className="space-y-6">
-      {children}
+    <div onSubmitCapture={() => setSaved(false)} onInputCapture={() => setSaved(false)}>
+      <ActionForm
+        action={(formData) => updateSiteSettings(null, formData)}
+        onDone={() => setSaved(true)}
+        className="space-y-6"
+      >
+        {children}
 
-      <div className="flex flex-wrap items-center justify-end gap-4">
-        {state && (
-          <p
-            className={`text-sm font-bold ${
-              state.ok ? 'text-emerald-600' : 'text-red-600'
-            }`}
-          >
-            {state.ok ? 'اتحفظ ✓' : state.error}
-          </p>
-        )}
-        <SubmitButton />
-      </div>
-    </form>
-  );
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-    >
-      {pending ? 'جاري الحفظ…' : 'حفظ الإعدادات'}
-    </button>
+        <FormActions>
+          {saved && (
+            <p role="status" className="text-sm font-bold text-emerald-600">
+              اتحفظ ✓
+            </p>
+          )}
+          <SubmitButton>حفظ الإعدادات</SubmitButton>
+        </FormActions>
+      </ActionForm>
+    </div>
   );
 }

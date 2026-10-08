@@ -10,9 +10,14 @@ import {
   setShippingRateActive,
   adjustShippingRatesByGovernorate,
 } from '@/actions/shipping';
+import { Field, TextInput, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
+/**
+ * العملية الشغّالة/الأخيرة: فورم المنطقة، أو لوحة تعديل المحافظة، أو غيرهم.
+ * الخطأ بيظهر جنب اللي اتداس، و«جارٍ…» على زراره هو بس.
+ */
+type ErrorAt = 'form' | 'bulk' | 'top';
 
 type Draft = { id?: string; governorate: string; city: string; fee: string; isActive: boolean };
 
@@ -26,12 +31,16 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
   const [bulkDelta, setBulkDelta] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // ⚠️ قبل كده كل الأخطاء كانت فوق الصفحة — ولو بتعدّل منطقة تحت في
+  //    القايمة الرسالة ماكانتش باينة خالص. دلوقتي بتظهر جوّه الفورم نفسه.
+  const [errorAt, setErrorAt] = useState<ErrorAt>('top');
 
   // ⚠️ الأكشنز بقت **بترجّع** `{ ok:false, error }` ولا بترمي (قاعدة
   //    «هـ») — فلازم النتيجة تتقري، وإلا الرفض يعدّي كأنه نجاح.
-  const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
+  const run = async (fn: () => Promise<{ ok: boolean; error?: string }>, where: ErrorAt = 'top') => {
     setBusy(true);
     setError('');
+    setErrorAt(where);
     try {
       const result = await fn();
       if (!result.ok) {
@@ -68,22 +77,21 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
         city: value.city,
         fee: Number(value.fee),
         isActive: value.isActive,
-      })
+      }),
+      'form'
     );
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      <FormError message={errorAt === 'top' ? error : ''} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative min-w-[240px] flex-1">
           <Search className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
-            className={`${inputClass} pr-9`}
+            type="search"
+            aria-label="ابحث بالمحافظة أو المنطقة"
+            className={`${fieldClass} pr-9`}
             placeholder="ابحث بالمحافظة أو المنطقة…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -91,7 +99,10 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
         </div>
         <button
           type="button"
-          onClick={() => setDraft({ ...EMPTY })}
+          onClick={() => {
+            setDraft({ ...EMPTY });
+            setError('');
+          }}
           className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600"
         >
           <Plus className="h-4 w-4" /> إضافة منطقة
@@ -102,9 +113,14 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
         <RateForm
           value={draft}
           onChange={setDraft}
-          onCancel={() => setDraft(null)}
+          onCancel={() => {
+            setDraft(null);
+            setError('');
+          }}
           onSave={() => save(draft)}
           busy={busy}
+          saving={busy && errorAt === 'form'}
+          error={errorAt === 'form' ? error : ''}
         />
       )}
 
@@ -126,7 +142,10 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
             </div>
             <button
               type="button"
-              onClick={() => setBulkGov(bulkGov === governorate ? null : governorate)}
+              onClick={() => {
+                setBulkGov(bulkGov === governorate ? null : governorate);
+                setError('');
+              }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
             >
               <TrendingUp className="h-3.5 w-3.5" /> تعديل كل المحافظة
@@ -134,28 +153,32 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
           </div>
 
           {bulkGov === governorate && (
-            <div className="mb-4 space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <label className="text-xs font-bold text-amber-900">
-                زيادة أو خصم على كل مناطق {governorate} (بالجنيه — اكتب رقمًا سالبًا للخصم)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  className={inputClass}
-                  value={bulkDelta}
-                  onChange={(e) => setBulkDelta(e.target.value)}
-                  placeholder="مثال: 10 أو -5"
-                />
-                <button
-                  type="button"
+            <div className="mb-4 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <FormError message={errorAt === 'bulk' ? error : ''} />
+              <div className="flex flex-wrap items-start gap-2">
+                <Field
+                  label={`زيادة أو خصم على كل مناطق ${governorate} (ج.م)`}
+                  hint="اكتب رقمًا سالبًا للخصم."
+                  className="min-w-[200px] flex-1"
+                >
+                  <TextInput
+                    type="number"
+                    value={bulkDelta}
+                    onChange={(e) => setBulkDelta(e.target.value)}
+                    placeholder="مثال: 10 أو -5"
+                  />
+                </Field>
+                <BusyButton
+                  busy={busy && errorAt === 'bulk'}
+                  pendingLabel="جارٍ التطبيق…"
                   disabled={busy || !bulkDelta}
                   onClick={() =>
-                    run(() => adjustShippingRatesByGovernorate(governorate, Number(bulkDelta)))
+                    run(() => adjustShippingRatesByGovernorate(governorate, Number(bulkDelta)), 'bulk')
                   }
-                  className="shrink-0 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+                  className="mt-7 shrink-0"
                 >
                   تطبيق
-                </button>
+                </BusyButton>
               </div>
             </div>
           )}
@@ -167,9 +190,14 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
                   key={rate.id}
                   value={draft}
                   onChange={setDraft}
-                  onCancel={() => setDraft(null)}
+                  onCancel={() => {
+                    setDraft(null);
+                    setError('');
+                  }}
                   onSave={() => save(draft)}
                   busy={busy}
+                  saving={busy && errorAt === 'form'}
+                  error={errorAt === 'form' ? error : ''}
                 />
               ) : (
                 <div
@@ -190,15 +218,16 @@ export function ShippingRatesClient({ rates }: { rates: ShippingRateRow[] }) {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
                         setDraft({
                           id: rate.id,
                           governorate: rate.governorate,
                           city: rate.city,
                           fee: String(rate.fee),
                           isActive: rate.isActive,
-                        })
-                      }
+                        });
+                        setError('');
+                      }}
                       aria-label={`تعديل ${rate.city}`}
                       className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
                     >
@@ -236,71 +265,54 @@ function RateForm({
   onCancel,
   onSave,
   busy,
+  saving,
+  error,
 }: {
   value: Draft;
   onChange: (v: Draft) => void;
   onCancel: () => void;
   onSave: () => void;
   busy: boolean;
+  saving: boolean;
+  error: string;
 }) {
   return (
     <div className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+      <FormError message={error} />
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">المحافظة</label>
-          <input
-            className={inputClass}
+        <Field label="المحافظة" required>
+          <TextInput
             value={value.governorate}
             onChange={(e) => onChange({ ...value, governorate: e.target.value })}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">المنطقة / المدينة</label>
-          <input
-            className={inputClass}
-            value={value.city}
-            onChange={(e) => onChange({ ...value, city: e.target.value })}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">السعر (ج.م)</label>
-          <input
+        </Field>
+        <Field label="المنطقة / المدينة" required>
+          <TextInput value={value.city} onChange={(e) => onChange({ ...value, city: e.target.value })} />
+        </Field>
+        <Field label="السعر (ج.م)" required>
+          <TextInput
             type="number"
             min={0}
-            className={inputClass}
             value={value.fee}
             onChange={(e) => onChange({ ...value, fee: e.target.value })}
           />
-        </div>
+        </Field>
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-        <input
-          type="checkbox"
-          className="h-4 w-4 rounded"
-          checked={value.isActive}
-          onChange={(e) => onChange({ ...value, isActive: e.target.checked })}
-        />
-        مفعّلة (تظهر للعملاء في شاشة الدفع)
-      </label>
+      <Checkbox
+        label="مفعّلة"
+        hint="تظهر للعملاء في شاشة الدفع"
+        checked={value.isActive}
+        onChange={(e) => onChange({ ...value, isActive: e.target.checked })}
+      />
 
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 disabled:opacity-50"
-        >
+        <BusyButton busy={false} variant="secondary" onClick={onCancel} disabled={busy}>
           <X className="h-4 w-4" /> إلغاء
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          <Check className="h-4 w-4" /> {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-        </button>
+        </BusyButton>
+        <BusyButton busy={saving} disabled={busy} onClick={onSave}>
+          <Check className="h-4 w-4" /> حفظ
+        </BusyButton>
       </div>
     </div>
   );

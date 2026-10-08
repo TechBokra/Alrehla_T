@@ -1,4 +1,5 @@
 import { getPrivateUploadTicket } from '@/actions/private-upload';
+import { cloudinaryPost } from '@/lib/cloudinary';
 
 /**
  * رفع صورة طفل **خاصة** من المتصفح (التفاصيل في `@/lib/cloudinary-private`).
@@ -15,7 +16,8 @@ const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/h
 
 export async function uploadPrivatePhoto(
   file: File,
-  kind: 'children' | 'covers',
+  kind: 'children' | 'covers' | 'receipts',
+  onProgress?: (percent: number) => void,
 ): Promise<PrivatePhoto> {
   if (!ALLOWED.includes(file.type)) {
     throw new Error('نوع الملف غير مدعوم — استخدم صورة JPG أو PNG');
@@ -37,17 +39,11 @@ export async function uploadPrivatePhoto(
   body.append('type', t.type);
   body.append('allowed_formats', t.allowedFormats);
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${t.cloudName}/image/upload`, {
-    method: 'POST',
+  const data = (await cloudinaryPost(
+    `https://api.cloudinary.com/v1_1/${t.cloudName}/image/upload`,
     body,
-  });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Private upload failed', response.status, detail);
-    throw new Error('تعذّر رفع الصورة، برجاء المحاولة مرة أخرى');
-  }
-
-  const data = (await response.json()) as { public_id?: string; format?: string };
+    onProgress,
+  )) as { public_id?: string; format?: string };
   if (!data.public_id || !data.format) throw new Error('تعذّر رفع الصورة');
   return { publicId: data.public_id, format: data.format };
 }

@@ -6,9 +6,10 @@ import { Plus, X } from 'lucide-react';
 import { saveAddon, setAddonActive } from '@/actions/addons';
 import { formatPrice } from '@/lib/utils';
 import type { AddonProduct } from '@/types';
+import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
+const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
 const EMPTY = {
   id: '',
@@ -25,6 +26,8 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الإضافة اللي بيتغيّر تفعيلها دلوقتي — عشان زرارها يتقفل ومايتبعتش مرتين.
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const edit = (addon: AddonProduct) => {
     setForm({
@@ -42,15 +45,24 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
   const submit = async () => {
     setBusy(true);
     setError('');
-    const result = await saveAddon({
-      id: form.id || undefined,
-      name: form.name,
-      description: form.description,
-      price: Number(form.price),
-      isActive: form.isActive,
-      sortOrder: Number(form.sortOrder),
-    });
-    setBusy(false);
+    // ⚠️ لو النداء نفسه وقع (شبكة مثلًا) كان `busy` بيفضل شغّال للأبد
+    //    والزرار مقفول من غير رسالة. دلوقتي بيرجع ويقول.
+    let result: Awaited<ReturnType<typeof saveAddon>>;
+    try {
+      result = await saveAddon({
+        id: form.id || undefined,
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        isActive: form.isActive,
+        sortOrder: Number(form.sortOrder),
+      });
+    } catch {
+      setError(UNEXPECTED);
+      return;
+    } finally {
+      setBusy(false);
+    }
 
     if (!result.ok) {
       setError(result.error);
@@ -62,12 +74,20 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
   };
 
   const toggle = async (addon: AddonProduct) => {
-    const result = await setAddonActive(addon.id, !addon.isActive);
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    setTogglingId(addon.id);
+    setError('');
+    try {
+      const result = await setAddonActive(addon.id, !addon.isActive);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError(UNEXPECTED);
+    } finally {
+      setTogglingId(null);
     }
-    router.refresh();
   };
 
   return (
@@ -87,11 +107,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
         </button>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      <FormError message={error} className="mb-4" />
 
       {open && (
         <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -100,52 +116,37 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
           </h2>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700">الاسم</label>
-              <input
-                className={inputClass}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700">
-                السعر للعميل (جنيه) — شامل التخصيص باسم الطفل وصورته
-              </label>
-              <input
+            {/* النجمة علامة بس — الحفظ مقفول أصلًا من غير اسم. */}
+            <Field label="الاسم" required>
+              <TextInput value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </Field>
+            <Field label="السعر للعميل (ج.م)" required hint="شامل التخصيص باسم الطفل وصورته">
+              <TextInput
                 type="number"
                 min={0}
-                className={inputClass}
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
               />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-sm font-bold text-slate-700">الوصف</label>
-              <textarea
-                className={`${inputClass} h-20`}
+            </Field>
+            <Field label="الوصف" className="md:col-span-2">
+              <TextArea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700">الترتيب في القايمة</label>
-              <input
+            </Field>
+            <Field label="الترتيب في القايمة" hint="الأصغر يظهر أولًا">
+              <TextInput
                 type="number"
-                className={inputClass}
                 value={form.sortOrder}
                 onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
               />
-            </div>
-            <label className="flex items-center gap-3 pt-7">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                className="h-5 w-5 rounded border-slate-300"
-              />
-              <span className="text-sm font-bold text-slate-700">معروضة للعملاء</span>
-            </label>
+            </Field>
+            <Checkbox
+              className="md:pt-9"
+              label="معروضة للعملاء"
+              checked={form.isActive}
+              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+            />
 
             {/* ملف 08 (قرار تامر): **كل الإضافات بتتخصص** باسم الطفل وصورته اللي
                 اتكتبوا للقصة — مفيش اختيار هنا ولا «فرق تخصيص»: سعر واحد. */}
@@ -155,14 +156,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
           </div>
 
           <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={busy || !form.name.trim()}
-              className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-            >
-              {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-            </button>
+            <BusyButton busy={busy} onClick={submit} disabled={!form.name.trim()}>
+              حفظ
+            </BusyButton>
           </div>
         </div>
       )}
@@ -212,9 +208,11 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               <button
                 type="button"
                 onClick={() => toggle(addon)}
-                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200"
+                disabled={togglingId !== null}
+                aria-busy={togglingId === addon.id || undefined}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-50"
               >
-                {addon.isActive ? 'إيقاف' : 'تفعيل'}
+                {togglingId === addon.id ? 'جارٍ…' : addon.isActive ? 'إيقاف' : 'تفعيل'}
               </button>
             </div>
           </div>

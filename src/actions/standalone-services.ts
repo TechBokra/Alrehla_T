@@ -13,9 +13,31 @@ import { cleanServiceDetails, type ServiceDetailsInput } from '@/lib/service-det
  * rename, reprice or remove a service from inside the site at all.
  */
 
+/**
+ * ⚠️ الأكشنز هنا **بترجّع** النتيجة بدل ما ترمي خطأ.
+ * Next في الإنتاج بيخفي رسالة أي خطأ بيترمي من أكشن، فالإدارة كانت بتشوف
+ * رسالة إنجليزي عامة بدل «اسم الخدمة مطلوب». فبنرجّع
+ * `{ ok: false, error, field }` والشاشة هي اللي تعرضها.
+ */
+export type StandaloneServiceResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: string };
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireCatalogAdmin() {
   return requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة الخدمات');
+}
+
+/** الحارس بيرمي — هنا بنمسكه ونرجّع رسالته العربي. */
+async function guard() {
+  try {
+    return { ok: true as const, user: await requireCatalogAdmin() };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error && err.message ? err.message : 'غير مصرح',
+    };
+  }
 }
 
 export interface ServiceInput extends ServiceDetailsInput {
@@ -30,40 +52,53 @@ export interface ServiceInput extends ServiceDetailsInput {
 
 function validate(input: ServiceInput) {
   const name = input.name.trim();
-  if (!name) throw new Error('اسم الخدمة مطلوب');
+  if (!name) return { ok: false as const, error: 'اسم الخدمة مطلوب', field: 'name' };
   if (!Number.isFinite(input.price) || input.price < 0) {
-    throw new Error('السعر غير صحيح');
+    return { ok: false as const, error: 'السعر غير صحيح', field: 'price' };
   }
   if (input.description.trim().length > 300) {
-    throw new Error('الوصف القصير أطول من 300 حرف — الباقي مكانه «عن الخدمة»');
+    return {
+      ok: false as const,
+      error: 'الوصف القصير أطول من 300 حرف — الباقي مكانه «عن الخدمة»',
+      field: 'description',
+    };
   }
   // ملف 09: الصورة والنماذج والوصف الكامل و«هتاخد إيه»…
   const details = cleanServiceDetails(input);
-  if (!details.ok) throw new Error(details.error);
+  if (!details.ok) return { ok: false as const, error: details.error };
   return {
-    ...details.row,
-    name,
-    price: input.price,
-    description: input.description.trim() || null,
-    category: input.category.trim() || null,
-    price_type: input.priceType,
-    sort_order: input.sortOrder,
+    ok: true as const,
+    row: {
+      ...details.row,
+      name,
+      price: input.price,
+      description: input.description.trim() || null,
+      category: input.category.trim() || null,
+      price_type: input.priceType,
+      sort_order: input.sortOrder,
+    },
   };
 }
 
-export async function createStandaloneService(input: ServiceInput) {
-  const user = await requireCatalogAdmin();
+export async function createStandaloneService(
+  input: ServiceInput,
+): Promise<StandaloneServiceResult> {
+  const auth = await guard();
+  if (!auth.ok) return auth;
+  const user = auth.user;
+  const valid = validate(input);
+  if (!valid.ok) return valid;
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('standalone_services')
-    .insert(validate(input))
+    .insert(valid.row)
     .select('id')
     .single();
 
   if (error || !data) {
     console.error('Error creating standalone service', error);
-    throw new Error('تعذّر إضافة الخدمة');
+    return { ok: false, error: 'تعذّر إضافة الخدمة' };
   }
 
   await logAuditAction({
@@ -79,25 +114,32 @@ export async function createStandaloneService(input: ServiceInput) {
   revalidatePath('/creative-writing/services');
   revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
-  return { success: true };
+  return { ok: true };
 }
 
-export async function updateStandaloneService(id: string, input: ServiceInput) {
-  const user = await requireCatalogAdmin();
+export async function updateStandaloneService(
+  id: string,
+  input: ServiceInput,
+): Promise<StandaloneServiceResult> {
+  const auth = await guard();
+  if (!auth.ok) return auth;
+  const user = auth.user;
+  const valid = validate(input);
+  if (!valid.ok) return valid;
   const supabase = await createClient();
 
   const { data: saved, error } = await supabase
     .from('standalone_services')
-    .update(validate(input))
+    .update(valid.row)
     .eq('id', id)
     .select('id');
 
   if (error) {
     console.error('Error updating standalone service', error);
-    throw new Error('تعذّر حفظ التعديل');
+    return { ok: false, error: 'تعذّر حفظ التعديل' };
   }
   if (!saved || saved.length === 0) {
-    throw new Error('الخدمة مش موجودة — التعديل مروّحش للقاعدة.');
+    return { ok: false, error: 'الخدمة مش موجودة — التعديل مروّحش للقاعدة.' };
   }
 
   await logAuditAction({
@@ -113,7 +155,7 @@ export async function updateStandaloneService(id: string, input: ServiceInput) {
   revalidatePath('/creative-writing/services');
   revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -126,8 +168,13 @@ export async function updateStandaloneService(id: string, input: ServiceInput) {
  * الإيقاف بيخفيها من الموقع ومن قوائم الطلب، وطلباتها القديمة وعروض
  * المدربين عليها بتفضل زي ما هي — والإدارة تقدر ترجّعها في أي وقت.
  */
-export async function setStandaloneServiceActive(id: string, isActive: boolean) {
-  const user = await requireCatalogAdmin();
+export async function setStandaloneServiceActive(
+  id: string,
+  isActive: boolean,
+): Promise<StandaloneServiceResult> {
+  const auth = await guard();
+  if (!auth.ok) return auth;
+  const user = auth.user;
   const supabase = await createClient();
 
   const { data: saved, error } = await supabase
@@ -138,10 +185,10 @@ export async function setStandaloneServiceActive(id: string, isActive: boolean) 
 
   if (error) {
     console.error('Error toggling standalone service', error);
-    throw new Error(isActive ? 'تعذّر إعادة تفعيل الخدمة' : 'تعذّر إيقاف الخدمة');
+    return { ok: false, error: isActive ? 'تعذّر إعادة تفعيل الخدمة' : 'تعذّر إيقاف الخدمة' };
   }
   if (!saved || saved.length === 0) {
-    throw new Error('الخدمة مش موجودة — التغيير مروّحش للقاعدة.');
+    return { ok: false, error: 'الخدمة مش موجودة — التغيير مروّحش للقاعدة.' };
   }
 
   await logAuditAction({
@@ -156,5 +203,5 @@ export async function setStandaloneServiceActive(id: string, isActive: boolean) 
   revalidatePath('/creative-writing/services');
   revalidatePath('/creative-writing/services/[serviceId]', 'page');
   revalidatePath('/creative-writing');
-  return { success: true };
+  return { ok: true };
 }

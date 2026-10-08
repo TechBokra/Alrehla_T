@@ -25,6 +25,34 @@ import {
 } from '@/lib/publisher-pricing';
 
 /**
+ * أنهي خانة عليها خطأ التحقّق — عشان `ActionForm` يعلّمها ويودّي
+ * المؤشر عليها بدل ما الإداري يدوّر في نموذج طويل.
+ *
+ * ⚠️ `validateProductInput` بيحطّ اسم الخانة قدّام الرسالة («السعر: …»)
+ *    ومابيرجّعش اسمها — فبنقراه من البادئة. لو البادئة اتغيّرت هناك
+ *    الرسالة بتفضل تظهر زي ما هي، والخانة بس مش هتتعلّم.
+ */
+function productErrorField(error: string): string | undefined {
+  const byLabel: [string, string][] = [
+    ['اسم المنتج:', 'name'],
+    ['الوصف:', 'shortDescription'],
+    ['السعر الإلكتروني:', 'electronicPrice'],
+    ['السعر:', 'price'],
+  ];
+  return byLabel.find(([label]) => error.startsWith(label))?.[1];
+}
+
+/**
+ * خطأ السنّ على أنهي خانة: لو «من سنّ» فاضية أو غلط لوحدها يبقى هي،
+ * وإلا يبقى الغلط في «لحد سنّ» (أو في الترتيب بينهم، ومكانه «لحد»).
+ * بنفحص بنفس `parseAgeInput` — مفيش قاعدة تحقّق جديدة هنا.
+ */
+function ageErrorField(minRaw: unknown): 'minAge' | 'maxAge' {
+  const minAlone = parseAgeInput(minRaw, null);
+  return minAlone.ok && minAlone.minAge !== null ? 'maxAge' : 'minAge';
+}
+
+/**
  * حفظ منتج — من لوحة الإدارة أو من لوحة الناشر.
  *
  * التحقق هنا كان **مفقود بالكامل**: الدالة كانت بتاخد رقم الناشر من حقل
@@ -55,7 +83,7 @@ export async function saveProduct(formData: FormData) {
   //    لكن الرسالة اللي هتوصل للإداري ساعتها غير مفهومة.
   const categoryRaw = formData.get('category');
   if (!isProductCategory(categoryRaw)) {
-    return { ok: false as const, error: 'التصنيف المختار غير صالح' };
+    return { ok: false as const, error: 'التصنيف المختار غير صالح', field: 'category' };
   }
   const category = categoryRaw;
   // ⚠️ **الرقم اللي بيوصل من الناشر هو نصيبه، مش سعر العميل.**
@@ -89,7 +117,13 @@ export async function saveProduct(formData: FormData) {
     price: isPublisherProduct ? '1' : formData.get('price'),
     electronicPrice: formData.get('electronicPrice'),
   });
-  if (!checked.ok) return { ok: false as const, error: checked.error };
+  if (!checked.ok) {
+    return {
+      ok: false as const,
+      error: checked.error,
+      field: productErrorField(checked.error),
+    };
+  }
 
   let price = isPublisherProduct ? 0 : checked.data.price;
   const electronicPrice = checked.data.electronicPrice ?? null;
@@ -135,7 +169,13 @@ export async function saveProduct(formData: FormData) {
   // نفس قيود القاعدة بالحرف، عشان الرسالة تبقى مفهومة بدل رفض
   // القاعدة الخام («violates check constraint …»).
   const age = parseAgeInput(formData.get('minAge'), formData.get('maxAge'));
-  if (!age.ok) return { ok: false as const, error: age.error };
+  if (!age.ok) {
+    return {
+      ok: false as const,
+      error: age.error,
+      field: ageErrorField(formData.get('minAge')),
+    };
+  }
 
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
   const publisherId = formData.get('publisherId') as string || null;
@@ -176,12 +216,19 @@ export async function saveProduct(formData: FormData) {
         return {
           ok: false as const,
           error: 'منتجات دور النشر بتتعرض في المكتبة بس — «مخصص» من المنصة.',
+          field: 'category',
         };
       }
       const { data: pub } = publisherId
         ? await supabase.from('publishers').select('id').eq('id', publisherId).maybeSingle()
         : { data: null };
-      if (!pub) return { ok: false as const, error: 'اختار دار النشر صاحبة المنتج' };
+      if (!pub) {
+        return {
+          ok: false as const,
+          error: 'اختار دار النشر صاحبة المنتج',
+          field: 'publisherId',
+        };
+      }
     }
   }
 
@@ -202,6 +249,7 @@ export async function saveProduct(formData: FormData) {
       return {
         ok: false as const,
         error: 'التصنيف ده مش متاح للناشرين — منتجاتك بتتعرض في المكتبة.',
+        field: 'category',
       };
     }
     // الناشر منتجاته منتجات ناشر — مهما اتبعت في النموذج.
@@ -244,6 +292,7 @@ export async function saveProduct(formData: FormData) {
       return {
         ok: false as const,
         error: 'اكتب نصيبك من النسخة الواحدة — رقم أكبر من صفر',
+        field: 'publisherCost',
       };
     }
 

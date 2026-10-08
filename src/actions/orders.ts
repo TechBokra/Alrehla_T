@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/supabase';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 import { isItemFormat, type ItemFormat } from '@/lib/item-format';
+import { isValidReceiptRef } from '@/lib/receipt-ref';
 
 export type ShippingDetails = {
   recipientName: string;
@@ -247,6 +248,10 @@ export async function submitPaymentProof(
 
   if (!payment.receiptUrl) {
     return { success: false, error: 'ارفع صورة إيصال التحويل' };
+  }
+  // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
+  if (!isValidReceiptRef(payment.receiptUrl)) {
+    return { success: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
   }
 
   const supabase = await createClient();

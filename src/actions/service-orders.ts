@@ -9,6 +9,7 @@ import { notifyUser, notifyAdmins, getInstructorUserId, getProviderUserId } from
 import { SERVICE_DUE_DAYS } from '@/lib/service-delivery';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { briefMessage } from '@/lib/service-details';
+import { isValidReceiptRef } from '@/lib/receipt-ref';
 
 /**
  * Ordering a standalone creative service.
@@ -843,6 +844,10 @@ export async function submitServiceOrderPayment(
   payment: { method: 'instapay' | 'vodafone_cash'; receiptUrl: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!payment.receiptUrl) return { ok: false, error: 'ارفع صورة إيصال التحويل' };
+  // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
+  if (!isValidReceiptRef(payment.receiptUrl)) {
+    return { ok: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
+  }
 
   const { supabase, user, order } = await loadOrderFor(orderId);
 

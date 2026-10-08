@@ -8,12 +8,9 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SettingsForm } from './SettingsForm';
 import { PaymentQrUploader } from './PaymentQrUploader';
 import { RETENTION_OPTIONS } from '@/lib/session-recording';
+import { Checkbox, Field, FormSection, Select, TextInput } from '@/components/forms/Form';
 
 export const dynamic = 'force-dynamic';
-
-const field =
-  'w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
-const labelClass = 'block text-sm font-bold text-slate-700 mb-2';
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -32,16 +29,17 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
       <DashboardPageHeader title="الإعدادات العامة للمنصة" />
 
+      {/* الخانات من مكوّنات النماذج الموحّدة — نفس الأسماء (`name`) بالظبط،
+          فالأكشن بيستلم نفس البيانات. */}
       <SettingsForm>
         {/* ---------- الهوية ---------- */}
         <Section
           title="هوية الموقع"
           hint="الشعار وأيقونة التبويب وصورة المشاركة بتترفع من شاشة «صور الموقع»."
         >
-          <div>
-            <label className={labelClass}>اسم الموقع</label>
-            <input type="text" name="siteName" defaultValue={settings.siteName} className={field} />
-          </div>
+          <Field label="اسم الموقع" name="siteName">
+            <TextInput defaultValue={settings.siteName} />
+          </Field>
           <div className="flex items-end">
             <Link
               href="/dashboard/admin/content/images"
@@ -57,57 +55,36 @@ export default async function Page() {
           title="بيانات التواصل"
           hint="بتظهر في الفوتر وفي صفحة التواصل. الحقل اللي تسيبه فاضي بيختفي من الموقع."
         >
-          <div>
-            <label className={labelClass}>بريد التواصل</label>
-            <input type="email" name="contactEmail" defaultValue={settings.contactEmail} className={field} />
-          </div>
-          <div>
-            <label className={labelClass}>رقم التليفون</label>
-            <input
-              type="text"
-              name="contactPhone"
+          <Field label="بريد التواصل" name="contactEmail">
+            <TextInput type="email" dir="ltr" className="text-left" defaultValue={settings.contactEmail} />
+          </Field>
+          <Field label="رقم التليفون" name="contactPhone">
+            <TextInput dir="ltr" className="text-left" defaultValue={settings.contactPhone} />
+          </Field>
+          <Field
+            label="رقم الواتساب"
+            name="whatsappNumber"
+            hint="بصيغة دولية بلا صفر ولا علامة زائد — كده بس الرابط بيفتح المحادثة مباشرة."
+          >
+            <TextInput
               dir="ltr"
-              defaultValue={settings.contactPhone}
-              className={`${field} text-left`}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>رقم الواتساب</label>
-            <input
-              type="text"
-              name="whatsappNumber"
-              dir="ltr"
+              className="text-left"
               placeholder="201012345678"
               defaultValue={settings.whatsappNumber}
-              className={`${field} text-left`}
             />
-            <p className="mt-2 text-xs font-medium text-slate-500">
-              بصيغة دولية بلا صفر ولا علامة زائد — كده بس الرابط بيفتح
-              المحادثة مباشرة.
-            </p>
-          </div>
-          <div>
-            <label className={labelClass}>مواعيد العمل</label>
-            <input
-              type="text"
-              name="workingHours"
-              placeholder="السبت – الخميس، ١٠ص – ٦م"
-              defaultValue={settings.workingHours}
-              className={field}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelClass}>العنوان</label>
-            <input type="text" name="address" defaultValue={settings.address} className={field} />
-          </div>
-          <div>
-            <label className={labelClass}>رابط فيسبوك</label>
-            <input type="url" name="facebookUrl" defaultValue={settings.facebookUrl} className={field} />
-          </div>
-          <div>
-            <label className={labelClass}>رابط إنستجرام</label>
-            <input type="url" name="instagramUrl" defaultValue={settings.instagramUrl} className={field} />
-          </div>
+          </Field>
+          <Field label="مواعيد العمل" name="workingHours">
+            <TextInput placeholder="السبت – الخميس، ١٠ص – ٦م" defaultValue={settings.workingHours} />
+          </Field>
+          <Field label="العنوان" name="address" className="md:col-span-2">
+            <TextInput defaultValue={settings.address} />
+          </Field>
+          <Field label="رابط فيسبوك" name="facebookUrl">
+            <TextInput type="url" dir="ltr" className="text-left" defaultValue={settings.facebookUrl} />
+          </Field>
+          <Field label="رابط إنستجرام" name="instagramUrl">
+            <TextInput type="url" dir="ltr" className="text-left" defaultValue={settings.instagramUrl} />
+          </Field>
         </Section>
 
         {/* ---------- شريط التنبيه ---------- */}
@@ -115,39 +92,32 @@ export default async function Page() {
           title="شريط التنبيه العلوي"
           hint="شريط في أعلى كل صفحات الموقع — للصيانة أو إعلان مؤقت. الزائر يقدر يقفله، وبيرجع يظهر لو غيّرت النص."
         >
-          <div className="md:col-span-2">
-            <label className={labelClass}>نص التنبيه</label>
-            <input
-              type="text"
-              name="announcementText"
+          <Field
+            label="نص التنبيه"
+            name="announcementText"
+            hint="لحد ١٦٠ حرف. الشريط مابيظهرش من غير نص حتى لو «شغّال» متعلّمة."
+            className="md:col-span-2"
+          >
+            <TextInput
               maxLength={160}
               placeholder="الموقع تحت الصيانة اليوم من ١٠م لـ ١٢ص."
               defaultValue={settings.announcement.text}
-              className={field}
             />
-          </div>
-          <div>
-            <label className={labelClass}>يختفي تلقائيًا في</label>
-            <input
-              type="datetime-local"
-              name="announcementUntil"
-              defaultValue={untilValue}
-              className={field}
-            />
-            <p className="mt-2 text-xs font-medium text-slate-500">
-              سيبه فاضي لو عايزه يفضل لحد ما توقفه بنفسك.
-            </p>
-          </div>
+          </Field>
+          <Field
+            label="يختفي تلقائيًا في"
+            name="announcementUntil"
+            hint="سيبه فاضي لو عايزه يفضل لحد ما توقفه بنفسك."
+          >
+            <TextInput type="datetime-local" defaultValue={untilValue} />
+          </Field>
           <div className="flex items-center">
-            <label className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-              <input
-                type="checkbox"
-                name="announcementEnabled"
-                defaultChecked={settings.announcement.enabled}
-                className="h-5 w-5 rounded border-slate-300"
-              />
-              <span className="text-sm font-bold text-slate-700">شغّال دلوقتي</span>
-            </label>
+            <Checkbox
+              name="announcementEnabled"
+              label="شغّال دلوقتي"
+              defaultChecked={settings.announcement.enabled}
+              className="rounded-xl bg-slate-50 px-4 py-3"
+            />
           </div>
         </Section>
 
@@ -156,16 +126,16 @@ export default async function Page() {
           title="استقبال التحويلات"
           hint="الرقم ده بيظهر للعملاء في كل شاشات الدفع. راجعه كويس قبل الحفظ."
         >
-          <div className="md:col-span-2">
-            <label className={labelClass}>رقم المحفظة</label>
-            <input
-              type="text"
-              name="paymentWalletNumber"
-              dir="ltr"
-              defaultValue={settings.paymentWalletNumber}
-              className={`${field} text-left`}
-            />
-          </div>
+          {/* الأكشن بيتجاهل الرقم الفاضي ويسيب القديم (فاضي = الرقم الافتراضي،
+              وده أخطر) — فبنقولها في المساعدة بدل ما تبان إنها اتمسحت. */}
+          <Field
+            label="رقم المحفظة"
+            name="paymentWalletNumber"
+            hint="لو سبته فاضي الرقم الحالي بيفضل زي ما هو."
+            className="md:col-span-2"
+          >
+            <TextInput dir="ltr" className="text-left" defaultValue={settings.paymentWalletNumber} />
+          </Field>
           <div className="md:col-span-2">
             <PaymentQrUploader value={settings.paymentQrUrl} />
           </div>
@@ -176,21 +146,22 @@ export default async function Page() {
           title="الطلبات اللي مااتدفعتش"
           hint="الطلب بيتسجّل قبل رفع الإيصال. لو العميل مارفعش إيصال خلال المدة دي، الطلب بيتلغي لوحده وبيوصله إشعار. صفر = مابيتلغيش."
         >
-          <div className="md:col-span-2">
-            <label className={labelClass} htmlFor="pendingOrderCancelDays">
-              إلغاء الطلب بعد (أيام)
-            </label>
-            <input
+          <Field
+            label="إلغاء الطلب بعد (أيام)"
+            name="pendingOrderCancelDays"
+            hint="من ٠ لـ ٦٠."
+            className="md:col-span-2"
+          >
+            <TextInput
               id="pendingOrderCancelDays"
               type="number"
               min={0}
               max={60}
-              name="pendingOrderCancelDays"
               dir="ltr"
+              className="text-left"
               defaultValue={settings.pendingOrderCancelDays}
-              className={`${field} text-left`}
             />
-          </div>
+          </Field>
         </Section>
 
         {/* ---------- تسعير المدربين ---------- */}
@@ -198,53 +169,44 @@ export default async function Page() {
           title="تنبيه سعر المدربين"
           hint="تنبيه مش منع: المدرب يقدر يكمل فوق الرقم ده، وأنت بتراجع كل سعر قبل الاعتماد زي المعتاد."
         >
-          <div className="md:col-span-2">
-            <label className={labelClass}>
-              نبّه لو الحصيلة المقترحة أعلى من (ج.م)
-            </label>
-            <input
+          <Field
+            label="نبّه لو الحصيلة المقترحة أعلى من (ج.م)"
+            name="instructorPriceAlert"
+            hint="سيبه فاضي أو صفر عشان توقف التنبيه."
+            className="md:col-span-2"
+          >
+            <TextInput
               type="number"
               min={0}
-              name="instructorPriceAlert"
               dir="ltr"
+              className="text-left"
               placeholder="سيبه فاضي عشان توقف التنبيه"
               defaultValue={settings.instructorPriceAlert || ''}
-              className={`${field} text-left`}
             />
-          </div>
+          </Field>
         </Section>
 
         <Section
           title="تسجيل الجلسات"
           hint="لمّا يكون شغّالًا، بيظهر لولي الأمر قبل الدفع إن الجلسات بتتسجّل، وموافقته بتبقى شرط لإتمام الحجز. وإطفاؤه بيوقّف التسجيل ويشيل الإفصاح من الشاشات."
         >
-          <div className="md:col-span-2">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                name="recordingEnabled"
-                defaultChecked={settings.sessionRecording.enabled}
-                className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-              />
-              <span className="text-sm font-bold text-slate-700">
-                سجّل جلسات «بداية الرحلة»
-              </span>
-            </label>
-          </div>
+          <Checkbox
+            name="recordingEnabled"
+            label="سجّل جلسات «بداية الرحلة»"
+            defaultChecked={settings.sessionRecording.enabled}
+            className="md:col-span-2"
+          />
 
           <div className="md:col-span-2">
-            <label className={labelClass}>مدة الاحتفاظ بالتسجيل قبل الحذف</label>
-            <select
-              name="recordingRetentionDays"
-              defaultValue={String(settings.sessionRecording.retentionDays)}
-              className={field}
-            >
-              {RETENTION_OPTIONS.map((option) => (
-                <option key={option.days} value={option.days}>
-                  {option.label} ({option.days} يومًا)
-                </option>
-              ))}
-            </select>
+            <Field label="مدة الاحتفاظ بالتسجيل قبل الحذف" name="recordingRetentionDays">
+              <Select defaultValue={String(settings.sessionRecording.retentionDays)}>
+                {RETENTION_OPTIONS.map((option) => (
+                  <option key={option.days} value={option.days}>
+                    {option.label} ({option.days} يومًا)
+                  </option>
+                ))}
+              </Select>
+            </Field>
             {/* ⚠️ الرقم ده بيظهر لولي الأمر كوعد صريح — فتغييره مش
                 إعداد داخلي. والسياسة **مابتتحدّثش لوحدها**: لازم
                 تعدّل نص «تسجيل الجلسات» في سياسة الخصوصية كمان. */}
@@ -271,10 +233,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h2 className="text-lg font-black text-slate-800">{title}</h2>
-      {hint && <p className="mt-1 text-sm font-medium text-slate-500">{hint}</p>}
-      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">{children}</div>
-    </section>
+    <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <FormSection title={title} description={hint} columns={2}>
+        {children}
+      </FormSection>
+    </div>
   );
 }

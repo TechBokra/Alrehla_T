@@ -3,8 +3,14 @@
 import React, { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { FormError } from '@/components/ui/FormError';
+import { FormStateContext } from '@/components/forms/FormContext';
 
-export type ActionFormResult = { ok: true } | { ok: false; error: string } | void;
+/**
+ * `field` اختياري: اسم الخانة اللي عليها الخطأ — بتتعلّم بالأحمر
+ * والمؤشر بيروح عليها (`components/forms`).
+ */
+export type ActionFormResult =
+  { ok: true } | { ok: false; error: string; field?: string } | void;
 
 /**
  * نموذج بينادي أكشن خادم **وبيعرض رسالته**.
@@ -44,7 +50,9 @@ export function ActionForm({
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [notice, setNotice] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
   // ⚠️ **قفل فوري ضد الضغطتين.** `busy` و`fieldset disabled` بيتطبّقوا
   //    مع الرسم الجاي — وضغطة سريعة تانية (أو Enter مرتين) كانت بتلحق
   //    قبله فتتبعت مرتين. ده كان سبب «المنتج اتضاف ومع ذلك طلع خطأ»:
@@ -56,11 +64,27 @@ export function ActionForm({
     inFlight.current = true;
     startTransition(async () => {
       setError('');
+      setErrorField(undefined);
       setNotice('');
       try {
         const result = await action(formData);
         if (result && result.ok === false) {
           setError(result.error);
+          setErrorField(result.field);
+          // المؤشر على الخانة الغلط — من غير ما يدوّر عليها في نموذج طويل.
+          if (result.field) {
+            requestAnimationFrame(() => {
+              const el = formRef.current?.querySelector<HTMLElement>(
+                `[name="${CSS.escape(result.field!)}"]`
+              );
+              el?.focus();
+            });
+          } else {
+            formRef.current?.scrollIntoView({
+              block: 'start',
+              behavior: 'smooth',
+            });
+          }
           return;
         }
         onDone?.();
@@ -72,7 +96,8 @@ export function ActionForm({
         }
       } catch (e) {
         // تحويلات Next (`redirect`) بتيجي كاستثناء — لازم تعدّي.
-        if ((e as { digest?: string } | null)?.digest?.startsWith('NEXT_')) throw e;
+        if ((e as { digest?: string } | null)?.digest?.startsWith('NEXT_'))
+          throw e;
         setError('حصل خطأ غير متوقع — راجع القايمة قبل ما تعيد المحاولة.');
       } finally {
         inFlight.current = false;
@@ -102,21 +127,23 @@ export function ActionForm({
   };
 
   return (
-    <form onSubmit={onSubmit} className={className}>
-      <FormError message={error} />
-      {notice && (
-        <p
-          role="status"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800"
-        >
-          {notice}
-        </p>
-      )}
-      {/* ⚠️ `fieldset` بيقفل كل الخانات مرة واحدة وهو شغّال —
+    <FormStateContext.Provider value={{ busy, errorField }}>
+      <form ref={formRef} onSubmit={onSubmit} className={className}>
+        <FormError message={error} />
+        {notice && (
+          <p
+            role="status"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800"
+          >
+            {notice}
+          </p>
+        )}
+        {/* ⚠️ `fieldset` بيقفل كل الخانات مرة واحدة وهو شغّال —
           من غيره المستخدم يقدر يعدّل وهو بيتحفظ فيضيع تعديله. */}
-      <fieldset disabled={busy} className="contents">
-        {children}
-      </fieldset>
-    </form>
+        <fieldset disabled={busy} className="contents">
+          {children}
+        </fieldset>
+      </form>
+    </FormStateContext.Provider>
   );
 }

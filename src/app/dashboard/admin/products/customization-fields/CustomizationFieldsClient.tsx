@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowUp, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   deleteCustomizationField,
   reorderCustomizationFields,
@@ -16,13 +16,11 @@ import {
   type CustomizationField,
 } from '@/lib/customization-fields';
 import { FormError } from '@/components/ui/FormError';
+import { BusyButton, Checkbox, Field, TextInput } from '@/components/forms/Form';
 
 type Draft = { id?: string; label: string; placeholder: string; isRequired: boolean; isActive: boolean };
 
 const empty: Draft = { label: '', placeholder: '', isRequired: false, isActive: true };
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 px-4 py-2.5 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
 
 export function CustomizationFieldsClient({ fields }: { fields: CustomizationField[] }) {
   const router = useRouter();
@@ -30,13 +28,21 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // ⚠️ خطأ الحفظ بيظهر جوّه فورم الخانة نفسه — فورم «خانة جديدة» تحت
+  //    آخر القايمة، ورسالة فوق الصفحة ماكانتش بتبان. الباقي (ترتيب/مسح) فوق.
+  const [errorInForm, setErrorInForm] = useState(false);
+  const formError = errorInForm ? error : '';
 
   // القايمة بتتحدّث من الخادم بعد أي حفظ — بس الأسهم بتتحرك قدامك على طول.
   React.useEffect(() => setRows(fields), [fields]);
 
-  const run = async (fn: () => Promise<{ ok: true } | { ok: false; error: string }>) => {
+  const run = async (
+    fn: () => Promise<{ ok: true } | { ok: false; error: string }>,
+    inForm = false,
+  ) => {
     setBusy(true);
     setError('');
+    setErrorInForm(inForm);
     try {
       const result = await fn();
       if (!result.ok) {
@@ -55,7 +61,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
 
   const save = async () => {
     if (!draft) return;
-    const ok = await run(() => saveCustomizationField(draft));
+    const ok = await run(() => saveCustomizationField(draft), true);
     if (ok) setDraft(null);
   };
 
@@ -77,7 +83,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
 
   return (
     <div className="space-y-4">
-      <FormError message={error} />
+      <FormError message={errorInForm ? '' : error} />
 
       {rows.length === 0 && !draft && (
         <p className="rounded-3xl border border-slate-200 bg-white py-12 text-center font-medium text-slate-500">
@@ -89,7 +95,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
         {rows.map((f, i) =>
           draft?.id === f.id ? (
             <li key={f.id}>
-              <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} />
+              <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} saving={busy && errorInForm} error={formError} />
             </li>
           ) : (
             <li
@@ -144,7 +150,7 @@ export function CustomizationFieldsClient({ fields }: { fields: CustomizationFie
       </ol>
 
       {draft && !draft.id ? (
-        <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} />
+        <FieldForm draft={draft} setDraft={setDraft} onSave={save} busy={busy} saving={busy && errorInForm} error={formError} />
       ) : (
         !draft &&
         rows.length < FIELDS_MAX && (
@@ -195,78 +201,55 @@ function FieldForm({
   setDraft,
   onSave,
   busy,
+  saving,
+  error,
 }: {
   draft: Draft;
   setDraft: (d: Draft | null) => void;
   onSave: () => void;
   busy: boolean;
+  /** الحفظ بالذات هو اللي شغّال (مش ترتيب أو مسح) — عشان «جارٍ الحفظ…». */
+  saving: boolean;
+  error: string;
 }) {
   return (
     <div className="space-y-4 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
-      <div className="space-y-1">
-        <label htmlFor="cf-label" className="text-sm font-bold text-slate-700">
-          اسم الخانة (زي ما العميل هيشوفه)
-        </label>
-        <input
-          id="cf-label"
-          className={inputClass}
+      <FormError message={error} />
+      <Field label="اسم الخانة" required hint="زي ما العميل هيشوفه بالظبط.">
+        <TextInput
           maxLength={LABEL_MAX}
           value={draft.label}
           onChange={(e) => setDraft({ ...draft, label: e.target.value })}
           placeholder="مثال: اللون المفضل للطفل"
         />
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="cf-placeholder" className="text-sm font-bold text-slate-700">
-          مثال جوّه الخانة (اختياري)
-        </label>
-        <input
-          id="cf-placeholder"
-          className={inputClass}
+      </Field>
+      <Field label="مثال جوّه الخانة" hint="اختياري — بيظهر باهت جوّه الخانة لحد ما العميل يكتب.">
+        <TextInput
           maxLength={PLACEHOLDER_MAX}
           value={draft.placeholder}
           onChange={(e) => setDraft({ ...draft, placeholder: e.target.value })}
           placeholder="مثال: أزرق"
         />
-      </div>
+      </Field>
       <div className="flex flex-wrap gap-6">
-        <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={draft.isRequired}
-            onChange={(e) => setDraft({ ...draft, isRequired: e.target.checked })}
-            className="h-4 w-4"
-          />
-          إلزامية
-        </label>
-        <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-          <input
-            type="checkbox"
-            checked={draft.isActive}
-            onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-            className="h-4 w-4"
-          />
-          ظاهرة للعملاء
-        </label>
+        <Checkbox
+          label="إلزامية"
+          checked={draft.isRequired}
+          onChange={(e) => setDraft({ ...draft, isRequired: e.target.checked })}
+        />
+        <Checkbox
+          label="ظاهرة للعملاء"
+          checked={draft.isActive}
+          onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+        />
       </div>
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={busy}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 font-bold text-white hover:bg-slate-800 disabled:opacity-50"
-        >
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+        <BusyButton busy={saving} disabled={busy} onClick={onSave}>
           حفظ
-        </button>
-        <button
-          type="button"
-          onClick={() => setDraft(null)}
-          disabled={busy}
-          className="rounded-xl bg-slate-100 px-6 py-2.5 font-bold text-slate-700 hover:bg-slate-200"
-        >
+        </BusyButton>
+        <BusyButton busy={false} variant="secondary" onClick={() => setDraft(null)} disabled={busy}>
           إلغاء
-        </button>
+        </BusyButton>
       </div>
     </div>
   );

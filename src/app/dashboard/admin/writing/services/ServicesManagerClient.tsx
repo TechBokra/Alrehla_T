@@ -11,10 +11,13 @@ import {
   updateStandaloneService,
   setStandaloneServiceActive,
   type ServiceInput,
+  type StandaloneServiceResult,
 } from '@/actions/standalone-services';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { GalleryField } from '@/components/dashboard/GalleryField';
 import { optimizedImageUrl } from '@/lib/cloudinary';
+import { BusyButton, Field, Select, TextArea, TextInput } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   services: CreativeService[];
@@ -35,29 +38,6 @@ const EMPTY: ServiceInput = {
   deliveryDays: null,
 };
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
-
-function Field({
-  label,
-  hint,
-  children,
-  wide = false,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-  wide?: boolean;
-}) {
-  return (
-    <div className={`space-y-1.5 ${wide ? 'md:col-span-2' : ''}`}>
-      <label className="text-xs font-bold text-slate-700">{label}</label>
-      {children}
-      {hint && <p className="text-xs font-medium text-slate-500">{hint}</p>}
-    </div>
-  );
-}
-
 /**
  * نموذج الخدمة — بقسمين: «الكارت» (اللي بيظهر في صفحة الخدمات) و«صفحة
  * الخدمة» (ملف 09: الصورة والنماذج والوصف الكامل و«هتاخد إيه»…).
@@ -67,61 +47,63 @@ function ServiceForm({
   onSave,
   onCancel,
   busy,
+  error,
 }: {
   initial: ServiceInput;
   onSave: (v: ServiceInput) => void;
   onCancel: () => void;
   busy: boolean;
+  /** خطأ الحفظ — بيتعرض جوّه النموذج نفسه مش فوق الصفحة. */
+  error: string;
 }) {
   const [value, setValue] = useState<ServiceInput>(initial);
   const set = (patch: Partial<ServiceInput>) => setValue((v) => ({ ...v, ...patch }));
 
   return (
     <div className="space-y-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+      {/* الخطأ هنا جوّه النموذج: لو بتعدّل خدمة تحت في القايمة، رسالة
+          فوق الصفحة كانت بتبقى برّه الشاشة والزرار يبان كأنه ما عملش حاجة. */}
+      <FormError message={error} />
+
       <section className="space-y-4">
         <h3 className="text-sm font-black text-slate-800">الكارت في صفحة الخدمات</h3>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="اسم الخدمة">
-            <input
-              className={inputClass}
+          <Field label="اسم الخدمة" required>
+            <TextInput
               value={value.name}
               onChange={(e) => set({ name: e.target.value })}
               placeholder="مثال: مراجعة نص"
             />
           </Field>
           <Field label="التصنيف" hint="الخدمات بتتجمّع بيه، وبيظهر كزرار فلتر فوق الصفحة.">
-            <input
-              className={inputClass}
+            <TextInput
               value={value.category}
               onChange={(e) => set({ category: e.target.value })}
               placeholder="مثال: مراجعات"
             />
           </Field>
-          <Field label="السعر (ج.م)">
-            <input
+          <Field label="السعر (ج.م)" required>
+            <TextInput
               type="number"
               min={0}
-              className={inputClass}
               value={value.price}
               onChange={(e) => set({ price: Number(e.target.value) })}
             />
           </Field>
           <Field label="نوع السعر">
-            <select
-              className={inputClass}
+            <Select
               value={value.priceType}
               onChange={(e) => set({ priceType: e.target.value as ServiceInput['priceType'] })}
             >
               <option value="fixed">سعر ثابت</option>
               <option value="starts_from">يبدأ من (حسب المدرب)</option>
-            </select>
+            </Select>
           </Field>
           <Field label="مدة التسليم (أيام)" hint="بتظهر «التسليم خلال ٧ أيام». فاضي = مابتظهرش.">
-            <input
+            <TextInput
               type="number"
               min={1}
               max={90}
-              className={inputClass}
               value={value.deliveryDays ?? ''}
               onChange={(e) =>
                 set({ deliveryDays: e.target.value === '' ? null : Number(e.target.value) })
@@ -129,9 +111,8 @@ function ServiceForm({
             />
           </Field>
           <Field label="ترتيب العرض">
-            <input
+            <TextInput
               type="number"
-              className={inputClass}
               value={value.sortOrder ?? ''}
               onChange={(e) =>
                 set({ sortOrder: e.target.value === '' ? null : Number(e.target.value) })
@@ -139,11 +120,11 @@ function ServiceForm({
               placeholder="اتركه فارغًا للترتيب التلقائي"
             />
           </Field>
-          <Field label="الوصف القصير" hint="سطرين في الكارت — لحد 300 حرف." wide>
-            <textarea
+          <Field label="الوصف القصير" hint="سطرين في الكارت — لحد 300 حرف." className="md:col-span-2">
+            <TextArea
               rows={2}
               maxLength={300}
-              className={`${inputClass} resize-none`}
+              className="resize-none"
               value={value.description}
               onChange={(e) => set({ description: e.target.value })}
             />
@@ -166,29 +147,29 @@ function ServiceForm({
       <section className="space-y-4 border-t border-amber-200 pt-5">
         <h3 className="text-sm font-black text-slate-800">صفحة الخدمة</h3>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="عن الخدمة" hint="الوصف الكامل — السطور الجديدة بتتحترم." wide>
-            <textarea
+          <Field label="عن الخدمة" hint="الوصف الكامل — السطور الجديدة بتتحترم." className="md:col-span-2">
+            <TextArea
               rows={6}
               maxLength={5000}
-              className={`${inputClass} resize-y`}
+              className="resize-y"
               value={value.longDescription}
               onChange={(e) => set({ longDescription: e.target.value })}
             />
           </Field>
           <Field label="هتاخد إيه" hint="سطر لكل نقطة — لحد 8.">
-            <textarea
+            <TextArea
               rows={5}
-              className={`${inputClass} resize-y`}
+              className="resize-y"
               value={value.deliverablesText}
               onChange={(e) => set({ deliverablesText: e.target.value })}
               placeholder={'نسخة مراجَعة من النص\nملاحظات مكتوبة على كل فقرة\nجلسة 15 دقيقة لشرح الملاحظات'}
             />
           </Field>
           <Field label="محتاجين منك إيه" hint="بيظهر في صفحة الخدمة وفوق خانة «تفاصيل طلبك».">
-            <textarea
+            <TextArea
               rows={5}
               maxLength={1500}
-              className={`${inputClass} resize-y`}
+              className="resize-y"
               value={value.requirements}
               onChange={(e) => set({ requirements: e.target.value })}
               placeholder="النص اللي عايز تراجعه، وسنّ الكاتب، وأي ملاحظة مهمة."
@@ -209,22 +190,13 @@ function ServiceForm({
       </section>
 
       <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
-        >
+        {/* الإلغاء مش بيحفظ — فـ`busy` بيقفله بس من غير «جارٍ الحفظ…». */}
+        <BusyButton variant="secondary" busy={false} disabled={busy} onClick={onCancel}>
           <X className="h-4 w-4" /> إلغاء
-        </button>
-        <button
-          type="button"
-          onClick={() => onSave(value)}
-          disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          <Check className="h-4 w-4" /> {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-        </button>
+        </BusyButton>
+        <BusyButton busy={busy} onClick={() => onSave(value)}>
+          <Check className="h-4 w-4" /> حفظ
+        </BusyButton>
       </div>
     </div>
   );
@@ -237,16 +209,24 @@ export function ServicesManagerClient({ services }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const run = async (fn: () => Promise<unknown>) => {
+  // الأكشنز بقت **بترجّع** `{ ok:false, error }` بدل ما ترمي (Next بيخفي
+  // رسالة الخطأ المرمي في الإنتاج). الـcatch فاضل بس لانقطاع النت.
+  const run = async (fn: () => Promise<StandaloneServiceResult>) => {
     setBusy(true);
     setError('');
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setAdding(false);
       setEditingId(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+      // رسالة الاستثناء في الإنتاج إنجليزي عامة — فبنعرض رسالة عربية ثابتة.
+      console.error(err);
+      setError('تعذّر الاتصال بالخادم — اتأكد من النت وجرّب تاني.');
     } finally {
       setBusy(false);
     }
@@ -269,11 +249,8 @@ export function ServicesManagerClient({ services }: Props) {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {/* لو فيه نموذج مفتوح الخطأ بيتعرض جوّاه؛ هنا بس لخطأ الإيقاف/التفعيل. */}
+      {!adding && editingId === null && <FormError message={error} />}
 
       <div className="flex justify-end">
         <button
@@ -292,6 +269,7 @@ export function ServicesManagerClient({ services }: Props) {
         <ServiceForm
           initial={EMPTY}
           busy={busy}
+          error={error}
           onCancel={() => setAdding(false)}
           onSave={(v) => run(() => createStandaloneService(v))}
         />
@@ -310,6 +288,7 @@ export function ServicesManagerClient({ services }: Props) {
               key={service.id}
               initial={toInput(service)}
               busy={busy}
+              error={error}
               onCancel={() => setEditingId(null)}
               onSave={(v) => run(() => updateStandaloneService(service.id, v))}
             />

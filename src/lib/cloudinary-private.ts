@@ -25,6 +25,8 @@ import { createHash } from 'node:crypto';
  *    غيّر المجلّد أو النوع، Cloudinary بيرفض الرفع.
  */
 
+import { parseReceiptRef } from '@/lib/receipt-ref';
+
 export const PRIVATE_FOLDER = 'alrehla/private';
 export const PRIVATE_TYPE = 'authenticated';
 const ALLOWED_FORMATS = 'jpg,jpeg,png,webp,heic,heif';
@@ -64,7 +66,7 @@ export type PrivateUploadTicket = {
 
 /** تذكرة رفع واحدة — بتتحسب على الخادم، والمتصفح بيبعتها مع الملف. */
 export function privateUploadTicket(
-  subfolder: 'children' | 'covers',
+  subfolder: 'children' | 'covers' | 'receipts',
   now = Date.now(),
 ): PrivateUploadTicket | null {
   const c = credentials();
@@ -117,4 +119,15 @@ export function privateImageUrl(
     signature,
   });
   return `https://api.cloudinary.com/v1_1/${c.cloud}/image/download?${query}`;
+}
+
+/**
+ * رابط عرض الإيصال للإدارة (`lib/receipt-ref`): الخاص برابط مؤقت،
+ * والقديم (رابط عام) زي ما هو.
+ */
+export function receiptViewUrl(ref: string | null | undefined): string | null {
+  if (!ref) return null;
+  const photo = parseReceiptRef(ref);
+  if (photo) return privateImageUrl(photo);
+  return ref;
 }

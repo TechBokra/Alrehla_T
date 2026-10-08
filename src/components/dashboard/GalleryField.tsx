@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
+import { UploadProgress } from '@/components/dashboard/ImageField';
 
 const MAX = 8;
 
@@ -59,6 +60,8 @@ export function GalleryField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urls]);
   const [busy, setBusy] = useState(false);
+  // «صورة ٢ من ٥ — ٤٠٪»: الرفع واحدة ورا التانية، فالعدّ أهم من النسبة.
+  const [progress, setProgress] = useState<{ n: number; of: number; pct: number } | null>(null);
   const [error, setError] = useState('');
 
   const pick = async (files: FileList | null) => {
@@ -70,15 +73,24 @@ export function GalleryField({
       //    لتمن صور بيخنق الشبكة على الموبايل وبيخلّي بعضها يفشل
       //    بلا سبب واضح.
       const added: string[] = [];
-      for (const file of Array.from(files).slice(0, MAX - urls.length)) {
-        const uploaded = await uploadImage(file, folder);
-        added.push(uploaded.url);
+      const batch = Array.from(files).slice(0, MAX - urls.length);
+      try {
+        for (const [i, file] of batch.entries()) {
+          setProgress({ n: i + 1, of: batch.length, pct: 0 });
+          const uploaded = await uploadImage(file, folder, (pct) =>
+            setProgress({ n: i + 1, of: batch.length, pct }),
+          );
+          added.push(uploaded.url);
+        }
+      } finally {
+        // ⚠️ اللي اترفع قبل الصورة اللي وقعت **بيتحفظ** — كان بيضيع كله.
+        if (added.length > 0) setUrls((prev) => [...new Set([...prev, ...added])].slice(0, MAX));
       }
-      setUrls((prev) => [...new Set([...prev, ...added])].slice(0, MAX));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر رفع الصور');
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -166,7 +178,11 @@ export function GalleryField({
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
             <Upload className="h-4 w-4" />
-            {busy ? 'جارٍ الرفع…' : 'أضف صورًا'}
+            {busy && progress
+              ? `جارٍ رفع ${progress.n.toLocaleString('ar-EG')} من ${progress.of.toLocaleString('ar-EG')} — ${progress.pct}٪`
+              : busy
+                ? 'جارٍ الرفع…'
+                : 'أضف صورًا'}
             <input
               type="file"
               accept="image/*"
@@ -187,6 +203,8 @@ export function GalleryField({
           )}
         </div>
       )}
+
+      {busy && progress && <UploadProgress percent={progress.pct} />}
     </div>
   );
 }

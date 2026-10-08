@@ -12,6 +12,7 @@ import { getCurrentUser } from '@/data/domains/auth';
 import { getDependentGuardian, requireBuyer } from '@/lib/auth-guard';
 import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
 import { getSiteSettings } from '@/data/domains/content';
+import { isValidReceiptRef } from '@/lib/receipt-ref';
 
 export type BookingResult =
   | { ok: true; subscriptionId: string; paymentReference: string }
@@ -181,6 +182,11 @@ export async function submitBookingPaymentProof(
 
   if (await getDependentGuardian()) {
     return { success: false, error: 'تأكيد الدفع بيتم من حساب ولي أمرك.' };
+  }
+
+  // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
+  if (!isValidReceiptRef(payment.receiptUrl)) {
+    return { success: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
   }
 
   const { data: sub } = await supabase

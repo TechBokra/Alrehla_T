@@ -6,6 +6,8 @@ import { getCurrentUser } from '@/data/domains/auth';
 import { getServiceOrderDetail, getServiceOrderMessages } from '@/data/domains/services';
 import { hasAdminPermission } from '@/lib/utils';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
+// الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
+import { receiptViewUrl } from '@/lib/cloudinary-private';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +28,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         reference={order.paymentReference}
         amount={order.amount}
         method={order.paymentMethod}
-        receiptUrl={order.paymentReceiptUrl}
+        receiptUrl={receiptViewUrl(order.paymentReceiptUrl)}
         legacyReference={order.transactionReference}
       />
       <ServiceOrderDetail

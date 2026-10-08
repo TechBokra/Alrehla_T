@@ -293,19 +293,43 @@ export async function savePageContent(
  *
  * الجدول كان موجودًا والصفحات بتقرأ منه، لكن مفيش شاشة تكتب فيه — فقسم
  * «ماذا يقولون عنا» كان بيقول «قريبًا» للأبد.
+ *
+ * ⚠️ الأكشنين دول **بيرجّعوا** النتيجة بدل ما يرموا خطأ.
+ * Next في الإنتاج بيخفي رسالة أي خطأ بيترمي من أكشن، فالإدارة كانت بتشوف
+ * رسالة إنجليزي عامة بدل «الاسم ونص الرأي مطلوبان».
  */
+export type TestimonialResult = { ok: true } | { ok: false; error: string; field?: string };
+
+/** الحارس بيرمي — هنا بنمسكه ونرجّع رسالته العربي. */
+async function guardTestimonials(message: string) {
+  try {
+    return { ok: true as const, user: await requireAdmin('canManageContent', message) };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error && err.message ? err.message : 'غير مصرح',
+    };
+  }
+}
+
 export async function saveTestimonial(
   id: string | null,
   data: { authorName: string; authorRole: string; content: string },
-) {
-  const user = await requireAdmin('canManageContent', 'غير مصرح لك بتعديل آراء العملاء');
+): Promise<TestimonialResult> {
+  const auth = await guardTestimonials('غير مصرح لك بتعديل آراء العملاء');
+  if (!auth.ok) return auth;
+  const user = auth.user;
 
   const authorName = data.authorName.trim();
   const authorRole = data.authorRole.trim();
   const body = data.content.trim();
 
   if (!authorName || !body) {
-    throw new Error('الاسم ونص الرأي مطلوبان');
+    return {
+      ok: false,
+      error: 'الاسم ونص الرأي مطلوبان',
+      field: !authorName ? 'authorName' : 'content',
+    };
   }
 
   const supabase = await createClient();
@@ -317,7 +341,7 @@ export async function saveTestimonial(
       .eq('id', id);
     if (error) {
       console.error('Error updating testimonial', error);
-      throw new Error('تعذّر حفظ الرأي');
+      return { ok: false, error: 'تعذّر حفظ الرأي' };
     }
   } else {
     const { error } = await supabase
@@ -325,7 +349,7 @@ export async function saveTestimonial(
       .insert({ author_name: authorName, author_role: authorRole, content: body });
     if (error) {
       console.error('Error creating testimonial', error);
-      throw new Error('تعذّر إضافة الرأي');
+      return { ok: false, error: 'تعذّر إضافة الرأي' };
     }
   }
 
@@ -342,14 +366,16 @@ export async function saveTestimonial(
   return { ok: true };
 }
 
-export async function deleteTestimonial(id: string) {
-  const user = await requireAdmin('canManageContent', 'غير مصرح لك بحذف آراء العملاء');
+export async function deleteTestimonial(id: string): Promise<TestimonialResult> {
+  const auth = await guardTestimonials('غير مصرح لك بحذف آراء العملاء');
+  if (!auth.ok) return auth;
+  const user = auth.user;
 
   const supabase = await createClient();
   const { error } = await supabase.from('testimonials').delete().eq('id', id);
   if (error) {
     console.error('Error deleting testimonial', error);
-    throw new Error('تعذّر حذف الرأي');
+    return { ok: false, error: 'تعذّر حذف الرأي' };
   }
 
   await logAuditAction({

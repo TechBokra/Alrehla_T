@@ -9,9 +9,19 @@ import { saveBoxPlan, deleteBoxPlan, type BoxPlanInput } from '@/actions/box-pla
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 import { formatPrice } from '@/lib/utils';
+import { Field, TextInput, TextArea, Select, Checkbox, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500';
+/**
+ * أكشنز الباقات بقت **بترجّع** `{ ok:false, error }` بدل ما ترمي — فرسالة
+ * الفشل بتيجي في `result.error`. الـcatch فاضل لانقطاع النت ولرفع الصورة
+ * (اللي لسه بيرمي)، وNext بيمسح نص الاستثناء في الإنتاج — فبنعرض الرسالة
+ * لو عربية، وإلا رسالة بديلة واضحة.
+ */
+const messageOf = (err: unknown, fallback: string) => {
+  const raw = err instanceof Error ? err.message.trim() : '';
+  return /[\u0600-\u06FF]/.test(raw) ? raw : fallback;
+};
 
 const EMPTY: BoxPlanInput = {
   name: '',
@@ -139,6 +149,8 @@ function PlanForm({
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // `busy` بيقفل الزرارين؛ ده بس عشان «جارٍ الحذف…» تظهر على زرار الحذف لوحده.
+  const [deleting, setDeleting] = useState(false);
   const addons = React.useContext(AddonsContext);
 
   const set = <K extends keyof BoxPlanInput>(key: K, value: BoxPlanInput[K]) => {
@@ -151,15 +163,19 @@ function PlanForm({
     setError('');
     setSaved(false);
     try {
-      await saveBoxPlan(planId, {
+      const result = await saveBoxPlan(planId, {
         ...form,
         features: featuresText.split('\n').map((l) => l.trim()).filter(Boolean),
       });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setSaved(true);
       onDone?.();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر الحفظ');
+      setError(messageOf(err, 'تعذّر حفظ الباقة — الاتصال بالخادم — اتأكد من النت وجرّب تاني.'));
     } finally {
       setBusy(false);
     }
@@ -167,15 +183,22 @@ function PlanForm({
 
   const remove = async () => {
     setBusy(true);
+    setDeleting(true);
     setError('');
     try {
-      await deleteBoxPlan(planId!);
+      const result = await deleteBoxPlan(planId!);
+      if (!result.ok) {
+        setError(result.error);
+        setConfirmDelete(false);
+        return;
+      }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر الحذف');
+      setError(messageOf(err, 'تعذّر الحذف — الاتصال بالخادم — اتأكد من النت وجرّب تاني.'));
       setConfirmDelete(false);
     } finally {
       setBusy(false);
+      setDeleting(false);
     }
   };
 
@@ -187,7 +210,7 @@ function PlanForm({
       const uploaded = await uploadImage(file, 'alrehla/box-plans');
       set('imageUrl', uploaded.url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
+      setError(messageOf(err, 'تعذّر رفع الصورة'));
     } finally {
       setUploading(false);
     }
@@ -204,15 +227,11 @@ function PlanForm({
         {badge}
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      <FormError message={error} className="mb-4" />
 
       <div className="grid gap-5 md:grid-cols-[180px_1fr]">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">صورة الباقة</label>
+          <p className="text-sm font-bold text-slate-700">صورة الباقة</p>
           <div className="relative h-32 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
             {form.imageUrl ? (
               <Image
@@ -230,7 +249,7 @@ function PlanForm({
           </div>
           <label className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
             <Upload className="h-4 w-4" />
-            {uploading ? 'جارٍ…' : form.imageUrl ? 'تغيير' : 'رفع صورة'}
+            {uploading ? 'جارٍ الرفع…' : form.imageUrl ? 'تغيير' : 'رفع صورة'}
             <input
               type="file"
               accept="image/*"
@@ -245,88 +264,73 @@ function PlanForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="اسم الباقة">
-            <input
-              className={inputClass}
-              value={form.name}
-              onChange={(e) => set('name', e.target.value)}
-            />
+          {/* النجمة هنا علامة بس — الحفظ أصلًا مقفول من غير اسم. */}
+          <Field label="اسم الباقة" required>
+            <TextInput value={form.name} onChange={(e) => set('name', e.target.value)} />
           </Field>
-          <Field label="المدة بالأشهر">
-            <input
+          <Field label="المدة بالأشهر" required>
+            <TextInput
               type="number"
               min={1}
-              className={inputClass}
               value={form.durationMonths}
               onChange={(e) => set('durationMonths', Number(e.target.value))}
             />
           </Field>
-          <Field label="السعر الإجمالي">
-            <input
+          <Field label="السعر الإجمالي (ج.م)" required>
+            <TextInput
               type="number"
               min={0}
-              className={inputClass}
               value={form.priceTotal}
               onChange={(e) => set('priceTotal', Number(e.target.value))}
             />
           </Field>
           <Field
-            label="السعر الشهري المعروض"
+            label="السعر الشهري المعروض (ج.م)"
+            required
             hint={
               form.durationMonths > 0
                 ? `الإجمالي ÷ المدة = ${formatPrice(Math.round(effectiveMonthly))}`
                 : undefined
             }
           >
-            <input
+            <TextInput
               type="number"
               min={0}
-              className={inputClass}
               value={form.priceMonthly}
               onChange={(e) => set('priceMonthly', Number(e.target.value))}
             />
           </Field>
           <Field label="ملاحظة التوفير" hint="مثال: وفّر ٦٠٠ ج.م">
-            <input
-              className={inputClass}
-              value={form.savingsNote}
-              onChange={(e) => set('savingsNote', e.target.value)}
-            />
+            <TextInput value={form.savingsNote} onChange={(e) => set('savingsNote', e.target.value)} />
           </Field>
-          <Field label="خصم المشترك على الإضافات ٪" hint="على أي إضافة يطلبها طول مدة اشتراكه — ٠ = مفيش">
-            <input
+          <Field label="خصم المشترك على الإضافات ٪" hint="على أي إضافة يطلبها طول مدة اشتراكه — ٠ = مفيش. من ٠ لـ٩٠.">
+            <TextInput
               type="number"
               min={0}
               max={90}
-              className={inputClass}
               value={form.addonDiscountPercent}
               onChange={(e) => set('addonDiscountPercent', Number(e.target.value))}
             />
           </Field>
           <Field label="إضافة مجانية في كل صندوق" hint="بتظهر للإدارة في كل شهر من شهور الاشتراك">
-            <select
-              className={inputClass}
-              value={form.freeAddonId}
-              onChange={(e) => set('freeAddonId', e.target.value)}
-            >
+            <Select value={form.freeAddonId} onChange={(e) => set('freeAddonId', e.target.value)}>
               <option value="">— من غير —</option>
               {addons.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="ترتيب العرض" hint="الأصغر يظهر أولًا">
-            <input
+            <TextInput
               type="number"
-              className={inputClass}
               value={form.sortOrder}
               onChange={(e) => set('sortOrder', Number(e.target.value))}
             />
           </Field>
           <Field label="وصف مختصر" className="sm:col-span-2">
-            <textarea
+            <TextArea
               rows={2}
-              className={`${inputClass} resize-y`}
+              className="resize-y"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
             />
@@ -336,9 +340,9 @@ function PlanForm({
             hint="ميزة في كل سطر — دي اللي بتفرّق الباقة عن غيرها"
             className="sm:col-span-2"
           >
-            <textarea
+            <TextArea
               rows={4}
-              className={`${inputClass} resize-y`}
+              className="resize-y"
               placeholder={'كتاب مخصص كل شهر\nأنشطة ورقية\nشحن مجاني'}
               value={featuresText}
               onChange={(e) => {
@@ -350,17 +354,17 @@ function PlanForm({
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-6 border-t border-slate-100 pt-5">
-        <Toggle
+      <div className="mt-5 flex flex-wrap items-start gap-6 border-t border-slate-100 pt-5">
+        <Checkbox
           label="الأكثر اختيارًا"
           hint="باقة واحدة فقط"
           checked={form.isHighlighted}
-          onChange={(v) => set('isHighlighted', v)}
+          onChange={(e) => set('isHighlighted', e.target.checked)}
         />
-        <Toggle
+        <Checkbox
           label="ظاهرة للعملاء"
           checked={form.isActive}
-          onChange={(v) => set('isActive', v)}
+          onChange={(e) => set('isActive', e.target.checked)}
         />
       </div>
 
@@ -369,18 +373,20 @@ function PlanForm({
           confirmDelete ? (
             <div className="flex items-center gap-3 text-sm">
               <span className="font-bold text-red-700">حذف نهائي؟</span>
-              <button
-                type="button"
-                onClick={remove}
+              <BusyButton
+                busy={deleting}
                 disabled={busy}
-                className="rounded-lg bg-red-600 px-4 py-2 font-bold text-white disabled:opacity-50"
+                variant="danger"
+                pendingLabel="جارٍ الحذف…"
+                onClick={remove}
               >
                 نعم، احذف
-              </button>
+              </BusyButton>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="font-bold text-slate-500"
+                disabled={busy}
+                className="font-bold text-slate-500 disabled:opacity-50"
               >
                 تراجع
               </button>
@@ -399,62 +405,16 @@ function PlanForm({
         )}
 
         <div className="flex items-center gap-4">
-          {saved && <span className="text-sm font-bold text-emerald-700">تم الحفظ</span>}
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy || !form.name.trim()}
-            className="rounded-xl bg-slate-900 px-8 py-2.5 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-          >
-            {busy ? 'جارٍ…' : planId ? 'حفظ' : 'إضافة'}
-          </button>
+          {saved && (
+            <span role="status" className="text-sm font-bold text-emerald-700">
+              تم الحفظ
+            </span>
+          )}
+          <BusyButton busy={busy && !deleting} onClick={save} disabled={busy || !form.name.trim()}>
+            {planId ? 'حفظ' : 'إضافة'}
+          </BusyButton>
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  className = '',
-  children,
-}: {
-  label: string;
-  hint?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`space-y-1.5 ${className}`}>
-      <label className="text-sm font-bold text-slate-700">{label}</label>
-      {children}
-      {hint && <p className="text-xs font-medium text-slate-500">{hint}</p>}
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2.5">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-      />
-      <span className="text-sm font-bold text-slate-700">{label}</span>
-      {hint && <span className="text-xs font-medium text-slate-400">({hint})</span>}
-    </label>
   );
 }

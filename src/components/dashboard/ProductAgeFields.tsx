@@ -1,5 +1,6 @@
 import React from 'react';
 import { AGE_BANDS } from '@/lib/age-bands';
+import { Field, TextInput } from '@/components/forms/Form';
 
 /**
  * خانتا السنّ المناسب للمنتج — **مكوّن واحد للأربع نماذج**
@@ -25,43 +26,24 @@ export function ProductAgeFields({
   minAge?: number | null;
   maxAge?: number | null;
 }) {
-  const inputClass =
-    'w-full rounded-xl border border-slate-200 px-4 py-3 text-base text-slate-800 focus:border-amber-500 focus:outline-none md:text-sm';
-
   return (
     <fieldset className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
-      <legend className="px-2 text-sm font-bold text-slate-700">
-        السنّ المناسب{' '}
-        <span className="font-medium text-slate-500">(اختياري — بس من غيره المنتج مش هيظهر لما العميل يفلتر بالسنّ)</span>
-      </legend>
+      <legend className="px-2 text-sm font-bold text-slate-700">السنّ المناسب</legend>
+      <p className="mb-4 text-xs font-medium leading-relaxed text-slate-500">
+        اختياري — بس من غيره المنتج مش هيظهر لما العميل يفلتر بالسنّ.
+      </p>
 
       <div className="grid grid-cols-2 gap-4">
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold text-slate-700">من سنّ</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            name="minAge"
-            defaultValue={minAge ?? ''}
-            placeholder="مثلًا ٦"
-            className={inputClass}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-bold text-slate-700">لحد سنّ</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            name="maxAge"
-            defaultValue={maxAge ?? ''}
-            placeholder="فاضي = فأكبر"
-            className={inputClass}
-          />
-        </label>
+        <Field label="من سنّ" name="minAge">
+          <TextInput inputMode="numeric" defaultValue={minAge ?? ''} placeholder="مثلًا ٦" />
+        </Field>
+        <Field label="لحد سنّ" name="maxAge">
+          <TextInput inputMode="numeric" defaultValue={maxAge ?? ''} placeholder="فاضي = فأكبر" />
+        </Field>
       </div>
 
       {/* الفئات قدّام الإداري وهو بيكتب — عشان يعرف الكتاب هيظهر فين. */}
-      <p className="mt-3 text-xs leading-relaxed font-medium text-slate-600">
+      <p className="mt-3 text-xs leading-relaxed font-medium text-slate-500">
         فئات الموقع (نفس حزم «بداية الرحلة»):{' '}
         {AGE_BANDS.map((b) => b.label).join(' · ')}. الكتاب بيظهر تحت كل
         فئة بيتداخل معاها — «من ٨ لـ١١» بيظهر تحت ٦–٩ و١٠–١٢.

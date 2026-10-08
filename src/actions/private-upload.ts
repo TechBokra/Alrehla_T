@@ -13,14 +13,15 @@ import { privateUploadTicket, type PrivateUploadTicket } from '@/lib/cloudinary-
  *    الإنتاج، والعميل كان هيشوف رسالة إنجليزي مبهمة وهو في آخر خطوة.
  */
 export async function getPrivateUploadTicket(
-  kind: 'children' | 'covers',
+  kind: 'children' | 'covers' | 'receipts',
 ): Promise<{ ok: true; ticket: PrivateUploadTicket } | { ok: false; error: string }> {
   try {
+    // الإيصال كمان: الدفع من حساب ولي الأمر بس (زي الشراء).
     await requireNotDependent('الشراء');
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'يجب تسجيل الدخول أولاً' };
   }
-  if (kind !== 'children' && kind !== 'covers') {
+  if (kind !== 'children' && kind !== 'covers' && kind !== 'receipts') {
     return { ok: false, error: 'نوع الصورة غير معروف' };
   }
   const ticket = privateUploadTicket(kind);

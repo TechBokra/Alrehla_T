@@ -1,14 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
-import { FormError } from '@/components/ui/FormError';
+import React, { useState, useEffect } from 'react';
 import { Publisher, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
-import { useRouter } from 'next/navigation';
+import { MoneyInput } from '@/components/dashboard/PublisherCostField';
+import { ActionForm } from '@/components/dashboard/ActionForm';
+import {
+  Field,
+  FormActions,
+  FormSection,
+  Select,
+  SubmitButton,
+  TextArea,
+  TextInput,
+} from '@/components/forms/Form';
 import {
   ASSIGNABLE_PRODUCT_CATEGORIES,
   PUBLISHER_PRODUCT_CATEGORIES,
@@ -25,7 +34,6 @@ interface Props {
 }
 
 export function ProductFormClient({ publishers, pricingSettings, owner, listHref }: Props) {
-  const router = useRouter();
   const ownerType = owner;
   // منتج الناشر «مكتبة» بس — «مخصص» بيتكتب في المنصة من الصفر.
   const categories = owner === 'publisher' ? PUBLISHER_PRODUCT_CATEGORIES : ASSIGNABLE_PRODUCT_CATEGORIES;
@@ -42,9 +50,6 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
     }
   }, [ownerType, basePrice, pricingSettings]);
 
-  const [busy, startTransition] = useTransition();
-  const [error, setError] = useState('');
-
   /**
    * ⚠️ **النموذج كان `<form action={saveProduct}>` والأكشن بيرمي.**
    *
@@ -52,38 +57,24 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
    *    بيضغط «حفظ» ويشوف **صفحة خطأ عامة** مالهاش علاقة بالخانة
    *    الغلط. مش زرًّا صامتًا، لكن النتيجة أوحش: بيطلّعه برّه الشاشة.
    *
-   *    دلوقتي الأكشن بيرجّع `{ ok:false, error }` والرسالة بتظهر
-   *    فوق النموذج، والخانات زيّ ما هي.
+   *    دلوقتي الأكشن بيرجّع `{ ok:false, error, field? }` و`ActionForm`
+   *    بيعرض الرسالة فوق النموذج ويعلّم الخانة، والخانات زيّ ما هي.
+   *
+   * ⚠️ وبعد النجاح بيرجع للقايمة (`successHref`): كانت بتسكت بعد الحفظ
+   *    والنموذج متملّي — نفس عطل «اتضاف ومع ذلك خطأ» عند الناشر:
+   *    ضغطة تانية = منتج مكرّر.
    */
-  const submit = (formData: FormData) =>
-    startTransition(async () => {
-      setError('');
-      const result = await saveProduct(formData);
-      if (result && !result.ok) {
-        setError(result.error);
-        return;
-      }
-      // ⚠️ كانت بتسكت بعد الحفظ والنموذج متملّي — نفس عطل «اتضاف ومع ذلك
-      //    خطأ» عند الناشر: ضغطة تانية = منتج مكرّر.
-      router.push(listHref);
-      router.refresh();
-    });
-
   return (
-    <form action={submit} className="space-y-6">
-      <FormError message={error} />
+    <ActionForm action={saveProduct} successHref={listHref} className="space-y-6">
       <input type="hidden" name="id" value="" />
       <input type="hidden" name="slug" value="" />
-      {/* Hidden input to include the image URL in the form submission */}
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">اسم المنتج</label>
-          <input type="text" name="name" required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none" />
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">النوع / التصنيف</label>
-          <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
+
+      <FormSection columns={2}>
+        <Field label="اسم المنتج" name="name" required>
+          <TextInput />
+        </Field>
+        <Field label="النوع / التصنيف" name="category" required>
+          <Select value={category} onChange={(e) => setCategory(e.target.value)}>
             {/* ⚠️ **كانت ستة، تلاتة منهم القاعدة بترفضهم.**
                 «كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف
                 `product_category` — الحفظ بيترفض من القاعدة.
@@ -95,59 +86,57 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
                 {PRODUCT_CATEGORY_LABELS[c]}
               </option>
             ))}
-          </select>
-        </div>
-      </div>
+          </Select>
+        </Field>
+      </FormSection>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-        <div>
+        <div className="space-y-4">
           {/* ⚠️ **المالك ثابت** — كان قايمة «المنصة / ناشر» في النموذج. المنصة
               والناشرين بقوا مفصولين في اللوحة (ملاحظة تامر)، فالمنتج بيتعمل
               من قسمه، والمالك بيتحدد من القسم مش من اختيار. */}
           <input type="hidden" name="ownerType" value={ownerType} />
-          <p className="mb-4 text-sm font-bold text-slate-700">
+          <p className="text-sm font-bold text-slate-700">
             المالك: {ownerType === 'publisher' ? 'دار نشر (شريك)' : 'المنصة'}
           </p>
           {ownerType === 'publisher' && (
-            <>
-              <label className="block text-sm font-bold text-slate-700 mb-2">اختر الناشر</label>
-              <select name="publisherId" required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none">
+            <Field label="دار النشر" name="publisherId" required>
+              <Select defaultValue="">
                 <option value="">-- اختر الناشر --</option>
                 {publishers.map(pub => (
                   <option key={pub.id} value={pub.id}>{pub.name}</option>
                 ))}
-              </select>
-            </>
+              </Select>
+            </Field>
           )}
         </div>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">
-              {ownerType === 'publisher' ? 'نصيب الناشر من النسخة' : 'السعر الورقي'}
-            </label>
-            <div className="relative">
-              {/* ⚠️ **الشاشة كانت بتكدب.**
-                  الخانة اسمها `price`، والشاشة تحتها بتعرض «السعر
-                  النهائي: 150» — والمحفوظ كان 100. يعني الإداري
-                  بيشوف رقمًا والعميل بيشوف رقمًا تاني.
 
-                  دلوقتي الرقم ده بيتبعت باسمه الصح: نصيب الناشر لو
-                  المنتج لناشر، وسعر المنصة لو المنتج بتاعها —
-                  والخادم بيحسب الباقي بنفسه. */}
-              <input 
-                type="number" 
-                name={ownerType === 'publisher' ? 'publisherCost' : 'price'}
-                min="0"
-                required 
-                value={basePrice || ''}
-                onChange={(e) => setBasePrice(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none pl-12" 
-              />
-              <span className="absolute left-4 top-3 text-slate-400 font-bold">ج.م</span>
-            </div>
-          </div>
-          
+        <div className="space-y-4">
+          {/* ⚠️ **الشاشة كانت بتكدب.**
+              الخانة اسمها `price`، والشاشة تحتها بتعرض «السعر
+              النهائي: 150» — والمحفوظ كان 100. يعني الإداري
+              بيشوف رقمًا والعميل بيشوف رقمًا تاني.
+
+              دلوقتي الرقم ده بيتبعت باسمه الصح: نصيب الناشر لو
+              المنتج لناشر، وسعر المنصة لو المنتج بتاعها —
+              والخادم بيحسب الباقي بنفسه. */}
+          <Field
+            label={ownerType === 'publisher' ? 'نصيب الناشر من النسخة' : 'السعر الورقي'}
+            name={ownerType === 'publisher' ? 'publisherCost' : 'price'}
+            required
+            hint={
+              ownerType === 'publisher'
+                ? 'اللي بيوصل الناشر عن كل نسخة — سعر العميل بيتحسب منه.'
+                : 'السعر اللي العميل بيدفعه في النسخة الورقية.'
+            }
+          >
+            <MoneyInput
+              min="0"
+              value={basePrice || ''}
+              onChange={(e) => setBasePrice(Number(e.target.value))}
+            />
+          </Field>
+
           {ownerType === 'publisher' && basePrice > 0 && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
               <div className="flex justify-between text-sm mb-2">
@@ -164,12 +153,9 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-2">الوصف</label>
-        <textarea name="shortDescription" rows={3} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 focus:border-amber-500 focus:outline-none"></textarea>
-      </div>
-      
-
+      <Field label="الوصف" name="shortDescription" required hint="سطر قصير بيظهر على كارت المنتج.">
+        <TextArea rows={3} />
+      </Field>
 
       <ProductContentFields library />
       {/* كان بيرفع على Supabase Storage — مسار تاني بالكامل عن باقي
@@ -185,12 +171,10 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
         hint="غلاف الكتاب — يفضّل طولي (3:4)"
         library
       />
-      
-      <div className="pt-6 border-t border-slate-100 flex justify-end">
-        <button type="submit" disabled={busy} className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800">
-          {busy ? 'جارٍ الحفظ…' : 'إضافة المنتج'}
-        </button>
-      </div>
-    </form>
+
+      <FormActions>
+        <SubmitButton>إضافة المنتج</SubmitButton>
+      </FormActions>
+    </ActionForm>
   );
 }

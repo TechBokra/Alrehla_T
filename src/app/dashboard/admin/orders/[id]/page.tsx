@@ -16,6 +16,8 @@ import { BoxOrderPanel } from './BoxOrderPanel';
 import { createClient } from '@/lib/supabase/server';
 import { FORMAT_LABELS } from '@/lib/item-format';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
+// الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
+import { receiptViewUrl } from '@/lib/cloudinary-private';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +77,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         reference={target.paymentReference}
         amount={target.totalAmount}
         method={target.paymentMethod}
-        receiptUrl={target.paymentReceiptUrl}
+        receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
         legacyReference={target.transactionReference}
       />
 

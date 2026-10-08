@@ -45,6 +45,7 @@ export function ImageField({
 }) {
   const [url, setUrl] = useState(value ?? '');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
 
   const set = (next: string) => {
@@ -55,9 +56,10 @@ export function ImageField({
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setBusy(true);
+    setProgress(0);
     setError('');
     try {
-      const uploaded = await uploadImage(file, folder);
+      const uploaded = await uploadImage(file, folder, setProgress);
       set(uploaded.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
@@ -109,7 +111,7 @@ export function ImageField({
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200">
             <Upload className="h-4 w-4" />
-            {busy ? 'جارٍ الرفع…' : url ? 'تغيير' : 'رفع صورة'}
+            {busy ? `جارٍ الرفع… ${progress}٪` : url ? 'تغيير' : 'رفع صورة'}
             <input
               type="file"
               accept="image/*"
@@ -134,7 +136,25 @@ export function ImageField({
         </div>
       </div>
 
+      {busy && <UploadProgress percent={progress} />}
+
       {hint && <p className="text-xs font-medium text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+/** شريط التقدّم تحت الصورة وهي بتترفع. */
+export function UploadProgress({ percent }: { percent: number }) {
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      aria-label="نسبة الرفع"
+      className="h-2 w-full max-w-xs overflow-hidden rounded-full bg-slate-100"
+    >
+      <div className="h-full rounded-full bg-blue-600 transition-[width]" style={{ width: `${percent}%` }} />
     </div>
   );
 }

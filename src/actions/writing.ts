@@ -28,22 +28,37 @@ import { requireAdmin } from '@/lib/auth-guard';
  * وزيادة: `UPDATE` كان بلا فحص عدد الصفوف — رفض صامت من صلاحيات
  * القاعدة كان بيعدّي كأنه نجاح.
  */
-export async function saveWritingPackage(formData: FormData) {
-  const currentUser = await requireAdmin(
-    'canManageCatalog',
-    'غير مصرح لك بإدارة باقات الكتابة',
-  );
+export type SaveWritingPackageResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: string };
+
+// ⚠️ **الدالة بقت بترجّع الخطأ بدل ما ترميه.** الرمي كان بيوصل للإنتاج
+//    برسالة ممسوحة (قاعدة «هـ») والإداري بيتنقل لصفحة خطأ عامة ويضيع
+//    اللي كتبه. دلوقتي `ActionForm` بيعرض الرسالة فوق النموذج، و`field`
+//    بيعلّم الخانة الغلط بالأحمر ويودّي المؤشر عليها.
+export async function saveWritingPackage(
+  formData: FormData,
+): Promise<SaveWritingPackageResult> {
+  let currentUser;
+  try {
+    currentUser = await requireAdmin(
+      'canManageCatalog',
+      'غير مصرح لك بإدارة باقات الكتابة',
+    );
+  } catch {
+    return { ok: false as const, error: 'غير مصرح لك بإدارة باقات الكتابة' };
+  }
 
   const supabase = await createClient();
   const id = (formData.get('id') as string) || '';
   const isNew = !id;
 
   const name = ((formData.get('name') as string) || '').trim();
-  if (!name) throw new Error('اسم الباقة مطلوب');
+  if (!name) return { ok: false as const, error: 'اسم الباقة مطلوب', field: 'name' };
 
   const ageGroup = formData.get('ageGroup') as 'under_12' | '12_plus';
   if (ageGroup !== 'under_12' && ageGroup !== '12_plus') {
-    throw new Error('الفئة العمرية غير صحيحة');
+    return { ok: false as const, error: 'الفئة العمرية غير صحيحة', field: 'ageGroup' };
   }
 
   // المسار مستقل عن الفئة العمرية: مسارين ممكن يكونوا لنفس السن.
@@ -51,14 +66,18 @@ export async function saveWritingPackage(formData: FormData) {
 
   const price = Number(formData.get('price'));
   if (!Number.isFinite(price) || price < 0) {
-    throw new Error('السعر غير صحيح');
+    return { ok: false as const, error: 'السعر غير صحيح', field: 'price' };
   }
 
   // عدد الجلسات هو اللي بيتولّد منه جدول الاشتراك بعد تأكيد الدفع.
   // صفر أو فاضي = اشتراك بلا جلسات، فبنرفضه هنا بدل ما نكتشفه بعدين.
   const sessionsCount = Number(formData.get('sessionsCount'));
   if (!Number.isInteger(sessionsCount) || sessionsCount <= 0) {
-    throw new Error('عدد الجلسات لازم يكون رقم صحيح أكبر من صفر');
+    return {
+      ok: false as const,
+      error: 'عدد الجلسات لازم يكون رقم صحيح أكبر من صفر',
+      field: 'sessionsCount',
+    };
   }
 
   const durationText = ((formData.get('durationText') as string) || '').trim() || null;
@@ -99,7 +118,7 @@ export async function saveWritingPackage(formData: FormData) {
 
     if (error || !data) {
       console.error('Error inserting package:', error);
-      throw new Error(`تعذّر إنشاء الباقة: ${error?.message ?? ''}`);
+      return { ok: false as const, error: `تعذّر إنشاء الباقة: ${error?.message ?? ''}` };
     }
     savedId = data.id;
   } else {
@@ -117,10 +136,13 @@ export async function saveWritingPackage(formData: FormData) {
 
     if (error) {
       console.error('Error updating package:', error);
-      throw new Error(`تعذّر حفظ الباقة: ${error.message}`);
+      return { ok: false as const, error: `تعذّر حفظ الباقة: ${error.message}` };
     }
     if (!data || data.length === 0) {
-      throw new Error('التعديل مروّحش للقاعدة — الباقة مش موجودة أو الصلاحيات مش سامحة.');
+      return {
+        ok: false as const,
+        error: 'التعديل مروّحش للقاعدة — الباقة مش موجودة أو الصلاحيات مش سامحة.',
+      };
     }
   }
 
@@ -136,4 +158,5 @@ export async function saveWritingPackage(formData: FormData) {
   revalidatePath('/dashboard/admin/writing/packages');
   revalidatePath('/creative-writing/packages');
   revalidatePath('/creative-writing/packages/[slug]', 'page');
+  return { ok: true as const };
 }

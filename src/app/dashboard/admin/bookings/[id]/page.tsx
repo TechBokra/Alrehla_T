@@ -15,6 +15,8 @@ import { quotaNotice } from '@/lib/session-plan';
 import { formatCairo } from '@/lib/timezone';
 import { sessionStatusView } from '@/lib/session-status';
 import { StatusBadge } from '@/components/StatusBadge';
+// الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
+import { receiptViewUrl } from '@/lib/cloudinary-private';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +61,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         reference={target.paymentReference}
         amount={target.amount ?? 0}
         method={target.paymentMethod}
-        receiptUrl={target.paymentReceiptUrl}
+        receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">

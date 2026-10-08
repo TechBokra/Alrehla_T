@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { Check, Copy, Upload } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import { uploadImage } from '@/lib/cloudinary';
+import { uploadPrivatePhoto } from '@/lib/private-upload-client';
+import { makeReceiptRef } from '@/lib/receipt-ref';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 
 export type PaymentMethod = 'instapay' | 'vodafone_cash';
@@ -45,6 +46,7 @@ export function PaymentProofForm({
   const [method, setMethod] = useState<PaymentMethod>('instapay');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -73,9 +75,12 @@ export function PaymentProofForm({
     }
 
     setUploading(true);
+    setProgress(0);
     try {
-      const uploaded = await uploadImage(file, 'alrehla/receipts');
-      onSubmit({ method, receiptUrl: uploaded.url });
+      // ⚠️ الإيصال بيترفع **خاص** — فيه رقم التحويل والمحفظة. الطلب بيحفظ
+      //    مرجع مش رابط، والإدارة بتشوفه برابط بينتهي (`lib/receipt-ref`).
+      const photo = await uploadPrivatePhoto(file, 'receipts', setProgress);
+      onSubmit({ method, receiptUrl: makeReceiptRef(photo) });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر رفع الإيصال');
     } finally {
@@ -168,7 +173,7 @@ export function PaymentProofForm({
         disabled={busy || uploading}
         className={`w-full rounded-xl px-8 py-4 font-black text-white shadow-lg transition-colors disabled:opacity-70 ${accentButton}`}
       >
-        {uploading ? 'جارٍ رفع الإيصال…' : busy ? 'جارٍ الإرسال…' : 'أرسل الإيصال للمراجعة'}
+        {uploading ? `جارٍ رفع الإيصال… ${progress}٪` : busy ? 'جارٍ الإرسال…' : 'أرسل الإيصال للمراجعة'}
       </button>
 
       <p className="text-center text-xs font-medium text-slate-500">
