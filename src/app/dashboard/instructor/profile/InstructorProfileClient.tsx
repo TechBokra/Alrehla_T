@@ -76,15 +76,17 @@ export function InstructorProfileClient({
     }
     setIsSaving(true);
     try {
-      // The picture belongs to the account, not to the reviewed profile, so it
-      // saves immediately; the rest goes to the admin for review.
+      // ⚠️ **الصورة (ملف 15):** في الملف الأول بتتحفظ على طول (المدرب
+      //    مش ظاهر للأهالي لسه، والإدارة بتشوفها وهي بتراجع ملفه). بعد
+      //    التفعيل بتروح مع باقي التعديلات للمراجعة، والقديمة تفضل ظاهرة.
       //
       // ⚠️ الأكشنين بقوا بيرجّعوا الخطأ بدل ما يرموه (قاعدة «هـ») —
       //    ولو الأول فشل، التاني مايتبعتش (زي ما كان الرمي بيوقفه).
-      const profileResult = await updateMyProfile({
-        fullName: displayName.trim(),
-        avatarUrl: avatar,
-      });
+      const profileResult = await updateMyProfile(
+        firstProfile
+          ? { fullName: displayName.trim(), avatarUrl: avatar }
+          : { fullName: displayName.trim() },
+      );
       if (!profileResult.ok) {
         // الاسم هنا هو «الاسم المعروض».
         showError(
@@ -98,6 +100,7 @@ export function InstructorProfileClient({
         bio: bio.trim(),
         specialties: parsedSpecialties(),
         yearsExperience: Number(yearsExperience) || 0,
+        ...(!firstProfile && avatar && avatar !== (avatarUrl ?? '') ? { avatarUrl: avatar } : {}),
       });
       if (!result.ok) {
         showError(result.error, result.field === 'avatarUrl' ? undefined : result.field);
@@ -173,6 +176,11 @@ export function InstructorProfileClient({
         label={firstProfile ? 'الصورة الشخصية *' : 'الصورة الشخصية'}
         folder="alrehla/avatars"
       />
+      {!firstProfile && avatar !== (avatarUrl ?? '') && (
+        <p className="-mt-2 text-sm font-medium text-amber-800">
+          الصورة الجديدة هتظهر للأهالي بعد ما الإدارة تعتمدها — لحد كده صورتك الحالية هي اللي ظاهرة.
+        </p>
+      )}
 
       <hr className="border-slate-100" />
 

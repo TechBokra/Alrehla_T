@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, X, ZoomIn } from 'lucide-react';
 import Image from 'next/image';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
-import { optimizedImageUrl } from '@/lib/cloudinary';
+import { downloadableImageUrl, optimizedImageUrl } from '@/lib/cloudinary';
 
 /**
  * معرض صور المنتج — الغلاف ومعاه صور إضافية.
@@ -40,13 +40,33 @@ import { optimizedImageUrl } from '@/lib/cloudinary';
 export function ProductGallery({
   images,
   alt,
+  downloadName,
 }: {
   /** الغلاف أولًا، وبعده الصور الإضافية. */
   images: string[];
   alt: string;
+  /** اسم ملف التحميل (حروف إنجليزي — غير كده بيبقى `alrehla`). */
+  downloadName?: string;
 }) {
   const [active, setActive] = useState(0);
   const current = images[active];
+  // ⭐ (قرار تامر) التحميل مسموح **بالعلامة** — الصورة اللي بتتشارك
+  //    دعاية للموقع. صورة من غير علامة = مفيش زرار.
+  const download = downloadableImageUrl(
+    current,
+    images.length > 1 ? `${downloadName ?? 'alrehla'}-${active + 1}` : downloadName,
+  );
+  const downloadLink = (extra: string) =>
+    download && (
+      <a
+        href={download}
+        download
+        className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:ring-slate-400 ${extra}`}
+      >
+        <Download className="h-4 w-4" aria-hidden="true" />
+        حمّل الصورة
+      </a>
+    );
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const step = (delta: number) =>
@@ -86,6 +106,10 @@ export function ProductGallery({
           <ImagePlaceholder label={alt} />
         )}
       </div>
+
+      {download && (
+        <div className="flex justify-center">{downloadLink('')}</div>
+      )}
 
       {images.length > 1 && (
         <div
@@ -146,6 +170,7 @@ export function ProductGallery({
               className="object-contain p-4 md:p-8"
               referrerPolicy="no-referrer"
             />
+            {downloadLink('absolute top-3 left-3')}
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}

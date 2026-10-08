@@ -87,6 +87,7 @@ export function getInstructorChangeItems(
   if (changes.bio !== undefined) profileEdits.push('النبذة التعريفية');
   if (changes.specialties !== undefined) profileEdits.push(`التخصصات (${changes.specialties.join('، ')})`);
   if (changes.yearsExperience !== undefined) profileEdits.push(`سنوات الخبرة (${changes.yearsExperience} سنوات)`);
+  if (changes.avatarUrl !== undefined) profileEdits.push('صورة شخصية جديدة');
 
   if (profileEdits.length > 0) {
     items.push({

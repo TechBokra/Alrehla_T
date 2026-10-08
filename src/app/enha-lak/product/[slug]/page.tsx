@@ -178,6 +178,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 ),
               ]}
               alt={product.name}
+              downloadName={`alrehla-${product.slug}`}
             />
           </div>
           

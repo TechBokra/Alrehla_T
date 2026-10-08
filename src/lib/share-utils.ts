@@ -1,3 +1,5 @@
+import { SITE_URL } from '@/lib/site-url';
+
 /**
  * أدوات وروابط المشاركة لمنصة الرحلة
  */
@@ -16,7 +18,7 @@ export function resolveShareUrls(data: ShareData): { fullUrl: string; shortUrl: 
   const origin =
     typeof window !== 'undefined'
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || 'https://alrehla.org';
+      : SITE_URL;
 
   const fullUrl = data.url.startsWith('http') ? data.url : `${origin}${data.url}`;
   const shortUrl = data.shortPath

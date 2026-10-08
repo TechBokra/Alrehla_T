@@ -159,7 +159,7 @@ describe('العلامة المائية على صور المنتجات', () => {
 
   it('الشعار في الركن، والصورة بمقاس ثابت يتصغّر بعدها', () => {
     expect(watermarkedImageUrl(CLOUD, LAYER)).toBe(
-      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_alrehla:site:logo,fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v1/alrehla/site/x.jpg',
+      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_alrehla:site:logo,fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v1/alrehla/site/x.jpg',
     );
   });
 
@@ -187,11 +187,11 @@ describe('addWatermark — صور الموقع كلها', () => {
   const L = 'alrehla:site:logo1';
   it('بعد تحويل المقاس، قبل رقم النسخة', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/f_auto,w_700/v12/alrehla/blog/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v12/alrehla/blog/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v12/alrehla/blog/a.jpg`);
   });
   it('صورة خام: بتتصغّر الأول', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/v12/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/v12/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v12/a.jpg`);
   });
   it('مابتتكدّسش، ومابتلمسش غير Cloudinary، ومن غير شعار = زي ما هي', () => {
     const once = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', L);
@@ -202,5 +202,31 @@ describe('addWatermark — صور الموقع كلها', () => {
   it('صور جوّه نص المقال', () => {
     const out = watermarkCloudinaryUrlsIn('![x](https://res.cloudinary.com/d/image/upload/v1/a.jpg) و <img src="https://res.cloudinary.com/d/image/upload/v2/b.png">', L);
     expect(out.match(/l_alrehla:site:logo1/g)?.length).toBe(2);
+  });
+});
+
+describe('isUploadedImageUrl', () => {
+  it('بيقبل صورة مرفوعة عندنا بس', async () => {
+    const { isUploadedImageUrl } = await import('./cloudinary');
+    expect(isUploadedImageUrl('https://res.cloudinary.com/demo/image/upload/v1/alrehla/avatars/a.jpg')).toBe(true);
+    expect(isUploadedImageUrl('http://res.cloudinary.com/demo/image/upload/a.jpg')).toBe(false);
+    expect(isUploadedImageUrl('https://evil.example/res.cloudinary.com/image/upload/a.jpg')).toBe(false);
+    expect(isUploadedImageUrl('https://res.cloudinary.com/demo/video/upload/a.mp4')).toBe(false);
+    expect(isUploadedImageUrl('')).toBe(false);
+    expect(isUploadedImageUrl(undefined)).toBe(false);
+  });
+});
+
+describe('downloadableImageUrl', () => {
+  it('بالعلامة بس، وباسم ملف إنجليزي آمن', async () => {
+    const { downloadableImageUrl, addWatermark } = await import('./cloudinary');
+    const marked = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', 'alrehla:site:logo');
+    expect(downloadableImageUrl(marked, 'Story Hero 1')).toBe(
+      marked.replace('/upload/', '/upload/fl_attachment:story-hero-1/'),
+    );
+    expect(downloadableImageUrl(marked, 'قصة')).toContain('fl_attachment:alrehla/');
+    expect(downloadableImageUrl('https://res.cloudinary.com/d/image/upload/v1/a.jpg')).toBeNull();
+    expect(downloadableImageUrl('https://example.com/a.jpg')).toBeNull();
+    expect(downloadableImageUrl(null)).toBeNull();
   });
 });

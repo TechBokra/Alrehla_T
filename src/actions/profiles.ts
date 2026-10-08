@@ -36,11 +36,14 @@ export async function updateMyProfile(params: {
   } = await supabase.auth.getUser();
   if (!user) return fail('يجب تسجيل الدخول أولاً');
 
+  // ⚠️ الصورة بتتلمس بس لو اتبعتت: المدرب المفعّل بيبعت الاسم لوحده
+  //    (صورته بتروح في طلب المراجعة — ملف 15)، وكانت `undefined` هنا
+  //    بتمسح صورته.
   const { data: saved, error } = await supabase
     .from('user_profiles')
     .update({
       full_name: fullName,
-      avatar_url: params.avatarUrl?.trim() || null,
+      ...(params.avatarUrl !== undefined ? { avatar_url: params.avatarUrl.trim() || null } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
@@ -48,6 +51,8 @@ export async function updateMyProfile(params: {
 
   if (error) {
     console.error('Error updating profile', error);
+    // حارس ملف 15 — رسالته عربي ومفهومة، فبتوصل زي ما هي.
+    if (error.message?.includes('صورة المدرب')) return fail(error.message);
     return fail('تعذّر حفظ البيانات');
   }
 

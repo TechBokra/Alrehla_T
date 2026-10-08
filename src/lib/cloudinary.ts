@@ -127,6 +127,7 @@ export function optimizedImageUrl(url: string | null | undefined, width = 800): 
  * `dpr_auto` بيخلي الشاشات عالية الدقة تاخد نسخة أوضح من غير ما الشاشات
  * العادية تحمّل بايت زيادة.
  */
+import { WATERMARK_TEXT } from '@/lib/site-url';
 import { SITE_IMAGE_BY_KEY, type SiteImageKey } from '@/lib/site-images';
 
 export function slotImageUrl(
@@ -240,10 +241,43 @@ export function watermarkedImageUrl(
   if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
   // متحوّلة قبل كده (عليها علامة أو مقاس) — مانكدّسش.
   if (/\/upload\/[a-z]{1,3}_/.test(url)) return url;
-  return url.replace(
-    '/upload/',
-    `/upload/f_auto,q_auto:good,c_limit,w_1600/l_${watermarkLayerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/`,
+  return url.replace('/upload/', `/upload/f_auto,q_auto:good,c_limit,w_1600/${watermarkLayers(watermarkLayerId)}/`);
+}
+
+/**
+ * طبقتين العلامة: الشعار (تحت يمين) + الدومين مكتوب (تحت شمال).
+ *
+ * ⚠️ **الدومين مكتوب** (قرار تامر بعد شراء الدومين): الصور بتتشارك على
+ *    واتساب، واللي يشوفها لازم يعرف يوصل للموقع من غير ما يدوّر.
+ *    كتابة غامقة بحواف بيضا — بتتقري على الغلاف الفاتح والغامق.
+ *    و`fl_relative,w_0.3` = عرضها ٣٠٪ من الصورة مهما كان مقاسها.
+ *    (اتجرّبت على Cloudinary فعلًا — ٩ أكتوبر.)
+ */
+function watermarkLayers(layerId: string): string {
+  return (
+    `l_${layerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/` +
+    `l_text:Arial_60_bold_stroke:${WATERMARK_TEXT},co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24`
   );
+}
+
+/**
+ * رابط **تحميل** لصورة عليها العلامة (قرار تامر: «العملاء يحمّلوا الصور
+ * بالعلامة — دعاية لينا»). Cloudinary بيبعتها كملف بدل ما يفتحها
+ * (`fl_attachment`) — اتجرّب: الاسم بيوصل `alrehla-….jpg`.
+ *
+ * ⚠️ **صورة من غير علامة = `null`** (والزرار مابيظهرش): التحميل مسموح
+ *    بالعلامة بس، مش الأصل.
+ */
+export function downloadableImageUrl(url: string | null | undefined, name = 'alrehla'): string | null {
+  if (!url || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return null;
+  if (!url.includes('/l_')) return null;
+  const safe =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'alrehla';
+  return url.replace('/upload/', `/upload/fl_attachment:${safe}/`);
 }
 
 /**
@@ -266,7 +300,7 @@ export function addWatermark(url: string | null | undefined, layerId: string | n
   const segs = rest.split('/');
   let i = 0;
   while (i < segs.length - 1 && /^[a-z]{1,3}_/.test(segs[i])) i++;
-  segs.splice(i, 0, `l_${layerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24`);
+  segs.splice(i, 0, watermarkLayers(layerId));
   return `${head}/upload/${segs.join('/')}`;
 }
 
@@ -276,4 +310,18 @@ export function addWatermark(url: string | null | undefined, layerId: string | n
 export function watermarkCloudinaryUrlsIn(text: string, layerId: string | null): string {
   if (!text || !layerId) return text;
   return text.replace(/https:\/\/res\.cloudinary\.com\/[^\s"')<>]+?\/upload\/[^\s"')<>]+/g, (u) => addWatermark(u, layerId));
+}
+
+/**
+ * رابط صورة مرفوعة عندنا على Cloudinary (`https://res.cloudinary.com/…/image/upload/…`).
+ *
+ * بيتفحص على الخادم قبل ما رابط جاي من المتصفح يتحفظ كصورة شخصية —
+ * من غيره أي نداء مباشر كان يقدر يحط رابط لأي موقع برّه.
+ */
+export function isUploadedImageUrl(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.length <= 1000 &&
+    /^https:\/\/res\.cloudinary\.com\/[^/\s]+\/image\/upload\/\S+$/.test(value)
+  );
 }

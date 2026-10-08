@@ -59,7 +59,7 @@ export default async function InstructorReviewPage() {
         <h1 className="text-2xl font-black text-slate-900">مراجعة ملفات المدربين</h1>
         <p className="text-sm font-medium text-slate-600">
           كل اللي المدربين بعتوه للمراجعة في مكان واحد: تعديلات الملف (الاسم،
-          النبذة، التخصصات، سنين الخبرة، الجدول، الباقات) و<strong>الغلاف وصور
+          النبذة، التخصصات، سنين الخبرة، الجدول، الباقات، <strong>الصورة الشخصية</strong>) و<strong>الغلاف وصور
           الإصدارات والأعمال</strong>. ولا حاجة منهم بتظهر للأهالي قبل ما تعتمدها.
         </p>
       </header>
@@ -271,7 +271,7 @@ function InstructorGroup({
         const otherItems = getInstructorChangeItems(
           Object.fromEntries(
             Object.entries(changes).filter(
-              ([k]) => !PROFILE_FIELDS.some((f) => f.key === k)
+              ([k]) => k !== 'avatarUrl' && !PROFILE_FIELDS.some((f) => f.key === k)
             )
           ) as Parameters<typeof getInstructorChangeItems>[0],
           packages
@@ -285,6 +285,33 @@ function InstructorGroup({
                 {new Date(req.createdAt).toLocaleString('ar-EG', { timeZone: PLATFORM_TIMEZONE })}
               </span>
             </div>
+
+            {/* صورة شخصية جديدة (ملف 15) — الحالية ← المطلوبة جنب بعض. */}
+            {typeof changes.avatarUrl === 'string' && changes.avatarUrl && (
+              <div className="flex flex-wrap items-center gap-6 rounded-xl border border-slate-200 bg-white p-4">
+                <p className="w-full text-sm font-bold text-slate-700">الصورة الشخصية</p>
+                {[
+                  { label: 'الحالية', url: group.avatarUrl },
+                  { label: 'المطلوبة', url: changes.avatarUrl },
+                ].map((pic) => (
+                  <figure key={pic.label} className="flex flex-col items-center gap-2">
+                    <div className="relative h-24 w-24 overflow-hidden rounded-full bg-slate-100">
+                      {pic.url ? (
+                        <Image
+                          src={optimizedImageUrl(pic.url, 200)}
+                          alt={`الصورة ${pic.label}`}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : null}
+                    </div>
+                    <figcaption className="text-xs font-bold text-slate-600">{pic.label}</figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
 
             {profileRows.length > 0 && (
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">

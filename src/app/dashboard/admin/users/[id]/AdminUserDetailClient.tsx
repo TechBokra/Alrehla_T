@@ -1,5 +1,6 @@
 'use client';
 
+import { SITE_URL } from '@/lib/site-url';
 import React, { useState, useMemo } from 'react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ticketStatus } from '@/lib/ticket-status';
@@ -210,7 +211,7 @@ export function AdminUserDetailClient({
   const handleCopyWhatsapp = async () => {
     if (!passwordResult) return;
     const emailToUse = passwordResult.email || accountEmail || user.email || 'بريدك الإلكتروني المسجل';
-    const msg = `مرحباً أستاذ/ة ${user.fullName}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلات:\n• البريد الإلكتروني: ${emailToUse}\n• كلمة المرور المؤقتة: ${passwordResult.tempCode}\n• رابط الدخول: https://alrehlat.vercel.app/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
+    const msg = `مرحباً أستاذ/ة ${user.fullName}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلات:\n• البريد الإلكتروني: ${emailToUse}\n• كلمة المرور المؤقتة: ${passwordResult.tempCode}\n• رابط الدخول: ${SITE_URL}/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
     handleCopy(msg, 'whatsapp');
   };
 

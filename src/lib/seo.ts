@@ -13,9 +13,9 @@ import { slotImageUrl, optimizedImageUrl } from '@/lib/cloudinary';
  * الصح إن المتغير `NEXT_PUBLIC_SITE_URL` يتظبط في Vercel على الدومين الحقيقي،
  * والقيمة اللي تحت دي مجرد شبكة أمان لو المتغير مش موجود.
  */
-export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://alrehlat.vercel.app'
-).replace(/\/+$/, '');
+// المصدر الواحد بقى `lib/site-url` (من غير استيرادات — الشاشات بتستعمله كمان).
+import { SITE_URL } from '@/lib/site-url';
+export { SITE_URL };
 
 export function absoluteUrl(path = '/'): string {
   if (!path || path === '/') return `${SITE_URL}/`;

@@ -1,5 +1,6 @@
 'use client';
 
+import { SITE_URL } from '@/lib/site-url';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -599,7 +600,7 @@ function NewAccountBox({
       } else if (what === 'all') {
         await navigator.clipboard.writeText(`البريد: ${email}\nكلمة المرور: ${password}`);
       } else if (what === 'whatsapp') {
-        const msg = `مرحباً أستاذ/ة ${fullName || 'المحترم/ة'}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلة:\n• البريد الإلكتروني: ${email}\n• كلمة المرور المؤقتة: ${password}\n• رابط الدخول: https://alrehlat.vercel.app/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
+        const msg = `مرحباً أستاذ/ة ${fullName || 'المحترم/ة'}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلة:\n• البريد الإلكتروني: ${email}\n• كلمة المرور المؤقتة: ${password}\n• رابط الدخول: ${SITE_URL}/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
         await navigator.clipboard.writeText(msg);
       }
       setCopiedKey(what);

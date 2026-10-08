@@ -9,6 +9,7 @@ import type { Database } from '@/types/supabase';
 import { notifyUser, getInstructorUserId, notifyAdmins } from '@/lib/notifications';
 import { summarizeInstructorChangesText } from '@/lib/request-summary';
 import { isProfileComplete, firstProfileProblem } from '@/lib/instructor-onboarding';
+import { isUploadedImageUrl } from '@/lib/cloudinary';
 
 /**
  * Instructor profile changes, certification and pricing settings.
@@ -111,9 +112,24 @@ export async function submitInstructorProfileUpdate(
     if (problem) return fail(problem.error, problem.field);
   }
 
+  // ── الصورة الشخصية (ملف 15) ──────────────────────────────
+  //
+  // الملف الأول: الصورة اتحفظت قبل الطلب ده، فمالهاش مكان فيه. بعد
+  // التفعيل: بتتعتمد مع الطلب — بس لو صورة مرفوعة عندنا وفعلًا جديدة.
+  const requested: Partial<Instructor> = { ...changes };
+  delete requested.avatarUrl;
+  if (!isFirstProfile && isUploadedImageUrl(changes.avatarUrl)) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (changes.avatarUrl !== profile?.avatar_url) requested.avatarUrl = changes.avatarUrl;
+  }
+
   const { error } = await supabase.from('profile_update_requests').insert({
     instructor_id: instructorId,
-    requested_changes: changes as never,
+    requested_changes: requested as never,
     status: 'pending',
   });
 
@@ -123,7 +139,7 @@ export async function submitInstructorProfileUpdate(
   }
 
   // تلخيص التغييرات التي تمت بدقة وإشعار الإدارة بها
-  const summary = summarizeInstructorChangesText(changes);
+  const summary = summarizeInstructorChangesText(requested);
 
   await notifyAdmins({
     event: 'instructor_profile',
@@ -283,6 +299,27 @@ export async function approveProfileUpdateRequest(
       console.error('Error applying approved packages', packagesError);
       return fail('تعذّر تطبيق باقات المدرب — الطلب لسه معلّق.');
     }
+  }
+
+  // ── الصورة الشخصية (ملف 15) ──────────────────────────────
+  //
+  // في حساب المدرب (`user_profiles`) مش في `instructors`. الإداري بيعدّي
+  // حارس ملف 15. وبـ`select()` لأن الكتابة على صفر صفوف بتنجح في صمت.
+  if (isUploadedImageUrl(changes.avatarUrl)) {
+    const instructorUserId = await getInstructorUserId(request.instructor_id);
+    const { data: savedAvatar, error: avatarError } = instructorUserId
+      ? await supabase
+          .from('user_profiles')
+          .update({ avatar_url: changes.avatarUrl, updated_at: new Date().toISOString() })
+          .eq('id', instructorUserId)
+          .select('id')
+      : { data: null, error: null };
+    if (avatarError || !savedAvatar || savedAvatar.length === 0) {
+      console.error('Error applying approved avatar', avatarError);
+      return fail('تعذّر تطبيق الصورة الشخصية — الطلب لسه معلّق.');
+    }
+    revalidatePath('/creative-writing/instructors');
+    revalidatePath('/creative-writing/instructors/[id]', 'page');
   }
 
   update.updated_at = new Date().toISOString();
