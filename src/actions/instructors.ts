@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/supabase';
 import { notifyUser, getInstructorUserId, notifyAdmins } from '@/lib/notifications';
 import { summarizeInstructorChangesText } from '@/lib/request-summary';
-import { isProfileComplete, validateFirstProfile } from '@/lib/instructor-onboarding';
+import { isProfileComplete, firstProfileProblem } from '@/lib/instructor-onboarding';
 
 /**
  * Instructor profile changes, certification and pricing settings.
@@ -24,7 +24,7 @@ import { isProfileComplete, validateFirstProfile } from '@/lib/instructor-onboar
  *    بترمي، وNext بيمسح نصّ الاستثناء في الإنتاج — فالإداري كان بيشوف
  *    رسالة إنجليزي عامة بدل «سنوات الخبرة غير صحيحة» مثلًا.
  *    و`field` = اسم الخانة اللي عليها الخطأ، والشاشة بتعلّمها.
- *    (دوال المدرب نفسه — `submitInstructor…` — لسه بترمي زي ما هي.)
+ *    ودوال المدرب نفسه (`submitInstructor…`) كمان بقت بترجّع بنفس الشكل.
  */
 export type InstructorAdminResult =
   | { ok: true }
@@ -45,13 +45,26 @@ async function requireInstructorAdmin() {
   }
 }
 
-/** The instructor must be asking about their own profile. */
-async function requireOwnInstructorProfile(instructorId: string) {
+/**
+ * The instructor must be asking about their own profile.
+ *
+ * ⚠️ بترجّع `{ ok: false, error }` بدل ما ترمي (قاعدة «هـ») — وكل نداء
+ *    لازم يفحص `ok` ويرجع فورًا، وإلا الطلب يتبعت من غير تحقق.
+ */
+async function requireOwnInstructorProfile(instructorId: string): Promise<
+  | {
+      ok: true;
+      user: { id: string };
+      instructorName: string | null;
+      isFirstProfile: boolean;
+    }
+  | { ok: false; error: string }
+> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return fail('يجب تسجيل الدخول أولاً');
 
   const { data } = await supabase
     .from('instructors')
@@ -60,8 +73,9 @@ async function requireOwnInstructorProfile(instructorId: string) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!data) throw new Error('غير مصرح لك بتعديل هذا الملف');
+  if (!data) return fail('غير مصرح لك بتعديل هذا الملف');
   return {
+    ok: true,
     user,
     instructorName: data.display_name,
     // ملف ناقص = مدرب جديد جاي من طلب انضمام بيكمّل ملفه لأول مرة.
@@ -72,9 +86,10 @@ async function requireOwnInstructorProfile(instructorId: string) {
 export async function submitInstructorProfileUpdate(
   instructorId: string,
   changes: Partial<Instructor>
-) {
-  const { user, instructorName, isFirstProfile } =
-    await requireOwnInstructorProfile(instructorId);
+): Promise<InstructorAdminResult> {
+  const own = await requireOwnInstructorProfile(instructorId);
+  if (!own.ok) return own;
+  const { user, instructorName, isFirstProfile } = own;
   const supabase = await createClient();
 
   // ⚠️ **الملف الأول إلزامي كله** — والفحص هنا مش في الشاشة بس (قاعدة
@@ -86,14 +101,14 @@ export async function submitInstructorProfileUpdate(
       .select('avatar_url')
       .eq('id', user.id)
       .maybeSingle();
-    const problem = validateFirstProfile({
+    const problem = firstProfileProblem({
       displayName: changes.displayName ?? '',
       bio: changes.bio ?? '',
       specialties: changes.specialties ?? [],
       yearsExperience: Number(changes.yearsExperience),
       avatarUrl: profile?.avatar_url ?? '',
     });
-    if (problem) throw new Error(problem);
+    if (problem) return fail(problem.error, problem.field);
   }
 
   const { error } = await supabase.from('profile_update_requests').insert({
@@ -104,7 +119,7 @@ export async function submitInstructorProfileUpdate(
 
   if (error) {
     console.error('Error submitting profile update request', error);
-    throw new Error('تعذّر إرسال الطلب');
+    return fail('تعذّر إرسال الطلب');
   }
 
   // تلخيص التغييرات التي تمت بدقة وإشعار الإدارة بها
@@ -122,7 +137,7 @@ export async function submitInstructorProfileUpdate(
   revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -132,8 +147,10 @@ export async function submitInstructorProfileUpdate(
 export async function submitInstructorPackageUpdateRequest(
   instructorId: string,
   packageIds: string[]
-) {
-  const { instructorName } = await requireOwnInstructorProfile(instructorId);
+): Promise<InstructorAdminResult> {
+  const own = await requireOwnInstructorProfile(instructorId);
+  if (!own.ok) return own;
+  const { instructorName } = own;
   const supabase = await createClient();
 
   // جلب أسماء الباقات لتوضيح أسماء الباقات المطلوبة في إشعار الإدارة
@@ -154,7 +171,7 @@ export async function submitInstructorPackageUpdateRequest(
 
   if (error) {
     console.error('Error submitting package update request', error);
-    throw new Error('تعذّر إرسال طلب تعديل الباقات');
+    return fail('تعذّر إرسال طلب تعديل الباقات');
   }
 
   const summary = summarizeInstructorChangesText(requestedChanges, allPackages || []);
@@ -168,7 +185,7 @@ export async function submitInstructorPackageUpdateRequest(
 
   revalidatePath('/dashboard/instructor/settings');
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
-  return { success: true };
+  return { ok: true };
 }
 
 export async function approveProfileUpdateRequest(

@@ -49,21 +49,36 @@ type CreateServiceOrderParams = {
   discountCode?: string | null;
 };
 
+/**
+ * نتيجة كل عمليات طلبات الخدمة.
+ *
+ * ⚠️ **كل الدوال هنا بترجّع ولا بترمي** (قاعدة «هـ»): Next بيمسح رسالة
+ *    أي خطأ بيترمي من أكشن في الإنتاج، فالعميل ومقدّم الخدمة والإدارة
+ *    كانوا بيشوفوا رسالة إنجليزي عامة بدل السبب العربي.
+ *    `field` (اختياري) = الخانة اللي فيها المشكلة، للشاشة.
+ */
+export type ServiceOrderResult = { ok: true } | { ok: false; error: string; field?: string };
+type Fail = { ok: false; error: string; field?: string };
+
+const fail = (error: string, field?: string): Fail => (field ? { ok: false, error, field } : { ok: false, error });
+const errMessage = (err: unknown, fallback: string) => (err instanceof Error && err.message ? err.message : fallback);
+
 export type CreateServiceOrderResult =
   | { ok: true; orderId: string; amount: number; paymentReference: string; warning?: string }
-  | { ok: false; error: string };
+  | Fail;
 
 /**
  * ⚠️ **بترجّع ولا بترمي** (قاعدة «هـ»): الرسالة اللي بتترمي من أكشن
  *    Next بيمسحها في الإنتاج، فالعميل كان بيشوف رسالة إنجليزي عامة بدل
- *    «كود الخصم ده انتهى» أو «مقدّم الخدمة غير متاح». الفحوص جوّه لسه
- *    بترمي، والغلاف ده بيحوّلها لنتيجة.
+ *    «كود الخصم ده انتهى» أو «مقدّم الخدمة غير متاح». الفحوص جوّه بقت
+ *    بترجّع نتيجة، والغلاف ده فاضل شبكة أمان لأي عطل مش متوقَّع.
  */
 export async function createServiceOrder(params: CreateServiceOrderParams): Promise<CreateServiceOrderResult> {
   try {
     return await createServiceOrderInner(params);
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'تعذّر إنشاء الطلب' };
+    console.error('Unexpected error creating service order', err);
+    return fail(errMessage(err, 'تعذّر إنشاء الطلب'));
   }
 }
 
@@ -73,12 +88,18 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return fail('يجب تسجيل الدخول أولاً');
 
   // حساب الطفل التابع ممنوع من الطلب المباشر — يمر على ولي أمره.
-  const dependent = await getDependentGuardian();
+  // (`getDependentGuardian` بترمي لو التحقق نفسه فشل — بنحوّلها لنتيجة.)
+  let dependent: Awaited<ReturnType<typeof getDependentGuardian>>;
+  try {
+    dependent = await getDependentGuardian();
+  } catch (err) {
+    return fail(errMessage(err, 'تعذّر التحقق من نوع الحساب. جرّب تاني.'));
+  }
   if (dependent) {
-    throw new Error('طلب الخدمة محتاج موافقة ولي أمرك. كلّمه يعمله من حسابه.');
+    return fail('طلب الخدمة محتاج موافقة ولي أمرك. كلّمه يعمله من حسابه.');
   }
 
   const { serviceId } = params;
@@ -90,14 +111,14 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
   let childId: string | null = null;
 
   if (participantType === 'child') {
-    if (!params.childId) throw new Error('اختار المستفيد من الخدمة');
+    if (!params.childId) return fail('اختار المستفيد من الخدمة', 'childId');
     const { data: child } = await supabase
       .from('child_profiles')
       .select('id')
       .eq('id', params.childId)
       .eq('user_profile_id', user.id)
       .maybeSingle();
-    if (!child) throw new Error('فرد العائلة ده مش على حسابك');
+    if (!child) return fail('فرد العائلة ده مش على حسابك', 'childId');
     childId = child.id;
   }
 
@@ -117,7 +138,7 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
     .eq('id', serviceId)
     .single();
 
-  if (serviceError || !service) throw new Error('الخدمة غير موجودة');
+  if (serviceError || !service) return fail('الخدمة غير موجودة');
 
   // المبلغ ما بيتاخدش من المتصفح أبدًا. بيتحسب هنا من عرض مقدّم الخدمة
   // المعتمد، فنموذج متلاعب فيه ما يقدرش يغيّر اللي بيتحاسب.
@@ -133,7 +154,7 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
       .maybeSingle();
 
     if (!provider || provider.status !== 'active') {
-      throw new Error('مقدّم الخدمة غير متاح حالياً');
+      return fail('مقدّم الخدمة غير متاح حالياً');
     }
     instructorId = provider.instructor_id;
 
@@ -147,7 +168,7 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
       .maybeSingle();
 
     if (!offer || offer.approved_price == null) {
-      throw new Error('مقدّم الخدمة لا يقدم هذه الخدمة حالياً');
+      return fail('مقدّم الخدمة لا يقدم هذه الخدمة حالياً');
     }
 
     if (provider.kind === 'platform') {
@@ -197,7 +218,7 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
       : { data: null };
 
     if (!platform || !platformOffer || platformOffer.approved_price == null) {
-      throw new Error('يجب اختيار مقدّم للخدمة');
+      return fail('يجب اختيار مقدّم للخدمة');
     }
 
     providerId = platform.id;
@@ -230,8 +251,8 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
   if (error || !order) {
     console.error('Error creating service order', error);
     // رسائل الكود والسعر من القاعدة عربي ومفهومة («كود الخصم ده انتهى»).
-    if (error?.code === 'P0001' && error.message) throw new Error(error.message);
-    throw new Error('تعذّر إنشاء الطلب');
+    if (error?.code === 'P0001' && error.message) return fail(error.message);
+    return fail('تعذّر إنشاء الطلب');
   }
 
   // «تفاصيل طلبك» ← أول رسالة في المحادثة. فشلها مايوقعش الطلب: الطلب
@@ -285,12 +306,13 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
  * لرسالة خطأ واضحة، لا لأنها الحارس الوحيد.
  */
 
+/** بترجّع نتيجة — كل منادي لازم يشيك على `ok` قبل ما يكمّل. */
 async function loadOrderFor(orderId: string) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return fail('يجب تسجيل الدخول أولاً');
 
   const { data: order } = await supabase
     .from('service_orders')
@@ -298,8 +320,8 @@ async function loadOrderFor(orderId: string) {
     .eq('id', orderId)
     .maybeSingle();
 
-  if (!order) throw new Error('الطلب غير موجود');
-  return { supabase, user, order };
+  if (!order) return fail('الطلب غير موجود');
+  return { ok: true as const, supabase, user, order };
 }
 
 async function isAssignedInstructor(
@@ -334,16 +356,16 @@ export async function sendServiceOrderMessage(
   orderId: string,
   body: string,
   isDelivery = false
-) {
+): Promise<ServiceOrderResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return fail('يجب تسجيل الدخول أولاً');
 
   const text = body.trim();
-  if (!text) throw new Error('اكتب رسالة أولاً');
-  if (text.length > 4000) throw new Error('الرسالة طويلة جدًا');
+  if (!text) return fail('اكتب رسالة أولاً', 'body');
+  if (text.length > 4000) return fail('الرسالة طويلة جدًا', 'body');
 
   const { error } = await supabase.from('service_order_messages').insert({
     order_id: orderId,
@@ -354,7 +376,7 @@ export async function sendServiceOrderMessage(
 
   if (error) {
     console.error('Error sending order message', error);
-    throw new Error('تعذّر إرسال الرسالة');
+    return fail('تعذّر إرسال الرسالة');
   }
 
   // The other side of the conversation hears about it.
@@ -391,14 +413,16 @@ export async function sendServiceOrderMessage(
 }
 
 /** المدرب يبدأ التنفيذ. */
-export async function startServiceOrder(orderId: string) {
-  const { supabase, user, order } = await loadOrderFor(orderId);
+export async function startServiceOrder(orderId: string): Promise<ServiceOrderResult> {
+  const loaded = await loadOrderFor(orderId);
+  if (!loaded.ok) return loaded;
+  const { supabase, user, order } = loaded;
 
   if (!(await isAssignedInstructor(supabase, order.instructor_id, user.id))) {
-    throw new Error('هذا الطلب ليس مسنَدًا إليك');
+    return fail('هذا الطلب ليس مسنَدًا إليك');
   }
   if (order.status !== 'paid') {
-    throw new Error('لا يمكن بدء التنفيذ قبل تأكيد الدفع');
+    return fail('لا يمكن بدء التنفيذ قبل تأكيد الدفع');
   }
 
   const { data: started, error } = await supabase
@@ -408,9 +432,9 @@ export async function startServiceOrder(orderId: string) {
     .eq('status', 'paid')
     .select('id');
 
-  if (error) throw new Error('تعذّر تحديث حالة الطلب');
+  if (error) return fail('تعذّر تحديث حالة الطلب');
   if (!started || started.length === 0) {
-    throw new Error('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
+    return fail('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
   }
 
   await notifyUser({
@@ -431,19 +455,24 @@ export async function startServiceOrder(orderId: string) {
  * يُشترط رسالة تسليم فعلية: "تم التسليم" بلا شيء يقابله عند العميل هو بالضبط
  * ما يجعل الطلب يعلق بعد ذلك.
  */
-export async function deliverServiceOrder(orderId: string, deliveryMessage: string) {
-  const { supabase, user, order } = await loadOrderFor(orderId);
+export async function deliverServiceOrder(
+  orderId: string,
+  deliveryMessage: string,
+): Promise<ServiceOrderResult> {
+  const loaded = await loadOrderFor(orderId);
+  if (!loaded.ok) return loaded;
+  const { supabase, user, order } = loaded;
 
   if (!(await isAssignedInstructor(supabase, order.instructor_id, user.id))) {
-    throw new Error('هذا الطلب ليس مسنَدًا إليك');
+    return fail('هذا الطلب ليس مسنَدًا إليك');
   }
   if (order.status !== 'in_progress' && order.status !== 'paid') {
-    throw new Error('لا يمكن التسليم في هذه الحالة');
+    return fail('لا يمكن التسليم في هذه الحالة');
   }
 
   const text = deliveryMessage.trim();
   if (text.length < 10) {
-    throw new Error('اكتب رسالة التسليم للعميل (ما الذي سلّمته وأين يجده)');
+    return fail('اكتب رسالة التسليم للعميل (ما الذي سلّمته وأين يجده)', 'deliveryMessage');
   }
 
   const { data: delivered, error } = await supabase
@@ -453,13 +482,16 @@ export async function deliverServiceOrder(orderId: string, deliveryMessage: stri
     .in('status', ['in_progress', 'paid'])
     .select('id');
 
-  if (error) throw new Error('تعذّر تسجيل التسليم');
+  if (error) return fail('تعذّر تسجيل التسليم');
   if (!delivered || delivered.length === 0) {
-    throw new Error('الطلب مش موجود أو تغيّرت حالته — التسليم مااتسجّلش.');
+    return fail('الطلب مش موجود أو تغيّرت حالته — التسليم مااتسجّلش.');
   }
 
   // إرسال رسالة التسليم بعد نجاح تحديث حالة الطلب لضمان عدم إدراج رسائل تسليم يتيمة عند فشل التحديث
-  await sendServiceOrderMessage(orderId, text, true);
+  // ⚠️ كانت بترمي لو الرسالة فشلت (فالعميل مايتبلّغش)؛ دلوقتي بترجّع نفس
+  //    الخطأ لمقدّم الخدمة بنفس الترتيب — من غير إشعار للعميل.
+  const sent = await sendServiceOrderMessage(orderId, text, true);
+  if (!sent.ok) return sent;
 
   await notifyUser({
     event: 'order_status',
@@ -547,7 +579,7 @@ async function completeOrder(
     amount: number;
     standalone_service_id: string | null;
   }
-) {
+): Promise<ServiceOrderResult> {
   // (اسم الخدمة كان بيتقرا هنا عشان وصف المستحق. بقى بيتقرا جوّه
   //  `record_service_order_earning` في القاعدة — استعلام أقل من هنا.)
 
@@ -558,9 +590,9 @@ async function completeOrder(
     .eq('status', 'delivered')
     .select('id');
 
-  if (error) throw new Error('تعذّر إقفال الطلب');
+  if (error) return fail('تعذّر إقفال الطلب');
   if (!completed || completed.length === 0) {
-    throw new Error('الطلب مش موجود أو تغيّرت حالته — الإقفال مروّحش للقاعدة.');
+    return fail('الطلب مش موجود أو تغيّرت حالته — الإقفال مروّحش للقاعدة.');
   }
 
   // اسم الخدمة بقى بيتقرا جوّه الدالة في القاعدة.
@@ -584,20 +616,27 @@ async function completeOrder(
       link: '/dashboard/instructor/payouts',
     });
   }
+
+  // ⚠️ فشل تسجيل المستحق **مش** فشل للعملية: الطلب اتقفل فعلًا والإدارة
+  //    اتبلّغت (شوف `recordInstructorEarning`).
+  return { ok: true };
 }
 
 /** العميل يؤكد استلام العمل. */
-export async function confirmServiceOrderReceipt(orderId: string) {
-  const { supabase, user, order } = await loadOrderFor(orderId);
+export async function confirmServiceOrderReceipt(orderId: string): Promise<ServiceOrderResult> {
+  const loaded = await loadOrderFor(orderId);
+  if (!loaded.ok) return loaded;
+  const { supabase, user, order } = loaded;
 
   if (order.buyer_profile_id !== user.id) {
-    throw new Error('هذا الطلب ليس طلبك');
+    return fail('هذا الطلب ليس طلبك');
   }
   if (order.status !== 'delivered') {
-    throw new Error('لم يُسلَّم هذا الطلب بعد');
+    return fail('لم يُسلَّم هذا الطلب بعد');
   }
 
-  await completeOrder(supabase, order);
+  const completed = await completeOrder(supabase, order);
+  if (!completed.ok) return completed;
 
   revalidateOrder(orderId);
   return { ok: true };
@@ -605,14 +644,25 @@ export async function confirmServiceOrderReceipt(orderId: string) {
 
 /* ---------------- الإدارة ---------------- */
 
-/** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
+/**
+ * يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال.
+ *
+ * ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع نتيجة، وكل دالة لازم تشيك على `ok`.
+ */
 async function requireOrdersAdmin() {
-  return requireAdmin('canManageOrders', 'غير مصرح لك بإدارة الطلبات');
+  try {
+    const admin = await requireAdmin('canManageOrders', 'غير مصرح لك بإدارة الطلبات');
+    return { ok: true as const, admin };
+  } catch (err) {
+    return fail(errMessage(err, 'غير مصرح لك بإدارة الطلبات'));
+  }
 }
 
 /** تأكيد استلام المبلغ. */
-export async function confirmServiceOrderPayment(orderId: string) {
-  const admin = await requireOrdersAdmin();
+export async function confirmServiceOrderPayment(orderId: string): Promise<ServiceOrderResult> {
+  const guard = await requireOrdersAdmin();
+  if (!guard.ok) return guard;
+  const { admin } = guard;
   const supabase = await createClient();
 
   // المهلة بتبدأ من تأكيد الدفع مش من إنشاء الطلب: قبل الدفع مفيش
@@ -626,9 +676,9 @@ export async function confirmServiceOrderPayment(orderId: string) {
     .in('status', ['pending', 'awaiting_verification'])
     .select('id');
 
-  if (error) throw new Error('تعذّر تأكيد الدفع');
+  if (error) return fail('تعذّر تأكيد الدفع');
   if (!paid || paid.length === 0) {
-    throw new Error('الطلب مش موجود أو تم تأكيد دفعه مسبقاً — التغيير مروّحش للقاعدة.');
+    return fail('الطلب مش موجود أو تم تأكيد دفعه مسبقاً — التغيير مروّحش للقاعدة.');
   }
 
   const { data: order } = await supabase
@@ -679,18 +729,26 @@ export async function confirmServiceOrderPayment(orderId: string) {
  * لا يحدث هذا تلقائيًا بمرور الوقت: صمت العميل إشارة على احتمال وجود مشكلة،
  * لا موافقة ضمنية — فيقرأه إنسان ويقرر.
  */
-export async function closeServiceOrderByAdmin(orderId: string, reason: string) {
-  const admin = await requireOrdersAdmin();
-  const { supabase, order } = await loadOrderFor(orderId);
+export async function closeServiceOrderByAdmin(
+  orderId: string,
+  reason: string,
+): Promise<ServiceOrderResult> {
+  const guard = await requireOrdersAdmin();
+  if (!guard.ok) return guard;
+  const { admin } = guard;
+  const loaded = await loadOrderFor(orderId);
+  if (!loaded.ok) return loaded;
+  const { supabase, order } = loaded;
 
   if (order.status !== 'delivered') {
-    throw new Error('هذا الطلب ليس في حالة "تم التسليم"');
+    return fail('هذا الطلب ليس في حالة "تم التسليم"');
   }
   if (!reason.trim()) {
-    throw new Error('اكتب سبب الإقفال');
+    return fail('اكتب سبب الإقفال', 'reason');
   }
 
-  await completeOrder(supabase, order);
+  const completed = await completeOrder(supabase, order);
+  if (!completed.ok) return completed;
 
   await logAuditAction({
     actorProfileId: admin.id,
@@ -710,9 +768,11 @@ export async function setServiceOrderStatusByAdmin(
   orderId: string,
   status: 'refunded' | 'cancelled',
   reason: string
-) {
-  const admin = await requireOrdersAdmin();
-  if (!reason.trim()) throw new Error('اكتب السبب');
+): Promise<ServiceOrderResult> {
+  const guard = await requireOrdersAdmin();
+  if (!guard.ok) return guard;
+  const { admin } = guard;
+  if (!reason.trim()) return fail('اكتب السبب', 'reason');
 
   const supabase = await createClient();
 
@@ -723,17 +783,17 @@ export async function setServiceOrderStatusByAdmin(
     .maybeSingle();
 
   if (fetchError || !order) {
-    throw new Error('الطلب غير موجود');
+    return fail('الطلب غير موجود');
   }
 
   if (order.status === 'completed') {
-    throw new Error('لا يمكن إلغاء أو استرجاع طلب مكتمل');
+    return fail('لا يمكن إلغاء أو استرجاع طلب مكتمل');
   }
   if (order.status === 'cancelled') {
-    throw new Error('الطلب ملغي بالفعل');
+    return fail('الطلب ملغي بالفعل');
   }
   if (order.status === 'refunded') {
-    throw new Error('تم استرجاع هذا الطلب بالفعل');
+    return fail('تم استرجاع هذا الطلب بالفعل');
   }
 
   const { data: statusRows, error } = await supabase
@@ -743,9 +803,9 @@ export async function setServiceOrderStatusByAdmin(
     .eq('status', order.status)
     .select('id');
 
-  if (error) throw new Error('تعذّر تحديث حالة الطلب');
+  if (error) return fail('تعذّر تحديث حالة الطلب');
   if (!statusRows || statusRows.length === 0) {
-    throw new Error('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
+    return fail('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
   }
 
   await notifyUser({
@@ -780,18 +840,20 @@ export async function setServiceOrderDueDate(
   orderId: string,
   dueAt: string | null,
   note: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const admin = await requireOrdersAdmin();
+): Promise<ServiceOrderResult> {
+  const guard = await requireOrdersAdmin();
+  if (!guard.ok) return guard;
+  const { admin } = guard;
 
   // الرسائل بترجع بدل ما تترمي: Next بيخفي أي رسالة مرمية في الإنتاج
   // ويستبدلها بنص إنجليزي عام — فاللي بيعدّل المهلة كان بيشوف «حصل خطأ»
   // من غير ما يعرف إن السبب هو إنه ساب خانة السبب فاضية.
   const reason = note.trim();
   if (dueAt && !reason) {
-    return { ok: false, error: 'اكتب سبب تغيير المهلة — بيظهر للطرفين' };
+    return fail('اكتب سبب تغيير المهلة — بيظهر للطرفين', 'note');
   }
   if (dueAt && Number.isNaN(new Date(dueAt).getTime())) {
-    return { ok: false, error: 'التاريخ غير صحيح' };
+    return fail('التاريخ غير صحيح', 'dueAt');
   }
 
   const supabase = await createClient();
@@ -870,14 +932,16 @@ export async function setServiceOrderDueDate(
 export async function submitServiceOrderPayment(
   orderId: string,
   payment: { method: 'instapay' | 'vodafone_cash'; receiptUrl: string },
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ServiceOrderResult> {
   if (!payment.receiptUrl) return { ok: false, error: 'ارفع صورة إيصال التحويل' };
   // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
   if (!isValidReceiptRef(payment.receiptUrl)) {
     return { ok: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
   }
 
-  const { supabase, user, order } = await loadOrderFor(orderId);
+  const loaded = await loadOrderFor(orderId);
+  if (!loaded.ok) return loaded;
+  const { supabase, user, order } = loaded;
 
   if (order.buyer_profile_id !== user.id) {
     return { ok: false, error: 'الطلب غير موجود' };

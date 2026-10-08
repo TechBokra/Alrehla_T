@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, CheckCircle2 } from 'lucide-react';
 import { submitServiceReview } from '@/actions/reviews';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   orderId: string;
@@ -62,6 +64,8 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ (التعليق) — الرسالة بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [done, setDone] = useState(false);
   const [skipped, setSkipped] = useState(false);
 
@@ -81,16 +85,23 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
   const submit = async () => {
     if (serviceRating === 0 || instructorRating === 0) {
       setError('اختر عدد النجوم للاثنين');
+      setErrorField(undefined);
       return;
     }
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     try {
-      await submitServiceReview({ orderId, instructorRating, serviceRating, comment });
+      const result = await submitServiceReview({ orderId, instructorRating, serviceRating, comment });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setDone(true);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر حفظ التقييم');
+    } catch {
+      setError('تعذّر حفظ التقييم');
     } finally {
       setBusy(false);
     }
@@ -103,11 +114,8 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
         تقييمك يظهر في صفحة المدرب ويساعد غيرك على الاختيار.
       </p>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {/* خطأ التعليق بيظهر تحته؛ الباقي (النجوم وغيرها) هنا. */}
+      <FormError message={errorField === 'comment' ? '' : error} className="mb-4" />
 
       <div className="grid gap-6 rounded-2xl bg-white p-5 sm:grid-cols-2">
         <StarPicker
@@ -123,16 +131,20 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
           onChange={setInstructorRating}
         />
 
-        <div className="space-y-2 sm:col-span-2">
-          <label className="text-sm font-bold text-slate-800">تعليق (اختياري)</label>
-          <textarea
+        <Field
+          label="تعليق (اختياري)"
+          name="comment"
+          error={errorField === 'comment' ? error : undefined}
+          className="sm:col-span-2"
+        >
+          <TextArea
             rows={3}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="ما الذي أعجبك؟ وما الذي كان يمكن أن يكون أفضل؟"
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white"
+            className="resize-none"
           />
-        </div>
+        </Field>
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
@@ -143,14 +155,9 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
         >
           ليس الآن
         </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={submit}
-          className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          {busy ? 'جارٍ الإرسال…' : 'إرسال التقييم'}
-        </button>
+        <BusyButton busy={busy} pendingLabel="جارٍ الإرسال…" onClick={submit}>
+          إرسال التقييم
+        </BusyButton>
       </div>
     </div>
   );

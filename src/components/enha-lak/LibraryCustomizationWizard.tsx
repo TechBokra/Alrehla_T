@@ -271,6 +271,10 @@ export function LibraryCustomizationWizard({
         newChildBirthDate: data.newChildBirthDate,
         newChildGender: data.newChildGender as 'male' | 'female' | '' | undefined,
       });
+      if (!resolved.ok) {
+        setUploadError(resolved.error);
+        return;
+      }
       childName = resolved.childName;
       childId = resolved.childId;
     } catch (err) {

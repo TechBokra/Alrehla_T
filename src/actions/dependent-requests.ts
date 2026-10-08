@@ -24,10 +24,27 @@ import { logAuditAction } from '@/lib/audit';
  * ويختلفوا مع الوقت.
  */
 
-export type RequestResult = { ok: true } | { ok: false; error: string };
+export type RequestResult = { ok: true } | { ok: false; error: string; field?: string };
 
 /** رابط الشاشة اللي ولي الأمر بيكمّل منها بعد الموافقة. */
 export type ApprovedTarget = { ok: true; href: string } | { ok: false; error: string };
+
+/**
+ * الداخل دلوقتي، وهل هو حساب طفل تابع.
+ *
+ * ⚠️ `requireUser` و`getDependentGuardian` الاتنين بيرموا (مش داخل، أو
+ *    فحص نوع الحساب وقع). بنمسكهم ونرجّع الرسالة نتيجة (قاعدة «هـ») —
+ *    وفشل الفحص لسه بيوقف العملية زي ما هو، مش بيعدّيها.
+ */
+async function loadDependent() {
+  try {
+    const user = await requireUser();
+    const dependent = await getDependentGuardian();
+    return { ok: true as const, user, dependent };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error && err.message ? err.message : 'غير مصرح' };
+  }
+}
 
 /**
  * الطفل بيطلب.
@@ -43,8 +60,9 @@ export async function createDependentRequest(params: {
   instructorId?: string | null;
   note?: string;
 }): Promise<RequestResult> {
-  const user = await requireUser();
-  const dependent = await getDependentGuardian();
+  const who = await loadDependent();
+  if (!who.ok) return { ok: false, error: who.error };
+  const { user, dependent } = who;
 
   if (!dependent) {
     return { ok: false, error: 'الصفحة دي لحسابات الأبناء. اطلب من حسابك مباشرةً.' };
@@ -131,18 +149,19 @@ export async function createDependentRequest(params: {
  * الباقات والخدمات.
  */
 export async function requestNameChange(newName: string): Promise<RequestResult> {
-  const user = await requireUser();
-  const dependent = await getDependentGuardian();
+  const who = await loadDependent();
+  if (!who.ok) return { ok: false, error: who.error };
+  const { user, dependent } = who;
 
   if (!dependent) {
     return { ok: false, error: 'الصفحة دي لحسابات الأبناء.' };
   }
 
   const name = newName.trim();
-  if (name.length < 2) return { ok: false, error: 'اكتب اسمك كامل.' };
-  if (name.length > 120) return { ok: false, error: 'الاسم طويل أوي.' };
+  if (name.length < 2) return { ok: false, error: 'اكتب اسمك كامل.', field: 'name' };
+  if (name.length > 120) return { ok: false, error: 'الاسم طويل أوي.', field: 'name' };
   if (name === dependent.fullName) {
-    return { ok: false, error: 'ده اسمك الحالي خلاص.' };
+    return { ok: false, error: 'ده اسمك الحالي خلاص.', field: 'name' };
   }
 
   const supabase = await createClient();
@@ -222,8 +241,9 @@ export async function approveNameChange(requestId: string): Promise<RequestResul
 
 /** الطفل يسحب طلبه قبل ما ولي الأمر يبتّ. */
 export async function cancelDependentRequest(requestId: string): Promise<RequestResult> {
-  const user = await requireUser();
-  const dependent = await getDependentGuardian();
+  const who = await loadDependent();
+  if (!who.ok) return { ok: false, error: who.error };
+  const { dependent } = who;
   if (!dependent) return { ok: false, error: 'غير مصرح' };
 
   const supabase = await createClient();
@@ -250,7 +270,12 @@ export async function cancelDependentRequest(requestId: string): Promise<Request
 
 /** الطلب ده تخص ولي الأمر الداخل دلوقتي؟ */
 async function loadGuardianRequest(requestId: string) {
-  const guardian = await requireUser();
+  let guardian;
+  try {
+    guardian = await requireUser();
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error && err.message ? err.message : 'غير مصرح' };
+  }
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -260,8 +285,8 @@ async function loadGuardianRequest(requestId: string) {
     .eq('guardian_profile_id', guardian.id)
     .maybeSingle();
 
-  if (!data) throw new Error('الطلب ده مش على حسابك');
-  return { guardian, request: data, supabase };
+  if (!data) return { ok: false as const, error: 'الطلب ده مش على حسابك' };
+  return { ok: true as const, guardian, request: data, supabase };
 }
 
 /**
@@ -308,12 +333,8 @@ async function loadGuardianRequest(requestId: string) {
 export async function approveDependentRequest(
   requestId: string,
 ): Promise<ApprovedTarget> {
-  let ctx;
-  try {
-    ctx = await loadGuardianRequest(requestId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await loadGuardianRequest(requestId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, request, supabase } = ctx;
 
   if (request.status !== 'pending') {
@@ -391,12 +412,8 @@ export async function rejectDependentRequest(
   requestId: string,
   guardianNote: string,
 ): Promise<RequestResult> {
-  let ctx;
-  try {
-    ctx = await loadGuardianRequest(requestId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await loadGuardianRequest(requestId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, request, supabase } = ctx;
 
   if (request.status !== 'pending') {
@@ -405,7 +422,7 @@ export async function rejectDependentRequest(
 
   const note = guardianNote.trim();
   if (!note) {
-    return { ok: false, error: 'اكتب سبب مختصر — الابن هيقراه.' };
+    return { ok: false, error: 'اكتب سبب مختصر — الابن هيقراه.', field: 'note' };
   }
 
   const { data: updated, error } = await supabase

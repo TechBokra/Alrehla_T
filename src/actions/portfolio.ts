@@ -13,11 +13,23 @@ import { getCurrentUser } from '@/data/domains/auth';
  * to `portfolio_documents`.
  */
 
-/** The document must belong to the signed-in student. */
-async function requireOwnDocument(documentId: string) {
+/**
+ * The document must belong to the signed-in student.
+ *
+ * ⚠️ بترجّع `{ ok: false, error }` بدل ما ترمي (قاعدة «هـ») — وكل نداء
+ *    لازم يفحص `ok` ويرجع فورًا، وإلا الكتابة تعدّي من غير تحقق الملكية.
+ */
+async function requireOwnDocument(documentId: string): Promise<
+  | {
+      ok: true;
+      user: Awaited<ReturnType<typeof getCurrentUser>>;
+      document: { id: string; student_id: string; status: string };
+    }
+  | { ok: false; error: string }
+> {
   const user = await getCurrentUser();
   if (user.role === 'visitor') {
-    throw new Error('يجب تسجيل الدخول أولاً');
+    return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
   }
 
   const supabase = await createClient();
@@ -27,9 +39,9 @@ async function requireOwnDocument(documentId: string) {
     .eq('id', documentId)
     .maybeSingle();
 
-  if (!data) throw new Error('النص غير موجود');
-  if (data.student_id !== user.id) throw new Error('غير مصرح لك بتعديل هذا النص');
-  return { user, document: data };
+  if (!data) return { ok: false, error: 'النص غير موجود' };
+  if (data.student_id !== user.id) return { ok: false, error: 'غير مصرح لك بتعديل هذا النص' };
+  return { ok: true, user, document: data };
 }
 
 export type PortfolioResult =
@@ -111,12 +123,14 @@ export async function saveDocumentDraft(
   title: string,
   content: string
 ): Promise<PortfolioResult> {
-  let document;
+  let own;
   try {
-    ({ document } = await requireOwnDocument(documentId));
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+    own = await requireOwnDocument(documentId);
+  } catch {
+    return { ok: false, error: 'غير مصرح' };
   }
+  if (!own.ok) return own;
+  const { document } = own;
   if (document.status === 'reviewed') {
     return { ok: false, error: 'تمت مراجعة هذا النص ولا يمكن تعديله' };
   }
@@ -128,22 +142,36 @@ export async function submitDocumentForReview(
   title: string,
   content: string
 ): Promise<PortfolioResult> {
-  let document;
+  let own;
   try {
-    ({ document } = await requireOwnDocument(documentId));
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+    own = await requireOwnDocument(documentId);
+  } catch {
+    return { ok: false, error: 'غير مصرح' };
   }
+  if (!own.ok) return own;
+  const { document } = own;
   if (document.status === 'reviewed') {
     return { ok: false, error: 'تمت مراجعة هذا النص بالفعل' };
   }
   return writeDocument(documentId, title, content, 'submitted');
 }
 
-export async function submitInstructorFeedback(documentId: string, feedback: string) {
-  const user = await getCurrentUser();
+/**
+ * ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — المدرب كان بيشوف رسالة إنجليزي
+ *    عامة بدل «النص ده مش لطالب من طلابك».
+ */
+export async function submitInstructorFeedback(
+  documentId: string,
+  feedback: string,
+): Promise<{ ok: true } | { ok: false; error: string; field?: string }> {
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch {
+    return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
+  }
   if (user.role !== 'instructor') {
-    throw new Error('غير مصرح لك بكتابة ملاحظات');
+    return { ok: false, error: 'غير مصرح لك بكتابة ملاحظات' };
   }
 
   const supabase = await createClient();
@@ -160,7 +188,7 @@ export async function submitInstructorFeedback(documentId: string, feedback: str
 
   if (error) {
     console.error('Error saving instructor feedback', error);
-    throw new Error('تعذّر حفظ الملاحظات');
+    return { ok: false, error: 'تعذّر حفظ الملاحظات' };
   }
 
   // ⚠️ صفر صفوف هنا **مش** عطلًا في القاعدة — دي الصلاحيات بترفض
@@ -172,11 +200,11 @@ export async function submitInstructorFeedback(documentId: string, feedback: str
   //    رسالة بتقول «في عطل عندنا» على حاجة هي **منع مقصود**. المدرب
   //    كان يفضل يجرّب تاني وتالت في حاجة مش هتنجح.
   if (!data) {
-    throw new Error('النص ده مش لطالب من طلابك، أو مش موجود.');
+    return { ok: false, error: 'النص ده مش لطالب من طلابك، أو مش موجود.' };
   }
 
   revalidatePath(`/dashboard/instructor/students/${data.student_id}/portfolio/${documentId}`);
   revalidatePath('/dashboard/student/portfolio');
   revalidatePath(`/dashboard/student/portfolio/${documentId}`);
-  return { success: true };
+  return { ok: true };
 }

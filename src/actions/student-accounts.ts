@@ -94,7 +94,13 @@ function ageFrom(birthDate: string | null): number | null {
  *    الجديدة، والإيقاف، والتفعيل. سطر واحد بيقفلهم.
  */
 async function requireOwnChild(childId: string) {
-  const guardian = await requireNotDependent('إدارة حسابات الأبناء');
+  // الحارس بيرمي — بنمسكه ونرجّع رسالته نتيجة (قاعدة «هـ»).
+  let guardian;
+  try {
+    guardian = await requireNotDependent('إدارة حسابات الأبناء');
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error && err.message ? err.message : 'غير مصرح' };
+  }
   const supabase = await createClient();
 
   const { data: child } = await supabase
@@ -104,8 +110,8 @@ async function requireOwnChild(childId: string) {
     .eq('user_profile_id', guardian.id)
     .maybeSingle();
 
-  if (!child) throw new Error('فرد العائلة ده مش على حسابك');
-  return { guardian, child, supabase };
+  if (!child) return { ok: false as const, error: 'فرد العائلة ده مش على حسابك' };
+  return { ok: true as const, guardian, child, supabase };
 }
 
 /**
@@ -122,12 +128,8 @@ export async function createStudentAccount(childId: string): Promise<StudentAcco
     };
   }
 
-  let ctx;
-  try {
-    ctx = await requireOwnChild(childId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await requireOwnChild(childId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, child, supabase } = ctx;
 
   if (child.account_profile_id) {
@@ -213,12 +215,8 @@ export async function resetStudentPassword(childId: string): Promise<StudentAcco
     return { ok: false, error: 'الخدمة دي مش مفعّلة على الخادم حاليًا.' };
   }
 
-  let ctx;
-  try {
-    ctx = await requireOwnChild(childId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await requireOwnChild(childId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, child } = ctx;
 
   if (!child.account_profile_id) {
@@ -263,12 +261,8 @@ export async function disableStudentAccount(
     return { ok: false, error: 'الخدمة دي مش مفعّلة على الخادم حاليًا.' };
   }
 
-  let ctx;
-  try {
-    ctx = await requireOwnChild(childId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await requireOwnChild(childId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, child } = ctx;
 
   if (!child.account_profile_id) {
@@ -306,12 +300,8 @@ export async function enableStudentAccount(
     return { ok: false, error: 'الخدمة دي مش مفعّلة على الخادم حاليًا.' };
   }
 
-  let ctx;
-  try {
-    ctx = await requireOwnChild(childId);
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
-  }
+  const ctx = await requireOwnChild(childId);
+  if (!ctx.ok) return { ok: false, error: ctx.error };
   const { guardian, child } = ctx;
 
   if (!child.account_profile_id) {

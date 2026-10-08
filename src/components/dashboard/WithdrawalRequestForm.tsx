@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { submitWithdrawalRequest } from '@/actions/finance';
 import { useAction } from '@/lib/use-action';
 import { FormError, FormSuccess } from '@/components/ui/FormError';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 
 /**
  * طلب سحب المستحقات — للمدرب وللناشر.
@@ -116,44 +117,30 @@ export function WithdrawalRequestForm({
           <div className="space-y-4">
             {method === 'bank' ? (
               <>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">اسم البنك</label>
-                  <input
-                    required
-                    type="text"
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">
-                    رقم الحساب أو الآيبان (IBAN)
-                  </label>
-                  <input
-                    required
-                    type="text"
+                <Field label="اسم البنك" name="bankName" required>
+                  <TextInput value={bankName} onChange={(e) => setBankName(e.target.value)} />
+                </Field>
+                <Field label="رقم الحساب أو الآيبان (IBAN)" name="bankAccount" required>
+                  <TextInput
                     dir="ltr"
                     value={bankAccount}
                     onChange={(e) => setBankAccount(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left outline-none focus:border-blue-500"
+                    className="text-left"
                   />
-                </div>
+                </Field>
               </>
             ) : (
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">رقم المحفظة (الهاتف)</label>
-                <input
-                  required
+              <Field label="رقم المحفظة (الهاتف)" name="walletNumber" required>
+                <TextInput
                   type="tel"
-                    inputMode="tel"
-                    pattern={PHONE_INPUT_PROPS.pattern}
+                  inputMode="tel"
+                  pattern={PHONE_INPUT_PROPS.pattern}
                   dir="ltr"
                   value={walletNumber}
                   onChange={(e) => setWalletNumber(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left outline-none focus:border-blue-500"
+                  className="text-left"
                 />
-              </div>
+              </Field>
             )}
           </div>
         </div>
@@ -168,14 +155,14 @@ export function WithdrawalRequestForm({
               إلغاء
             </button>
           )}
-          <button
+          <BusyButton
             type="submit"
-            disabled={withdraw.pending}
-            aria-busy={withdraw.pending || undefined}
-            className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+            busy={withdraw.pending}
+            pendingLabel="جاري التقديم..."
+            className="px-8"
           >
-            {withdraw.pending ? 'جاري التقديم...' : 'تأكيد طلب السحب'}
-          </button>
+            تأكيد طلب السحب
+          </BusyButton>
         </div>
       </form>
     </div>

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { TaskBanner } from '@/components/admin/TaskBanner';
 import { productOrderStatus } from '@/lib/order-status';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -67,6 +68,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         backHref="/dashboard/admin/orders"
       />
       
+      {/* مين ماسك الطلب (ملف 14). */}
+      <TaskBanner sourceId={target.id} />
+
       <PaymentReviewPanel
         reference={target.paymentReference}
         amount={target.totalAmount}

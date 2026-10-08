@@ -237,6 +237,10 @@ export function PersonalizationWizard({
         newChildBirthDate: data.newChildBirthDate,
         newChildGender: data.newChildGender,
       });
+      if (!resolved.ok) {
+        setUploadError(resolved.error);
+        return;
+      }
       childName = resolved.childName;
       finalChildId = resolved.childId ?? '';
     } catch (err) {

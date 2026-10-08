@@ -885,7 +885,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'سبب الإلغاء')
-      ).rejects.toThrow('غير مصرح لك بإدارة الطلبات');
+      ).resolves.toEqual({ ok: false, error: 'غير مصرح لك بإدارة الطلبات' });
 
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockLogAuditAction).not.toHaveBeenCalled();
@@ -901,7 +901,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', '   ')
-      ).rejects.toThrow('اكتب السبب');
+      ).resolves.toEqual({ ok: false, error: 'اكتب السبب', field: 'reason' });
 
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockLogAuditAction).not.toHaveBeenCalled();
@@ -930,7 +930,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('non-existent', 'cancelled', 'سبب الإلغاء')
-      ).rejects.toThrow('الطلب غير موجود');
+      ).resolves.toEqual({ ok: false, error: 'الطلب غير موجود' });
 
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockLogAuditAction).not.toHaveBeenCalled();
@@ -967,11 +967,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'إلغاء طلب')
-      ).rejects.toThrow('لا يمكن إلغاء أو استرجاع طلب مكتمل');
+      ).resolves.toEqual({ ok: false, error: 'لا يمكن إلغاء أو استرجاع طلب مكتمل' });
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'refunded', 'استرجاع طلب')
-      ).rejects.toThrow('لا يمكن إلغاء أو استرجاع طلب مكتمل');
+      ).resolves.toEqual({ ok: false, error: 'لا يمكن إلغاء أو استرجاع طلب مكتمل' });
 
       expect(updateMock).not.toHaveBeenCalled();
       expect(mockNotifyUser).not.toHaveBeenCalled();
@@ -1009,7 +1009,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'إلغاء مكرر')
-      ).rejects.toThrow('الطلب ملغي بالفعل');
+      ).resolves.toEqual({ ok: false, error: 'الطلب ملغي بالفعل' });
 
       expect(updateMock).not.toHaveBeenCalled();
       expect(mockNotifyUser).not.toHaveBeenCalled();
@@ -1047,11 +1047,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'refunded', 'استرجاع مكرر')
-      ).rejects.toThrow('تم استرجاع هذا الطلب بالفعل');
+      ).resolves.toEqual({ ok: false, error: 'تم استرجاع هذا الطلب بالفعل' });
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'إلغاء بعد استرجاع')
-      ).rejects.toThrow('تم استرجاع هذا الطلب بالفعل');
+      ).resolves.toEqual({ ok: false, error: 'تم استرجاع هذا الطلب بالفعل' });
 
       expect(updateMock).not.toHaveBeenCalled();
       expect(mockNotifyUser).not.toHaveBeenCalled();
@@ -1211,7 +1211,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'إلغاء متزامن')
-      ).rejects.toThrow('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
+      ).resolves.toEqual({ ok: false, error: 'الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.' });
 
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockLogAuditAction).not.toHaveBeenCalled();
@@ -1254,7 +1254,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'فشل قاعدة البيانات')
-      ).rejects.toThrow('تعذّر تحديث حالة الطلب');
+      ).resolves.toEqual({ ok: false, error: 'تعذّر تحديث حالة الطلب' });
 
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockLogAuditAction).not.toHaveBeenCalled();
@@ -1267,7 +1267,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       mockSupabase = {
         auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
       };
-      await expect(startServiceOrder('order-1')).rejects.toThrow('يجب تسجيل الدخول أولاً');
+      await expect(startServiceOrder('order-1')).resolves.toEqual({ ok: false, error: 'يجب تسجيل الدخول أولاً' });
 
       mockSupabase = {
         auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'other-user' } } }) },
@@ -1298,7 +1298,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(startServiceOrder('order-1')).rejects.toThrow('هذا الطلب ليس مسنَدًا إليك');
+      await expect(startServiceOrder('order-1')).resolves.toEqual({ ok: false, error: 'هذا الطلب ليس مسنَدًا إليك' });
     });
 
     it('requires order to be in paid status', async () => {
@@ -1331,7 +1331,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(startServiceOrder('order-1')).rejects.toThrow('لا يمكن بدء التنفيذ قبل تأكيد الدفع');
+      await expect(startServiceOrder('order-1')).resolves.toEqual({ ok: false, error: 'لا يمكن بدء التنفيذ قبل تأكيد الدفع' });
     });
 
     it('succeeds on valid status transition with status guard in update', async () => {
@@ -1421,7 +1421,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(startServiceOrder('order-1')).rejects.toThrow('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
+      await expect(startServiceOrder('order-1')).resolves.toEqual({ ok: false, error: 'الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.' });
       expect(mockNotifyUser).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
     });
@@ -1470,7 +1470,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         deliverServiceOrder('order-1', 'هذا هو نص التسليم النهائي للمشروع المطلوب')
-      ).rejects.toThrow('الطلب مش موجود أو تغيّرت حالته — التسليم مااتسجّلش.');
+      ).resolves.toEqual({ ok: false, error: 'الطلب مش موجود أو تغيّرت حالته — التسليم مااتسجّلش.' });
 
       // Atomic safety: message must NOT be inserted if status update failed
       expect(insertMessageMock).not.toHaveBeenCalled();
@@ -1558,7 +1558,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(confirmServiceOrderReceipt('order-1')).rejects.toThrow('هذا الطلب ليس طلبك');
+      await expect(confirmServiceOrderReceipt('order-1')).resolves.toEqual({ ok: false, error: 'هذا الطلب ليس طلبك' });
     });
 
     it('rejects completion if order is not in delivered status', async () => {
@@ -1580,7 +1580,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(confirmServiceOrderReceipt('order-1')).rejects.toThrow('لم يُسلَّم هذا الطلب بعد');
+      await expect(confirmServiceOrderReceipt('order-1')).resolves.toEqual({ ok: false, error: 'لم يُسلَّم هذا الطلب بعد' });
     });
 
     it('fails when update affects zero rows (concurrent state change)', async () => {
@@ -1608,9 +1608,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(confirmServiceOrderReceipt('order-1')).rejects.toThrow(
-        'الطلب مش موجود أو تغيّرت حالته — الإقفال مروّحش للقاعدة.'
-      );
+      await expect(confirmServiceOrderReceipt('order-1')).resolves.toEqual({ ok: false, error: 'الطلب مش موجود أو تغيّرت حالته — الإقفال مروّحش للقاعدة.' });
       expect(mockNotifyUser).not.toHaveBeenCalled();
     });
 
@@ -1698,9 +1696,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         }),
       };
 
-      await expect(confirmServiceOrderPayment('order-1')).rejects.toThrow(
-        'الطلب مش موجود أو تم تأكيد دفعه مسبقاً — التغيير مروّحش للقاعدة.'
-      );
+      await expect(confirmServiceOrderPayment('order-1')).resolves.toEqual({ ok: false, error: 'الطلب مش موجود أو تم تأكيد دفعه مسبقاً — التغيير مروّحش للقاعدة.' });
 
       expect(updateInMock).toHaveBeenCalledWith('status', ['pending', 'awaiting_verification']);
       expect(mockNotifyUser).not.toHaveBeenCalled();

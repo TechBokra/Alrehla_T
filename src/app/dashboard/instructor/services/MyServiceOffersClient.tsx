@@ -10,6 +10,7 @@ import {
   setMyOfferActive,
   withdrawMyOffer,
 } from '@/actions/instructor-services';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 
 interface Props {
   services: CreativeService[];
@@ -26,32 +27,37 @@ interface Props {
   priceAlert?: number;
 }
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
-
 export function MyServiceOffersClient({ services, offers, formula, priceAlert = 0 }: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPrice, setDraftPrice] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — رسالتها بتظهر تحتها بدل فوق.
+  const [errorField, setErrorField] = useState<string | undefined>();
 
   const offerFor = (serviceId: string) => offers.find((o) => o.serviceId === serviceId);
 
-  const run = async (fn: () => Promise<unknown>) => {
+  // ⚠️ الأكشن بقى بيرجّع `{ ok: false, error, field? }` بدل ما يرمي
+  //    (قاعدة «هـ»)، فالرسالة العربية بتوصل زي ما هي. الـ`catch` بقى
+  //    للانقطاع وأي حاجة غير متوقعة بس.
+  const run = async (
+    fn: () => Promise<{ ok: true } | { ok: false; error: string; field?: string }>,
+  ) => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setEditingId(null);
       router.refresh();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
-      if (msg.includes('Server Components render') || msg.includes('digest')) {
-        setError('تعذّر إرسال العرض للإدارة حالياً. يرجى إعادة المحاولة.');
-      } else {
-        setError(msg);
-      }
+    } catch {
+      setError('تعذّر إرسال العرض للإدارة حالياً. يرجى إعادة المحاولة.');
     } finally {
       setBusy(false);
     }
@@ -61,13 +67,14 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
 
   const startEditing = (serviceId: string, current?: number | null) => {
     setError('');
+    setErrorField(undefined);
     setDraftPrice(current != null ? String(current) : '');
     setEditingId(serviceId);
   };
 
   return (
     <div className="space-y-4">
-      {error && (
+      {error && !errorField && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
           {error}
         </div>
@@ -229,18 +236,21 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
             {isEditing && (
               <div className="mt-4 space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    حصيلتك المقترحة من هذه الخدمة (ج.م)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    className={inputClass}
-                    value={draftPrice}
-                    onChange={(e) => setDraftPrice(e.target.value)}
-                    placeholder="مثال: 400"
-                    autoFocus
-                  />
+                  <Field
+                    label="حصيلتك المقترحة من هذه الخدمة (ج.م)"
+                    name="requestedPrice"
+                    required
+                    error={errorField === 'requestedPrice' ? error : undefined}
+                  >
+                    <TextInput
+                      type="number"
+                      min={1}
+                      value={draftPrice}
+                      onChange={(e) => setDraftPrice(e.target.value)}
+                      placeholder="مثال: 400"
+                      autoFocus
+                    />
+                  </Field>
                   {Number(draftPrice) > 0 && (
                     <p className="text-xs font-bold text-slate-500">
                       العميل سيدفع: {formatPrice(customerPrice(Number(draftPrice)))}
@@ -263,22 +273,25 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(null)}
+                  <BusyButton
+                    busy={false}
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingId(null);
+                      setError('');
+                      setErrorField(undefined);
+                    }}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50"
                   >
                     <X className="h-4 w-4" /> إلغاء
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
+                  </BusyButton>
+                  <BusyButton
+                    busy={busy}
+                    pendingLabel="جارٍ الإرسال…"
                     onClick={() => run(() => proposeServiceOffer(service.id, Number(draftPrice)))}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
                   >
-                    <Check className="h-4 w-4" /> {busy ? 'جارٍ الإرسال…' : 'إرسال للإدارة'}
-                  </button>
+                    <Check className="h-4 w-4" /> إرسال للإدارة
+                  </BusyButton>
                 </div>
               </div>
             )}

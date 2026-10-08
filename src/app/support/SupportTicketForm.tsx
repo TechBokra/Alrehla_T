@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Field, TextInput, TextArea, Select, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 import { createSupportTicket } from '@/actions/support';
 
 const CATEGORIES = [
@@ -27,6 +28,8 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — الرسالة بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [done, setDone] = useState(false);
 
   if (done) {
@@ -59,14 +62,22 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
     );
   }
 
+  const err = (f: string) => (errorField === f ? error : undefined);
+
   const submit = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     try {
-      await createSupportTicket({ subject, category, message });
+      const result = await createSupportTicket({ subject, category, message });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setDone(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر فتح التذكرة');
+    } catch {
+      setError('تعذّر فتح التذكرة');
     } finally {
       setBusy(false);
     }
@@ -74,59 +85,45 @@ export function SupportTicketForm({ isSignedIn }: { isSignedIn: boolean }) {
 
   return (
     <div className="space-y-4">
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
-      )}
+      {/* الخطأ اللي على خانة بعينها بيظهر تحتها؛ الباقي هنا. */}
+      <FormError message={errorField ? '' : error} />
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700">التصنيف</label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm text-slate-700 transition-all outline-none focus:border-amber-500"
-        >
+      <Field label="التصنيف" name="category" error={err('category')}>
+        <Select value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
             </option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </Field>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700">الموضوع</label>
-        <input
-          type="text"
+      <Field label="الموضوع" name="subject" required error={err('subject')}>
+        <TextInput
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="عنوان مختصر للمشكلة"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm transition-all outline-none focus:border-amber-500"
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700">التفاصيل</label>
-        <textarea
+      <Field label="التفاصيل" name="message" required error={err('message')}>
+        <TextArea
           rows={3}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="اشرح مشكلتك أو استفسارك..."
-          className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium md:text-sm transition-all outline-none focus:border-amber-500"
+          className="resize-none"
         />
-      </div>
+      </Field>
 
-      <Button
-        type="button"
+      <BusyButton
+        busy={busy}
+        pendingLabel="جارٍ الإرسال…"
         onClick={submit}
-        disabled={busy}
-        accentColor="amber"
-        variant="neutral"
-        className="mt-2 w-full shadow-md"
+        className="mt-2 w-full"
       >
-        {busy ? 'جارٍ الإرسال…' : 'إرسال التذكرة'}
-      </Button>
+        إرسال التذكرة
+      </BusyButton>
     </div>
   );
 }

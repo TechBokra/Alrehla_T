@@ -14,7 +14,9 @@ import {
   closeServiceOrderByAdmin,
   setServiceOrderStatusByAdmin,
   setServiceOrderDueDate,
+  type ServiceOrderResult,
 } from '@/actions/service-orders';
+import { Field, TextArea, TextInput } from '@/components/forms/Form';
 import {
   SERVICE_DUE_DAYS,
   dueLabel,
@@ -54,6 +56,24 @@ const STEP_LABELS: Record<string, string> = {
   completed: 'مكتمل',
 };
 
+/**
+ * الخطأ بيظهر **في نفس الكارت** اللي اتداس فيه الزرار — المحادثة تحت
+ * والإجراءات فوق، ورسالة واحدة أعلى الصفحة كانت بتتشاف بالعافية.
+ */
+type ErrorScope = 'actions' | 'chat';
+type ActionError = { scope: ErrorScope; message: string; field?: string };
+
+function ErrorBox({ message }: { message: string }) {
+  return (
+    <div
+      role="alert"
+      className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700"
+    >
+      {message}
+    </div>
+  );
+}
+
 const btnBase =
   'inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-50';
 
@@ -73,7 +93,7 @@ function childAge(birthDate: string): string {
 export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<ActionError | null>(null);
   const [draft, setDraft] = useState('');
   const [deliveryDraft, setDeliveryDraft] = useState('');
   const [showDelivery, setShowDelivery] = useState(false);
@@ -84,23 +104,39 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
   const isClosed = ['completed', 'refunded', 'cancelled'].includes(order.status);
   const stepIndex = STEPS.indexOf(order.status as (typeof STEPS)[number]);
 
-  const run = async (fn: () => Promise<unknown>) => {
+  /**
+   * ⚠️ العمليات **بترجّع** `{ ok: false, error }` مش بترمي (قاعدة «هـ»)،
+   *    فلازم نقرا `ok` — من غير كده الفشل كان هيعدّي كأنه نجاح ويمسح
+   *    المسودة. الـ`catch` فاضل لعطل الشبكة بس.
+   */
+  const run = async (scope: ErrorScope, fn: () => Promise<ServiceOrderResult>) => {
     setBusy(true);
-    setError('');
+    setError(null);
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        // المسودة بتفضل زي ما هي عشان يصلّح ويبعت تاني.
+        setError({ scope, message: result.error, field: result.field });
+        return;
+      }
       setDraft('');
       setDeliveryDraft('');
       setShowDelivery(false);
       setAdminAction(null);
       setAdminReason('');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+    } catch {
+      setError({ scope, message: 'حدث خطأ غير متوقع — جرّب تاني' });
     } finally {
       setBusy(false);
     }
   };
+
+  const actionsError = error?.scope === 'actions' ? error : null;
+  const chatError = error?.scope === 'chat' ? error : null;
+  /** خطأ الخانة دي بالذات (لو العملية رجّعت `field`). */
+  const fieldError = (field: string) =>
+    actionsError?.field === field ? actionsError.message : undefined;
 
   const daysSinceDelivery = order.deliveredAt
     ? Math.floor((Date.now() - new Date(order.deliveredAt).getTime()) / 86_400_000)
@@ -108,11 +144,6 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
 
       {/* Summary */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -207,11 +238,14 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="mb-4 font-black text-slate-800">الإجراء التالي</h3>
 
+          {/* خطأ الخانة بيظهر تحتها؛ الباقي هنا. */}
+          {actionsError && !actionsError.field && <ErrorBox message={actionsError.message} />}
+
           {viewer === 'instructor' && order.status === 'paid' && (
             <button
               type="button"
               disabled={busy}
-              onClick={() => run(() => startServiceOrder(order.id))}
+              onClick={() => run('actions', () => startServiceOrder(order.id))}
               className={`${btnBase} bg-indigo-600 text-white hover:bg-indigo-700`}
             >
               <Play className="h-4 w-4" /> بدأت التنفيذ
@@ -231,19 +265,21 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
                   </button>
                 ) : (
                   <div className="space-y-3 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-                    <div>
-                      <label className="text-sm font-bold text-violet-900">رسالة التسليم</label>
-                      <p className="mt-1 text-xs font-medium text-violet-700">
-                        اكتب ما الذي سلّمته وأين يجده العميل. لا يمكن تسجيل التسليم بدونها.
-                      </p>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={deliveryDraft}
-                      onChange={(e) => setDeliveryDraft(e.target.value)}
-                      className="w-full resize-none rounded-xl border border-violet-200 bg-white p-3 text-sm font-medium outline-none focus:border-violet-500"
-                      placeholder="مثال: أرفقت المراجعة الكاملة على الرابط التالي… ركّزت على بناء الشخصيات والحوار."
-                    />
+                    <Field
+                      label="رسالة التسليم"
+                      name="deliveryMessage"
+                      required
+                      hint="اكتب ما الذي سلّمته وأين يجده العميل. لا يمكن تسجيل التسليم بدونها."
+                      error={fieldError('deliveryMessage')}
+                    >
+                      <TextArea
+                        rows={4}
+                        value={deliveryDraft}
+                        onChange={(e) => setDeliveryDraft(e.target.value)}
+                        className="resize-none text-sm font-medium"
+                        placeholder="مثال: أرفقت المراجعة الكاملة على الرابط التالي… ركّزت على بناء الشخصيات والحوار."
+                      />
+                    </Field>
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
@@ -255,7 +291,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => run(() => deliverServiceOrder(order.id, deliveryDraft))}
+                        onClick={() => run('actions', () => deliverServiceOrder(order.id, deliveryDraft))}
                         className={`${btnBase} bg-violet-600 text-white hover:bg-violet-700`}
                       >
                         <Truck className="h-4 w-4" /> تأكيد التسليم
@@ -274,7 +310,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => run(() => confirmServiceOrderReceipt(order.id))}
+                onClick={() => run('actions', () => confirmServiceOrderReceipt(order.id))}
                 className={`${btnBase} bg-emerald-600 text-white hover:bg-emerald-700`}
               >
                 <CheckCircle2 className="h-4 w-4" /> استلمت العمل
@@ -286,7 +322,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
             <button
               type="button"
               disabled={busy}
-              onClick={() => run(() => confirmServiceOrderPayment(order.id))}
+              onClick={() => run('actions', () => confirmServiceOrderPayment(order.id))}
               className={`${btnBase} bg-emerald-600 text-white hover:bg-emerald-700`}
             >
               <CheckCircle2 className="h-4 w-4" /> تأكيد استلام المبلغ
@@ -329,20 +365,24 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
 
               {adminAction && (
                 <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <label className="text-xs font-bold text-slate-700">
-                    السبب (يُسجَّل في سجل التدقيق)
-                  </label>
-                  <input
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base md:text-sm"
-                    value={adminReason}
-                    onChange={(e) => setAdminReason(e.target.value)}
-                  />
+                  <Field
+                    label="السبب (يُسجَّل في سجل التدقيق)"
+                    name="reason"
+                    required
+                    error={fieldError('reason')}
+                  >
+                    <TextInput
+                      className="text-base md:text-sm"
+                      value={adminReason}
+                      onChange={(e) => setAdminReason(e.target.value)}
+                    />
+                  </Field>
                   <div className="flex justify-end">
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() =>
-                        run(() =>
+                        run('actions', () =>
                           adminAction === 'close'
                             ? closeServiceOrderByAdmin(order.id, adminReason)
                             : setServiceOrderStatusByAdmin(order.id, adminAction, adminReason)
@@ -431,22 +471,27 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
           })}
         </div>
 
-        <div className="mt-5 flex gap-2 border-t border-slate-100 pt-5">
-          <textarea
-            rows={2}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="اكتب رسالة…"
-            className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white"
-          />
-          <button
-            type="button"
-            disabled={busy || !draft.trim()}
-            onClick={() => run(() => sendServiceOrderMessage(order.id, draft))}
-            className={`${btnBase} shrink-0 self-end bg-slate-900 text-white hover:bg-slate-800`}
-          >
-            <Send className="h-4 w-4" /> إرسال
-          </button>
+        <div className="mt-5 border-t border-slate-100 pt-5">
+          {chatError && <ErrorBox message={chatError.message} />}
+          <div className="flex gap-2">
+            <TextArea
+              rows={2}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="اكتب رسالة…"
+              aria-label="رسالة جديدة"
+              aria-invalid={chatError?.field === 'body' || undefined}
+              className="flex-1 resize-none text-sm font-medium"
+            />
+            <button
+              type="button"
+              disabled={busy || !draft.trim()}
+              onClick={() => run('chat', () => sendServiceOrderMessage(order.id, draft))}
+              className={`${btnBase} shrink-0 self-end bg-slate-900 text-white hover:bg-slate-800`}
+            >
+              <Send className="h-4 w-4" /> إرسال
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -473,16 +518,19 @@ function DuePanel({
   const [note, setNote] = useState(order.dueNote ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
 
   const late = isOverdue(order.dueAt);
 
   const save = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     try {
       const result = await setServiceOrderDueDate(order.id, date || null, note);
       if (!result.ok) {
         setError(result.error);
+        setErrorField(result.field);
         return;
       }
       setEditing(false);
@@ -527,20 +575,38 @@ function DuePanel({
       {viewer === 'admin' && editing && (
         <div className="mt-4 space-y-3">
           <div className="flex flex-wrap gap-3">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
-            />
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="سبب التغيير — بيظهر للطرفين"
-              className="min-w-[220px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
+            <Field
+              label="المهلة الجديدة"
+              name="dueAt"
+              error={errorField === 'dueAt' ? error : undefined}
+            >
+              <TextInput
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="text-sm font-bold"
+              />
+            </Field>
+            <Field
+              label="سبب التغيير"
+              name="note"
+              hint="بيظهر للطرفين"
+              className="min-w-[220px] flex-1"
+              error={errorField === 'note' ? error : undefined}
+            >
+              <TextInput
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="سبب التغيير — بيظهر للطرفين"
+                className="text-sm"
+              />
+            </Field>
           </div>
-          {error && <p className="text-sm font-bold text-red-600">{error}</p>}
+          {error && !errorField && (
+            <p role="alert" className="text-sm font-bold text-red-600">
+              {error}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               disabled={busy}

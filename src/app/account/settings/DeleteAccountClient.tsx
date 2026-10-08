@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
 import { requestAccountDeletion } from '@/actions/account-deletion';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 
 /**
  * طلب حذف الحساب.
@@ -35,15 +36,19 @@ export function DeleteAccountClient({ hasOpenRequest }: { hasOpenRequest: boolea
   const submit = async () => {
     setBusy(true);
     setError('');
-    const result = await requestAccountDeletion(reason);
-    setBusy(false);
-
-    if (!result.ok) {
-      setError(result.error);
-      return;
+    try {
+      const result = await requestAccountDeletion(reason);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDone(true);
+      router.refresh();
+    } catch {
+      setError('تعذّر إرسال الطلب — جرّب تاني');
+    } finally {
+      setBusy(false);
     }
-    setDone(true);
-    router.refresh();
   };
 
   return (
@@ -67,21 +72,18 @@ export function DeleteAccountClient({ hasOpenRequest }: { hasOpenRequest: boolea
 
       {open ? (
         <div className="space-y-3">
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="سبب الطلب (اختياري)"
-            className="h-24 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm outline-none focus:border-red-400"
-          />
+          <Field label="سبب الطلب (اختياري)" name="reason">
+            <TextArea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="سبب الطلب (اختياري)"
+              className="h-24 text-sm"
+            />
+          </Field>
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={busy}
-              className="rounded-xl bg-red-600 px-6 py-3 font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
-            >
-              {busy ? 'جارٍ الإرسال…' : 'إرسال طلب الحذف'}
-            </button>
+            <BusyButton variant="danger" busy={busy} pendingLabel="جارٍ الإرسال…" onClick={submit}>
+              إرسال طلب الحذف
+            </BusyButton>
             <button
               type="button"
               onClick={() => setOpen(false)}

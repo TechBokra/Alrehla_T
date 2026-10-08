@@ -45,7 +45,14 @@ export async function saveSessionReport(params: {
 }): Promise<SessionReportResult> {
   const { sessionId, attendance, report } = params;
 
-  const { instructorId, user } = await requireInstructor();
+  // ⚠️ `requireInstructor` بترمي — والرسالة كانت بتوصل ممسوحة (قاعدة «هـ»).
+  let guard;
+  try {
+    guard = await requireInstructor();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'هذا الإجراء متاح للمدربين فقط' };
+  }
+  const { instructorId, user } = guard;
 
   const supabase = await createClient();
 

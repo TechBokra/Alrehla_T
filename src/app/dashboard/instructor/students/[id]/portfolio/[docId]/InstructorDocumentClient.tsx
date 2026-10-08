@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { PortfolioDocument } from '@/types';
 import { submitInstructorFeedback } from '@/actions/portfolio';
 import { Send, MessageSquare, User, Clock, CheckCircle2 } from 'lucide-react';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   document: PortfolioDocument;
@@ -14,19 +16,27 @@ export function InstructorDocumentClient({ document, studentName }: Props) {
   const [status, setStatus] = useState(document.status);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [error, setError] = useState('');
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSaveMessage('');
+    setError('');
     try {
-      await submitInstructorFeedback(document.id, feedback);
+      // ⚠️ الأكشن بقى بيرجّع الخطأ بدل ما يرميه (قاعدة «هـ») — ورسالته
+      //    بتظهر هنا بدل `alert` عام مكانش بيقول السبب.
+      const result = await submitInstructorFeedback(document.id, feedback);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setStatus('reviewed');
       setSaveMessage('تم حفظ الملاحظات بنجاح وإرسالها للمتدرب.');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error(err);
-      alert('حدث خطأ أثناء الحفظ');
+      setError('حدث خطأ أثناء الحفظ');
     } finally {
       setIsSaving(false);
     }
@@ -63,24 +73,30 @@ export function InstructorDocumentClient({ document, studentName }: Props) {
             {status === 'reviewed' && <span className="flex items-center gap-1 text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg"><CheckCircle2 className="h-4 w-4"/> تمت المراجعة</span>}
           </div>
 
-          <div className="flex-1 min-h-[300px] flex flex-col mb-4">
-            <label className="text-sm font-bold text-slate-700 mb-2">أضف تعليقاتك على النص، نقاط القوة، ومواضع التحسين:</label>
-            <textarea
-              required
+          <FormError message={error} className="mb-4" />
+
+          <Field
+            label="أضف تعليقاتك على النص، نقاط القوة، ومواضع التحسين:"
+            name="feedback"
+            required
+            className="mb-4 flex min-h-[300px] flex-1 flex-col"
+          >
+            <TextArea
               placeholder="اكتب ملاحظاتك للمتدرب هنا..."
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              className="w-full flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 outline-none focus:border-emerald-500 transition-colors"
-            ></textarea>
-          </div>
+              className="flex-1 resize-none"
+            />
+          </Field>
 
-          <button 
+          <BusyButton
             type="submit"
-            disabled={isSaving || !feedback.trim()}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 font-bold text-white hover:bg-emerald-700 transition-colors shadow-md disabled:opacity-50"
+            busy={isSaving}
+            disabled={!feedback.trim()}
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
           >
             <Send className="h-5 w-5" /> حفظ وإرسال التقييم
-          </button>
+          </BusyButton>
 
           {saveMessage && (
             <div className="mt-4 text-sm font-bold text-emerald-600 flex items-center justify-center gap-1 animate-in fade-in">

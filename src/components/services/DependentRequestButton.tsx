@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send, Check } from 'lucide-react';
 import { createDependentRequest } from '@/actions/dependent-requests';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 
 /**
  * زرار الطلب في حساب الطفل.
@@ -37,14 +38,20 @@ export function DependentRequestButton({
   const send = () => {
     setError('');
     startTransition(async () => {
-      const result = await createDependentRequest({
-        kind,
-        serviceId: serviceId ?? null,
-        providerId: providerId ?? null,
-        packageId: packageId ?? null,
-        instructorId: instructorId ?? null,
-        note,
-      });
+      let result: Awaited<ReturnType<typeof createDependentRequest>>;
+      try {
+        result = await createDependentRequest({
+          kind,
+          serviceId: serviceId ?? null,
+          providerId: providerId ?? null,
+          packageId: packageId ?? null,
+          instructorId: instructorId ?? null,
+          note,
+        });
+      } catch {
+        setError('تعذّر إرسال الطلب — جرّب تاني');
+        return;
+      }
       if (!result.ok) {
         setError(result.error);
         return;
@@ -81,26 +88,20 @@ export function DependentRequestButton({
 
   return (
     <div className="w-full max-w-sm space-y-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-      <label className="text-xs font-bold text-slate-700">
-        اكتب لولي أمرك ليه عايز ده (اختياري)
-      </label>
-      <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        rows={2}
-        placeholder="مثال: عايز حد يراجع قصتي قبل ما أسلّمها"
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-emerald-500"
-      />
-      {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+      <Field label="اكتب لولي أمرك ليه عايز ده (اختياري)" name="note">
+        <TextArea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={2}
+          placeholder="مثال: عايز حد يراجع قصتي قبل ما أسلّمها"
+          className="text-sm"
+        />
+      </Field>
+      {error && <p role="alert" className="text-xs font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={send}
-          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          {isPending ? 'جاري الإرسال…' : 'ابعت الطلب'}
-        </button>
+        <BusyButton busy={isPending} pendingLabel="جاري الإرسال…" onClick={send}>
+          ابعت الطلب
+        </BusyButton>
         <button
           type="button"
           onClick={() => setOpen(false)}

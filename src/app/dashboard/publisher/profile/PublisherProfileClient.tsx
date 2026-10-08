@@ -6,9 +6,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { AvatarPicker } from '@/components/dashboard/AvatarPicker';
 import { updateMyPublisherProfile } from '@/actions/profiles';
 import type { Publisher } from '@/types';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
+import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
 
 export function PublisherProfileClient({
   publisher,
@@ -23,23 +21,32 @@ export function PublisherProfileClient({
   const [logoUrl, setLogoUrl] = useState(publisher.logoUrl ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ — رسالتها بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
 
   const save = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     setSaved(false);
     try {
-      await updateMyPublisherProfile({
+      // ⚠️ الأكشن بقى بيرجّع الخطأ بدل ما يرميه (قاعدة «هـ»).
+      const result = await updateMyPublisherProfile({
         publisherId: publisher.id,
         name,
         bio,
         logoUrl,
       });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setSaved(true);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر حفظ البيانات');
+    } catch {
+      setError('تعذّر حفظ البيانات');
     } finally {
       setBusy(false);
     }
@@ -47,7 +54,7 @@ export function PublisherProfileClient({
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-      {error && (
+      {error && !errorField && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
           {error}
         </div>
@@ -61,7 +68,10 @@ export function PublisherProfileClient({
       <AvatarPicker
         value={logoUrl}
         onChange={setLogoUrl}
-        onError={setError}
+        onError={(message) => {
+          setError(message);
+          setErrorField(undefined);
+        }}
         label="شعار دار النشر"
         folder="alrehla/publishers"
         rounded="xl"
@@ -70,41 +80,38 @@ export function PublisherProfileClient({
       <hr className="my-8 border-slate-100" />
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">اسم دار النشر</label>
-          <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
-          <input
+        <Field
+          label="اسم دار النشر"
+          name="name"
+          required
+          error={errorField === 'name' ? error : undefined}
+        >
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="البريد الإلكتروني">
+          <TextInput
             type="email"
             value={email}
             readOnly
             dir="ltr"
-            className={`${inputClass} cursor-not-allowed text-left text-slate-500`}
+            className="cursor-not-allowed bg-slate-50 text-left text-slate-500"
           />
-        </div>
-        <div className="space-y-2 md:col-span-2">
-          <label className="text-sm font-bold text-slate-700">نبذة عن دار النشر</label>
-          <textarea
+        </Field>
+        <Field label="نبذة عن دار النشر" name="bio" className="md:col-span-2">
+          <TextArea
             rows={5}
-            className={`${inputClass} resize-none`}
+            className="resize-none"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="تظهر للعملاء في صفحة دار النشر…"
           />
-        </div>
+        </Field>
       </div>
 
       <div className="flex justify-end pt-8">
-        <button
-          type="button"
-          onClick={save}
-          disabled={busy}
-          className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          {busy ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}
-        </button>
+        <BusyButton busy={busy} onClick={save} className="px-8">
+          حفظ التغييرات
+        </BusyButton>
       </div>
     </div>
   );

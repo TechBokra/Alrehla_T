@@ -8,6 +8,7 @@ import {
   submitDocumentForReview,
 } from '@/actions/portfolio';
 import { Save, Send, MessageSquare, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BusyButton } from '@/components/forms/Form';
 
 interface Props {
   initialDocument: PortfolioDocument | null;
@@ -28,7 +29,9 @@ export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) 
   const [title, setTitle] = useState(initialDocument?.title || '');
   const [content, setContent] = useState(initialDocument?.content || '');
   const [status, setStatus] = useState(initialDocument?.status || 'draft');
-  const [isSaving, setIsSaving] = useState(false);
+  // أنهي زرار شغّال — عشان «جارٍ الحفظ…» تظهر على اللي اتداس بس.
+  const [savingAs, setSavingAs] = useState<'draft' | 'submitted' | null>(null);
+  const isSaving = savingAs !== null;
   const [saveMessage, setSaveMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -42,17 +45,24 @@ export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) 
    * والعنوان كمان مكانش بيتبعت للسيرفر أصلًا، فتعديله كان بيضيع.
    */
   const handleSave = async (newStatus: 'draft' | 'submitted') => {
-    setIsSaving(true);
+    setSavingAs(newStatus);
     setSaveMessage('');
     setErrorMessage('');
 
-    const result = documentId
-      ? newStatus === 'draft'
-        ? await saveDocumentDraft(documentId, title, content)
-        : await submitDocumentForReview(documentId, title, content)
-      : await createPortfolioDocument({ title, content, status: newStatus });
-
-    setIsSaving(false);
+    let result: Awaited<ReturnType<typeof createPortfolioDocument>>;
+    try {
+      result = documentId
+        ? newStatus === 'draft'
+          ? await saveDocumentDraft(documentId, title, content)
+          : await submitDocumentForReview(documentId, title, content)
+        : await createPortfolioDocument({ title, content, status: newStatus });
+    } catch {
+      // من غير ده الزرار كان بيفضل مقفول على «جارٍ الحفظ…» لو النداء وقع.
+      setErrorMessage('تعذّر الحفظ — جرّب تاني');
+      return;
+    } finally {
+      setSavingAs(null);
+    }
 
     if (!result.ok) {
       setErrorMessage(result.error);
@@ -114,21 +124,25 @@ export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) 
 
           {!isReviewed && (
             <div className="space-y-3">
-              <button 
+              <BusyButton
+                variant="secondary"
+                busy={savingAs === 'draft'}
                 onClick={() => handleSave('draft')}
                 disabled={isSaving || !title.trim() || !content.trim()}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 font-bold text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                className="w-full"
               >
                 <Save className="h-5 w-5" /> حفظ كمسودة
-              </button>
+              </BusyButton>
               {hasInstructor ? (
-                <button
+                <BusyButton
+                  busy={savingAs === 'submitted'}
+                  pendingLabel="جارٍ الإرسال…"
                   onClick={() => handleSave('submitted')}
                   disabled={isSaving || !title.trim() || !content.trim()}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"
+                  className="w-full"
                 >
                   <Send className="h-5 w-5" /> إرسال للمدرب
-                </button>
+                </BusyButton>
               ) : (
                 <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs font-bold leading-relaxed text-slate-500">
                   اكتب براحتك هنا — دي مساحتك أنت.

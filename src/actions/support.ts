@@ -8,6 +8,20 @@ import { logAuditAction } from '@/lib/audit';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
 
 /**
+ * ⚠️ طلب الجلسة وفتح التذكرة **بيرجّعوا** النتيجة بدل ما يرموا (قاعدة «هـ»):
+ *    Next بيمسح نصّ الخطأ اللي بيترمي في الموقع المنشور، فـ«اكتب موضوع
+ *    التذكرة» أو رسالة رقم التليفون كانت بتوصل إنجليزي عامة.
+ *    `field` = الخانة اللي عليها الخطأ، والشاشة بتعرضه تحتها.
+ */
+export type SupportRequestResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: 'contactName' | 'contactPhone' | 'message' };
+
+export type SupportTicketResult =
+  | { ok: true; ticketId: string }
+  | { ok: false; error: string; field?: 'subject' | 'category' | 'message' };
+
+/**
  * A customer asking for a support session.
  *
  * This used to push the request onto an in-memory array and return success, so
@@ -18,7 +32,7 @@ export async function submitSupportSessionRequest(
   contactName: string,
   contactPhone: string,
   message: string
-) {
+): Promise<SupportRequestResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,7 +41,7 @@ export async function submitSupportSessionRequest(
   // ⚠️ الرقم ده هو **الطريق الوحيد** للرد على الطلب — لو فيه حروف
   //    الطلب بيوصل وميتردّش عليه. و`type="tel"` مش بيمنع الحروف.
   if (!isValidPhone(contactPhone)) {
-    throw new Error(PHONE_ERROR);
+    return { ok: false, error: PHONE_ERROR, field: 'contactPhone' };
   }
   const phone = normalizePhone(contactPhone);
 
@@ -41,7 +55,7 @@ export async function submitSupportSessionRequest(
 
   if (error) {
     console.error('Error submitting support session request', error);
-    throw new Error('تعذّر إرسال الطلب، برجاء المحاولة مرة أخرى');
+    return { ok: false, error: 'تعذّر إرسال الطلب، برجاء المحاولة مرة أخرى' };
   }
 
   await notifyAdmins({
@@ -53,7 +67,7 @@ export async function submitSupportSessionRequest(
 
   revalidatePath('/dashboard/admin/support/session-requests');
   revalidatePath('/account/support');
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -67,17 +81,17 @@ export async function createSupportTicket(params: {
   subject: string;
   category: string;
   message: string;
-}) {
+}): Promise<SupportTicketResult> {
   const subject = params.subject.trim();
   const message = params.message.trim();
-  if (!subject) throw new Error('اكتب موضوع التذكرة');
-  if (!message) throw new Error('اكتب تفاصيل المشكلة');
+  if (!subject) return { ok: false, error: 'اكتب موضوع التذكرة', field: 'subject' };
+  if (!message) return { ok: false, error: 'اكتب تفاصيل المشكلة', field: 'message' };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول لفتح تذكرة دعم');
+  if (!user) return { ok: false, error: 'يجب تسجيل الدخول لفتح تذكرة دعم' };
 
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -99,7 +113,7 @@ export async function createSupportTicket(params: {
 
   if (error || !ticket) {
     console.error('Error creating support ticket', error);
-    throw new Error('تعذّر فتح التذكرة، برجاء المحاولة مرة أخرى');
+    return { ok: false, error: 'تعذّر فتح التذكرة، برجاء المحاولة مرة أخرى' };
   }
 
   const { error: messageError } = await supabase.from('support_ticket_messages').insert({
@@ -120,7 +134,7 @@ export async function createSupportTicket(params: {
   revalidatePath('/account/support');
   revalidatePath('/dashboard/admin/support/tickets');
   revalidatePath('/dashboard/admin');
-  return { success: true, ticketId: ticket.id };
+  return { ok: true, ticketId: ticket.id };
 }
 
 /**

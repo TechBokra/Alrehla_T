@@ -42,9 +42,13 @@ export function StudentAccountCell({
   const run = (fn: () => Promise<unknown>) => {
     setError('');
     startTransition(async () => {
-      const result = (await fn()) as
-        | { ok: true; loginId?: string; password?: string }
-        | { ok: false; error: string };
+      let result: { ok: true; loginId?: string; password?: string } | { ok: false; error: string };
+      try {
+        result = (await fn()) as typeof result;
+      } catch {
+        setError('حصلت مشكلة ومكملناش. جرّب تاني، ولو فضلت كلّمنا.');
+        return;
+      }
 
       if (!result.ok) {
         setError(result.error);

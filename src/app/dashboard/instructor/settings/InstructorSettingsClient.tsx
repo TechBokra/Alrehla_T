@@ -10,6 +10,7 @@ import { submitInstructorProfileUpdate, submitInstructorPackageUpdateRequest } f
 import { setMyPassword } from '@/actions/set-password';
 import { PackagePicker, type PackageChoice } from '@/components/dashboard/PackagePicker';
 import { WeeklySchedulePicker } from '@/components/dashboard/WeeklySchedulePicker';
+import { Field, TextInput, Select, BusyButton } from '@/components/forms/Form';
 
 interface InstructorSettingsClientProps {
   instructor: Instructor;
@@ -103,6 +104,10 @@ export function InstructorSettingsClient({
     fallbackError: 'تعذّر إرسال طلب تعديل الباقات للإدارة.',
   });
 
+  // رسالة الخادم تحت الخانة اللي هي عليها (`field` في النتيجة).
+  const fieldError = (name: string) =>
+    saveProfile.errorField === name ? saveProfile.error : undefined;
+
   // حفظ الملف الشخصي والجدول (طلب مستقل)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,32 +168,28 @@ export function InstructorSettingsClient({
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">نظام العمل</label>
-              <select
-                value={workModel}
-                onChange={(e) => setWorkModel(e.target.value as any)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 font-bold text-slate-800 focus:border-amber-500 focus:outline-none"
-              >
+            <Field label="نظام العمل" name="workModel" required>
+              <Select value={workModel} onChange={(e) => setWorkModel(e.target.value as any)}>
                 <option value="per_session">بالجلسة (تحديد حصيلة لكل جلسة)</option>
                 <option value="monthly">راتب شهري (يتطلب 60 ساعة التزام على الأقل)</option>
-              </select>
-            </div>
+              </Select>
+            </Field>
 
             {workModel === 'monthly' && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">
-                    عدد الساعات الملتزم بها شهرياً (الحد الأدنى 60 ساعة)
-                  </label>
-                  <input
+                <Field
+                  label="عدد الساعات الملتزم بها شهرياً (الحد الأدنى 60 ساعة)"
+                  name="monthlyHoursCommitted"
+                  required
+                  error={fieldError('monthlyHoursCommitted')}
+                >
+                  <TextInput
                     type="number"
                     min={60}
                     value={monthlyHours}
                     onChange={(e) => setMonthlyHours(parseInt(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 font-bold text-slate-800 focus:border-amber-500 focus:outline-none"
                   />
-                </div>
+                </Field>
 
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950 space-y-1.5 shadow-2xs">
                   <div className="flex items-center gap-2 font-bold text-slate-900">
@@ -204,17 +205,20 @@ export function InstructorSettingsClient({
 
             {workModel === 'per_session' && (
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">
-                  حصيلتك من الجلسة الواحدة (ج.م)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={requestedPrice}
-                  onChange={(e) => setRequestedPrice(Number(e.target.value))}
-                  placeholder="اكتب الحصيلة المناسبة لك"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 font-bold text-slate-800 focus:border-amber-500 focus:outline-none"
-                />
+                <Field
+                  label="حصيلتك من الجلسة الواحدة (ج.م)"
+                  name="requestedPrice"
+                  required
+                  error={fieldError('requestedPrice')}
+                >
+                  <TextInput
+                    type="number"
+                    min={1}
+                    value={requestedPrice}
+                    onChange={(e) => setRequestedPrice(Number(e.target.value))}
+                    placeholder="اكتب الحصيلة المناسبة لك"
+                  />
+                </Field>
 
                 {finalPrice > 0 && (
                   <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-xs text-slate-600 font-medium">
@@ -249,7 +253,8 @@ export function InstructorSettingsClient({
           />
         </div>
 
-        <FormError message={saveProfile.error} />
+        {/* خطأ على خانة بعينها بيظهر تحتها؛ الباقي هنا. */}
+        {!saveProfile.errorField && <FormError message={saveProfile.error} />}
 
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           {isSaved ? (
@@ -263,15 +268,15 @@ export function InstructorSettingsClient({
             </span>
           )}
 
-          <button
+          <BusyButton
             type="submit"
-            disabled={saveProfile.pending}
-            aria-busy={saveProfile.pending || undefined}
-            className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3.5 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-60 shadow-xs"
+            busy={saveProfile.pending}
+            pendingLabel="جارٍ الإرسال للإدارة…"
+            className="px-8"
           >
             <Save className="h-5 w-5" />
-            {saveProfile.pending ? 'جارٍ الإرسال للإدارة…' : 'حفظ وإرسال تعديلات الجدول والملف'}
-          </button>
+            حفظ وإرسال تعديلات الجدول والملف
+          </BusyButton>
         </div>
       </form>
 
@@ -324,15 +329,15 @@ export function InstructorSettingsClient({
             </span>
           )}
 
-          <button
+          <BusyButton
             type="submit"
-            disabled={savePackages.pending}
-            aria-busy={savePackages.pending || undefined}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-3.5 font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-60 shadow-xs"
+            busy={savePackages.pending}
+            pendingLabel="جارٍ إرسال طلب الباقات…"
+            className="bg-indigo-600 px-8 hover:bg-indigo-700"
           >
             <Save className="h-5 w-5" />
-            {savePackages.pending ? 'جارٍ إرسال طلب الباقات…' : 'حفظ وإرسال طلب اعتماد الباقات للإدارة'}
-          </button>
+            حفظ وإرسال طلب اعتماد الباقات للإدارة
+          </BusyButton>
         </div>
       </form>
 
@@ -356,70 +361,71 @@ export function InstructorSettingsClient({
         {passwordError && <FormError message={passwordError} />}
         {passwordSuccess && <FormSuccess message={passwordSuccess} />}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700">كلمة المرور الحالية</label>
-          <input
+        <Field
+          label="كلمة المرور الحالية"
+          name="currentPassword"
+          required
+          hint={
+            <>
+              بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
+              نسيتها؟{' '}
+              <a href="/forgot-password" className="font-bold text-slate-800 underline">
+                اطلب رابط استرجاع
+              </a>
+              .
+            </>
+          }
+        >
+          <TextInput
             type="password"
             dir="ltr"
-            required
             autoComplete="current-password"
             placeholder="كلمة مرورك دلوقتي"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-mono text-slate-900 focus:border-slate-800 focus:outline-hidden"
+            className="font-mono text-sm"
           />
-          <p className="text-xs font-medium text-slate-500">
-            بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
-            نسيتها؟{' '}
-            <a href="/forgot-password" className="font-bold text-slate-800 underline">
-              اطلب رابط استرجاع
-            </a>
-            .
-          </p>
-        </div>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">كلمة المرور الجديدة</label>
-            <input
+          <Field label="كلمة المرور الجديدة" name="newPassword" required>
+            <TextInput
               type="password"
               dir="ltr"
-              required
               minLength={8}
               placeholder="8 أحرف أو أرقام على الأقل"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-mono text-slate-900 focus:border-slate-800 focus:outline-hidden"
+              className="font-mono text-sm"
             />
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">تأكيد كلمة المرور الجديدة</label>
-            <input
+          <Field label="تأكيد كلمة المرور الجديدة" name="confirmPassword" required>
+            <TextInput
               type="password"
               dir="ltr"
-              required
               minLength={8}
               placeholder="أعد إدخال كلمة المرور"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-mono text-slate-900 focus:border-slate-800 focus:outline-hidden"
+              className="font-mono text-sm"
             />
-          </div>
+          </Field>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-100">
           <span className="text-xs text-slate-500 font-medium">
             💡 كلمة المرور يجب ألا تقل عن 8 خانات، وتأكد من حفظها في مكان آمن.
           </span>
-          <button
+          <BusyButton
             type="submit"
-            disabled={isChangingPassword || !currentPassword || !newPassword}
-            className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-xs text-sm"
+            busy={isChangingPassword}
+            disabled={!currentPassword || !newPassword}
+            className="text-sm"
           >
             <Lock className="h-4 w-4" />
-            <span>{isChangingPassword ? 'جارٍ الحفظ…' : 'تحديث كلمة المرور'}</span>
-          </button>
+            <span>تحديث كلمة المرور</span>
+          </BusyButton>
         </div>
       </form>
     </div>

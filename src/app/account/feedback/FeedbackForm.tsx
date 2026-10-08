@@ -2,9 +2,10 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { submitFeedback } from '@/actions/feedback';
 import { FormError } from '@/components/ui/FormError';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 import { FEEDBACK_LINE_LABELS, type FeedbackLine } from '@/lib/feedback-lines';
 
 export function FeedbackForm({ lines }: { lines: FeedbackLine[] }) {
@@ -15,14 +16,18 @@ export function FeedbackForm({ lines }: { lines: FeedbackLine[] }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  // الخانة اللي الخادم رجّع عليها الخطأ (الرأي) — الرسالة بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [sent, setSent] = useState(false);
 
   const send = () => {
     startTransition(async () => {
       setError('');
+      setErrorField(undefined);
       const r = await submitFeedback({ line, rating, comment });
       if (!r.ok) {
         setError(r.error);
+        setErrorField(r.field);
         return;
       }
       setSent(true);
@@ -93,29 +98,30 @@ export function FeedbackForm({ lines }: { lines: FeedbackLine[] }) {
         </div>
       </fieldset>
 
-      <label className="block">
-        <span className="mb-2 block text-sm font-bold text-slate-700">احكيلنا (اختياري)</span>
-        <textarea
+      <Field
+        label="احكيلنا (اختياري)"
+        name="comment"
+        error={errorField === 'comment' ? error : undefined}
+      >
+        <TextArea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           maxLength={2000}
           rows={4}
           placeholder="إيه اللي عجبك؟ وإيه اللي نحسّنه؟"
-          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800"
         />
-      </label>
+      </Field>
 
-      <FormError message={error} />
+      <FormError message={errorField === 'comment' ? '' : error} />
 
-      <button
-        type="button"
+      <BusyButton
+        busy={busy}
+        pendingLabel="ابعت رأيك"
         onClick={send}
-        disabled={busy || !line || rating === 0}
-        className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 disabled:opacity-40"
+        disabled={!line || rating === 0}
       >
-        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         ابعت رأيك
-      </button>
+      </BusyButton>
     </div>
   );
 }

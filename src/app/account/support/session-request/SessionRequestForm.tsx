@@ -6,6 +6,7 @@ import { Send, CheckCircle2 } from 'lucide-react';
 import { submitSupportSessionRequest } from '@/actions/support';
 import { useAction } from '@/lib/use-action';
 import { FormError } from '@/components/ui/FormError';
+import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
 
 export function SessionRequestForm() {
   const [name, setName] = useState('');
@@ -40,6 +41,8 @@ export function SessionRequestForm() {
     fallbackError: 'تعذّر إرسال طلبك. جرّب تاني، ولو فضلت كلّمنا على واتساب.',
   });
 
+  const err = (f: string) => (submit.errorField === f ? submit.error : undefined);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await submit.run(name, phone, message);
@@ -63,55 +66,39 @@ export function SessionRequestForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      <FormError message={submit.error} />
+      {/* الخطأ اللي على خانة بعينها بيظهر تحتها؛ الباقي هنا. */}
+      <FormError message={submit.errorField ? '' : submit.error} />
 
       <div className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-bold text-slate-700">الاسم الكريم</label>
-          <input
-            type="text"
-            required
+        <Field label="الاسم الكريم" name="contactName" required error={err('contactName')}>
+          <TextInput
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-800 outline-none focus:border-blue-500"
             placeholder="اكتب اسمك هنا"
           />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-bold text-slate-700">رقم الهاتف (للتواصل)</label>
-          <input
-            type="tel"
-                    inputMode="tel"
-                    pattern={PHONE_INPUT_PROPS.pattern}
-            required
+        </Field>
+        <Field label="رقم الهاتف (للتواصل)" name="contactPhone" required error={err('contactPhone')}>
+          <TextInput
+            {...PHONE_INPUT_PROPS}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-800 outline-none focus:border-blue-500 text-left"
-            dir="ltr"
+            className="text-left"
             placeholder="مثال: 01000000000"
           />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-bold text-slate-700">كيف يمكننا مساعدتك في الحجز؟</label>
-          <textarea
-            required
+        </Field>
+        <Field label="كيف يمكننا مساعدتك في الحجز؟" name="message" required error={err('message')}>
+          <TextArea
             rows={4}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-slate-800 outline-none focus:border-blue-500"
             placeholder="اكتب استفسارك أو المشكلة التي تواجهها هنا..."
-          ></textarea>
-        </div>
+          />
+        </Field>
       </div>
-      <button
-        type="submit"
-        disabled={submit.pending}
-        aria-busy={submit.pending || undefined}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 p-4 font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-      >
+      <BusyButton type="submit" busy={submit.pending} pendingLabel="جاري الإرسال..." className="w-full">
         <Send className="h-5 w-5" />
-        {submit.pending ? 'جاري الإرسال...' : 'إرسال الطلب'}
-      </button>
+        إرسال الطلب
+      </BusyButton>
     </form>
   );
 }

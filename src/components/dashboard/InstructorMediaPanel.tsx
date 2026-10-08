@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { ActionForm } from '@/components/dashboard/ActionForm';
+import { Field, TextInput, SubmitButton } from '@/components/forms/Form';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { submitInstructorMedia, removeInstructorMedia } from '@/actions/instructor-media';
 import type { InstructorMedia } from '@/data/domains/instructor-media';
@@ -146,9 +147,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
                 hint="الأفضل صورة عريضة (٢١:٩) بعرض ١٦٠٠ بكسل على الأقل — الصورة الصغيرة بتبان ناعمة في الشاشات الكبيرة."
               />
               <div className="flex gap-2">
-                <Button type="submit" accentColor="journey">
-                  ابعتها للمراجعة
-                </Button>
+                <SubmitButton pendingLabel="جارٍ الإرسال…">ابعتها للمراجعة</SubmitButton>
                 <Button
                   type="button"
                   variant="secondary"
@@ -214,34 +213,23 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
                 hint="غلاف الكتاب أو صورة العمل."
               />
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-1.5">
-                  <span className="block text-sm font-bold text-slate-700">
-                    اسم العمل
-                  </span>
-                  <input
-                    name="title"
-                    maxLength={120}
-                    placeholder="مثال: رحلة إلى أعماق البحار"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium outline-none focus:border-emerald-500 md:text-sm"
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-sm font-bold text-slate-700">
-                    دورك فيه{' '}
-                    <span className="font-medium text-slate-500">(اختياري)</span>
-                  </span>
-                  <input
-                    name="contribution"
-                    maxLength={80}
-                    placeholder="تأليف · رسم · مشاركة"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-base font-medium outline-none focus:border-emerald-500 md:text-sm"
-                  />
-                </label>
+                <Field label="اسم العمل" name="title">
+                  <TextInput maxLength={120} placeholder="مثال: رحلة إلى أعماق البحار" />
+                </Field>
+                <Field
+                  label={
+                    <>
+                      دورك فيه{' '}
+                      <span className="font-medium text-slate-500">(اختياري)</span>
+                    </>
+                  }
+                  name="contribution"
+                >
+                  <TextInput maxLength={80} placeholder="تأليف · رسم · مشاركة" />
+                </Field>
               </div>
               <div className="flex gap-2">
-                <Button type="submit" accentColor="journey">
-                  ابعته للمراجعة
-                </Button>
+                <SubmitButton pendingLabel="جارٍ الإرسال…">ابعته للمراجعة</SubmitButton>
                 <Button
                   type="button"
                   variant="secondary"

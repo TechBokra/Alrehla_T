@@ -10,6 +10,8 @@ import {
   rejectDependentRequest,
 } from '@/actions/dependent-requests';
 import { formatCairo } from '@/lib/timezone';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: 'مستني ردك', className: 'bg-amber-50 text-amber-700' },
@@ -28,6 +30,8 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
+  // الخانة اللي عليها الخطأ (سبب الرفض) — الرسالة بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [note, setNote] = useState('');
 
@@ -64,10 +68,12 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
 
   const reject = (id: string) => {
     setError('');
+    setErrorField(undefined);
     startTransition(async () => {
       const result = await rejectDependentRequest(id, note);
       if (!result.ok) {
         setError(result.error);
+        setErrorField(result.field);
         return;
       }
       setRejectingId(null);
@@ -86,11 +92,8 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
 
   return (
     <div className="space-y-4">
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
-      )}
+      {/* الخطأ اللي على خانة السبب بيظهر تحتها؛ الباقي هنا. */}
+      <FormError message={errorField ? '' : error} />
 
       {requests.map((request) => {
         const status = STATUS[request.status] ?? STATUS.pending;
@@ -161,6 +164,7 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
                     onClick={() => {
                       setRejectingId(rejectingId === request.id ? null : request.id);
                       setNote('');
+                      setErrorField(undefined);
                     }}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:border-rose-300 disabled:opacity-50"
                   >
@@ -172,24 +176,28 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
 
             {rejectingId === request.id && (
               <div className="mt-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <label className="text-xs font-bold text-slate-600">
-                  اكتب سبب مختصر — ابنك هيقراه
-                </label>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-amber-500"
-                  placeholder="مثال: نأجلها للشهر الجاي"
-                />
-                <button
-                  type="button"
-                  disabled={isPending || !note.trim()}
+                <Field
+                  label="اكتب سبب مختصر — ابنك هيقراه"
+                  name="note"
+                  required
+                  error={errorField === 'note' ? error : undefined}
+                >
+                  <TextArea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    rows={2}
+                    placeholder="مثال: نأجلها للشهر الجاي"
+                  />
+                </Field>
+                <BusyButton
+                  variant="danger"
+                  busy={isPending}
+                  pendingLabel="جارٍ الإرسال…"
+                  disabled={!note.trim()}
                   onClick={() => reject(request.id)}
-                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                 >
                   ابعت الرد
-                </button>
+                </BusyButton>
               </div>
             )}
 

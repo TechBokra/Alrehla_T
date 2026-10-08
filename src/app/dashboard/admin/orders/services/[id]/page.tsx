@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { TaskBanner } from '@/components/admin/TaskBanner';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { ServiceOrderDetail } from '@/components/services/ServiceOrderDetail';
 import { Unauthorized } from '@/components/admin/Unauthorized';
@@ -24,6 +25,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-6 py-12">
       <DashboardPageHeader title="تفاصيل الطلب" backHref="/dashboard/admin/orders/services" />
+      {/* مين ماسك الطلب (ملف 14). */}
+      <TaskBanner sourceId={id} />
+
       <PaymentReviewPanel
         reference={order.paymentReference}
         amount={order.amount}

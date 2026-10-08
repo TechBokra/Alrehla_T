@@ -11,19 +11,30 @@ import { logAuditAction } from '@/lib/audit';
  * All three profile screens (instructor, publisher, student) used one shared
  * form whose save button was wired to nothing at all: the fields could be
  * typed into, the button clicked, and nothing was ever written.
+ *
+ * ⚠️ **بترجّع ولا بترمي** (قاعدة «هـ»): Next بيمسح نصّ الاستثناء في
+ *    الإنتاج، فالمستخدم كان بيشوف رسالة إنجليزي عامة بدل «اكتب اسمك».
+ *    و`field` = اسم الخانة اللي عليها الخطأ، والشاشة بتعلّمها.
  */
+export type ProfileResult = { ok: true } | { ok: false; error: string; field?: string };
+
+const fail = (error: string, field?: string): { ok: false; error: string; field?: string } =>
+  field ? { ok: false, error, field } : { ok: false, error };
 
 /** The signed-in user's own name and picture, stored in `user_profiles`. */
-export async function updateMyProfile(params: { fullName: string; avatarUrl?: string }) {
+export async function updateMyProfile(params: {
+  fullName: string;
+  avatarUrl?: string;
+}): Promise<ProfileResult> {
   const fullName = params.fullName.trim();
-  if (!fullName) throw new Error('اكتب اسمك');
-  if (fullName.length > 120) throw new Error('الاسم طويل جدًا');
+  if (!fullName) return fail('اكتب اسمك', 'fullName');
+  if (fullName.length > 120) return fail('الاسم طويل جدًا', 'fullName');
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return fail('يجب تسجيل الدخول أولاً');
 
   const { data: saved, error } = await supabase
     .from('user_profiles')
@@ -37,14 +48,14 @@ export async function updateMyProfile(params: { fullName: string; avatarUrl?: st
 
   if (error) {
     console.error('Error updating profile', error);
-    throw new Error('تعذّر حفظ البيانات');
+    return fail('تعذّر حفظ البيانات');
   }
 
   // ⚠️ قاعدة (و): `UPDATE` على صف مش موجود — أو صف بترفضه الصلاحيات —
   // بينجح بصفر صفوف وبلا أي خطأ. من غير الفحص ده الشاشة بتقول «اتحفظ»
   // ومفيش حاجة وصلت للقاعدة، والمستخدم بيدوّر على صورته وما بيلاقيهاش.
   if (!saved || saved.length === 0) {
-    throw new Error('لم يصل الحفظ إلى قاعدة البيانات. جرّب تاني.');
+    return fail('لم يصل الحفظ إلى قاعدة البيانات. جرّب تاني.');
   }
 
   revalidatePath('/dashboard/student/profile');
@@ -73,16 +84,21 @@ export async function updateMyPublisherProfile(params: {
   name: string;
   bio: string;
   logoUrl?: string;
-}) {
-  const user = await getCurrentUser();
+}): Promise<ProfileResult> {
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch {
+    return fail('يجب تسجيل الدخول أولاً');
+  }
   const name = params.name.trim();
-  if (!name) throw new Error('اكتب اسم دار النشر');
+  if (!name) return fail('اكتب اسم دار النشر', 'name');
 
   const supabase = await createClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
-  if (!authUser) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!authUser) return fail('يجب تسجيل الدخول أولاً');
 
   // The publisher must be the caller's own. The page used to show
   // `publishers[0]` — the first publisher in the whole table — so a second
@@ -94,7 +110,7 @@ export async function updateMyPublisherProfile(params: {
     .eq('user_id', authUser.id)
     .maybeSingle();
 
-  if (!owned) throw new Error('غير مصرح لك بتعديل هذا الملف');
+  if (!owned) return fail('غير مصرح لك بتعديل هذا الملف');
 
   const { data: saved, error } = await supabase
     .from('publishers')
@@ -111,12 +127,12 @@ export async function updateMyPublisherProfile(params: {
   //    والاتنين ممكن يختلفوا. صفر صفوف هنا معناها الحفظ ما تمّش
   //    (قاعدة «و»).
   if (!error && (!saved || saved.length === 0)) {
-    throw new Error('الحفظ مروّحش للقاعدة — راجع الصلاحيات.');
+    return fail('الحفظ مروّحش للقاعدة — راجع الصلاحيات.');
   }
 
   if (error) {
     console.error('Error updating publisher profile', error);
-    throw new Error('تعذّر حفظ بيانات دار النشر');
+    return fail('تعذّر حفظ بيانات دار النشر');
   }
 
   await logAuditAction({

@@ -45,30 +45,48 @@ export function onboardingState(
   return waiting ? 'in_review' : 'needs_profile';
 }
 
-/**
- * فحص الملف الأول — **إلزامي كله**. بيرجّع رسالة لأول خانة ناقصة، أو `null`.
- *
- * ⚠️ نفس الفحص بيتعمل في الشاشة (عشان الرسالة تبان قبل الإرسال) وفي
- *    الخادم (عشان نداء مباشر مايعدّيش ملف فاضي) — قاعدة «ع».
- */
-export function validateFirstProfile(input: {
+export type FirstProfileInput = {
   displayName: string;
   bio: string;
   specialties: string[];
   yearsExperience: number;
   avatarUrl: string;
-}): string | null {
-  if (!input.avatarUrl.trim()) return 'ارفع صورتك الشخصية — بتظهر للأهالي في صفحتك.';
-  if (input.displayName.trim().length < 2) return 'اكتب اسمك زي ما هيظهر للأهالي.';
+};
+
+/**
+ * فحص الملف الأول — **إلزامي كله**. بيرجّع رسالة لأول خانة ناقصة، أو `null`.
+ *
+ * ⚠️ نفس الفحص بيتعمل في الشاشة (عشان الرسالة تبان قبل الإرسال) وفي
+ *    الخادم (عشان نداء مباشر مايعدّيش ملف فاضي) — قاعدة «ع».
+ *
+ * وبيرجّع كمان اسم الخانة الناقصة، عشان الشاشة تكتب الرسالة تحتها
+ * وتعلّمها بالأحمر. (`validateFirstProfile` تحت = الرسالة وبس.)
+ */
+export function firstProfileProblem(
+  input: FirstProfileInput,
+): { error: string; field: 'avatarUrl' | 'displayName' | 'bio' | 'specialties' | 'yearsExperience' } | null {
+  if (!input.avatarUrl.trim()) {
+    return { error: 'ارفع صورتك الشخصية — بتظهر للأهالي في صفحتك.', field: 'avatarUrl' };
+  }
+  if (input.displayName.trim().length < 2) {
+    return { error: 'اكتب اسمك زي ما هيظهر للأهالي.', field: 'displayName' };
+  }
   if (input.bio.trim().length < BIO_MIN) {
-    return `النبذة قصيرة — اكتب ${BIO_MIN} حرف على الأقل عن خبرتك وأسلوبك.`;
+    return {
+      error: `النبذة قصيرة — اكتب ${BIO_MIN} حرف على الأقل عن خبرتك وأسلوبك.`,
+      field: 'bio',
+    };
   }
   if (input.specialties.filter((s) => s.trim()).length === 0) {
-    return 'اكتب تخصص واحد على الأقل.';
+    return { error: 'اكتب تخصص واحد على الأقل.', field: 'specialties' };
   }
   const years = input.yearsExperience;
   if (!Number.isFinite(years) || years < 0 || years > YEARS_MAX) {
-    return 'سنين الخبرة لازم تكون رقم من 0 لـ 60.';
+    return { error: 'سنين الخبرة لازم تكون رقم من 0 لـ 60.', field: 'yearsExperience' };
   }
   return null;
+}
+
+export function validateFirstProfile(input: FirstProfileInput): string | null {
+  return firstProfileProblem(input)?.error ?? null;
 }

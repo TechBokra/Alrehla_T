@@ -38,7 +38,7 @@ import { notifyUser, getInstructorUserId } from '@/lib/notifications';
 /**
  * ⚠️ **دوال الإدارة هنا (حفظ/رفض/حذف عرض) بترجّع ولا بترمي** (قاعدة
  *    «هـ»): Next بيمسح نصّ الاستثناء في الإنتاج، فالإداري كان بيشوف
- *    رسالة إنجليزي عامة. دوال المدرب نفسه (تحت) لسه بترمي زي ما هي.
+ *    رسالة إنجليزي عامة. ودوال المدرب نفسه (تحت) كمان بقت بترجّع.
  */
 export type OfferAdminResult = { ok: true } | { ok: false; error: string; field?: string };
 
@@ -281,16 +281,28 @@ export async function rejectInstructorServiceOffer(
  * بمُشغِّل في قاعدة البيانات، لا بهذا الملف — الكود هنا للرسالة الواضحة فقط.
  */
 
-async function requireOwnInstructorId(): Promise<string> {
-  const user = await getCurrentUser();
+/**
+ * ⚠️ **بقت بترجّع ولا بترمي** (قاعدة «هـ») — زي دوال الإدارة فوق.
+ *    الرسالة كانت بتوصل للمدرب ممسوحة («Server Components render…»)
+ *    والشاشة كانت بتحاول تخمّنها من النص.
+ */
+async function requireOwnInstructorId(): Promise<
+  { ok: true; instructorId: string } | { ok: false; error: string }
+> {
+  let user;
+  try {
+    user = await getCurrentUser();
+  } catch {
+    return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
+  }
   if (user.role !== 'instructor') {
-    throw new Error('هذه الصفحة للمدربين فقط');
+    return { ok: false, error: 'هذه الصفحة للمدربين فقط' };
   }
   const instructorId = await getMyInstructorId();
   if (!instructorId) {
-    throw new Error('لم يتم ربط حسابك بملف مدرب بعد');
+    return { ok: false, error: 'لم يتم ربط حسابك بملف مدرب بعد' };
   }
-  return instructorId;
+  return { ok: true, instructorId };
 }
 
 /**
@@ -301,10 +313,11 @@ async function requireOwnInstructorId(): Promise<string> {
  * الحد اللي الإدارة بتحطه في الإعدادات **بينبّه** المدرب في الشاشة
  * ومابيمنعوش.
  */
-function validatePrice(price: number) {
+function validatePrice(price: number): string | null {
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error('السعر لازم يكون رقم أكبر من صفر');
+    return 'السعر لازم يكون رقم أكبر من صفر';
   }
+  return null;
 }
 
 /**
@@ -313,14 +326,20 @@ function validatePrice(price: number) {
  * المبلغ المقترح هو **حصيلة المدرب**، لا ما يدفعه العميل: سعر العميل يُحسب
  * بمعادلة المنصة فوقه، تمامًا كما في تسعير الجلسات.
  */
-export async function proposeServiceOffer(serviceId: string, requestedPrice: number) {
-  const instructorId = await requireOwnInstructorId();
-  validatePrice(requestedPrice);
+export async function proposeServiceOffer(
+  serviceId: string,
+  requestedPrice: number,
+): Promise<OfferAdminResult> {
+  const own = await requireOwnInstructorId();
+  if (!own.ok) return own;
+  const { instructorId } = own;
+  const priceProblem = validatePrice(requestedPrice);
+  if (priceProblem) return { ok: false, error: priceProblem, field: 'requestedPrice' };
 
   const supabase = await createClient();
 
   const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   const { data: existing } = await supabase
     .from('provider_services')
@@ -350,10 +369,10 @@ export async function proposeServiceOffer(serviceId: string, requestedPrice: num
 
   if (error) {
     console.error('Error proposing service offer', error);
-    throw new Error(`تعذّر إرسال الطلب: ${error.message}`);
+    return { ok: false, error: `تعذّر إرسال الطلب: ${error.message}` };
   }
   if (!saved || saved.length === 0) {
-    throw new Error('الطلب مروّحش للقاعدة — صلاحيات الحساب مش سامحة.');
+    return { ok: false, error: 'الطلب مروّحش للقاعدة — صلاحيات الحساب مش سامحة.' };
   }
 
   revalidatePath('/dashboard/instructor/services');
@@ -364,12 +383,16 @@ export async function proposeServiceOffer(serviceId: string, requestedPrice: num
 }
 
 /** إيقاف مؤقت أو إعادة تفعيل — بيد المدرب، وتخفي خدمته من قائمة العملاء. */
-export async function setMyOfferActive(serviceId: string, isActive: boolean) {
-  const instructorId = await requireOwnInstructorId();
+export async function setMyOfferActive(
+  serviceId: string,
+  isActive: boolean,
+): Promise<OfferAdminResult> {
+  const own = await requireOwnInstructorId();
+  if (!own.ok) return own;
   const supabase = await createClient();
 
-  const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  const provider = await resolveProviderId(supabase, own.instructorId);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   const { data: toggled, error } = await supabase
     .from('provider_services')
@@ -380,10 +403,10 @@ export async function setMyOfferActive(serviceId: string, isActive: boolean) {
 
   if (error) {
     console.error('Error toggling offer', error);
-    throw new Error(`تعذّر تغيير حالة الخدمة: ${error.message}`);
+    return { ok: false, error: `تعذّر تغيير حالة الخدمة: ${error.message}` };
   }
   if (!toggled || toggled.length === 0) {
-    throw new Error('مفيش عرض بالخدمة دي على حسابك — التغيير مروّحش للقاعدة.');
+    return { ok: false, error: 'مفيش عرض بالخدمة دي على حسابك — التغيير مروّحش للقاعدة.' };
   }
 
   revalidatePath('/dashboard/instructor/services');
@@ -392,12 +415,13 @@ export async function setMyOfferActive(serviceId: string, isActive: boolean) {
 }
 
 /** سحب طلب لم تبتّ فيه الإدارة بعد. */
-export async function withdrawMyOffer(serviceId: string) {
-  const instructorId = await requireOwnInstructorId();
+export async function withdrawMyOffer(serviceId: string): Promise<OfferAdminResult> {
+  const own = await requireOwnInstructorId();
+  if (!own.ok) return own;
   const supabase = await createClient();
 
-  const provider = await resolveProviderId(supabase, instructorId);
-  if (!provider.ok) throw new Error(provider.error);
+  const provider = await resolveProviderId(supabase, own.instructorId);
+  if (!provider.ok) return { ok: false, error: provider.error };
 
   const { data: offer } = await supabase
     .from('provider_services')
@@ -406,9 +430,9 @@ export async function withdrawMyOffer(serviceId: string) {
     .eq('service_id', serviceId)
     .maybeSingle();
 
-  if (!offer) throw new Error('الطلب غير موجود');
+  if (!offer) return { ok: false, error: 'الطلب غير موجود' };
   if (offer.status === 'approved') {
-    throw new Error('الخدمة معتمدة — استخدم «إيقاف مؤقت» بدل السحب');
+    return { ok: false, error: 'الخدمة معتمدة — استخدم «إيقاف مؤقت» بدل السحب' };
   }
 
   const { error } = await supabase
@@ -418,7 +442,7 @@ export async function withdrawMyOffer(serviceId: string) {
 
   if (error) {
     console.error('Error withdrawing offer', error);
-    throw new Error(`تعذّر سحب الطلب: ${error.message}`);
+    return { ok: false, error: `تعذّر سحب الطلب: ${error.message}` };
   }
 
   revalidatePath('/dashboard/instructor/services');

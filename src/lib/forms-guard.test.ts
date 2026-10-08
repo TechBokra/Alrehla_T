@@ -5,12 +5,12 @@ import { join, relative } from 'node:path';
 /**
  * ⚠️ **حارس التوحيد — بيمنع الرجوع للخلف.**
  *
- * لوحة الإدارة اتحوّلت كلها على النماذج الموحّدة (`components/forms`)،
+ * كل اللوحات وحساب العميل اتحوّلوا على النماذج الموحّدة (`components/forms`)،
  * والعمليات بقت بترجّع الخطأ بدل ما ترميه (قاعدة «هـ»: Next بيمسح نصّ
  * الخطأ اللي بيترمي في الموقع المنشور، فالمستخدم بيشوف رسالة إنجليزي عامة).
  *
  * الاختبار ده بيفشل لو أي حد — أو أي أداة زي Google AI Studio — ضاف:
- *   ١) شاشة في اللوحة فيها خانة (`<input>` / `<select>` / `<textarea>`)
+ *   ١) شاشة في أي لوحة (الإدارة، المدرب، الناشر، الطالب) أو حساب العميل فيها خانة (`<input>` / `<select>` / `<textarea>`)
  *      من غير النماذج الموحّدة.
  *   ٢) `throw new Error` في ملف عمليات نضيف، أو زوّد عددها في ملف قديم.
  *
@@ -30,38 +30,54 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const rel = (p: string) => relative(ROOT, p).split('\\').join('/');
 
-/** شاشات الصور (Cloudinary) — مؤجّلة عن قصد لمرحلة الرفع بالتوقيع. */
+/**
+ * شاشات وخانات الصور (Cloudinary) — مؤجّلة عن قصد لمرحلة الرفع بالتوقيع.
+ * (`ImageField`/`GalleryField` هما نفسهم خانة الرفع اللي الكيت بيلفّها.)
+ */
 const RAW_INPUT_ALLOWED = new Set([
   'src/app/dashboard/admin/media/OrphanGallery.tsx',
   'src/app/dashboard/admin/content/images/SiteImagesClient.tsx',
   'src/app/dashboard/admin/content/settings/PaymentQrUploader.tsx',
+  'src/components/dashboard/ImageField.tsx',
+  'src/components/dashboard/GalleryField.tsx',
+  'src/components/dashboard/ProfileFormShell.tsx', // مش مستخدم في أي شاشة
+  // أدوات بحث وفلترة واختيار — مش نماذج حفظ، ومستخدمة جوه نماذج الكيت.
+  'src/app/dashboard/instructor/sessions/InstructorSessionsClient.tsx',
+  'src/app/account/bookings/AccountBookingsClient.tsx',
+  'src/app/support/SupportClient.tsx',
+  'src/components/dashboard/AvatarPicker.tsx',
+  'src/components/dashboard/InviteLinkBox.tsx',
+  'src/components/dashboard/LibraryPicker.tsx',
+  'src/components/dashboard/PackagePicker.tsx',
+  'src/components/dashboard/Pagination.tsx',
+  'src/components/dashboard/SessionsList.tsx',
+  'src/components/dashboard/SimpleDataTable.tsx',
+  'src/components/dashboard/WeeklySchedulePicker.tsx',
 ]);
+
+/** كل اللوحات وحساب العميل — مش لوحة الإدارة بس. */
+const FORM_DIRS = [
+  'src/app/dashboard',
+  'src/app/account',
+  'src/app/support',
+  'src/components/dashboard',
+  'src/components/services',
+];
 
 /**
  * ملفات عمليات لسه فيها `throw` — الرقم ده **سقف**: ينزل بس، مايزيدش.
  * لما ملف يتنضّف، سطره بيتشال من هنا خالص.
- * (أغلبها بتاع لوحات المدرب والناشر وحساب العميل — المرحلة الجاية.)
  */
 const LEGACY_THROWS: Record<string, number> = {
   'src/actions/admin-users.ts': 1, // requireSuperAdmin داخلي — المناديين بيلفّوه
-  'src/actions/content.ts': 2, // saveSiteImage — شاشة الصور
-  'src/actions/dependent-requests.ts': 1,
-  'src/actions/instructor-services.ts': 13,
-  'src/actions/instructors.ts': 5,
-  'src/actions/portfolio.ts': 6,
-  'src/actions/profiles.ts': 10,
-  'src/actions/reviews.ts': 9,
-  'src/actions/service-orders.ts': 40,
-  'src/actions/student-accounts.ts': 1,
-  'src/actions/support.ts': 6,
-  'src/app/actions/family.ts': 3,
+  'src/actions/content.ts': 2, // saveSiteImage — شاشة الصور (Cloudinary، مؤجّلة)
 };
 
 const countThrows = (src: string) => (src.match(/throw new Error\(/g) ?? []).length;
 
 describe('حارس توحيد النماذج والعمليات', () => {
-  it('كل شاشة في لوحة الإدارة فيها خانة بتستخدم النماذج الموحّدة', () => {
-    const offenders = walk(join(ROOT, 'src/app/dashboard/admin'))
+  it('كل شاشة في اللوحات وحساب العميل فيها خانة بتستخدم النماذج الموحّدة', () => {
+    const offenders = FORM_DIRS.flatMap((d) => walk(join(ROOT, d)))
       .filter((p) => p.endsWith('.tsx'))
       .filter((p) => !RAW_INPUT_ALLOWED.has(rel(p)))
       .filter((p) => {
@@ -69,7 +85,7 @@ describe('حارس توحيد النماذج والعمليات', () => {
         return /<(input|select|textarea)[\s>]/.test(src) && !src.includes('components/forms/Form');
       })
       .map(rel);
-    expect(offenders, 'شاشة إدارة بخانات قديمة — استخدم Field/TextInput/Select من components/forms/Form').toEqual([]);
+    expect(offenders, 'شاشة بخانات قديمة — استخدم Field/TextInput/Select من components/forms/Form').toEqual([]);
   });
 
   it('ملفات العمليات النضيفة مافيهاش throw، والقديمة ماتزيدش', () => {

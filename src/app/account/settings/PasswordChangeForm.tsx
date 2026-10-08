@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { KeyRound, Lock, CheckCircle2 } from 'lucide-react';
 import { setMyPassword } from '@/actions/set-password';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 
 /**
  * تغيير كلمة المرور من إعدادات الحساب.
@@ -21,18 +22,27 @@ export function PasswordChangeForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  // الخانة اللي عليها الخطأ — الرسالة بتظهر تحتها بدل سطر الرسائل.
+  const [errorField, setErrorField] = useState<string | undefined>();
+
+  const fail = (text: string, field?: string) => {
+    setMessage({ ok: false, text });
+    setErrorField(field);
+  };
+  const err = (f: string) => (message && !message.ok && errorField === f ? message.text : undefined);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    setErrorField(undefined);
 
     if (newPassword.length < 8) {
-      setMessage({ ok: false, text: 'كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل.' });
+      fail('كلمة المرور يجب أن تكون 8 أحرف أو أرقام على الأقل.', 'newPassword');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setMessage({ ok: false, text: 'كلمتا المرور غير متطابقتين.' });
+      fail('كلمتا المرور غير متطابقتين.', 'confirmPassword');
       return;
     }
 
@@ -45,10 +55,10 @@ export function PasswordChangeForm() {
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setMessage({ ok: false, text: res.error });
+        fail(res.error, res.field);
       }
     } catch {
-      setMessage({ ok: false, text: 'تعذّر تحديث كلمة المرور. يرجى المحاولة لاحقاً.' });
+      fail('تعذّر تحديث كلمة المرور. يرجى المحاولة لاحقاً.');
     } finally {
       setSaving(false);
     }
@@ -69,61 +79,62 @@ export function PasswordChangeForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">كلمة المرور الحالية</label>
-          <input
+        <Field
+          label="كلمة المرور الحالية"
+          name="currentPassword"
+          required
+          error={err('currentPassword')}
+          hint={
+            <>
+              بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
+              نسيتها؟{' '}
+              <a href="/forgot-password" className="font-bold text-slate-800 underline">
+                اطلب رابط استرجاع
+              </a>
+              .
+            </>
+          }
+        >
+          <TextInput
             type="password"
             dir="ltr"
-            required
             autoComplete="current-password"
             placeholder="كلمة مرورك دلوقتي"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-800 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-hidden transition-colors"
+            className="font-mono text-sm"
           />
-          <p className="mt-2 text-xs font-medium text-slate-500">
-            بنطلبها عشان حد يلاقي جهازك مفتوح ما يقدرش يغيّر كلمة مرورك.
-            نسيتها؟{' '}
-            <a href="/forgot-password" className="font-bold text-slate-800 underline">
-              اطلب رابط استرجاع
-            </a>
-            .
-          </p>
-        </div>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">كلمة المرور الجديدة</label>
-            <input
+          <Field label="كلمة المرور الجديدة" name="newPassword" required error={err('newPassword')}>
+            <TextInput
               type="password"
               dir="ltr"
-              required
               minLength={8}
               placeholder="8 أحرف أو أرقام على الأقل"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-800 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-hidden transition-colors"
+              className="font-mono text-sm"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">تأكيد كلمة المرور الجديدة</label>
-            <input
+          <Field label="تأكيد كلمة المرور الجديدة" name="confirmPassword" required error={err('confirmPassword')}>
+            <TextInput
               type="password"
               dir="ltr"
-              required
               minLength={8}
               placeholder="أعد كتابة كلمة المرور"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-800 focus:border-slate-800 focus:ring-1 focus:ring-slate-800 focus:outline-hidden transition-colors"
+              className="font-mono text-sm"
             />
-          </div>
+          </Field>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           <div className="flex-1">
-            {message && (
+            {message && !(errorField && !message.ok) && (
               <div
                 className={`flex items-center gap-2 text-sm font-bold ${
                   message.ok ? 'text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-xl' : 'text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-2 rounded-xl'
@@ -135,14 +146,14 @@ export function PasswordChangeForm() {
             )}
           </div>
 
-          <button
+          <BusyButton
             type="submit"
-            disabled={saving || !newPassword || !currentPassword}
-            className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-40 text-sm shadow-xs"
+            busy={saving}
+            disabled={!newPassword || !currentPassword}
           >
             <Lock className="h-4 w-4" />
-            <span>{saving ? 'جارٍ الحفظ…' : 'تحديث كلمة المرور'}</span>
-          </button>
+            <span>تحديث كلمة المرور</span>
+          </BusyButton>
         </div>
       </form>
     </div>

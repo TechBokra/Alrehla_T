@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { saveSessionReport } from '@/actions/sessions';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 
 interface Props {
   session: InstructorSession;
@@ -38,8 +39,9 @@ export function InstructorSessionClient({ session }: Props) {
       }
       setIsSubmitted(true);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر حفظ التقرير');
+    } catch {
+      // الأكشن بيرجّع رسالته؛ ده للانقطاع وأي حاجة غير متوقعة.
+      setError('تعذّر حفظ التقرير');
     } finally {
       setIsSaving(false);
     }
@@ -178,29 +180,28 @@ export function InstructorSessionClient({ session }: Props) {
                 <p><strong>ملاحظة للمدرب:</strong> يُرجى كتابة ملخص قصير لما تم إنجازه اليوم، والمهام المطلوبة من الطالب للجلسة القادمة. هذا التقرير سيظهر في حساب الطالب.</p>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات وتقدم الطالب في الجلسة</label>
-                <textarea 
-                  required
+              <Field label="ملاحظات وتقدم الطالب في الجلسة" name="report" required>
+                <TextArea
                   disabled={isSubmitted}
                   rows={6}
                   value={report}
                   onChange={(e) => setReport(e.target.value)}
                   placeholder="اكتب هنا ما تم إنجازه، نقاط القوة، والأمور التي تحتاج لتحسين..."
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 outline-none focus:border-emerald-500 focus:bg-white transition-colors"
-                ></textarea>
-              </div>
+                  className="resize-none"
+                />
+              </Field>
 
               {!isSubmitted && (
                 <div className="flex justify-end pt-4">
-                  <button
+                  <BusyButton
                     type="submit"
-                    disabled={!attendance || !report || isSaving}
-                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    busy={isSaving}
+                    disabled={!attendance || !report}
+                    className="px-8 disabled:cursor-not-allowed"
                   >
                     <Send className="h-5 w-5" />
-                    {isSaving ? 'جارٍ الحفظ…' : 'حفظ وإرسال التقرير'}
-                  </button>
+                    حفظ وإرسال التقرير
+                  </BusyButton>
                 </div>
               )}
             </div>

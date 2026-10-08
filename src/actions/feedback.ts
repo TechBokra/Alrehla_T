@@ -10,7 +10,7 @@ import {
   isFeedbackLine,
 } from '@/lib/feedback-lines';
 
-type Result = { ok: true } | { ok: false; error: string };
+type Result = { ok: true } | { ok: false; error: string; field?: 'comment' };
 
 /**
  * رأي العميل في خط («إنها لك» / «بداية الرحلة») — ملف 10.
@@ -28,7 +28,7 @@ export async function submitFeedback(params: {
     return { ok: false, error: 'اختار تقييم من ١ لـ٥' };
   }
   const comment = params.comment.trim();
-  if (comment.length > 2000) return { ok: false, error: 'الرأي طويل — اختصره شوية' };
+  if (comment.length > 2000) return { ok: false, error: 'الرأي طويل — اختصره شوية', field: 'comment' };
 
   const supabase = await createClient();
   const {

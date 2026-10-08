@@ -1,4 +1,5 @@
 import React from 'react';
+import { TaskBanner } from '@/components/admin/TaskBanner';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
@@ -56,6 +57,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         title={`تفاصيل الحجز ${target.paymentReference ?? ''}`}
         backHref="/dashboard/admin/bookings"
       />
+
+      {/* مين ماسك الطلب (ملف 14). */}
+      <TaskBanner sourceId={target.id} />
 
       <PaymentReviewPanel
         reference={target.paymentReference}

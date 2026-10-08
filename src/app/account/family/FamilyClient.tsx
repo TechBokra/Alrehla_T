@@ -11,6 +11,8 @@ import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
 import { AvatarPicker } from '@/components/dashboard/AvatarPicker';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { StudentAccountCell } from './StudentAccountCell';
+import { Field, TextInput, Select, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 export function FamilyClient({
   initialMembers,
@@ -32,12 +34,23 @@ export function FamilyClient({
     avatarUrl: string;
   }>({ fullName: '', birthDate: '', gender: '', avatarUrl: '' });
   const [error, setError] = useState('');
+  // الخانة اللي عليها الخطأ — الرسالة بتظهر تحتها بدل ما تبقى فوق.
+  const [errorField, setErrorField] = useState<string | undefined>();
+  // خطأ الحذف — بيظهر فوق الجدول، لأن النموذج ممكن يكون مقفول.
+  const [listError, setListError] = useState('');
+
+  const fail = (message: string, field?: string) => {
+    setError(message);
+    setErrorField(field);
+  };
+  const err = (f: string) => (errorField === f ? error : undefined);
 
   const resetForm = () => {
     setFormData({ fullName: '', birthDate: '', gender: '', avatarUrl: '' });
     setEditingId(null);
     setShowForm(false);
     setError('');
+    setErrorField(undefined);
   };
 
   const handleEdit = (child: ChildProfile) => {
@@ -53,10 +66,17 @@ export function FamilyClient({
 
   const handleDelete = (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الملف؟')) return;
+    setListError('');
     startTransition(async () => {
-      const success = await deleteFamilyMember(id);
-      if (success) {
+      try {
+        const result = await deleteFamilyMember(id);
+        if (!result.ok) {
+          setListError(result.error);
+          return;
+        }
         setMembers(prev => prev.filter(m => m.id !== id));
+      } catch {
+        setListError('تعذّر الحذف — جرّب تاني');
       }
     });
   };
@@ -64,15 +84,16 @@ export function FamilyClient({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setErrorField(undefined);
 
     // كان بيرجع من غير أي رسالة لو تاريخ الميلاد فاضي — الزرار يتضغط
     // وما يحصلش حاجة ومحدش يعرف ليه.
     if (!formData.fullName.trim()) {
-      setError('اكتب اسم الطفل');
+      fail('اكتب اسم الطفل', 'fullName');
       return;
     }
     if (!formData.birthDate) {
-      setError('حدّد تاريخ الميلاد');
+      fail('حدّد تاريخ الميلاد', 'birthDate');
       return;
     }
 
@@ -81,15 +102,15 @@ export function FamilyClient({
     startTransition(async () => {
       try {
         if (editingId) {
-          const success = await updateFamilyMember(
+          const result = await updateFamilyMember(
             editingId,
             formData.fullName,
             formData.birthDate,
             gender,
             formData.avatarUrl,
           );
-          if (!success) {
-            setError('تعذّر الحفظ — جرّب تاني');
+          if (!result.ok) {
+            fail(result.error, result.field);
             return;
           }
           setMembers(prev => prev.map(m => m.id === editingId
@@ -103,21 +124,21 @@ export function FamilyClient({
             : m));
           resetForm();
         } else {
-          const newChild = await createFamilyMember(
+          const result = await createFamilyMember(
             formData.fullName,
             formData.birthDate,
             gender,
             formData.avatarUrl,
           );
-          if (!newChild) {
-            setError('تعذّر الإضافة — جرّب تاني');
+          if (!result.ok) {
+            fail(result.error, result.field);
             return;
           }
-          setMembers(prev => [...prev, newChild]);
+          setMembers(prev => [...prev, result.child]);
           resetForm();
         }
       } catch {
-        setError('تعذّر الحفظ — جرّب تاني');
+        fail('تعذّر الحفظ — جرّب تاني');
       }
     });
   };
@@ -190,11 +211,8 @@ export function FamilyClient({
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-wrap gap-4 items-end">
-          {error && (
-            <div className="w-full rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
-              {error}
-            </div>
-          )}
+          {/* الخطأ اللي مش على خانة بعينها فوق؛ اللي على خانة بيظهر تحتها. */}
+          <FormError message={errorField ? '' : error} className="w-full" />
           {/* ⚠️ الصورة دي كانت **مستحيلة**: العمود في القاعدة والنوع
               في الكود، ومفيش أي شاشة بتكتب فيها. فمعالج الشراء بيرسم
               دايرة رمادية بالحرف الأول دايمًا. */}
@@ -202,33 +220,26 @@ export function FamilyClient({
             <AvatarPicker
               value={formData.avatarUrl}
               onChange={(url) => setFormData({ ...formData, avatarUrl: url })}
-              onError={(message) => setError(message)}
+              onError={(message) => fail(message)}
               label="صورة الطفل (اختياري)"
               folder="alrehla/children"
             />
           </div>
 
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-bold text-slate-700 mb-2">اسم الطفل</label>
-            <input 
-              type="text" 
-              required 
-              className="w-full rounded-xl border-slate-200" 
+          <Field label="اسم الطفل" name="fullName" required error={err('fullName')} className="flex-1 min-w-[200px]">
+            <TextInput
               value={formData.fullName}
               onChange={e => setFormData({ ...formData, fullName: e.target.value })}
             />
-          </div>
-          <div className="w-56">
-            <label className="block text-sm font-bold text-slate-700 mb-2">تاريخ الميلاد</label>
+          </Field>
+          <Field label="تاريخ الميلاد" required error={err('birthDate')} className="w-56">
             <BirthDatePicker
               value={formData.birthDate}
               onChange={(v) => setFormData({ ...formData, birthDate: v })}
             />
-          </div>
-          <div className="w-40">
-            <label className="block text-sm font-bold text-slate-700 mb-2">النوع</label>
-            <select
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-base md:text-sm font-medium text-slate-800 outline-none focus:border-emerald-500"
+          </Field>
+          <Field label="النوع" name="gender" className="w-40">
+            <Select
               value={formData.gender}
               onChange={(e) =>
                 setFormData({ ...formData, gender: e.target.value as 'male' | 'female' | '' })
@@ -237,14 +248,16 @@ export function FamilyClient({
               <option value="">غير محدد</option>
               <option value="male">ذكر</option>
               <option value="female">أنثى</option>
-            </select>
-          </div>
+            </Select>
+          </Field>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button type="submit" disabled={isPending} accentColor="emerald" className="flex-1">حفظ</Button>
+            <BusyButton type="submit" busy={isPending} className="flex-1">حفظ</BusyButton>
             <Button type="button" onClick={resetForm} variant="secondary" className="!bg-slate-200">إلغاء</Button>
           </div>
         </form>
       )}
+
+      <FormError message={listError} />
 
       {members.length > 0 ? (
         <SimpleDataTable columns={columns} data={members as any} />

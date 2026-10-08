@@ -8,10 +8,11 @@ import { submitInstructorProfileUpdate } from '@/actions/instructors';
 import { AvatarPicker } from '@/components/dashboard/AvatarPicker';
 import { updateMyProfile } from '@/actions/profiles';
 import {
-  validateFirstProfile,
+  firstProfileProblem,
   BIO_MIN,
   type OnboardingState,
 } from '@/lib/instructor-onboarding';
+import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
 
 interface Props {
   instructor: Instructor;
@@ -22,9 +23,6 @@ interface Props {
   onboarding?: OnboardingState;
 }
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
-
 export function InstructorProfileClient({
   instructor,
   email,
@@ -34,7 +32,6 @@ export function InstructorProfileClient({
 }: Props) {
   const router = useRouter();
   const firstProfile = onboarding === 'needs_profile';
-  const req = firstProfile ? <span className="text-rose-600"> *</span> : null;
   const [displayName, setDisplayName] = useState(instructor.displayName ?? '');
   const [bio, setBio] = useState(instructor.bio ?? '');
   const [specialties, setSpecialties] = useState((instructor.specialties ?? []).join('، '));
@@ -44,6 +41,13 @@ export function InstructorProfileClient({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  // الخانة اللي عليها الخطأ (من الفحص هنا أو من الخادم) — رسالتها تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
+  const err = (f: string) => (errorField === f ? error : undefined);
+  const showError = (message: string, field?: string) => {
+    setError(message);
+    setErrorField(field);
+  };
 
   const parsedSpecialties = () =>
     specialties
@@ -54,9 +58,10 @@ export function InstructorProfileClient({
   const handleSubmit = async () => {
     setMessage('');
     setError('');
+    setErrorField(undefined);
     // الملف الأول: الرسالة قبل الإرسال، والخادم بيعيد نفس الفحص.
     if (firstProfile) {
-      const problem = validateFirstProfile({
+      const problem = firstProfileProblem({
         displayName,
         bio,
         specialties: parsedSpecialties(),
@@ -64,7 +69,8 @@ export function InstructorProfileClient({
         avatarUrl: avatar,
       });
       if (problem) {
-        setError(problem);
+        // الصورة مالهاش `Field` — رسالتها فوق زي ما كانت.
+        showError(problem.error, problem.field === 'avatarUrl' ? undefined : problem.field);
         return;
       }
     }
@@ -72,21 +78,40 @@ export function InstructorProfileClient({
     try {
       // The picture belongs to the account, not to the reviewed profile, so it
       // saves immediately; the rest goes to the admin for review.
-      await updateMyProfile({ fullName: displayName.trim(), avatarUrl: avatar });
-      await submitInstructorProfileUpdate(instructor.id, {
+      //
+      // ⚠️ الأكشنين بقوا بيرجّعوا الخطأ بدل ما يرموه (قاعدة «هـ») —
+      //    ولو الأول فشل، التاني مايتبعتش (زي ما كان الرمي بيوقفه).
+      const profileResult = await updateMyProfile({
+        fullName: displayName.trim(),
+        avatarUrl: avatar,
+      });
+      if (!profileResult.ok) {
+        // الاسم هنا هو «الاسم المعروض».
+        showError(
+          profileResult.error,
+          profileResult.field === 'fullName' ? 'displayName' : undefined,
+        );
+        return;
+      }
+      const result = await submitInstructorProfileUpdate(instructor.id, {
         displayName: displayName.trim(),
         bio: bio.trim(),
         specialties: parsedSpecialties(),
         yearsExperience: Number(yearsExperience) || 0,
       });
+      if (!result.ok) {
+        showError(result.error, result.field === 'avatarUrl' ? undefined : result.field);
+        return;
+      }
       setMessage(
         firstProfile
           ? 'ملفك وصل للإدارة. أول ما يتعتمد وتخلّص التدريب، حسابك هيتفعّل.'
           : 'تم إرسال التعديلات للإدارة للمراجعة. ستظهر على الموقع بعد الاعتماد.'
       );
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر إرسال التعديلات');
+    } catch {
+      // للانقطاع وأي حاجة غير متوقعة — الأكشنين بيرجّعوا رسايلهم.
+      setError('تعذّر إرسال التعديلات');
     } finally {
       setIsSaving(false);
     }
@@ -133,7 +158,7 @@ export function InstructorProfileClient({
         </div>
       )}
 
-      {error && (
+      {error && !errorField && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
           {error}
         </div>
@@ -144,7 +169,7 @@ export function InstructorProfileClient({
       <AvatarPicker
         value={avatar}
         onChange={setAvatar}
-        onError={setError}
+        onError={(message) => showError(message)}
         label={firstProfile ? 'الصورة الشخصية *' : 'الصورة الشخصية'}
         folder="alrehla/avatars"
       />
@@ -152,70 +177,80 @@ export function InstructorProfileClient({
       <hr className="border-slate-100" />
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">الاسم المعروض{req}</label>
-          <input
-            className={inputClass}
+        <Field
+          label="الاسم المعروض"
+          name="displayName"
+          required={firstProfile}
+          error={err('displayName')}
+        >
+          <TextInput
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="الاسم كما يظهر للطلاب"
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
-          <input
+        </Field>
+        <Field label="البريد الإلكتروني">
+          <TextInput
             type="email"
             value={email}
             readOnly
             dir="ltr"
-            className={`${inputClass} cursor-not-allowed text-left text-slate-500`}
+            className="cursor-not-allowed bg-slate-50 text-left text-slate-500"
           />
-        </div>
-        <div className="space-y-2 md:col-span-2">
-          <label className="text-sm font-bold text-slate-700">
-            نبذة عنك{req}
-            {firstProfile && (
-              <span className="font-medium text-slate-500"> — {BIO_MIN} حرف على الأقل</span>
-            )}
-          </label>
-          <textarea
+        </Field>
+        <Field
+          label={
+            <>
+              نبذة عنك
+              {firstProfile && (
+                <span className="font-medium text-slate-500"> — {BIO_MIN} حرف على الأقل</span>
+              )}
+            </>
+          }
+          name="bio"
+          required={firstProfile}
+          error={err('bio')}
+          className="md:col-span-2"
+        >
+          <TextArea
             rows={5}
-            className={`${inputClass} resize-none`}
+            className="resize-none"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="اكتب نبذة مختصرة تظهر للطلاب في صفحة المدربين…"
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">سنوات الخبرة{req}</label>
-          <input
+        </Field>
+        <Field
+          label="سنوات الخبرة"
+          name="yearsExperience"
+          required={firstProfile}
+          error={err('yearsExperience')}
+        >
+          <TextInput
             type="number"
             min={0}
-            className={inputClass}
             value={yearsExperience}
             onChange={(e) => setYearsExperience(Number(e.target.value))}
           />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">التخصصات (مفصولة بفاصلة){req}</label>
-          <input
-            className={inputClass}
+        </Field>
+        <Field
+          label="التخصصات (مفصولة بفاصلة)"
+          name="specialties"
+          required={firstProfile}
+          error={err('specialties')}
+        >
+          <TextInput
             value={specialties}
             onChange={(e) => setSpecialties(e.target.value)}
             placeholder="مثال: الكتابة للأطفال، بناء الشخصيات"
           />
-        </div>
+        </Field>
       </div>
 
       <div className="flex justify-end pt-8">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSaving}
-          className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          {isSaving ? 'جارٍ الإرسال…' : firstProfile ? 'ابعت ملفي للإدارة' : 'إرسال للمراجعة'}
-        </button>
+        <BusyButton busy={isSaving} pendingLabel="جارٍ الإرسال…" onClick={handleSubmit} className="px-8">
+          {firstProfile ? 'ابعت ملفي للإدارة' : 'إرسال للمراجعة'}
+        </BusyButton>
       </div>
     </div>
   );

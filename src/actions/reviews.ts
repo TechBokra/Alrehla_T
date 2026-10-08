@@ -13,25 +13,34 @@ import { logAuditAction } from '@/lib/audit';
  * a clear message, not because they are the guard.
  */
 
+/**
+ * ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — Next بيمسح نصّ الخطأ اللي بيترمي في
+ *    الموقع المنشور، فـ«سبق أن قيّمت هذا الطلب» كانت بتوصل إنجليزي عامة.
+ *    `field` = الخانة اللي عليها الخطأ، والشاشة بتعرضه تحتها.
+ */
+export type ReviewResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: 'rating' | 'comment' };
+
 export async function submitServiceReview(params: {
   orderId: string;
   instructorRating: number;
   serviceRating: number;
   comment: string;
-}) {
+}): Promise<ReviewResult> {
   const { orderId, instructorRating, serviceRating, comment } = params;
 
   const inRange = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
   if (!inRange(instructorRating) || !inRange(serviceRating)) {
-    throw new Error('التقييم لازم يكون من 1 إلى 5');
+    return { ok: false, error: 'التقييم لازم يكون من 1 إلى 5', field: 'rating' };
   }
-  if (comment.length > 2000) throw new Error('التعليق طويل جدًا');
+  if (comment.length > 2000) return { ok: false, error: 'التعليق طويل جدًا', field: 'comment' };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
 
   const { data: order } = await supabase
     .from('service_orders')
@@ -39,10 +48,10 @@ export async function submitServiceReview(params: {
     .eq('id', orderId)
     .maybeSingle();
 
-  if (!order) throw new Error('الطلب غير موجود');
-  if (order.buyer_profile_id !== user.id) throw new Error('هذا الطلب ليس طلبك');
-  if (order.status !== 'completed') throw new Error('يمكن التقييم بعد اكتمال الطلب فقط');
-  if (!order.instructor_id) throw new Error('هذا الطلب بلا مدرب مسنَد');
+  if (!order) return { ok: false, error: 'الطلب غير موجود' };
+  if (order.buyer_profile_id !== user.id) return { ok: false, error: 'هذا الطلب ليس طلبك' };
+  if (order.status !== 'completed') return { ok: false, error: 'يمكن التقييم بعد اكتمال الطلب فقط' };
+  if (!order.instructor_id) return { ok: false, error: 'هذا الطلب بلا مدرب مسنَد' };
 
   const { error } = await supabase.from('reviews').insert({
     instructor_id: order.instructor_id,
@@ -57,10 +66,10 @@ export async function submitServiceReview(params: {
   if (error) {
     // The unique index on service_order_id is what enforces one review per order.
     if (String(error.message).toLowerCase().includes('duplicate')) {
-      throw new Error('سبق أن قيّمت هذا الطلب');
+      return { ok: false, error: 'سبق أن قيّمت هذا الطلب' };
     }
     console.error('Error submitting review', error);
-    throw new Error('تعذّر حفظ التقييم');
+    return { ok: false, error: 'تعذّر حفظ التقييم' };
   }
 
   revalidatePath(`/account/orders/creative-writing/${orderId}`);

@@ -14,7 +14,7 @@ import { getCurrentUser } from '@/data/domains/auth';
  * وده مسار تاني بالكامل. لو كتبناه هنا كخانة عادية، هيبقى ممكن حد يغيّر
  * إيميل الدخول لحساب من غير ما يثبت إنه بيملكه.
  */
-export type ProfileResult = { ok: true } | { ok: false; error: string };
+export type ProfileResult = { ok: true } | { ok: false; error: string; field?: 'fullName' };
 
 export async function updateMyProfile(fullName: string): Promise<ProfileResult> {
   const user = await getCurrentUser();
@@ -24,10 +24,10 @@ export async function updateMyProfile(fullName: string): Promise<ProfileResult> 
 
   const name = fullName.trim();
   if (name.length < 2) {
-    return { ok: false, error: 'الاسم قصير أوي' };
+    return { ok: false, error: 'الاسم قصير أوي', field: 'fullName' };
   }
   if (name.length > 80) {
-    return { ok: false, error: 'الاسم طويل أوي' };
+    return { ok: false, error: 'الاسم طويل أوي', field: 'fullName' };
   }
 
   const supabase = await createClient();

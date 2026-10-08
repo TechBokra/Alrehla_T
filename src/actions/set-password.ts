@@ -5,7 +5,10 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { MUST_SET_PASSWORD, needsPasswordSetup } from '@/lib/first-login';
 
-export type SetPasswordResult = { ok: true } | { ok: false; error: string };
+export type SetPasswordResult =
+  | { ok: true }
+  // `field`: الخانة اللي عليها الخطأ — الشاشة بتعرضه تحتها.
+  | { ok: false; error: string; field?: 'newPassword' | 'currentPassword' };
 
 /**
  * أول دخول: الشخص بيحطّ كلمة مروره بدل الرمز المؤقت.
@@ -41,7 +44,7 @@ export async function setMyPassword(
 
   const password = typeof newPassword === 'string' ? newPassword : '';
   if (password.length < 8) {
-    return { ok: false, error: 'كلمة المرور لازم تكون ٨ حروف أو أرقام على الأقل.' };
+    return { ok: false, error: 'كلمة المرور لازم تكون ٨ حروف أو أرقام على الأقل.', field: 'newPassword' };
   }
 
   // ── ⓪ الكلمة الحالية ─────────────────────────────────────
@@ -69,7 +72,7 @@ export async function setMyPassword(
   if (!needsPasswordSetup(user)) {
     const current = typeof currentPassword === 'string' ? currentPassword : '';
     if (!current) {
-      return { ok: false, error: 'اكتب كلمة المرور الحالية عشان تغيّرها.' };
+      return { ok: false, error: 'اكتب كلمة المرور الحالية عشان تغيّرها.', field: 'currentPassword' };
     }
     if (!user.email) {
       return { ok: false, error: 'الحساب ده مالوش بريد — كلّم الإدارة.' };
@@ -86,7 +89,7 @@ export async function setMyPassword(
 
     if (checkError) {
       console.error('Password change: wrong current password', user.id);
-      return { ok: false, error: 'كلمة المرور الحالية غلط.' };
+      return { ok: false, error: 'كلمة المرور الحالية غلط.', field: 'currentPassword' };
     }
   }
 
@@ -97,7 +100,7 @@ export async function setMyPassword(
     // Supabase بيرفض الكلمة اللي زي القديمة — ودي حالة متوقّعة هنا
     // بالذات، لأن الرمز المؤقت قدّام الشخص وهو بيكتب.
     if (/same/i.test(updateError.message ?? '')) {
-      return { ok: false, error: 'اختار كلمة مرور غير الرمز المؤقت.' };
+      return { ok: false, error: 'اختار كلمة مرور غير الرمز المؤقت.', field: 'newPassword' };
     }
     return { ok: false, error: 'تعذّر حفظ كلمة المرور. جرّب تاني.' };
   }
