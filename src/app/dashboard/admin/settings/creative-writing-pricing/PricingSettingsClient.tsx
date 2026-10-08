@@ -57,25 +57,33 @@ export function PricingSettingsClient({ settings }: { settings: PricingFormulaSe
             label="مضاعف المنصة"
             required
             hint="مثال: 1.2 يعني زيادة بنسبة 20% على سعر المدرب الأساسي."
+            error={save.errorField === 'platformMultiplier' ? save.error : undefined}
           >
             <TextInput
               type="number"
               step="0.01"
-              value={multiplier}
+              min={0.01}
+              value={Number.isFinite(multiplier) ? multiplier : ''}
               onChange={(e) => setMultiplier(parseFloat(e.target.value))}
             />
           </Field>
 
-          <Field label="الرسوم الإدارية الثابتة (ج.م)" required hint="تضاف هذه الرسوم بعد تطبيق المضاعف.">
+          <Field
+            label="الرسوم الإدارية الثابتة (ج.م)"
+            required
+            hint="تضاف هذه الرسوم بعد تطبيق المضاعف."
+            error={save.errorField === 'fixedAdminFee' ? save.error : undefined}
+          >
             <TextInput
               type="number"
-              value={fixedFee}
+              min={0}
+              value={Number.isFinite(fixedFee) ? fixedFee : ''}
               onChange={(e) => setFixedFee(parseFloat(e.target.value))}
             />
           </Field>
         </div>
 
-        <FormError message={save.error} />
+        <FormError message={save.errorField ? '' : save.error} />
 
         <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
           {isSaved && (

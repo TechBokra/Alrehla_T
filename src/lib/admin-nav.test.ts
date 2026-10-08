@@ -21,6 +21,8 @@ describe('قايمة لوحة الإدارة', () => {
   it('القايمة الجانبية أقسام بس — مش كل شاشة', () => {
     const sections = all.flatMap((g) => g.sections);
     expect(sections.length).toBeLessThanOrEqual(16);
+    // «مهامي» لأي إداري — حتى اللي صلاحيته الحجوزات بس.
+    expect(navFor((p) => p === 'canManageBookings').flatMap((g) => g.sections).map((s) => s.id)).toContain('tasks');
     expect(hrefs.length).toBeGreaterThan(sections.length);
   });
 
@@ -61,7 +63,7 @@ describe('قايمة لوحة الإدارة', () => {
   it('التبويب الممنوع بيتشال، والقسم بيودّي لأول تبويب مسموح', () => {
     const onlyOrders = navFor((p) => p === 'canManageOrders');
     const sections = onlyOrders.flatMap((g) => g.sections);
-    expect(sections.map((s) => s.id)).toEqual(['orders', 'services']);
+    expect(sections.map((s) => s.id)).toEqual(['tasks', 'orders', 'services']);
     const services = sections.find((s) => s.id === 'services');
     expect(services?.href).toBe('/dashboard/admin/orders/services');
     expect(services?.tabs.map((t) => t.label)).toEqual(['الطلبات']);

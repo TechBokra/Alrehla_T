@@ -108,7 +108,10 @@ export const MIN_LEAD_MINUTES = 15;
  *    واحدة مهما كان الجهاز فين.
  */
 export function parseCairoInput(value: string): Date | null {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  // ⚠️ النص لازم يكون **من غير منطقة زمنية** (زي ما خانة `datetime-local`
+  //    بترجّعه). كان بيقبل `…T12:00:00.000Z` كمان ويقراه «١٢ بساعة القاهرة»
+  //    — فالموعد اللي جاي بتوقيت جرينتش كان بيتزحزح ٢–٣ ساعات.
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?$/);
   if (!match) return null;
 
   const [, year, month, day, hour, minute] = match.map(Number) as unknown as number[];

@@ -110,6 +110,8 @@ export type UseActionReturn<Args extends unknown[], R> = {
   pending: boolean;
   /** رسالة الخطأ للعرض، أو نص فاضي. */
   error: string;
+  /** الخانة اللي الخطأ عليها (`field` في نتيجة الأكشن) — للعرض تحتها. */
+  errorField?: string;
   /** لمسح الرسالة (مثلًا أول ما المستخدم يعدّل الحقل). */
   clearError: () => void;
 };
@@ -125,6 +127,7 @@ export function useAction<Args extends unknown[], R>(
 ): UseActionReturn<Args, R> {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
 
   const { onSuccess, fallbackError = FALLBACK } = options;
 
@@ -132,12 +135,15 @@ export function useAction<Args extends unknown[], R>(
     async (...args: Args): Promise<R | undefined> => {
       setPending(true);
       setError('');
+      setErrorField(undefined);
       try {
         const result = await fn(...args);
 
         const failure = actionErrorOf(result);
         if (failure) {
           setError(failure);
+          const field = (result as { field?: unknown } | null)?.field;
+          setErrorField(typeof field === 'string' ? field : undefined);
           return undefined;
         }
 
@@ -161,7 +167,10 @@ export function useAction<Args extends unknown[], R>(
     [fn, onSuccess, fallbackError],
   );
 
-  const clearError = useCallback(() => setError(''), []);
+  const clearError = useCallback(() => {
+    setError('');
+    setErrorField(undefined);
+  }, []);
 
-  return { run, pending, error, clearError };
+  return { run, pending, error, errorField, clearError };
 }

@@ -6,12 +6,21 @@ import { Video, Calendar, Check } from 'lucide-react';
 import { updateSessionDetails } from '@/actions/admin-sessions';
 import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
+import { cairoParts } from '@/lib/timezone';
 
-/** Turn an ISO timestamp into the value a datetime-local input expects. */
+/**
+ * لحظة مخزّنة ← قيمة خانة `datetime-local` **بساعة القاهرة**.
+ *
+ * ⚠️ كانت بتستخدم ساعة جهاز الإداري (`getHours`)، والحفظ كان بيبعت
+ *    `toISOString()` (بتوقيت جرينتش) — والخادم بيقرا النص كساعة قاهرة
+ *    (`parseCairoInput`)، فالجلسة كانت بتتسجّل متأخرة ٢–٣ ساعات عن
+ *    الموعد اللي اتكتب. دلوقتي الخانة بتعرض ساعة القاهرة، والنص بيتبعت
+ *    زي ما اتكتب، والخادم بيحوّله.
+ */
 function toLocalInput(iso: string): string {
-  const d = new Date(iso);
+  const p = cairoParts(new Date(iso));
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
 }
 
 /**
@@ -49,7 +58,8 @@ export function SessionSettings({
       const result = await updateSessionDetails({
         sessionId,
         meetingUrl: url,
-        scheduledAt: new Date(when).toISOString(),
+        // النص زي ما اتكتب (ساعة القاهرة) — الخادم بيحوّله (`parseCairoInput`).
+        scheduledAt: when,
       });
       if (!result.ok) {
         setError(result.error);

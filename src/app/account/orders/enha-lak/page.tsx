@@ -3,7 +3,8 @@ import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
 import { getPersonalizedProducts } from '@/data/domains/products';
 import { getSiteSettings } from '@/data/domains/content';
-import { FORMAT_LABELS } from '@/lib/item-format';
+import { OrderLinesList } from '@/components/orders/OrderLinesList';
+import { orderLines } from '@/lib/order-lines';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -34,7 +35,7 @@ export default async function EnhaLakOrdersPage() {
     getSiteSettings(),
   ]);
   const cancelDays = settings.pendingOrderCancelDays;
-  const names = new Map(products.map((p) => [p.id, p.name]));
+  const names = Object.fromEntries(products.map((p) => [p.id, p.name]));
   const orders = allOrders.map(order => ({
     // ⚠️ الرقم المرجعي، مش رقم الصف: هو اللي العميل كتبه في ملاحظة التحويل،
     //    وهو اللي بيظهر للإدارة — فلو كلّم الدعم، الرقم واحد في الشاشتين.
@@ -77,7 +78,18 @@ export default async function EnhaLakOrdersPage() {
         )}
       </div>
     ),
-    total: formatPrice(order.totalAmount),
+    // ⭐ كود الخصم وقيمته ظاهرين للعميل نفسه (طلب تامر).
+    total: (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-bold">{formatPrice(order.totalAmount)}</span>
+        {order.discountCode && (
+          <span className="text-xs font-bold text-emerald-800">
+            شامل خصم <span dir="ltr" className="font-mono">{order.discountCode}</span> (− {formatPrice(order.discountAmount ?? 0)})
+          </span>
+        )}
+        {!!order.shippingFee && <span className="text-xs text-slate-600">منها شحن {formatPrice(order.shippingFee)}</span>}
+      </div>
+    ),
     itemsDisplay: (
       <div className="flex flex-col gap-1">
         {/* طلب اشتراك (ملف 140): مالوش بنود — الشحنات في صفحة الاشتراك. */}
@@ -90,21 +102,9 @@ export default async function EnhaLakOrdersPage() {
             <a href="/account/subscriptions/box" className="font-bold text-rose-700 hover:underline">الشحنات</a>
           </span>
         )}
-        {/* كان بيعرض رقم المنتج الداخلي («منتج (3f2a…)») بدل اسمه. */}
-        {order.items.map((item, idx) => {
-          const child = (item.customizationData as { childName?: unknown } | undefined)?.childName;
-          return (
-            <span key={idx}>
-              {names.get(item.productId) ?? 'منتج لم يعد معروضًا'} × {item.quantity}
-              {item.format && item.format !== 'printed' && (
-                <span className="text-slate-600"> · {FORMAT_LABELS[item.format]}</span>
-              )}
-              {typeof child === 'string' && child.trim() && (
-                <span className="text-slate-500"> — لـ{child.trim()}</span>
-              )}
-            </span>
-          );
-        })}
+        {/* كان بيعرض رقم المنتج الداخلي («منتج (3f2a…)») بدل اسمه. ودلوقتي
+            كل بند بنسخته ولمين **وإضافاته بأسعارها** (طلب تامر). */}
+        <OrderLinesList lines={orderLines(order, names)} />
       </div>
     ),
   }));

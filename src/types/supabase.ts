@@ -1891,6 +1891,58 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_rules: {
+        Row: { line: string; stage: string; profile_id: string; created_at: string }
+        Insert: { line: string; stage: string; profile_id: string; created_at?: string }
+        Update: { line?: string; stage?: string; profile_id?: string; created_at?: string }
+        Relationships: []
+      }
+      /** مهام المتابعة — بتتعمل من محفّزات حالة الطلب (ملف 14). */
+      work_tasks: {
+        Row: {
+          id: string
+          line: string
+          stage: string
+          source_id: string
+          reference: string | null
+          title: string
+          link: string
+          assignee_ids: string[]
+          status: string
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+        }
+        Insert: {
+          id?: string
+          line: string
+          stage: string
+          source_id: string
+          reference?: string | null
+          title: string
+          link: string
+          assignee_ids?: string[]
+          status?: string
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+        }
+        Update: {
+          id?: string
+          line?: string
+          stage?: string
+          source_id?: string
+          reference?: string | null
+          title?: string
+          link?: string
+          assignee_ids?: string[]
+          status?: string
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+        }
+        Relationships: []
+      }
       discount_codes: {
         Row: {
           id: string

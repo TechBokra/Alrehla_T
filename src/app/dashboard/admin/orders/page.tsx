@@ -39,12 +39,30 @@ export default async function Page() {
   // اسم كل منتج — عشان القايمة تقول الطلب فيه إيه ومخصّص لمين (ملاحظة تامر:
   // «طلبات التخصيص مرتبطة باسم المنتج»). كانت رقم طلب وتاريخ ومبلغ بس.
   const productNames = Object.fromEntries(products.map((p) => [p.id, p.name]));
+  // والنوع — للفلترة بـ«أنت البطل» / المكتبة.
+  const productCategories = Object.fromEntries(products.map((p) => [p.id, p.category]));
+
+  // اسم العميل (صاحب الحساب) — الإدارة بتقرا `user_profiles` كلها.
+  const userIds = Array.from(new Set(orders.map((o) => o.userId)));
+  const customerNames: Record<string, string> = {};
+  if (userIds.length) {
+    const { data: profiles } = await (await createClient())
+      .from('user_profiles')
+      .select('id, full_name')
+      .in('id', userIds);
+    for (const p of profiles ?? []) if (p.full_name) customerNames[p.id] = p.full_name;
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       {/* طلبات الخدمات بقت في قسم «الخدمات الإبداعية» (`lib/admin-nav`). */}
       <DashboardPageHeader title="طلبات المنتجات" />
-      <OrdersClient initialOrders={orders} productNames={productNames} />
+      <OrdersClient
+        initialOrders={orders}
+        productNames={productNames}
+        productCategories={productCategories}
+        customerNames={customerNames}
+      />
     </div>
   );
 }

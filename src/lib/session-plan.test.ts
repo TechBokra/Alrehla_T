@@ -83,6 +83,9 @@ describe('قراءة الموعد كساعة حيطة في القاهرة', () =
     expect(parseCairoInput('بكرة')).toBeNull();
     expect(parseCairoInput('2026-13-05T17:00')).toBeNull();
     expect(parseCairoInput('2026-10-05T25:00')).toBeNull();
+    // نص فيه منطقة زمنية مش ساعة قاهرة — كان بيتقرا غلط ويزحزح الموعد.
+    expect(parseCairoInput('2026-10-05T14:00:00.000Z')).toBeNull();
+    expect(parseCairoInput('2026-10-05T17:00:00')).not.toBeNull();
   });
 });
 

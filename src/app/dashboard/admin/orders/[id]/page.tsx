@@ -7,14 +7,15 @@ import { getAllOrders } from '@/data/domains/orders';
 import { getManagedProducts } from '@/data/domains/products';
 import { hasAdminPermission, formatDate , formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
+import { OrderLinesList } from '@/components/orders/OrderLinesList';
+import { OrderTotals } from '@/components/orders/OrderTotals';
+import { orderLines, orderSubtotal } from '@/lib/order-lines';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { FulfilmentPanel } from './FulfilmentPanel';
 import { OrderItemCustomization } from './OrderItemCustomization';
 import { ElectronicDeliveryPanel } from './ElectronicDeliveryPanel';
 import { BoxOrderPanel } from './BoxOrderPanel';
 import { createClient } from '@/lib/supabase/server';
-import { FORMAT_LABELS } from '@/lib/item-format';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 // الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
 import { receiptViewUrl } from '@/lib/cloudinary-private';
@@ -48,30 +49,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .maybeSingle();
     boxSubscriptionId = data?.id;
   }
-  const formattedItems = target.items.map((item: any, idx: number) => {
-    const product = products.find(p => p.id === item.productId);
-    const price = item.unitPrice || (product ? product.price : 0);
-    const quantity = item.quantity || 1;
-    return {
-      id: idx,
-      nameDisplay: product ? product.name : item.productId,
-      formatDisplay: FORMAT_LABELS[(item as { format?: keyof typeof FORMAT_LABELS }).format ?? 'printed'],
-      priceDisplay: `${formatPrice(price)}`,
-      quantity: quantity,
-      totalDisplay: `${formatPrice(price * quantity)}`
-    };
-  });
-  const columns = [
-    { header: 'المنتج', accessorKey: 'nameDisplay' },
-    { header: 'النسخة', accessorKey: 'formatDisplay' },
-    { header: 'السعر', accessorKey: 'priceDisplay' },
-    { header: 'الكمية', accessorKey: 'quantity' },
-    { header: 'الإجمالي', accessorKey: 'totalDisplay' }
-  ];
+  // البنود بالإضافات والنسخة واسم الطفل — نفس عرض القايمة و«طلباتي» عند العميل.
+  const productNames = Object.fromEntries(products.map((p) => [p.id, p.name]));
+  const lines = orderLines(target, productNames);
+
+  // صاحب الحساب — عشان الإدارة تعرف مين طلب، مش بس اسم المستلم.
+  const { data: customer } = await (await createClient())
+    .from('user_profiles')
+    .select('full_name')
+    .eq('id', target.userId)
+    .maybeSingle();
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
-      <DashboardPageHeader title={`تفاصيل الطلب #${target.id.split('-')[1]}`} backHref="/dashboard/admin/orders" />
+      <DashboardPageHeader
+        title={`تفاصيل الطلب #${target.paymentReference || target.id.split('-')[1]}`}
+        backHref="/dashboard/admin/orders"
+      />
       
       <PaymentReviewPanel
         reference={target.paymentReference}
@@ -84,6 +78,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
           <div>
+            {customer?.full_name && (
+              <div className="mb-1 text-base font-bold text-slate-800">العميل: {customer.full_name}</div>
+            )}
             <div className="text-sm text-slate-500 mb-1">تاريخ الطلب: {formatDate(target.createdAt)}</div>
             <div className="text-sm text-slate-500 mb-1">حالة الطلب: {productOrderStatus(target.status).label}</div>
             {target.paymentReference && (
@@ -162,28 +159,34 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           )}
         </div>
 
-        <h3 className="text-xl font-bold text-slate-800 mb-4">محتويات الطلب</h3>
-        <SimpleDataTable columns={columns} data={formattedItems} />
+        {lines.length > 0 && (
+          <>
+            <h3 className="mb-4 text-xl font-bold text-slate-800">محتويات الطلب</h3>
+            <div className="rounded-2xl border border-slate-200 p-5">
+              <OrderLinesList lines={lines} />
+            </div>
+          </>
+        )}
 
         {/* اسم الطفل والقصة والصور والإضافات — كانت محفوظة ومش ظاهرة. */}
         <div className="mt-6 space-y-4">
           {target.items.map((item, idx) => (
             <OrderItemCustomization
               key={idx}
-              productName={formattedItems[idx]?.nameDisplay ?? item.productId}
+              productName={lines[idx]?.name ?? item.productId}
               customization={item.customizationData}
             />
           ))}
         </div>
         
-        <div className="mt-6 flex flex-col items-end gap-1 border-t border-slate-100 pt-6">
-          {target.discountCode && (
-            <p className="text-sm font-bold text-emerald-800">
-              كود خصم <span dir="ltr" className="font-mono">{target.discountCode}</span>: −{' '}
-              {formatPrice(target.discountAmount ?? 0)}
-            </p>
-          )}
-          <div className="text-2xl font-black text-slate-800">الإجمالي: {formatPrice(target.totalAmount)}</div>
+        <div className="mt-6 flex border-t border-slate-100 pt-6">
+          <OrderTotals
+            subtotal={orderSubtotal(target)}
+            discountCode={target.discountCode}
+            discountAmount={target.discountAmount}
+            shippingFee={target.shippingFee}
+            total={target.totalAmount}
+          />
         </div>
       </div>
     </div>

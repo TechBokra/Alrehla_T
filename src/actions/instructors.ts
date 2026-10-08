@@ -560,7 +560,7 @@ export async function setInstructorStatus(
 export async function updatePricingFormulaSettings(
   platformMultiplier: number,
   fixedAdminFee: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string; field?: 'platformMultiplier' | 'fixedAdminFee' }> {
   // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — رسالة الصلاحية كانت بتوصل ممسوحة.
   let user;
   try {
@@ -570,6 +570,19 @@ export async function updatePricingFormulaSettings(
     );
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح لك بتعديل إعدادات التسعير' };
+  }
+
+  // ⚠️ **فحص الأرقام على الخادم** — زي تسعير الناشرين بالظبط. كانت بتتحفظ
+  //    زي ما هي: خانة فاضية = `NaN`، أو مضاعف صفر = كل جلسة بالرسوم الثابتة
+  //    بس، أو سالب = سعر بالسالب. والمعادلة دي بتحدد سعر كل جلسة وخدمة.
+  if (!Number.isFinite(platformMultiplier) || platformMultiplier <= 0) {
+    return { ok: false, error: 'مضاعف المنصة لازم يكون رقمًا أكبر من صفر', field: 'platformMultiplier' };
+  }
+  if (platformMultiplier > 10) {
+    return { ok: false, error: 'مضاعف المنصة كبير بشكل غير منطقي (أكتر من ١٠)', field: 'platformMultiplier' };
+  }
+  if (!Number.isFinite(fixedAdminFee) || fixedAdminFee < 0) {
+    return { ok: false, error: 'الرسوم الثابتة لازم تكون صفرًا أو أكتر', field: 'fixedAdminFee' };
   }
 
   const supabase = await createClient();

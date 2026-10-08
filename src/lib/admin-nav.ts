@@ -24,7 +24,11 @@ import type { AdminPermission } from '@/types';
  *    فعلًا شغل مستقل.
  */
 
-export type AdminTab = { label: string; href: string; permission: AdminPermission };
+/**
+ * `anyAdmin` = أي إداري عنده صلاحية واحدة على الأقل — لـ«مهامي»: اللي
+ * مسند له حجوزات بس (من غير صلاحية الطلبات) لازم يلاقي مهامه برضه.
+ */
+export type AdminTab = { label: string; href: string; permission: AdminPermission | 'anyAdmin' };
 export type AdminSection = { id: string; label: string; icon: string; tabs: AdminTab[] };
 export type AdminGroup = { title: string; sections: AdminSection[] };
 
@@ -35,7 +39,29 @@ export type NavGroup = { title: string; sections: NavSection[] };
 
 const A = '/dashboard/admin';
 
+const ALL_PERMISSIONS: AdminPermission[] = [
+  'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
+  'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
+  'canManageContent', 'canManageFinance', 'canViewAuditLogs',
+];
+
 export const ADMIN_NAV: AdminGroup[] = [
+  {
+    // ⭐ ملف 14 (طلب تامر): الطلبات بتتوزّع على المسؤولين — وكل واحد
+    //    بيلاقي المطلوب منه هنا.
+    title: 'المتابعة',
+    sections: [
+      {
+        id: 'tasks',
+        label: 'مهامي',
+        icon: 'ClipboardList',
+        tabs: [
+          { label: 'مهامي', href: `${A}/tasks`, permission: 'anyAdmin' },
+          { label: 'توزيع الطلبات', href: `${A}/tasks/assignments`, permission: 'canManageUsers' },
+        ],
+      },
+    ],
+  },
   {
     title: 'الناس',
     sections: [
@@ -228,12 +254,14 @@ export const ADMIN_NAV: AdminGroup[] = [
 
 /** القايمة بعد الصلاحيات: التبويب الممنوع بيتشال، والقسم الفاضي، والمجموعة الفاضية. */
 export function navFor(can: (p: AdminPermission) => boolean, nav: AdminGroup[] = ADMIN_NAV): NavGroup[] {
+  const anyAdmin = ALL_PERMISSIONS.some(can);
+  const allowed = (p: AdminTab['permission']) => (p === 'anyAdmin' ? anyAdmin : can(p));
   return nav
     .map((g) => ({
       title: g.title,
       sections: g.sections
         .map((s) => {
-          const tabs = s.tabs.filter((t) => can(t.permission)).map(({ label, href }) => ({ label, href }));
+          const tabs = s.tabs.filter((t) => allowed(t.permission)).map(({ label, href }) => ({ label, href }));
           return { id: s.id, label: s.label, icon: s.icon, href: tabs[0]?.href ?? '', tabs };
         })
         .filter((s) => s.tabs.length > 0),
