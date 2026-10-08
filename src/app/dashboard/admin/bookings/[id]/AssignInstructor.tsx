@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { assignBookingInstructor } from '@/actions/bookings';
+import { Select, BusyButton } from '@/components/forms/Form';
 
 /**
  * تعيين مدرب للحجز.
@@ -26,14 +27,22 @@ export function AssignInstructor({
   const [message, setMessage] = React.useState<{ ok: boolean; text: string } | null>(null);
 
   async function save() {
-    if (!selected) return;
+    if (!selected || saving) return;
     setSaving(true);
     setMessage(null);
-    const result = await assignBookingInstructor({
-      subscriptionId,
-      instructorId: selected,
-    });
-    setSaving(false);
+    let result: Awaited<ReturnType<typeof assignBookingInstructor>>;
+    try {
+      result = await assignBookingInstructor({
+        subscriptionId,
+        instructorId: selected,
+      });
+    } catch {
+      // ⚠️ لو النداء نفسه وقع كان الزرار بيفضل «جاري الحفظ…» للأبد.
+      setMessage({ ok: false, text: 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.' });
+      return;
+    } finally {
+      setSaving(false);
+    }
     if (result.ok) {
       setMessage({ ok: true, text: `اتعيّن على ${result.sessions} جلسة ✓` });
       router.refresh();
@@ -44,30 +53,38 @@ export function AssignInstructor({
 
   return (
     <div className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <p className="mb-3 text-sm font-bold text-slate-700">المدرب المسؤول</p>
+      <label htmlFor={`assign-${subscriptionId}`} className="mb-3 block text-sm font-bold text-slate-700">
+        المدرب المسؤول
+      </label>
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          className="min-w-56 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-800"
-        >
-          <option value="">— اختار مدرب —</option>
-          {instructors.map((instructor) => (
-            <option key={instructor.id} value={instructor.id}>
-              {instructor.name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
+        {/* العرض على الغلاف — `fieldClass` فيه `w-full` وبيغلب. */}
+        <div className="min-w-56">
+          <Select
+            id={`assign-${subscriptionId}`}
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            <option value="">— اختار مدرب —</option>
+            {instructors.map((instructor) => (
+              <option key={instructor.id} value={instructor.id}>
+                {instructor.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <BusyButton
+          busy={saving}
+          pendingLabel="جاري الحفظ…"
           onClick={save}
-          disabled={saving || !selected || selected === currentId}
-          className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-40"
+          disabled={!selected || selected === currentId}
         >
-          {saving ? 'جاري الحفظ…' : 'تعيين'}
-        </button>
+          تعيين
+        </BusyButton>
         {message && (
-          <p className={`text-sm font-bold ${message.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+          <p
+            role={message.ok ? 'status' : 'alert'}
+            className={`text-sm font-bold ${message.ok ? 'text-emerald-600' : 'text-red-600'}`}
+          >
             {message.text}
           </p>
         )}

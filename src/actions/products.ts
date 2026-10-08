@@ -570,7 +570,7 @@ export async function reviewProduct(formData: FormData) {
   }
   // ⚠️ الرفض بلا سبب بيسيب الناشر يعيد نفس المنتج — ومحدش مستفيد.
   if (decision === 'rejected' && note.length < 3) {
-    return { ok: false as const, error: 'اكتب سبب الرفض عشان الناشر يعرف يصلّح إيه' };
+    return { ok: false as const, error: 'اكتب سبب الرفض عشان الناشر يعرف يصلّح إيه', field: 'note' };
   }
 
   const supabase = await createClient();

@@ -7,6 +7,7 @@ import { updatePricingFormulaSettings } from '@/actions/instructors';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 import { useAction } from '@/lib/use-action';
 import { FormError } from '@/components/ui/FormError';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 
 export function PricingSettingsClient({ settings }: { settings: PricingFormulaSettings }) {
   const [multiplier, setMultiplier] = useState(settings.platformMultiplier);
@@ -35,6 +36,7 @@ export function PricingSettingsClient({ settings }: { settings: PricingFormulaSe
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (save.pending) return;
     setIsSaved(false);
     await save.run(multiplier, fixedFee);
   };
@@ -51,28 +53,26 @@ export function PricingSettingsClient({ settings }: { settings: PricingFormulaSe
 
       <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
         <div className="grid gap-6 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">مضاعف المنصة</label>
-            <input 
-              type="number" 
+          <Field
+            label="مضاعف المنصة"
+            required
+            hint="مثال: 1.2 يعني زيادة بنسبة 20% على سعر المدرب الأساسي."
+          >
+            <TextInput
+              type="number"
               step="0.01"
               value={multiplier}
               onChange={(e) => setMultiplier(parseFloat(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-emerald-500 focus:outline-none"
             />
-            <p className="text-xs text-slate-500">مثال: 1.2 يعني زيادة بنسبة 20% على سعر المدرب الأساسي.</p>
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">الرسوم الإدارية الثابتة (ج.م)</label>
-            <input 
-              type="number" 
+          <Field label="الرسوم الإدارية الثابتة (ج.م)" required hint="تضاف هذه الرسوم بعد تطبيق المضاعف.">
+            <TextInput
+              type="number"
               value={fixedFee}
               onChange={(e) => setFixedFee(parseFloat(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-emerald-500 focus:outline-none"
             />
-            <p className="text-xs text-slate-500">تضاف هذه الرسوم بعد تطبيق المضاعف.</p>
-          </div>
+          </Field>
         </div>
 
         <FormError message={save.error} />
@@ -83,15 +83,10 @@ export function PricingSettingsClient({ settings }: { settings: PricingFormulaSe
               <span>تم الحفظ بنجاح</span>
             </div>
           )}
-          <button
-            type="submit"
-            disabled={save.pending}
-            aria-busy={save.pending || undefined}
-            className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-          >
+          <BusyButton type="submit" busy={save.pending} pendingLabel="جاري الحفظ..." className="px-8">
             <Save className="h-5 w-5" />
-            {save.pending ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-          </button>
+            حفظ الإعدادات
+          </BusyButton>
         </div>
       </form>
 

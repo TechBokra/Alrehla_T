@@ -19,13 +19,21 @@ import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
  * every session showed "رابط الجلسة لم يُضَف بعد" with no way to add one.
  */
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
+const DENIED = 'غير مصرح لك بإدارة الجلسات';
+
 async function requireBookingsAdmin() {
-  return requireAdmin('canManageBookings', 'غير مصرح لك بإدارة الجلسات');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»)،
+  //    وكل دالة لازم تتأكد منها قبل ما تكمّل.
+  try {
+    return await requireAdmin('canManageBookings', DENIED);
+  } catch {
+    return null;
+  }
 }
 
 export type CreateSessionResult =
   | { ok: true; sessionId: string; sessionNumber: number; roomReady: boolean }
-  | { ok: false; error: string };
+  | { ok: false; error: string; field?: 'scheduledAt' | 'reason' };
 
 /**
  * إنشاء جلسة لاشتراك قائم.
@@ -55,15 +63,11 @@ export async function createSessionForSubscription(params: {
   instructorId: string | null;
   reason: string;
 }): Promise<CreateSessionResult> {
-  let admin;
-  try {
-    admin = await requireBookingsAdmin();
-  } catch {
-    return { ok: false, error: 'غير مصرح لك بإدارة الجلسات' };
-  }
+  const admin = await requireBookingsAdmin();
+  if (!admin) return { ok: false, error: DENIED };
 
   const when = checkScheduleTime(params.scheduledAt);
-  if (!when.ok) return { ok: false, error: when.error };
+  if (!when.ok) return { ok: false, error: when.error, field: 'scheduledAt' };
 
   const supabase = await createClient();
 
@@ -78,6 +82,7 @@ export async function createSessionForSubscription(params: {
     return {
       ok: false,
       error: 'دي جلسة زيادة عن عدد الباقة — اكتب السبب قبل ما تكمّل.',
+      field: 'reason',
     };
   }
 
@@ -221,17 +226,19 @@ export async function createSessionForSubscription(params: {
   };
 }
 
+/** ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — رسالة «الرابط لازم يبدأ بـ https://» كانت بتوصل ممسوحة. */
 export async function updateSessionDetails(params: {
   sessionId: string;
   meetingUrl: string;
   scheduledAt: string;
-}) {
+}): Promise<{ ok: true } | { ok: false; error: string; field?: 'meetingUrl' | 'scheduledAt' }> {
   const admin = await requireBookingsAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const { sessionId, meetingUrl, scheduledAt } = params;
 
   const url = meetingUrl.trim();
   if (url && !/^https?:\/\//i.test(url)) {
-    throw new Error('الرابط لازم يبدأ بـ https://');
+    return { ok: false, error: 'الرابط لازم يبدأ بـ https://', field: 'meetingUrl' };
   }
 
   // ⚠️ **الموعد بيتقرا كساعة حيطة في القاهرة لا بتوقيت جهاز الإداري.**
@@ -245,7 +252,9 @@ export async function updateSessionDetails(params: {
   //    والإشعار اللي بيتبعت بيقول الموعد الغلط كمان، فالتأكيد نفسه
   //    بيأكّد الغلط.
   const when = parseCairoInput(scheduledAt) ?? new Date(scheduledAt);
-  if (Number.isNaN(when.getTime())) throw new Error('الموعد غير صحيح');
+  if (Number.isNaN(when.getTime())) {
+    return { ok: false, error: 'الموعد غير صحيح', field: 'scheduledAt' };
+  }
 
   const supabase = await createClient();
   const { data: before } = await supabase
@@ -266,12 +275,12 @@ export async function updateSessionDetails(params: {
 
   if (error) {
     console.error('Error updating session', error);
-    throw new Error('تعذّر حفظ بيانات الجلسة');
+    return { ok: false, error: 'تعذّر حفظ بيانات الجلسة' };
   }
   // من غير الفحص ده الإدارة بتشوف «اتحفظ» وبيتبعت إشعار تعديل موعد
   // للمدرب وللطالب، والجلسة في القاعدة ما اتغيّرش فيها حاجة.
   if (!saved || saved.length === 0) {
-    throw new Error('الجلسة مش موجودة — التعديل مروّحش للقاعدة.');
+    return { ok: false, error: 'الجلسة مش موجودة — التعديل مروّحش للقاعدة.' };
   }
 
   // المقارنة بتتم بالوقت الفعلي مش بالنص. القاعدة بترجّع

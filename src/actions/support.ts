@@ -123,16 +123,22 @@ export async function createSupportTicket(params: {
   return { success: true, ticketId: ticket.id };
 }
 
+/**
+ * ⚠️ الرد والإغلاق بيرجّعوا ولا بيرموا (قاعدة «هـ») — Next بيمسح نصّ
+ *    الاستثناء في الإنتاج، فـ«اكتب الرد أولاً» كانت بتوصل رسالة عامة.
+ */
+export type TicketResult = { ok: true } | { ok: false; error: string; field?: 'message' };
+
 /** A reply on a ticket, from the customer or from support. */
-export async function replyToSupportTicket(ticketId: string, message: string) {
+export async function replyToSupportTicket(ticketId: string, message: string): Promise<TicketResult> {
   const text = message.trim();
-  if (!text) throw new Error('اكتب الرد أولاً');
+  if (!text) return { ok: false, error: 'اكتب الرد أولاً', field: 'message' };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+  if (!user) return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
 
   const { error } = await supabase.from('support_ticket_messages').insert({
     ticket_id: ticketId,
@@ -142,7 +148,7 @@ export async function replyToSupportTicket(ticketId: string, message: string) {
 
   if (error) {
     console.error('Error replying to ticket', error);
-    throw new Error('تعذّر إرسال الرد');
+    return { ok: false, error: 'تعذّر إرسال الرد' };
   }
 
   // A reply from support means the customer has been answered.
@@ -162,12 +168,17 @@ export async function replyToSupportTicket(ticketId: string, message: string) {
   revalidatePath(`/dashboard/admin/support/tickets/${ticketId}`);
   revalidatePath('/account/support');
   revalidatePath('/dashboard/admin');
-  return { success: true };
+  return { ok: true };
 }
 
 /** Closing a ticket. */
-export async function closeSupportTicket(ticketId: string) {
-  await requireAdmin('canManageSupport', 'إغلاق التذاكر متاح للإدارة فقط');
+export async function closeSupportTicket(ticketId: string): Promise<TicketResult> {
+  // `requireAdmin` بترمي — بنمسكها ونرجّعها نتيجة.
+  try {
+    await requireAdmin('canManageSupport', 'إغلاق التذاكر متاح للإدارة فقط');
+  } catch {
+    return { ok: false, error: 'إغلاق التذاكر متاح للإدارة فقط' };
+  }
   const supabase = await createClient();
   const { error } = await supabase
     .from('support_tickets')
@@ -176,13 +187,13 @@ export async function closeSupportTicket(ticketId: string) {
 
   if (error) {
     console.error('Error closing ticket', error);
-    throw new Error('تعذّر إغلاق التذكرة');
+    return { ok: false, error: 'تعذّر إغلاق التذكرة' };
   }
 
   revalidatePath(`/dashboard/admin/support/tickets/${ticketId}`);
   revalidatePath('/dashboard/admin/support/tickets');
   revalidatePath('/dashboard/admin');
-  return { success: true };
+  return { ok: true };
 }
 
 

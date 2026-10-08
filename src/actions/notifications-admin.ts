@@ -12,7 +12,9 @@ import { logAuditAction } from '@/lib/audit';
  * أي حساب مسجّل كان هيقدر يبعت إشعار لأي حد. الدالة بتتأكد إن اللي
  * بينادي عليها إداري قبل ما تكتب أي صف.
  */
-export type NotifyResult = { ok: true; count: number } | { ok: false; error: string };
+export type NotifyResult =
+  | { ok: true; count: number }
+  | { ok: false; error: string; field?: 'title' };
 
 export async function sendBroadcast(params: {
   title: string;
@@ -31,7 +33,7 @@ export async function sendBroadcast(params: {
   }
 
   const title = params.title.trim();
-  if (!title) return { ok: false, error: 'اكتب عنوان للإشعار' };
+  if (!title) return { ok: false, error: 'اكتب عنوان للإشعار', field: 'title' };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('notify_broadcast', {

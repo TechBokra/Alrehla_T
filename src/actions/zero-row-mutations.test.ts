@@ -428,7 +428,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       const result = await markInstructorPayoutAsPaid('payout-1');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ ok: true });
       expect(fromMock).toHaveBeenCalledWith('instructor_payouts');
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'paid' })
@@ -461,9 +461,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(markInstructorPayoutAsPaid('non-existent-payout')).rejects.toThrow(
-        'سجل الدفعة غير موجود أو تعذّر تحديثه'
-      );
+      // بترجّع فشل (قاعدة «هـ») — مش «تم».
+      expect(await markInstructorPayoutAsPaid('non-existent-payout')).toEqual({
+        ok: false,
+        error: 'سجل الدفعة غير موجود أو تعذّر تحديثه',
+      });
 
       expect(mockLogAuditAction).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
@@ -471,10 +473,15 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
     it('enforces authorization rules (super admin required)', async () => {
       mockRequireSuperAdmin.mockRejectedValue(new Error('غير مصرح لك بإدارة المدفوعات'));
+      const fromMock = vi.fn();
+      mockSupabase = { from: fromMock };
 
-      await expect(markInstructorPayoutAsPaid('payout-1')).rejects.toThrow(
-        'غير مصرح لك بإدارة المدفوعات'
-      );
+      expect(await markInstructorPayoutAsPaid('payout-1')).toEqual({
+        ok: false,
+        error: 'غير مصرح لك بإدارة المدفوعات',
+      });
+      // ⚠️ الرفض لازم يقف قبل القاعدة — مش بس يرجّع رسالة.
+      expect(fromMock).not.toHaveBeenCalled();
 
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
@@ -497,7 +504,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(markInstructorPayoutAsPaid('payout-1')).rejects.toThrow('تعذّر تسجيل الدفع');
+      expect(await markInstructorPayoutAsPaid('payout-1')).toEqual({ ok: false, error: 'تعذّر تسجيل الدفع' });
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
   });
@@ -523,7 +530,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       const result = await markPublisherPayoutAsPaid('pub-payout-1');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ ok: true });
       expect(fromMock).toHaveBeenCalledWith('publisher_payouts');
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'paid' })
@@ -556,9 +563,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(markPublisherPayoutAsPaid('non-existent-pub-payout')).rejects.toThrow(
-        'سجل الدفعة غير موجود أو تعذّر تحديثه'
-      );
+      // بترجّع فشل (قاعدة «هـ») — مش «تم».
+      expect(await markPublisherPayoutAsPaid('non-existent-pub-payout')).toEqual({
+        ok: false,
+        error: 'سجل الدفعة غير موجود أو تعذّر تحديثه',
+      });
 
       expect(mockLogAuditAction).not.toHaveBeenCalled();
       expect(mockRevalidatePath).not.toHaveBeenCalled();
@@ -566,10 +575,15 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
     it('enforces authorization rules (super admin required)', async () => {
       mockRequireSuperAdmin.mockRejectedValue(new Error('غير مصرح لك بإدارة المدفوعات'));
+      const fromMock = vi.fn();
+      mockSupabase = { from: fromMock };
 
-      await expect(markPublisherPayoutAsPaid('pub-payout-1')).rejects.toThrow(
-        'غير مصرح لك بإدارة المدفوعات'
-      );
+      expect(await markPublisherPayoutAsPaid('pub-payout-1')).toEqual({
+        ok: false,
+        error: 'غير مصرح لك بإدارة المدفوعات',
+      });
+      // ⚠️ الرفض لازم يقف قبل القاعدة — مش بس يرجّع رسالة.
+      expect(fromMock).not.toHaveBeenCalled();
 
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
@@ -592,7 +606,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       mockSupabase = { from: fromMock };
 
-      await expect(markPublisherPayoutAsPaid('pub-payout-1')).rejects.toThrow('تعذّر تسجيل الدفع');
+      expect(await markPublisherPayoutAsPaid('pub-payout-1')).toEqual({ ok: false, error: 'تعذّر تسجيل الدفع' });
       expect(mockLogAuditAction).not.toHaveBeenCalled();
     });
   });

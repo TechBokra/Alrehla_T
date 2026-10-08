@@ -22,10 +22,16 @@ export async function setJoinRequestStatus(
   requestId: string,
   status: 'approved' | 'rejected',
 ): Promise<JoinRequestResult> {
-  const admin = await requireAdmin(
-    'canManageSupport',
-    'غير مصرح لك بإدارة طلبات الانضمام',
-  );
+  // ⚠️ `requireAdmin` بترمي — ورسالتها كانت بتوصل ممسوحة (قاعدة «هـ»).
+  let admin;
+  try {
+    admin = await requireAdmin('canManageSupport', 'غير مصرح لك بإدارة طلبات الانضمام');
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'غير مصرح لك بإدارة طلبات الانضمام',
+    };
+  }
 
   const supabase = await createClient();
 

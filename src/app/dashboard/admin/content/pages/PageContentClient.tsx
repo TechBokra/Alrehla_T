@@ -6,9 +6,8 @@ import { Check, ExternalLink, Search } from 'lucide-react';
 import { CONTENT_GROUPS, type ContentField } from '@/lib/site-content';
 import { savePageContent } from '@/actions/content';
 import type { SiteContent } from '@/lib/site-content';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-800 outline-none transition-colors focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500';
+import { Field, TextInput, TextArea, BusyButton, fieldClass } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 export function PageContentClient({ content }: { content: SiteContent }) {
   const [values, setValues] = useState<SiteContent>(content);
@@ -45,12 +44,16 @@ export function PageContentClient({ content }: { content: SiteContent }) {
     setError('');
     setSavedGroup(null);
     try {
-      await savePageContent(
+      const result = await savePageContent(
         group.fields.map((f) => ({ key: f.key, value: values[f.key] ?? '' })),
       );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setSavedGroup(groupId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر حفظ النصوص');
+    } catch {
+      setError('حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.');
     } finally {
       setSavingGroup(null);
     }
@@ -74,18 +77,16 @@ export function PageContentClient({ content }: { content: SiteContent }) {
       <div className="relative">
         <Search className="absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
-          className={`${inputClass} pr-12`}
+          type="search"
+          aria-label="ابحث في نصوص الموقع"
+          className={`${fieldClass} pr-12`}
           placeholder="ابحث عن جملة شفتها على الموقع…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      <FormError message={error} />
 
       {CONTENT_GROUPS.map((group) => {
         const visibleFields = matches
@@ -144,7 +145,7 @@ export function PageContentClient({ content }: { content: SiteContent }) {
                 )}
 
                 {visibleFields.map((field) => (
-                  <Field
+                  <ContentFieldInput
                     key={field.key}
                     field={field}
                     value={values[field.key] ?? ''}
@@ -158,14 +159,13 @@ export function PageContentClient({ content }: { content: SiteContent }) {
                       <Check className="h-5 w-5" /> تم الحفظ وظهر على الموقع
                     </span>
                   )}
-                  <button
-                    type="button"
+                  <BusyButton
+                    busy={savingGroup === group.id}
                     onClick={() => saveGroup(group.id)}
-                    disabled={savingGroup === group.id}
-                    className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
+                    className="px-8"
                   >
-                    {savingGroup === group.id ? 'جارٍ الحفظ…' : 'حفظ نصوص الصفحة'}
-                  </button>
+                    حفظ نصوص الصفحة
+                  </BusyButton>
                 </div>
               </div>
             )}
@@ -176,7 +176,7 @@ export function PageContentClient({ content }: { content: SiteContent }) {
   );
 }
 
-function Field({
+function ContentFieldInput({
   field,
   value,
   onChange,
@@ -188,27 +188,17 @@ function Field({
   // زرار «استعادة النص الأصلي» اتشال (طلب تامر). مسح الخانة والحفظ لسه
   // بيرجّع النص الأصلي على الموقع — الحماية دي في `savePageContent`.
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-bold text-slate-700">{field.label}</label>
-
+    <Field label={field.label} hint={field.hint}>
       {field.type === 'text' ? (
-        <input
-          className={inputClass}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+        <TextInput value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <textarea
+        <TextArea
           rows={field.type === 'richtext' ? 14 : 3}
-          className={`${inputClass} resize-y leading-relaxed`}
+          className="resize-y leading-relaxed"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       )}
-
-      {field.hint && (
-        <p className="text-xs font-medium text-slate-500">{field.hint}</p>
-      )}
-    </div>
+    </Field>
   );
 }

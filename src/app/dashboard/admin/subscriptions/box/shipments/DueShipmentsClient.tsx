@@ -1,31 +1,40 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { DueBoxShipment } from '@/data/domains/subscriptions';
 import { updateBoxShipment } from '@/actions/box-subscriptions';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';
+import { TextInput, BusyButton } from '@/components/forms/Form';
 
 /** صناديق الشهر — كل صندوق بزراره (نفس `updateBoxShipment`). */
 export function DueShipmentsClient({ rows }: { rows: DueBoxShipment[] }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
-  const [error, setError] = useState('');
+  // الزرار اللي شغّال (`شحنة:حالة`) — هو بس اللي بيكتب «جارٍ…»، والباقي بيتقفل.
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  // الخطأ بيظهر تحت الصندوق اللي فشل، مش فوق القايمة كلها.
+  const [failure, setFailure] = useState<{ id: string; error: string } | null>(null);
   const [tracking, setTracking] = useState<Record<string, string>>({});
 
-  const run = (id: string, status: 'preparing' | 'shipped') =>
-    start(async () => {
-      setError('');
+  const run = async (id: string, status: 'preparing' | 'shipped') => {
+    if (busyKey) return;
+    setFailure(null);
+    setBusyKey(`${id}:${status}`);
+    try {
       const r = await updateBoxShipment({ shipmentId: id, status, trackingReference: tracking[id] });
-      if (!r.ok) setError(r.error);
+      if (!r.ok) setFailure({ id, error: r.error });
       else router.refresh();
-    });
+    } catch {
+      setFailure({ id, error: 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.' });
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   return (
     <div className="space-y-3">
-      <FormError message={error} />
       {rows.map((r) => (
         <div
           key={r.shipment.id}
@@ -60,28 +69,39 @@ export function DueShipmentsClient({ rows }: { rows: DueBoxShipment[] }) {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {r.shipment.status === 'pending' && (
-              <button type="button" disabled={pending} onClick={() => run(r.shipment.id, 'preparing')}
-                className="rounded-lg bg-amber-700 px-4 py-2 text-xs font-bold text-white hover:bg-amber-800 disabled:opacity-50">
+              <BusyButton
+                variant="secondary"
+                busy={busyKey === `${r.shipment.id}:preparing`}
+                pendingLabel="جارٍ التحديث…"
+                disabled={busyKey !== null}
+                onClick={() => run(r.shipment.id, 'preparing')}
+              >
                 بدأ التجهيز
-              </button>
+              </BusyButton>
             )}
-            <input
-              aria-label="رقم الشحنة"
-              placeholder="رقم الشحنة (اختياري)"
-              dir="ltr"
-              value={tracking[r.shipment.id] ?? ''}
-              onChange={(e) => setTracking((t) => ({ ...t, [r.shipment.id]: e.target.value }))}
-              className="w-44 rounded-lg border border-slate-200 px-3 py-2 text-xs"
-            />
-            <button type="button" disabled={pending} onClick={() => run(r.shipment.id, 'shipped')}
-              className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50">
+            <div className="w-44">
+              <TextInput
+                aria-label="رقم الشحنة"
+                placeholder="رقم الشحنة (اختياري)"
+                dir="ltr"
+                value={tracking[r.shipment.id] ?? ''}
+                onChange={(e) => setTracking((t) => ({ ...t, [r.shipment.id]: e.target.value }))}
+              />
+            </div>
+            <BusyButton
+              busy={busyKey === `${r.shipment.id}:shipped`}
+              pendingLabel="جارٍ التحديث…"
+              disabled={busyKey !== null}
+              onClick={() => run(r.shipment.id, 'shipped')}
+            >
               اتشحن
-            </button>
+            </BusyButton>
             <Link href={`/dashboard/admin/subscriptions/box/${r.subscriptionId}`}
               className="text-xs font-bold text-blue-700 hover:underline">
               بيانات الطفل وصوره ←
             </Link>
           </div>
+          <FormError message={failure?.id === r.shipment.id ? failure.error : ''} className="mt-3" />
         </div>
       ))}
     </div>

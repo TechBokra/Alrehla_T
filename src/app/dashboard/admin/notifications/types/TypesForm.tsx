@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { setDisabledNotificationTypes } from '@/actions/notifications-admin';
+import { BusyButton } from '@/components/forms/Form';
 
 type EventRow = {
   key: string;
@@ -25,11 +26,17 @@ export function TypesForm({
   async function save() {
     setSaving(true);
     setMessage(null);
-    const res = await setDisabledNotificationTypes(off);
-    setSaving(false);
-    setMessage(
-      res.ok ? { ok: true, text: 'اتحفظ.' } : { ok: false, text: res.error }
-    );
+    try {
+      const res = await setDisabledNotificationTypes(off);
+      setMessage(
+        res.ok ? { ok: true, text: 'اتحفظ.' } : { ok: false, text: res.error }
+      );
+    } catch {
+      // لو النداء نفسه وقع — منسكتش والزرار ميفضلش مقفول.
+      setMessage({ ok: false, text: 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.' });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -80,16 +87,14 @@ export function TypesForm({
       })}
 
       <div className="flex flex-wrap items-center gap-4 pt-4">
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-        >
-          {saving ? 'جاري الحفظ…' : 'حفظ'}
-        </button>
+        <BusyButton busy={saving} pendingLabel="جاري الحفظ…" onClick={save} className="px-8">
+          حفظ
+        </BusyButton>
         {message && (
-          <p className={`text-sm font-bold ${message.ok ? 'text-emerald-600' : 'text-red-600'}`}>
+          <p
+            role={message.ok ? 'status' : 'alert'}
+            className={`text-sm font-bold ${message.ok ? 'text-emerald-600' : 'text-red-600'}`}
+          >
             {message.text}
           </p>
         )}

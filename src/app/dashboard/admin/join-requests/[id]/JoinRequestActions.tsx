@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import { setJoinRequestStatus } from '@/actions/join-requests';
 import { FormError } from '@/components/ui/FormError';
+import { BusyButton } from '@/components/forms/Form';
 
 /**
  * قبول طلب الانضمام أو رفضه.
@@ -25,6 +26,7 @@ export function JoinRequestActions({ requestId }: { requestId: string }) {
   const [error, setError] = useState('');
 
   const decide = async (status: 'approved' | 'rejected') => {
+    if (busy) return;
     setBusy(status);
     setError('');
     try {
@@ -37,8 +39,8 @@ export function JoinRequestActions({ requestId }: { requestId: string }) {
         return;
       }
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر تحديث الطلب');
+    } catch {
+      setError('تعذّر تحديث الطلب');
     } finally {
       setBusy(null);
     }
@@ -48,32 +50,25 @@ export function JoinRequestActions({ requestId }: { requestId: string }) {
     <div className="w-full space-y-3">
       <FormError message={error} />
       <div className="flex flex-wrap gap-4">
-        <button
-          type="button"
+        <BusyButton
+          busy={busy === 'approved'}
+          pendingLabel="قبول الطلب"
           disabled={busy !== null}
           onClick={() => decide('approved')}
-          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-md transition-colors hover:bg-emerald-700 disabled:opacity-50"
         >
-          {busy === 'approved' ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <CheckCircle className="h-5 w-5" />
-          )}
+          <CheckCircle className="h-5 w-5" />
           قبول الطلب
-        </button>
-        <button
-          type="button"
+        </BusyButton>
+        <BusyButton
+          variant="danger"
+          busy={busy === 'rejected'}
+          pendingLabel="رفض الطلب"
           disabled={busy !== null}
           onClick={() => decide('rejected')}
-          className="flex items-center gap-2 rounded-xl bg-rose-50 px-6 py-3 font-bold text-rose-600 transition-colors hover:bg-rose-100 disabled:opacity-50"
         >
-          {busy === 'rejected' ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <XCircle className="h-5 w-5" />
-          )}
+          <XCircle className="h-5 w-5" />
           رفض الطلب
-        </button>
+        </BusyButton>
       </div>
     </div>
   );

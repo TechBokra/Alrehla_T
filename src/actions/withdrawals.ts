@@ -18,16 +18,26 @@ import { notifyUser, getInstructorUserId, getPublisherUserId } from '@/lib/notif
  *    الإدارة تعتمد التحويل، والناشر مايعرفش. **عملية بتنجح ومحدّش
  *    بيشوف نتيجتها** — نفس فئة الأعطال اللي بنقفلها.
  */
+export type WithdrawalStatusResult =
+  | { ok: true }
+  | { ok: false; error: string; field?: 'adminNotes' };
+
 export async function setWithdrawalStatus(params: {
   requestId: string;
   status: 'approved' | 'paid' | 'rejected';
   adminNotes?: string;
-}) {
-  const admin = await requireAdmin('canManageFinance', 'غير مصرح لك بإدارة طلبات السحب');
+}): Promise<WithdrawalStatusResult> {
+  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — `requireAdmin` بترمي فبتتلفّ هنا.
+  let admin: Awaited<ReturnType<typeof requireAdmin>>;
+  try {
+    admin = await requireAdmin('canManageFinance', 'غير مصرح لك بإدارة طلبات السحب');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بإدارة طلبات السحب' };
+  }
 
   const { requestId, status, adminNotes } = params;
   if (status === 'rejected' && !adminNotes?.trim()) {
-    throw new Error('اكتب سبب الرفض ليصل لصاحب الطلب');
+    return { ok: false, error: 'اكتب سبب الرفض ليصل لصاحب الطلب', field: 'adminNotes' };
   }
 
   const supabase = await createClient();
@@ -44,7 +54,7 @@ export async function setWithdrawalStatus(params: {
 
   if (error || !data) {
     console.error('Error updating withdrawal request', error);
-    throw new Error('تعذّر تحديث الطلب');
+    return { ok: false, error: 'تعذّر تحديث الطلب' };
   }
 
   const titles: Record<string, string> = {

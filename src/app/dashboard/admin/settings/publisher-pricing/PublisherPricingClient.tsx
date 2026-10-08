@@ -5,6 +5,8 @@ import { PricingFormulaSettings } from '@/types';
 import { Save, Info } from 'lucide-react';
 import { updatePublisherPricingSettings } from '@/actions/finance';
 import { calculateFinalSessionPrice } from '@/lib/utils'; // We can reuse this function as it just applies multiplier + fixed
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 export function PublisherPricingClient({ settings }: { settings: PricingFormulaSettings }) {
   const [multiplier, setMultiplier] = useState(settings.platformMultiplier);
@@ -12,20 +14,30 @@ export function PublisherPricingClient({ settings }: { settings: PricingFormulaS
   
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [failure, setFailure] = useState<{ error: string; field?: string } | null>(null);
 
   // Example base prices for live preview
   const examples = [50, 100, 200, 500];
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     setIsSaving(true);
+    setIsSaved(false);
+    setFailure(null);
     try {
-      await updatePublisherPricingSettings(multiplier, fixedFee);
+      // ⚠️ الأكشن بقى بيرجّع النتيجة بدل ما يرمي — والرسالة بتظهر هنا
+      //    (تحت الخانة لو هي السبب) بدل `alert` عامة.
+      const result = await updatePublisherPricingSettings(multiplier, fixedFee);
+      if (!result.ok) {
+        setFailure({ error: result.error, field: result.field });
+        return;
+      }
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error(error);
-      alert('حدث خطأ أثناء حفظ الإعدادات');
+      setFailure({ error: 'حدث خطأ أثناء حفظ الإعدادات' });
     } finally {
       setIsSaving(false);
     }
@@ -43,28 +55,36 @@ export function PublisherPricingClient({ settings }: { settings: PricingFormulaS
 
       <form onSubmit={handleSave} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
         <div className="grid gap-6 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">مضاعف المنصة</label>
-            <input 
-              type="number" 
+          <Field
+            label="مضاعف المنصة"
+            required
+            hint="مثال: 1.1 يعني زيادة بنسبة 10% على سعر الناشر الأساسي لمنتجه."
+            error={failure?.field === 'multiplier' ? failure.error : undefined}
+          >
+            <TextInput
+              type="number"
               step="0.01"
+              name="multiplier"
               value={multiplier}
               onChange={(e) => setMultiplier(parseFloat(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-blue-500 focus:outline-none"
             />
-            <p className="text-xs text-slate-500">مثال: 1.1 يعني زيادة بنسبة 10% على سعر الناشر الأساسي لمنتجه.</p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">الرسوم الثابتة للمنصة (ج.م)</label>
-            <input 
-              type="number" 
+          </Field>
+          <Field
+            label="الرسوم الثابتة للمنصة (ج.م)"
+            required
+            hint="تضاف هذه الرسوم بعد تطبيق المضاعف."
+            error={failure?.field === 'fixedFee' ? failure.error : undefined}
+          >
+            <TextInput
+              type="number"
+              name="fixedFee"
               value={fixedFee}
               onChange={(e) => setFixedFee(parseFloat(e.target.value))}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 focus:border-blue-500 focus:outline-none"
             />
-            <p className="text-xs text-slate-500">تضاف هذه الرسوم بعد تطبيق المضاعف.</p>
-          </div>
+          </Field>
         </div>
+
+        <FormError message={failure && !failure.field ? failure.error : ''} />
 
         <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
           {isSaved && (
@@ -72,14 +92,10 @@ export function PublisherPricingClient({ settings }: { settings: PricingFormulaS
               <span>تم الحفظ بنجاح</span>
             </div>
           )}
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-          >
+          <BusyButton type="submit" busy={isSaving} pendingLabel="جاري الحفظ..." className="px-8">
             <Save className="h-5 w-5" />
-            {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
-          </button>
+            حفظ الإعدادات
+          </BusyButton>
         </div>
       </form>
 

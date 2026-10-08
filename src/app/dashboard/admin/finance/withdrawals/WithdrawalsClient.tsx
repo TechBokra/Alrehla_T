@@ -6,6 +6,8 @@ import { Check, X, Banknote } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
 import type { WithdrawalRequestRow } from '@/data/domains/admin';
 import { setWithdrawalStatus } from '@/actions/withdrawals';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 const STATUS: Record<string, { label: string; className: string }> = {
   pending: { label: 'قيد المراجعة', className: 'bg-amber-100 text-amber-700' },
@@ -18,21 +20,30 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
   const router = useRouter();
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
-  const [busy, setBusy] = useState(false);
+  // الزرار اللي اتداس (`approved:id` …) — هو بس اللي يكتب «جارٍ…».
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const busy = busyKey !== null;
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
 
-  const run = async (fn: () => Promise<unknown>) => {
-    setBusy(true);
+  const run = async (key: string, fn: () => ReturnType<typeof setWithdrawalStatus>) => {
+    setBusyKey(key);
     setError('');
+    setErrorField(undefined);
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setActingOn(null);
       setNotes('');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+    } catch {
+      setError('حدث خطأ غير متوقع');
     } finally {
-      setBusy(false);
+      setBusyKey(null);
     }
   };
 
@@ -46,11 +57,8 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {/* خطأ «سبب الرفض» بيظهر تحت الخانة — والباقي هنا. */}
+      {!errorField && <FormError message={error} />}
 
       {requests.map((request) => {
         const status = STATUS[request.status] ?? {
@@ -106,31 +114,38 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
             {open && (
               <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                 {request.status === 'pending' && (
-                  <button
-                    type="button"
+                  <BusyButton
+                    busy={busyKey === `approved:${request.id}`}
+                    pendingLabel="جارٍ الاعتماد…"
                     disabled={busy}
                     onClick={() =>
-                      run(() => setWithdrawalStatus({ requestId: request.id, status: 'approved' }))
+                      run(`approved:${request.id}`, () =>
+                        setWithdrawalStatus({ requestId: request.id, status: 'approved' })
+                      )
                     }
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                    className="text-sm"
                   >
-                    <Check className="h-4 w-4" /> اعتماد الطلب
-                  </button>
+                    <Check className="h-4 w-4" aria-hidden="true" /> اعتماد الطلب
+                  </BusyButton>
                 )}
-                <button
-                  type="button"
+                <BusyButton
+                  busy={busyKey === `paid:${request.id}`}
                   disabled={busy}
                   onClick={() =>
-                    run(() => setWithdrawalStatus({ requestId: request.id, status: 'paid' }))
+                    run(`paid:${request.id}`, () =>
+                      setWithdrawalStatus({ requestId: request.id, status: 'paid' })
+                    )
                   }
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                  className="text-sm"
                 >
-                  <Banknote className="h-4 w-4" /> تم التحويل فعلاً
-                </button>
+                  <Banknote className="h-4 w-4" aria-hidden="true" /> تم التحويل فعلاً
+                </BusyButton>
                 <button
                   type="button"
                   onClick={() => {
                     setNotes('');
+                    setError('');
+                    setErrorField(undefined);
                     setActingOn(actingOn === request.id ? null : request.id);
                   }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50"
@@ -142,28 +157,29 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
 
             {actingOn === request.id && (
               <div className="mt-4 space-y-2 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                <label className="text-xs font-bold text-rose-800">
-                  سبب الرفض (يصل للمدرب)
-                </label>
-                <input
-                  className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="مثال: الرصيد المتاح أقل من المبلغ المطلوب"
-                />
+                <Field
+                  label="سبب الرفض (يصل للمدرب)"
+                  name="adminNotes"
+                  required
+                  error={errorField === 'adminNotes' ? error : undefined}
+                >
+                  <TextInput
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="مثال: الرصيد المتاح أقل من المبلغ المطلوب"
+                  />
+                </Field>
                 <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActingOn(null)}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600"
-                  >
+                  <BusyButton busy={false} variant="secondary" disabled={busy} onClick={() => setActingOn(null)}>
                     إلغاء
-                  </button>
-                  <button
-                    type="button"
+                  </BusyButton>
+                  <BusyButton
+                    variant="danger"
+                    busy={busyKey === `rejected:${request.id}`}
+                    pendingLabel="جارٍ الرفض…"
                     disabled={busy}
                     onClick={() =>
-                      run(() =>
+                      run(`rejected:${request.id}`, () =>
                         setWithdrawalStatus({
                           requestId: request.id,
                           status: 'rejected',
@@ -171,10 +187,9 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
                         })
                       )
                     }
-                    className="rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                   >
                     تأكيد الرفض
-                  </button>
+                  </BusyButton>
                 </div>
               </div>
             )}

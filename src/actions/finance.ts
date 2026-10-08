@@ -23,8 +23,30 @@ async function requireSuperAdmin() {
   return requireSuperAdminGuard('غير مصرح لك بإدارة المدفوعات');
 }
 
-export async function markInstructorPayoutAsPaid(payoutId: string) {
-  const user = await requireSuperAdmin();
+const PAYOUTS_DENIED = 'غير مصرح لك بإدارة المدفوعات';
+
+/**
+ * نفس الحارس بس بيرجّع `null` بدل ما يرمي (قاعدة «هـ») — لدوال
+ * «تم الدفع» اللي بقت بترجّع نتيجة. ⚠️ كل دالة بتستعمله لازم تتأكد
+ * من `null` وترجع فورًا.
+ */
+async function guardSuperAdmin() {
+  try {
+    return await requireSuperAdmin();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ⚠️ «تم الدفع» بترجّع ولا بترمي — Next بيمسح نصّ الاستثناء في
+ *    الإنتاج، فـ«سجل الدفعة غير موجود» كانت بتوصل «خطأ غير متوقع».
+ */
+export type PayoutResult = { ok: true } | { ok: false; error: string };
+
+export async function markInstructorPayoutAsPaid(payoutId: string): Promise<PayoutResult> {
+  const user = await guardSuperAdmin();
+  if (!user) return { ok: false, error: PAYOUTS_DENIED };
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -36,11 +58,11 @@ export async function markInstructorPayoutAsPaid(payoutId: string) {
 
   if (error) {
     console.error('Error marking instructor payout as paid', error);
-    throw new Error('تعذّر تسجيل الدفع');
+    return { ok: false, error: 'تعذّر تسجيل الدفع' };
   }
 
   if (!data) {
-    throw new Error('سجل الدفعة غير موجود أو تعذّر تحديثه');
+    return { ok: false, error: 'سجل الدفعة غير موجود أو تعذّر تحديثه' };
   }
 
   await logAuditAction({
@@ -55,11 +77,12 @@ export async function markInstructorPayoutAsPaid(payoutId: string) {
   revalidatePath('/dashboard/admin/finance/instructor-payouts');
   revalidatePath(`/dashboard/admin/finance/instructor-payouts/${payoutId}`);
   revalidatePath('/dashboard/instructor/payouts');
-  return { success: true };
+  return { ok: true };
 }
 
-export async function markPublisherPayoutAsPaid(payoutId: string) {
-  const user = await requireSuperAdmin();
+export async function markPublisherPayoutAsPaid(payoutId: string): Promise<PayoutResult> {
+  const user = await guardSuperAdmin();
+  if (!user) return { ok: false, error: PAYOUTS_DENIED };
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -71,11 +94,11 @@ export async function markPublisherPayoutAsPaid(payoutId: string) {
 
   if (error) {
     console.error('Error marking publisher payout as paid', error);
-    throw new Error('تعذّر تسجيل الدفع');
+    return { ok: false, error: 'تعذّر تسجيل الدفع' };
   }
 
   if (!data) {
-    throw new Error('سجل الدفعة غير موجود أو تعذّر تحديثه');
+    return { ok: false, error: 'سجل الدفعة غير موجود أو تعذّر تحديثه' };
   }
 
   await logAuditAction({
@@ -89,7 +112,7 @@ export async function markPublisherPayoutAsPaid(payoutId: string) {
 
   revalidatePath('/dashboard/admin/finance/publisher-payouts');
   revalidatePath(`/dashboard/admin/finance/publisher-payouts/${payoutId}`);
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -283,14 +306,24 @@ export async function submitWithdrawalRequest(
  *    بالسالب أو رسم بالسالب معناه سعر عميل أقل من نصيب الناشر —
  *    يعني المنصة بتدفع من جيبها على كل عملية بيع.
  */
-export async function updatePublisherPricingSettings(multiplier: number, fixedFee: number) {
-  const user = await requireSuperAdmin();
+export async function updatePublisherPricingSettings(
+  multiplier: number,
+  fixedFee: number,
+): Promise<{ ok: true } | { ok: false; error: string; field?: 'multiplier' | 'fixedFee' }> {
+  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — Next بيمسح نصّ الاستثناء في الإنتاج،
+  //    فالإداري كان بيشوف «حدث خطأ» بدل «المعامل لازم يكون أكبر من صفر».
+  let user;
+  try {
+    user = await requireSuperAdmin();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح لك بإدارة المدفوعات' };
+  }
 
   if (!Number.isFinite(multiplier) || multiplier <= 0) {
-    throw new Error('المعامل لازم يكون رقمًا أكبر من صفر');
+    return { ok: false, error: 'المعامل لازم يكون رقمًا أكبر من صفر', field: 'multiplier' };
   }
   if (!Number.isFinite(fixedFee) || fixedFee < 0) {
-    throw new Error('الرسم الثابت لازم يكون صفرًا أو أكتر');
+    return { ok: false, error: 'الرسم الثابت لازم يكون صفرًا أو أكتر', field: 'fixedFee' };
   }
 
   const supabase = await createClient();
@@ -311,11 +344,11 @@ export async function updatePublisherPricingSettings(multiplier: number, fixedFe
 
   if (error) {
     console.error('Error updating publisher pricing settings', error);
-    throw new Error('تعذّر حفظ إعدادات التسعير');
+    return { ok: false, error: 'تعذّر حفظ إعدادات التسعير' };
   }
 
   if (!data) {
-    throw new Error('الحفظ ما وصلش للقاعدة — كلّم الإدارة التقنية');
+    return { ok: false, error: 'الحفظ ما وصلش للقاعدة — كلّم الإدارة التقنية' };
   }
 
   await logAuditAction({
@@ -329,5 +362,5 @@ export async function updatePublisherPricingSettings(multiplier: number, fixedFe
 
   revalidatePath('/dashboard/admin/settings/publisher-pricing');
   revalidatePath('/dashboard/admin/products');
-  return { success: true };
+  return { ok: true };
 }

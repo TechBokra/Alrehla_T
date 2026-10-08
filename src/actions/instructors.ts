@@ -560,11 +560,17 @@ export async function setInstructorStatus(
 export async function updatePricingFormulaSettings(
   platformMultiplier: number,
   fixedAdminFee: number
-) {
-  const user = await requireAnyAdmin(
-    ['canManageCatalog', 'canManageInstructors'],
-    'غير مصرح لك بتعديل إعدادات التسعير',
-  );
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — رسالة الصلاحية كانت بتوصل ممسوحة.
+  let user;
+  try {
+    user = await requireAnyAdmin(
+      ['canManageCatalog', 'canManageInstructors'],
+      'غير مصرح لك بتعديل إعدادات التسعير',
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح لك بتعديل إعدادات التسعير' };
+  }
 
   const supabase = await createClient();
   // `upsert` مش `update`: صف `default` ممكن ما يكونش موجود أصلًا في
@@ -586,10 +592,10 @@ export async function updatePricingFormulaSettings(
 
   if (error) {
     console.error('Error updating pricing formula', error);
-    throw new Error('تعذّر حفظ إعدادات التسعير');
+    return { ok: false, error: 'تعذّر حفظ إعدادات التسعير' };
   }
   if (!formulaRows || formulaRows.length === 0) {
-    throw new Error('إعدادات التسعير مروّحتش للقاعدة — الصلاحيات مش سامحة بالتعديل.');
+    return { ok: false, error: 'إعدادات التسعير مروّحتش للقاعدة — الصلاحيات مش سامحة بالتعديل.' };
   }
 
   await logAuditAction({
@@ -602,7 +608,7 @@ export async function updatePricingFormulaSettings(
   });
 
   revalidatePath('/dashboard/admin/settings/creative-writing-pricing');
-  return { success: true };
+  return { ok: true };
 }
 
 /**

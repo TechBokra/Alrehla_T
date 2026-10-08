@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { PublisherPayout, Publisher } from '@/types';
 import { markPublisherPayoutAsPaid } from '@/actions/finance';
 import { CheckCircle2, Building, AlertCircle } from 'lucide-react';
+import { BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   payout: PublisherPayout;
@@ -13,15 +15,22 @@ interface Props {
 export function AdminPublisherPayoutClient({ payout, publisher }: Props) {
   const [status, setStatus] = useState(payout.status);
   const [isProcessing, setIsProcessing] = useState(false);
+  // ⚠️ كان `alert('حدث خطأ')` من غير السبب — دلوقتي رسالة الخادم نفسها.
+  const [error, setError] = useState('');
 
   const handleMarkAsPaid = async () => {
     setIsProcessing(true);
+    setError('');
     try {
-      await markPublisherPayoutAsPaid(payout.id);
+      const result = await markPublisherPayoutAsPaid(payout.id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setStatus('paid');
-    } catch (error) {
-      console.error(error);
-      alert('حدث خطأ');
+    } catch (err) {
+      console.error(err);
+      setError('حدث خطأ غير متوقع — حدّث الصفحة واتأكد من حالة الدفعة قبل ما تعيد المحاولة.');
     } finally {
       setIsProcessing(false);
     }
@@ -87,14 +96,18 @@ export function AdminPublisherPayoutClient({ payout, publisher }: Props) {
         </div>
 
         {status !== 'paid' && (
-          <div className="mt-8 pt-8 border-t border-slate-100 flex justify-end gap-4">
-            <button 
-              onClick={handleMarkAsPaid}
-              disabled={isProcessing}
-              className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"
-            >
-              {isProcessing ? 'جاري التنفيذ...' : 'تأكيد إتمام التحويل'}
-            </button>
+          <div className="mt-8 pt-8 border-t border-slate-100 space-y-4">
+            <FormError message={error} />
+            <div className="flex justify-end gap-4">
+              <BusyButton
+                busy={isProcessing}
+                pendingLabel="جاري التنفيذ..."
+                onClick={handleMarkAsPaid}
+                className="px-8"
+              >
+                تأكيد إتمام التحويل
+              </BusyButton>
+            </div>
           </div>
         )}
       </div>

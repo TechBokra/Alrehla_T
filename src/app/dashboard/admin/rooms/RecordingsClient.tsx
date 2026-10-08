@@ -4,6 +4,9 @@ import React, { useState, useTransition } from 'react';
 import { Play, Trash2, Loader2, ExternalLink, Eraser } from 'lucide-react';
 import { openRecording, removeRecording, purgeRecordingsNow } from '@/actions/recordings';
 import { FormError } from '@/components/ui/FormError';
+import { BusyButton } from '@/components/forms/Form';
+
+const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
 /**
  * أزرار التسجيلات.
@@ -25,12 +28,16 @@ export function WatchRecordingButton({
   const watch = () =>
     startTransition(async () => {
       setError('');
-      const result = await openRecording(recordingId, roomName);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await openRecording(recordingId, roomName);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        window.open(result.url, '_blank', 'noopener,noreferrer');
+      } catch {
+        setError(UNEXPECTED);
       }
-      window.open(result.url, '_blank', 'noopener,noreferrer');
     });
 
   return (
@@ -45,7 +52,11 @@ export function WatchRecordingButton({
         شاهد
         {!busy && <ExternalLink className="h-3.5 w-3.5 opacity-70" />}
       </button>
-      {error && <p className="text-xs font-bold text-rose-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs font-bold text-rose-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -85,23 +96,26 @@ export function DeleteRecordingButton({
 
     startTransition(async () => {
       setError('');
-      const result = await removeRecording(recordingId, roomName);
-      if (!result.ok) setError(result.error);
+      try {
+        const result = await removeRecording(recordingId, roomName);
+        if (!result.ok) setError(result.error);
+      } catch {
+        setError(UNEXPECTED);
+      }
     });
   };
 
   return (
     <div className="space-y-1">
-      <button
-        type="button"
-        onClick={remove}
-        disabled={busy}
-        className="inline-flex items-center gap-2 rounded-lg border-2 border-rose-200 px-3 py-2 text-sm font-bold text-rose-700 transition-colors hover:border-rose-400 disabled:opacity-50"
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+      <BusyButton variant="danger" busy={busy} pendingLabel="جارٍ الحذف…" onClick={remove}>
+        <Trash2 className="h-4 w-4" />
         احذف
-      </button>
-      {error && <p className="text-xs font-bold text-rose-600">{error}</p>}
+      </BusyButton>
+      {error && (
+        <p role="alert" className="text-xs font-bold text-rose-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -127,16 +141,20 @@ export function PurgeNowButton({ retentionLabel }: { retentionLabel: string }) {
     startTransition(async () => {
       setError('');
       setNotice('');
-      const result = await purgeRecordingsNow();
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await purgeRecordingsNow();
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setNotice(
+          result.deleted === 0
+            ? 'مفيش تسجيل عدّى المدة — مفيش حاجة اتحذفت.'
+            : `اتحذف ${result.deleted} تسجيل${result.failed ? ` · فشل ${result.failed}` : ''}.`,
+        );
+      } catch {
+        setError(UNEXPECTED);
       }
-      setNotice(
-        result.deleted === 0
-          ? 'مفيش تسجيل عدّى المدة — مفيش حاجة اتحذفت.'
-          : `اتحذف ${result.deleted} تسجيل${result.failed ? ` · فشل ${result.failed}` : ''}.`,
-      );
     });
   };
 
@@ -148,15 +166,10 @@ export function PurgeNowButton({ retentionLabel }: { retentionLabel: string }) {
           {notice}
         </p>
       )}
-      <button
-        type="button"
-        onClick={purge}
-        disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 transition-colors hover:border-slate-400 disabled:opacity-50"
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eraser className="h-4 w-4" />}
+      <BusyButton variant="secondary" busy={busy} pendingLabel="جارٍ الحذف…" onClick={purge}>
+        <Eraser className="h-4 w-4" />
         احذف المنتهي دلوقتي
-      </button>
+      </BusyButton>
     </div>
   );
 }

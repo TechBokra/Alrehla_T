@@ -4,9 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Video, Calendar, Check } from 'lucide-react';
 import { updateSessionDetails } from '@/actions/admin-sessions';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 /** Turn an ISO timestamp into the value a datetime-local input expects. */
 function toLocalInput(iso: string): string {
@@ -36,22 +35,31 @@ export function SessionSettings({
   const [when, setWhen] = useState(toLocalInput(scheduledAt));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
 
   const save = async () => {
+    if (busy) return;
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     setSaved(false);
     try {
-      await updateSessionDetails({
+      // ⚠️ الأكشن بقى بيرجّع النتيجة بدل ما يرمي (قاعدة «هـ»).
+      const result = await updateSessionDetails({
         sessionId,
         meetingUrl: url,
         scheduledAt: new Date(when).toISOString(),
       });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setSaved(true);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر الحفظ');
+    } catch {
+      setError('تعذّر الحفظ');
     } finally {
       setBusy(false);
     }
@@ -64,11 +72,8 @@ export function SessionSettings({
         أي تعديل هنا يصل للمدرب والمتدرب كإشعار.
       </p>
 
-      {error && (
-        <p className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
-      )}
+      {/* خطأ الخانة بيظهر تحتها؛ الباقي هنا. */}
+      <FormError message={errorField ? '' : error} className="mb-4" />
       {saved && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">
           <Check className="h-4 w-4" /> تم الحفظ.
@@ -76,40 +81,45 @@ export function SessionSettings({
       )}
 
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-            <Video className="h-3.5 w-3.5" /> رابط غرفة الجلسة
-          </label>
-          <input
-            className={`${inputClass} text-left`}
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              <Video className="h-3.5 w-3.5" /> رابط غرفة الجلسة
+            </span>
+          }
+          error={errorField === 'meetingUrl' ? error : undefined}
+        >
+          <TextInput
+            name="meetingUrl"
+            className="text-left"
             dir="ltr"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://meet.google.com/xxx-xxxx-xxx"
           />
-        </div>
+        </Field>
 
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-            <Calendar className="h-3.5 w-3.5" /> موعد الجلسة
-          </label>
-          <input
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" /> موعد الجلسة
+            </span>
+          }
+          required
+          error={errorField === 'scheduledAt' ? error : undefined}
+        >
+          <TextInput
             type="datetime-local"
-            className={inputClass}
+            name="scheduledAt"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
           />
-        </div>
+        </Field>
 
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy}
-            className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
-          >
-            {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-          </button>
+          <BusyButton busy={busy} onClick={save}>
+            حفظ
+          </BusyButton>
         </div>
       </div>
     </section>

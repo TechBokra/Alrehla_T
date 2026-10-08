@@ -8,9 +8,10 @@ import type { BlogPost } from '@/types';
 import { saveBlogPost, deleteBlogPost } from '@/actions/blog';
 import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
+import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
-const inputClass =
-  'w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800 outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
+const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
 /**
  * Writing a post.
@@ -33,12 +34,16 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  // الخانة اللي عليها الخطأ (لو الخادم حدّدها) — الرسالة بتظهر تحتها.
+  const [errorField, setErrorField] = useState<string | undefined>();
+  const [deleting, setDeleting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = async () => {
     setBusy(true);
     setError('');
+    setErrorField(undefined);
     setSaved(false);
     try {
       const result = await saveBlogPost(post?.id ?? null, {
@@ -51,15 +56,40 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
         isPublished,
         publishedAt: post?.publishedAt ?? '',
       });
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setSaved(true);
       if (!post) router.push(`/dashboard/admin/content/blog/${result.id}`);
       else router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر حفظ المقال');
+    } catch {
+      setError(UNEXPECTED);
     } finally {
       setBusy(false);
     }
   };
+
+  const remove = async () => {
+    if (!post) return;
+    setDeleting(true);
+    setError('');
+    setErrorField(undefined);
+    try {
+      // بعد النجاح الخادم بيحوّل لقايمة المقالات — فمفيش نتيجة غير لو فشل.
+      const result = await deleteBlogPost(post.id);
+      if (result && !result.ok) setError(result.error);
+    } catch (err) {
+      // تحويلات Next (`redirect`) بتيجي كاستثناء — لازم تعدّي.
+      if ((err as { digest?: string } | null)?.digest?.startsWith('NEXT_')) throw err;
+      setError(UNEXPECTED);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const err = (f: string) => (errorField === f ? error : undefined);
 
   const onPickCover = async (file: File | undefined) => {
     if (!file) return;
@@ -77,11 +107,7 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-      {error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {!errorField && <FormError message={error} className="mb-6" />}
       {saved && (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
           <Check className="h-4 w-4" /> تم الحفظ.
@@ -89,59 +115,41 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
       )}
 
       <div className="space-y-6">
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">عنوان المقال</label>
-          <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
+        <Field label="عنوان المقال" name="title" required error={err('title')}>
+          <TextInput value={title} onChange={(e) => setTitle(e.target.value)} />
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            الرابط (يُولَّد من العنوان إذا تُرك فارغًا)
-          </label>
-          <input
-            className={inputClass}
+        <Field label="الرابط (يُولَّد من العنوان إذا تُرك فارغًا)" name="slug" error={err('slug')}>
+          <TextInput
             dir="ltr"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="how-to-encourage-reading"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">المقتطف</label>
-          <textarea
-            rows={2}
-            className={inputClass}
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-          />
-        </div>
+        <Field label="المقتطف" name="excerpt">
+          <TextArea rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">المحتوى</label>
-          <textarea
-            rows={16}
-            className={inputClass}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-          <p className="mt-2 text-xs font-medium text-slate-500">
-            النص يظهر للقارئ كما تكتبه، بفقراته وأسطره.
-          </p>
-        </div>
+        <Field
+          label="المحتوى"
+          name="content"
+          required
+          hint="النص يظهر للقارئ كما تكتبه، بفقراته وأسطره."
+          error={err('content')}
+        >
+          <TextArea rows={16} value={content} onChange={(e) => setContent(e.target.value)} />
+        </Field>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">اسم الكاتب</label>
-            <input
-              className={inputClass}
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-            />
-          </div>
+          <Field label="اسم الكاتب" name="authorName">
+            <TextInput value={authorName} onChange={(e) => setAuthorName(e.target.value)} />
+          </Field>
 
+          {/* رفع الصورة/المكتبة مش خانة نص — فعنوانها مكتوب بإيدنا. */}
           <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">صورة الغلاف</label>
+            <p className="mb-2 block text-sm font-bold text-slate-700">صورة الغلاف</p>
             <div className="flex flex-wrap items-center gap-3">
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50">
                 <Upload className="h-4 w-4" />
@@ -168,15 +176,11 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
           </div>
         </div>
 
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={isPublished}
-            onChange={(e) => setIsPublished(e.target.checked)}
-            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-          <span className="font-bold text-slate-700">مقال منشور (ظاهر للزوار)</span>
-        </label>
+        <Checkbox
+          label="مقال منشور (ظاهر للزوار)"
+          checked={isPublished}
+          onChange={(e) => setIsPublished(e.target.checked)}
+        />
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
           <div className="flex gap-2">
@@ -190,30 +194,27 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
                 >
                   <Eye className="h-4 w-4" /> معاينة
                 </a>
-                <button
-                  type="button"
+                <BusyButton
+                  variant={confirmDelete ? 'danger' : 'secondary'}
+                  busy={deleting}
+                  pendingLabel="جارٍ الحذف…"
                   disabled={busy}
                   onClick={() => {
-                    if (confirmDelete) void deleteBlogPost(post.id);
+                    if (confirmDelete) void remove();
                     else setConfirmDelete(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                  className="text-sm"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   {confirmDelete ? 'اضغط مرة أخرى للحذف' : 'حذف'}
-                </button>
+                </BusyButton>
               </>
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy || uploading}
-            className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-          >
-            {busy ? 'جارٍ الحفظ…' : 'حفظ المقال'}
-          </button>
+          <BusyButton busy={busy} onClick={save} disabled={uploading || deleting} className="px-8">
+            حفظ المقال
+          </BusyButton>
         </div>
       </div>
     </div>

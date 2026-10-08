@@ -7,9 +7,7 @@ import { setOrderFulfilmentStatus } from '@/actions/admin-orders';
 import type { PublisherEarningsResult } from '@/actions/admin-orders';
 import { FormError, FormSuccess, FormNotice } from '@/components/ui/FormError';
 import { formatPrice } from '@/lib/utils';
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-medium outline-none transition-colors focus:border-amber-500 focus:bg-white';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 
 type Step = 'preparing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -35,15 +33,20 @@ export function FulfilmentPanel({
   const [payouts, setPayouts] = useState<PublisherEarningsResult>(null);
   const [tracking, setTracking] = useState(trackingReference);
   const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
+  // الخطوة اللي شغّالة دلوقتي — زرارها بس اللي بيكتب «جارٍ…»، والباقي بيتقفل.
+  const [busyStep, setBusyStep] = useState<Step | null>(null);
+  const busy = busyStep !== null;
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
 
   const closed = ['delivered', 'cancelled', 'refunded'].includes(status);
   const canFulfil = ['paid', 'preparing', 'shipped'].includes(status);
 
   const apply = async (target: Step) => {
-    setBusy(true);
+    if (busy) return;
+    setBusyStep(target);
     setError('');
+    setErrorField(undefined);
     setPayouts(null);
     try {
       // ⚠️ **النتيجة بتتقري.** «تم التسليم» على طلب فيه كتب ناشرين
@@ -55,14 +58,19 @@ export function FulfilmentPanel({
         trackingReference: target === 'shipped' ? tracking : undefined,
         note: note.trim() || undefined,
       });
-      setPayouts(result?.payouts ?? null);
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
+      setPayouts(result.payouts ?? null);
       setStep(null);
       setNote('');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر تحديث الحالة');
+    } catch {
+      setError('تعذّر تحديث الحالة');
     } finally {
-      setBusy(false);
+      setBusyStep(null);
     }
   };
 
@@ -70,7 +78,8 @@ export function FulfilmentPanel({
 
   return (
     <div className="w-full space-y-3">
-      <FormError message={error} />
+      {/* خطأ الخانة بيظهر تحتها؛ الباقي هنا. */}
+      <FormError message={errorField ? '' : error} />
 
       {payouts?.failed && (
         <FormError message="الطلب اتسلّم، بس تسجيل مستحقات الناشرين وقع. علّم الطلب «تم التسليم» تاني — إعادة التسجيل آمنة ومش بتدفع مرتين." />
@@ -95,14 +104,14 @@ export function FulfilmentPanel({
 
       <div className="flex flex-wrap gap-2">
         {canFulfil && status === 'paid' && (
-          <button
-            type="button"
+          <BusyButton
+            busy={busyStep === 'preparing'}
+            pendingLabel="جارٍ التحديث…"
             disabled={busy}
             onClick={() => apply('preparing')}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
           >
             <Package className="h-4 w-4" /> بدأ التجهيز
-          </button>
+          </BusyButton>
         )}
 
         {canFulfil && status !== 'shipped' && (
@@ -116,14 +125,14 @@ export function FulfilmentPanel({
         )}
 
         {status === 'shipped' && (
-          <button
-            type="button"
+          <BusyButton
+            busy={busyStep === 'delivered'}
+            pendingLabel="جارٍ التحديث…"
             disabled={busy}
             onClick={() => apply('delivered')}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
           >
             <PackageCheck className="h-4 w-4" /> تم التسليم
-          </button>
+          </BusyButton>
         )}
 
         <button
@@ -137,46 +146,46 @@ export function FulfilmentPanel({
 
       {step === 'shipped' && (
         <div className="space-y-2 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-          <label className="text-xs font-bold text-blue-900">
-            رقم الشحنة أو اسم شركة الشحن (يصل للعميل)
-          </label>
-          <input
-            className={inputClass}
-            dir="ltr"
-            value={tracking}
-            onChange={(e) => setTracking(e.target.value)}
-            placeholder="مثال: بوسطة — EG123456789"
-          />
+          <Field label="رقم الشحنة أو اسم شركة الشحن (يصل للعميل)">
+            <TextInput
+              dir="ltr"
+              value={tracking}
+              onChange={(e) => setTracking(e.target.value)}
+              placeholder="مثال: بوسطة — EG123456789"
+            />
+          </Field>
           <div className="flex justify-end">
-            <button
-              type="button"
+            <BusyButton
+              busy={busyStep === 'shipped'}
+              pendingLabel="جارٍ التحديث…"
               disabled={busy}
               onClick={() => apply('shipped')}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               <Check className="h-4 w-4" /> تأكيد الشحن
-            </button>
+            </BusyButton>
           </div>
         </div>
       )}
 
       {step === 'cancelled' && (
         <div className="space-y-2 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <label className="text-xs font-bold text-rose-900">سبب الإلغاء (يصل للعميل)</label>
-          <input
-            className={inputClass}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
+          <Field
+            label="سبب الإلغاء (يصل للعميل)"
+            required
+            error={errorField === 'note' ? error : undefined}
+          >
+            <TextInput name="note" value={note} onChange={(e) => setNote(e.target.value)} />
+          </Field>
           <div className="flex justify-end">
-            <button
-              type="button"
+            <BusyButton
+              variant="danger"
+              busy={busyStep === 'cancelled'}
+              pendingLabel="جارٍ الإلغاء…"
               disabled={busy}
               onClick={() => apply('cancelled')}
-              className="rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               تأكيد الإلغاء
-            </button>
+            </BusyButton>
           </div>
         </div>
       )}

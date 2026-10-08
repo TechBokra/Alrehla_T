@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/utils';
 import { setSessionRequestStatus, type SessionRequestStatus } from '@/actions/support';
 import { StatusBadge } from '@/components/StatusBadge';
 import { FormError } from '@/components/ui/FormError';
+import { BusyButton } from '@/components/forms/Form';
 
 const STATUS: Record<SessionRequestStatus, { label: string; type: 'warning' | 'info' | 'success' }> = {
   pending: { label: 'مستني رد', type: 'warning' },
@@ -28,16 +29,26 @@ export function SessionRequestsClient({ requests }: { requests: SupportSessionRe
   const [filter, setFilter] = useState<'open' | 'all'>('open');
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
+  // الزرار اللي اتداس (`id:status`) — هو بس اللي يكتب «جارٍ الحفظ…».
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const shown = filter === 'open' ? requests.filter((r) => r.status !== 'resolved') : requests;
 
-  const setStatus = (id: string, status: SessionRequestStatus) =>
+  const setStatus = (id: string, status: SessionRequestStatus) => {
+    setActiveKey(`${id}:${status}`);
     startTransition(async () => {
       setError('');
-      const result = await setSessionRequestStatus(id, status);
-      if (!result.ok) setError(result.error);
-      else router.refresh();
+      try {
+        const result = await setSessionRequestStatus(id, status);
+        if (!result.ok) setError(result.error);
+        else router.refresh();
+      } catch {
+        setError('حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.');
+      }
     });
+  };
+
+  const isBusy = (id: string, status: SessionRequestStatus) => pending && activeKey === `${id}:${status}`;
 
   return (
     <div className="space-y-4">
@@ -108,33 +119,34 @@ export function SessionRequestsClient({ requests }: { requests: SupportSessionRe
 
                 <div className="ms-auto flex flex-wrap gap-2">
                   {r.status !== 'contacted' && r.status !== 'resolved' && (
-                    <button
-                      type="button"
+                    <BusyButton
+                      busy={isBusy(r.id, 'contacted')}
                       disabled={pending}
                       onClick={() => setStatus(r.id, 'contacted')}
-                      className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50"
+                      className="text-sm"
                     >
                       اتواصلت معاه
-                    </button>
+                    </BusyButton>
                   )}
                   {r.status !== 'resolved' ? (
-                    <button
-                      type="button"
+                    <BusyButton
+                      busy={isBusy(r.id, 'resolved')}
                       disabled={pending}
                       onClick={() => setStatus(r.id, 'resolved')}
-                      className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50"
+                      className="text-sm"
                     >
                       اتحلّ
-                    </button>
+                    </BusyButton>
                   ) : (
-                    <button
-                      type="button"
+                    <BusyButton
+                      variant="secondary"
+                      busy={isBusy(r.id, 'pending')}
                       disabled={pending}
                       onClick={() => setStatus(r.id, 'pending')}
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      className="text-sm"
                     >
                       افتحه تاني
-                    </button>
+                    </BusyButton>
                   )}
                 </div>
               </div>

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { sendBroadcast } from '@/actions/notifications-admin';
+import { Field, TextInput, TextArea, Select, BusyButton } from '@/components/forms/Form';
+import { FormError, FormSuccess } from '@/components/ui/FormError';
 
 const TARGETS = [
   { value: 'all', label: 'كل المستخدمين' },
@@ -19,79 +21,84 @@ export function SendForm() {
   const [link, setLink] = React.useState('');
   const [confirming, setConfirming] = React.useState(false);
   const [sending, setSending] = React.useState(false);
-  const [result, setResult] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const [result, setResult] = React.useState<{ ok: boolean; text: string; field?: string } | null>(null);
 
   const targetLabel = TARGETS.find((t) => t.value === target)?.label ?? '';
 
   async function send() {
     setSending(true);
     setResult(null);
-    const res = await sendBroadcast({ title, message, link, target });
-    setSending(false);
-    setConfirming(false);
+    let res: Awaited<ReturnType<typeof sendBroadcast>>;
+    try {
+      res = await sendBroadcast({ title, message, link, target });
+    } catch {
+      // ⚠️ لو النداء نفسه وقع (شبكة مثلًا) — منقولش «اتبعت» ومنسكتش.
+      res = { ok: false, error: 'حصل خطأ غير متوقع — راجع الإشعارات قبل ما تعيد الإرسال.' };
+    } finally {
+      setSending(false);
+      setConfirming(false);
+    }
     if (res.ok) {
       setResult({ ok: true, text: `اتبعت لـ ${res.count} حساب.` });
       setTitle('');
       setMessage('');
       setLink('');
     } else {
-      setResult({ ok: false, text: res.error });
+      setResult({ ok: false, text: res.error, field: res.field });
     }
   }
+
+  const fieldError = (f: string) => (result && !result.ok && result.field === f ? result.text : undefined);
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
       <div className="space-y-6">
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">يروح لمين</label>
-          <select
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-800"
-          >
+        <Field label="يروح لمين" name="target" required>
+          <Select value={target} onChange={(e) => setTarget(e.target.value)} className="font-bold">
             {TARGETS.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">العنوان</label>
-          <input
+        <Field label="العنوان" name="title" required error={fieldError('title')}>
+          <TextInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={120}
             placeholder="مثال: صيانة مجدولة يوم الجمعة"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800"
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            الرسالة <span className="font-medium text-slate-600">(اختياري)</span>
-          </label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-800"
-          />
-        </div>
+        <Field
+          label={
+            <>
+              الرسالة <span className="font-medium text-slate-600">(اختياري)</span>
+            </>
+          }
+          name="message"
+        >
+          <TextArea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
+        </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-bold text-slate-700">
-            رابط <span className="font-medium text-slate-600">(اختياري)</span>
-          </label>
-          <input
+        <Field
+          label={
+            <>
+              رابط <span className="font-medium text-slate-600">(اختياري)</span>
+            </>
+          }
+          name="link"
+        >
+          <TextInput
             value={link}
             onChange={(e) => setLink(e.target.value)}
             dir="ltr"
             placeholder="/creative-writing/packages"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-slate-800"
+            className="text-left"
           />
-        </div>
+        </Field>
 
         {/* خطوة تأكيد مقصودة: الإشعار ما بيترجعش بعد ما يتبعت. */}
         {confirming ? (
@@ -101,43 +108,28 @@ export function SendForm() {
               الإرسال.
             </p>
             <div className="mt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={send}
+              <BusyButton busy={sending} pendingLabel="جاري الإرسال…" onClick={send}>
+                أيوة، ابعت
+              </BusyButton>
+              <BusyButton
+                busy={false}
+                variant="secondary"
                 disabled={sending}
-                className="rounded-xl bg-slate-900 px-6 py-3 font-bold text-white disabled:opacity-50"
-              >
-                {sending ? 'جاري الإرسال…' : 'أيوة، ابعت'}
-              </button>
-              <button
-                type="button"
                 onClick={() => setConfirming(false)}
-                className="rounded-xl bg-white px-6 py-3 font-bold text-slate-700 ring-1 ring-slate-200"
               >
                 رجوع
-              </button>
+              </BusyButton>
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={!title.trim()}
-            className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-40"
-          >
+          <BusyButton busy={false} onClick={() => setConfirming(true)} disabled={!title.trim()} className="px-8">
             مراجعة وإرسال
-          </button>
+          </BusyButton>
         )}
 
-        {result && (
-          <p
-            className={`text-sm font-bold ${
-              result.ok ? 'text-emerald-600' : 'text-red-600'
-            }`}
-          >
-            {result.text}
-          </p>
-        )}
+        {result?.ok && <FormSuccess message={result.text} />}
+        {/* خطأ الخانة بيظهر تحتها — والباقي هنا. */}
+        {result && !result.ok && !result.field && <FormError message={result.text} />}
       </div>
     </div>
   );

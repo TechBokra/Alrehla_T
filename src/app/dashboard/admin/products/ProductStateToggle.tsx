@@ -2,9 +2,10 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { EyeOff, Eye, Loader2 } from 'lucide-react';
+import { EyeOff, Eye } from 'lucide-react';
 import { setProductActive } from '@/actions/products';
 import { FormError } from '@/components/ui/FormError';
+import { BusyButton } from '@/components/forms/Form';
 
 /**
  * إيقاف منتج عن العرض — أو رجوعه.
@@ -48,12 +49,17 @@ export function ProductStateToggle({
 
     startTransition(async () => {
       setError('');
-      const result = await setProductActive(productId, !isActive);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      // ⚠️ لو النداء نفسه وقع (شبكة مثلًا) — رسالة بدل صمت.
+      try {
+        const result = await setProductActive(productId, !isActive);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        router.refresh();
+      } catch {
+        setError('حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.');
       }
-      router.refresh();
     });
   };
 
@@ -98,25 +104,16 @@ export function ProductStateToggle({
 
       <FormError message={error} />
 
-      <button
-        type="button"
+      <BusyButton
+        variant={isActive ? 'secondary' : 'primary'}
+        busy={busy}
+        pendingLabel={isActive ? 'أوقف العرض' : 'رجّعه للعرض'}
         onClick={run}
-        disabled={busy}
-        className={`mt-2 inline-flex items-center gap-2 rounded-xl px-5 py-3 font-bold transition-colors disabled:opacity-50 ${
-          isActive
-            ? 'border-2 border-amber-300 text-amber-800 hover:border-amber-500'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
-        }`}
+        className="mt-2"
       >
-        {busy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isActive ? (
-          <EyeOff className="h-4 w-4" />
-        ) : (
-          <Eye className="h-4 w-4" />
-        )}
+        {isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         {isActive ? 'أوقف العرض' : 'رجّعه للعرض'}
-      </button>
+      </BusyButton>
     </section>
   );
 }

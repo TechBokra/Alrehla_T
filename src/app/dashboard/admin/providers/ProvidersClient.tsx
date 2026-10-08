@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useTransition } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Save, Trash2, Search } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -12,6 +12,14 @@ import {
 } from '@/actions/providers';
 import type { ProviderWithOfferings, ProviderCandidate } from '@/data/domains/providers';
 import type { ActionResult } from '@/actions/providers';
+import { Field, TextInput, TextArea, Select, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
+
+const UNEXPECTED = 'حصل عطل غير متوقع. راجع سجلات الخادم في Vercel.';
+
+/** الخطأ الأخير ومكانه: `key` = الزرار اللي اتداس، و`field` = الخانة لو الخطأ عليها. */
+type Failure = { key: string; error: string; field?: string };
+type Run = (key: string, fn: () => Promise<ActionResult>) => void;
 
 type CatalogService = { id: string; name: string; price: number };
 
@@ -50,8 +58,9 @@ export function ProvidersClient({
   const [kindFilter, setKindFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [pending, startTransition] = useTransition();
+  const [failure, setFailure] = useState<Failure | null>(null);
+  // الزرار اللي شغّال دلوقتي — هو بس اللي بيكتب «جارٍ…»، والباقي بيتقفل.
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const router = useRouter();
 
   const filtered = useMemo(
@@ -70,49 +79,34 @@ export function ProvidersClient({
 
   // الإجراءات بترجّع { ok, error } بدل ما ترمي، لأن Next بيخفي رسائل
   // الأخطاء المرمية في الإنتاج. الـcatch هنا للأعطال الحقيقية بس.
-  const run = (fn: () => Promise<ActionResult>) => {
-    setError('');
-    startTransition(async () => {
-      try {
-        const result = await fn();
-        if (!result.ok) setError(result.error);
-      } catch (e) {
-        setError(
-          e instanceof Error && e.message
-            ? e.message
-            : 'حصل عطل غير متوقع. راجع سجلات الخادم في Vercel.',
-        );
+  const run: Run = async (key, fn) => {
+    if (busyKey) return;
+    setFailure(null);
+    setBusyKey(key);
+    try {
+      const result = await fn();
+      if (!result.ok) {
+        setFailure({ key, error: result.error, field: result.field });
       }
-    });
+    } catch {
+      setFailure({ key, error: UNEXPECTED });
+    } finally {
+      setBusyKey(null);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-          {error}
-        </p>
-      )}
-
       <AddProvider
         candidates={candidates}
         onSubmit={async (v) => {
-          setError('');
           try {
             const result = await createIndividualProvider(v);
-            if (!result.ok) {
-              setError(result.error);
-              return false;
-            }
+            if (!result.ok) return result;
             router.refresh();
-            return true;
-          } catch (e) {
-            setError(
-              e instanceof Error && e.message
-                ? e.message
-                : 'حصل عطل غير متوقع. راجع سجلات الخادم في Vercel.',
-            );
-            return false;
+            return { ok: true };
+          } catch {
+            return { ok: false, error: UNEXPECTED };
           }
         }}
       />
@@ -125,29 +119,38 @@ export function ProvidersClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ابحث بالاسم أو البريد"
-            className="w-full rounded-xl border border-slate-200 py-2 pr-10 pl-3 text-sm font-medium"
+            aria-label="ابحث بالاسم أو البريد"
+            className={`${fieldClass} pr-10`}
           />
         </div>
-        <select
-          value={kindFilter}
-          onChange={(e) => setKindFilter(e.target.value)}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
-        >
-          <option value="">كل الأنواع</option>
-          <option value="platform">المنصة</option>
-          <option value="instructor">مدرب</option>
-          <option value="individual">مقدّم مستقل</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
-        >
-          <option value="">كل الحالات</option>
-          <option value="active">مفعّل</option>
-          <option value="pending">معلّق</option>
-          <option value="suspended">موقوف</option>
-        </select>
+        {/* ⚠️ العرض على الغلاف مش على الخانة: `fieldClass` فيه `w-full`
+            وبيغلب أي عرض تاني في Tailwind 4. */}
+        <div>
+          <select
+            value={kindFilter}
+            onChange={(e) => setKindFilter(e.target.value)}
+            aria-label="نوع المقدّم"
+            className={fieldClass}
+          >
+            <option value="">كل الأنواع</option>
+            <option value="platform">المنصة</option>
+            <option value="instructor">مدرب</option>
+            <option value="individual">مقدّم مستقل</option>
+          </select>
+        </div>
+        <div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="الحالة"
+            className={fieldClass}
+          >
+            <option value="">كل الحالات</option>
+            <option value="active">مفعّل</option>
+            <option value="pending">معلّق</option>
+            <option value="suspended">موقوف</option>
+          </select>
+        </div>
         <span className="text-sm font-bold text-slate-500">{filtered.length} مقدّم</span>
       </div>
 
@@ -160,7 +163,8 @@ export function ProvidersClient({
           fixedAdminFee={fixedAdminFee}
           open={openId === provider.id}
           onToggle={() => setOpenId(openId === provider.id ? null : provider.id)}
-          busy={pending}
+          busyKey={busyKey}
+          failure={failure}
           run={run}
         />
       ))}
@@ -179,23 +183,25 @@ function AddProvider({
   candidates,
 }: {
   candidates: ProviderCandidate[];
-  /** بترجّع true لو نجحت. الفورم بيفضل مفتوح لو فشلت — عشان اللي كتبته
+  /** بترجّع النتيجة. الفورم بيفضل مفتوح لو فشلت — عشان اللي كتبته
    *  ما يضيعش وإنت بتقرا سبب الرفض. */
   onSubmit: (v: {
     email: string;
     displayName: string;
     bio: string;
-  }) => Promise<boolean>;
+  }) => Promise<ActionResult>;
 }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<{ error: string; field?: string } | null>(null);
 
   if (!open) {
     return (
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition-colors hover:bg-emerald-700"
       >
@@ -204,6 +210,25 @@ function AddProvider({
       </button>
     );
   }
+
+  // خطأ الخانة بيظهر تحتها، والباقي فوق النموذج.
+  const fieldError = (field: string) => (failure?.field === field ? failure.error : undefined);
+
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true);
+    setFailure(null);
+    const result = await onSubmit({ email, displayName, bio });
+    setBusy(false);
+    if (!result.ok) {
+      setFailure({ error: result.error, field: result.field });
+      return;
+    }
+    setEmail('');
+    setDisplayName('');
+    setBio('');
+    setOpen(false);
+  };
 
   return (
     <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
@@ -220,69 +245,59 @@ function AddProvider({
         </p>
       ) : (
         <>
+          <FormError message={failure && !failure.field ? failure.error : ''} />
           <div className="grid gap-3 md:grid-cols-2">
-        <select
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            // الاسم بيتملّى من الحساب، وتقدر تغيّره — ده الاسم اللي
-            // العميل هيشوفه مش اسم الحساب بالضرورة.
-            const picked = candidates.find((c) => c.email === e.target.value);
-            if (picked && !displayName.trim()) setDisplayName(picked.fullName);
-          }}
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        >
-          <option value="">اختر الحساب…</option>
-          {candidates.map((c) => (
-            <option key={c.userId} value={c.email}>
-              {c.fullName ? `${c.fullName} — ${c.email}` : c.email}
-            </option>
-          ))}
-        </select>
-        <input
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder="الاسم المعروض للعميل"
-          className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-        />
-      </div>
-      <textarea
-        value={bio}
-        onChange={(e) => setBio(e.target.value)}
-        placeholder="نبذة قصيرة تظهر في قايمة الاختيار"
-        rows={2}
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-      />
-      <div className="flex gap-2">
-        <button
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            const ok = await onSubmit({ email, displayName, bio });
-            setBusy(false);
-            if (ok) {
-              setEmail('');
-              setDisplayName('');
-              setBio('');
-              setOpen(false);
-            }
-          }}
-          className="rounded-xl bg-emerald-600 px-5 py-2 font-bold text-white disabled:opacity-50"
-        >
-          {busy ? 'جارٍ الإضافة…' : 'إضافة'}
-        </button>
-        <button
-          onClick={() => setOpen(false)}
-          className="rounded-xl border border-slate-200 px-5 py-2 font-bold text-slate-600"
-        >
-          إلغاء
-        </button>
-      </div>
+            <Field label="الحساب" required error={fieldError('email')}>
+              <Select
+                name="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  // الاسم بيتملّى من الحساب، وتقدر تغيّره — ده الاسم اللي
+                  // العميل هيشوفه مش اسم الحساب بالضرورة.
+                  const picked = candidates.find((c) => c.email === e.target.value);
+                  if (picked && !displayName.trim()) setDisplayName(picked.fullName);
+                }}
+              >
+                <option value="">اختر الحساب…</option>
+                {candidates.map((c) => (
+                  <option key={c.userId} value={c.email}>
+                    {c.fullName ? `${c.fullName} — ${c.email}` : c.email}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="الاسم المعروض للعميل" required error={fieldError('displayName')}>
+              <TextInput
+                name="displayName"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="الاسم المعروض للعميل"
+              />
+            </Field>
+          </div>
+          <Field label="نبذة قصيرة تظهر في قايمة الاختيار">
+            <TextArea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="نبذة قصيرة تظهر في قايمة الاختيار"
+              rows={2}
+            />
+          </Field>
+          <div className="flex gap-2">
+            <BusyButton busy={busy} pendingLabel="جارٍ الإضافة…" onClick={submit}>
+              إضافة
+            </BusyButton>
+            <BusyButton busy={false} variant="secondary" disabled={busy} onClick={() => setOpen(false)}>
+              إلغاء
+            </BusyButton>
+          </div>
         </>
       )}
 
       {candidates.length === 0 && (
         <button
+          type="button"
           onClick={() => setOpen(false)}
           className="rounded-xl border border-slate-200 px-5 py-2 font-bold text-slate-600"
         >
@@ -300,7 +315,8 @@ function ProviderCard({
   fixedAdminFee,
   open,
   onToggle,
-  busy,
+  busyKey,
+  failure,
   run,
 }: {
   provider: ProviderWithOfferings;
@@ -309,9 +325,12 @@ function ProviderCard({
   fixedAdminFee: number | null;
   open: boolean;
   onToggle: () => void;
-  busy: boolean;
-  run: (fn: () => Promise<ActionResult>) => void;
+  busyKey: string | null;
+  failure: Failure | null;
+  run: Run;
 }) {
+  const detailsKey = `details:${provider.id}`;
+  const detailsFailure = failure?.key === detailsKey ? failure : null;
   const [name, setName] = useState(provider.displayName);
   const [bio, setBio] = useState(provider.bio);
   const [status, setStatus] = useState(provider.status);
@@ -335,6 +354,7 @@ function ProviderCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <button
+        type="button"
         onClick={onToggle}
         className="flex w-full flex-wrap items-center gap-4 p-6 text-right transition-colors hover:bg-slate-50"
       >
@@ -370,46 +390,42 @@ function ProviderCard({
       {open && (
         <div className="space-y-6 border-t border-slate-100 p-6">
           {/* البيانات */}
-          <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
-            />
-            <input
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="نبذة"
-              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-            <div className="flex gap-2">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as typeof status)}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"
-              >
+          <FormError message={detailsFailure && !detailsFailure.field ? detailsFailure.error : ''} />
+          <div className="grid items-end gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
+            <Field
+              label="الاسم المعروض"
+              required
+              error={detailsFailure?.field === 'displayName' ? detailsFailure.error : undefined}
+            >
+              <TextInput name="displayName" value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="نبذة">
+              <TextInput value={bio} onChange={(e) => setBio(e.target.value)} placeholder="نبذة" />
+            </Field>
+            <Field label="الحالة">
+              <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
                 <option value="active">مفعّل</option>
                 <option value="pending">معلّق</option>
                 <option value="suspended">موقوف</option>
-              </select>
-              <button
-                disabled={busy}
-                onClick={() =>
-                  run(() =>
-                    saveProviderDetails({
-                      providerId: provider.id,
-                      displayName: name,
-                      bio,
-                      status,
-                    }),
-                  )
-                }
-                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-              >
-                <Save className="h-4 w-4" />
-                حفظ
-              </button>
-            </div>
+              </Select>
+            </Field>
+            <BusyButton
+              busy={busyKey === detailsKey}
+              disabled={busyKey !== null}
+              onClick={() =>
+                run(detailsKey, () =>
+                  saveProviderDetails({
+                    providerId: provider.id,
+                    displayName: name,
+                    bio,
+                    status,
+                  }),
+                )
+              }
+            >
+              <Save className="h-4 w-4" />
+              حفظ
+            </BusyButton>
           </div>
 
           {/* شرح معنى السعر — الفرق ده سبب غلطة تسعير حقيقية قبل كده. */}
@@ -435,7 +451,8 @@ function ProviderCard({
                 initialActive={offering.isActive}
                 customerPrice={customerPrice}
                 isPlatform={isPlatform}
-                busy={busy}
+                busyKey={busyKey}
+                failure={failure}
                 run={run}
               />
             ))}
@@ -453,7 +470,8 @@ function ProviderCard({
                 customerPrice={customerPrice}
                 isPlatform={isPlatform}
                 isNew
-                busy={busy}
+                busyKey={busyKey}
+                failure={failure}
                 run={run}
               />
             ))}
@@ -475,7 +493,8 @@ function OfferingRow({
   customerPrice,
   isPlatform,
   isNew,
-  busy,
+  busyKey,
+  failure,
   run,
 }: {
   providerId: string;
@@ -488,9 +507,14 @@ function OfferingRow({
   customerPrice: (p: number) => number;
   isPlatform: boolean;
   isNew?: boolean;
-  busy: boolean;
-  run: (fn: () => Promise<ActionResult>) => void;
+  busyKey: string | null;
+  failure: Failure | null;
+  run: Run;
 }) {
+  const saveKey = `save:${providerId}:${serviceId}`;
+  const removeKey = `remove:${providerId}:${serviceId}`;
+  // خطأ الصف ده بس — حفظه أو حذفه.
+  const rowFailure = failure && (failure.key === saveKey || failure.key === removeKey) ? failure : null;
   const [price, setPrice] = useState(initialPrice?.toString() ?? '');
   const [status, setStatus] = useState(initialStatus);
   const [active, setActive] = useState(initialActive);
@@ -512,13 +536,18 @@ function OfferingRow({
         </span>
       )}
 
-      <input
-        value={price}
-        onChange={(e) => setPrice(e.target.value)}
-        inputMode="decimal"
-        placeholder="السعر"
-        className="w-28 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold"
-      />
+      {/* العرض على الغلاف — `fieldClass` فيه `w-full`. */}
+      <div className="w-28">
+        <TextInput
+          name="approvedPrice"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          inputMode="decimal"
+          placeholder="السعر"
+          aria-label={`سعر ${serviceName}`}
+          aria-invalid={rowFailure?.field === 'approvedPrice' || undefined}
+        />
+      </div>
 
       {/* الرقم اللي العميل هيشوفه — عشان محدش يعتمد سعر وهو فاكره حاجة تانية */}
       {!isPlatform && final != null && (
@@ -527,30 +556,25 @@ function OfferingRow({
         </span>
       )}
 
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value as typeof status)}
-        className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold"
-      >
-        <option value="pending">معلّق</option>
-        <option value="approved">معتمد</option>
-        <option value="rejected">مرفوض</option>
-      </select>
+      <div>
+        <Select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as typeof status)}
+          aria-label={`حالة ${serviceName}`}
+        >
+          <option value="pending">معلّق</option>
+          <option value="approved">معتمد</option>
+          <option value="rejected">مرفوض</option>
+        </Select>
+      </div>
 
-      <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-600">
-        <input
-          type="checkbox"
-          checked={active}
-          onChange={(e) => setActive(e.target.checked)}
-          className="h-4 w-4"
-        />
-        ظاهر
-      </label>
+      <Checkbox label="ظاهر" checked={active} onChange={(e) => setActive(e.target.checked)} />
 
-      <button
-        disabled={busy}
+      <BusyButton
+        busy={busyKey === saveKey}
+        disabled={busyKey !== null}
         onClick={() =>
-          run(() =>
+          run(saveKey, () =>
             saveProviderOffering({
               providerId,
               serviceId,
@@ -560,20 +584,27 @@ function OfferingRow({
             }),
           )
         }
-        className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
       >
         حفظ
-      </button>
+      </BusyButton>
 
       {!isNew && (
         <button
-          disabled={busy}
-          onClick={() => run(() => removeProviderOffering(providerId, serviceId))}
+          type="button"
+          disabled={busyKey !== null}
+          onClick={() => run(removeKey, () => removeProviderOffering(providerId, serviceId))}
           className="rounded-lg border border-red-200 px-3 py-2 text-red-600 disabled:opacity-50"
           aria-label="حذف العرض"
+          aria-busy={busyKey === removeKey || undefined}
         >
           <Trash2 className="h-4 w-4" />
         </button>
+      )}
+
+      {rowFailure && (
+        <p role="alert" className="w-full text-xs font-bold text-red-600">
+          {rowFailure.error}
+        </p>
       )}
     </div>
   );

@@ -38,22 +38,37 @@ const FLOW: Record<string, string> = {
   cancelled: 'ملغي',
 };
 
+const DENIED = 'غير مصرح لك بإدارة الطلبات';
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireOrdersAdmin() {
-  return requireAdmin('canManageOrders', 'غير مصرح لك بإدارة الطلبات');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»)،
+  //    وكل دالة لازم تتأكد منها قبل ما تكمّل.
+  try {
+    return await requireAdmin('canManageOrders', DENIED);
+  } catch {
+    return null;
+  }
 }
 
+/**
+ * ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — رسالة «اكتب سبب الإلغاء» كانت
+ *    بتوصل للإدارة ممسوحة في الإنتاج.
+ */
 export async function setOrderFulfilmentStatus(params: {
   orderId: string;
   status: 'preparing' | 'shipped' | 'delivered' | 'cancelled';
   trackingReference?: string;
   note?: string;
-}) {
+}): Promise<
+  { ok: true; payouts: PublisherEarningsResult } | { ok: false; error: string; field?: 'note' }
+> {
   const admin = await requireOrdersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const { orderId, status, trackingReference, note } = params;
 
   if (status === 'cancelled' && !note?.trim()) {
-    throw new Error('اكتب سبب الإلغاء');
+    return { ok: false, error: 'اكتب سبب الإلغاء', field: 'note' };
   }
 
   const supabase = await createClient();
@@ -75,7 +90,7 @@ export async function setOrderFulfilmentStatus(params: {
 
   if (error || !data) {
     console.error('Error updating order fulfilment', error);
-    throw new Error('تعذّر تحديث حالة الطلب');
+    return { ok: false, error: 'تعذّر تحديث حالة الطلب' };
   }
 
   // ── مستحقات الناشرين عند التسليم ──────────────────────────
@@ -156,12 +171,8 @@ export async function setOrderFulfilmentStatus(params: {
 export async function markElectronicSent(
   orderId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  let admin;
-  try {
-    admin = await requireOrdersAdmin();
-  } catch {
-    return { ok: false, error: 'غير مصرح لك بإدارة الطلبات' };
-  }
+  const admin = await requireOrdersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')

@@ -6,7 +6,8 @@ import { getPendingProducts } from '@/data/domains/products';
 import { reviewProduct } from '@/actions/products';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Field, TextArea } from '@/components/forms/Form';
+import { DecisionButton } from '@/components/forms/DecisionButton';
 import { StatusBadge } from '@/components/StatusBadge';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
@@ -163,26 +164,32 @@ export default async function ProductReviewPage() {
                           الأكشن بيرفض الرفض بلا سبب، والخانة المخفية
                           كانت هتخلّي الرفض يفشل برسالة عن خانة
                           الإداري مش شايفها. */}
-                      <textarea
-                        name="note"
-                        rows={2}
-                        maxLength={400}
-                        placeholder="سبب الرفض — بيوصل للناشر"
-                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base font-medium outline-none focus:border-amber-500 md:text-sm"
-                      />
+                      <Field label="سبب الرفض" name="note" hint="مطلوب لو هترفض بس — بيوصل للناشر">
+                        <TextArea
+                          rows={2}
+                          maxLength={400}
+                          placeholder="سبب الرفض — بيوصل للناشر"
+                          className="resize-none text-base md:text-sm"
+                        />
+                      </Field>
                       <div className="flex flex-wrap gap-2">
-                        <Button type="submit" name="decision" value="approved" accentColor="journey">
+                        <DecisionButton
+                          name="decision"
+                          value="approved"
+                          accentColor="journey"
+                          pendingLabel="جارٍ الاعتماد…"
+                        >
                           اعتماد ونشر
-                        </Button>
-                        <Button
-                          type="submit"
+                        </DecisionButton>
+                        <DecisionButton
                           name="decision"
                           value="rejected"
                           variant="secondary"
                           accentColor="enhaLak"
+                          pendingLabel="جارٍ الرفض…"
                         >
                           رفض
-                        </Button>
+                        </DecisionButton>
                       </div>
                     </ActionForm>
                   </div>

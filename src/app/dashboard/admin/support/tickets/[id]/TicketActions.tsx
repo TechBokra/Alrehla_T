@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, Send } from 'lucide-react';
 import { replyToSupportTicket, closeSupportTicket } from '@/actions/support';
+import { BusyButton, TextInput } from '@/components/forms/Form';
+
+const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
 /**
  * Replying to and closing a support ticket.
@@ -21,11 +24,15 @@ export function TicketReplyBox({ ticketId }: { ticketId: string }) {
     setBusy(true);
     setError('');
     try {
-      await replyToSupportTicket(ticketId, text);
+      const result = await replyToSupportTicket(ticketId, text);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setText('');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'تعذّر إرسال الرد');
+    } catch {
+      setError(UNEXPECTED);
     } finally {
       setBusy(false);
     }
@@ -33,27 +40,36 @@ export function TicketReplyBox({ ticketId }: { ticketId: string }) {
 
   return (
     <div className="border-t border-slate-100 bg-white p-4">
-      {error && <p className="mb-2 text-sm font-bold text-red-600">{error}</p>}
+      {error && (
+        <p id={`reply-error-${ticketId}`} role="alert" className="mb-2 text-sm font-bold text-red-600">
+          {error}
+        </p>
+      )}
       <div className="flex items-center gap-3">
-        <input
-          type="text"
+        {/* خانة في سطر الرد — عنوانها `aria-label` بدل عنوان ظاهر. */}
+        <TextInput
+          name="message"
+          aria-label="الرد على التذكرة"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `reply-error-${ticketId}` : undefined}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && text.trim() && !busy) void send();
           }}
           placeholder="اكتب ردك هنا..."
-          className="h-12 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-5 text-slate-800 transition-all focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:outline-none"
+          className="flex-1"
         />
-        <button
-          type="button"
-          disabled={busy || !text.trim()}
+        <BusyButton
+          busy={busy}
+          pendingLabel="جارٍ الإرسال…"
+          disabled={!text.trim()}
           onClick={send}
           aria-label="إرسال الرد"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-md transition-colors hover:bg-amber-600 disabled:opacity-50"
+          className="shrink-0"
         >
-          <Send className="h-5 w-5 rtl:rotate-180" />
-        </button>
+          <Send className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
+        </BusyButton>
       </div>
     </div>
   );
@@ -62,24 +78,41 @@ export function TicketReplyBox({ ticketId }: { ticketId: string }) {
 export function CloseTicketButton({ ticketId }: { ticketId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  // ⚠️ الزرار كان بيسكت لو الإغلاق فشل — دلوقتي الرسالة بتظهر جنبه.
+  const [error, setError] = useState('');
 
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await closeSupportTicket(ticketId);
-          router.refresh();
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-50"
-    >
-      <Archive className="h-4 w-4" />
-      إغلاق التذكرة
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      {error && (
+        <span role="alert" className="text-sm font-bold text-red-600">
+          {error}
+        </span>
+      )}
+      <BusyButton
+        busy={busy}
+        pendingLabel="جارٍ الإغلاق…"
+        variant="secondary"
+        onClick={async () => {
+          setBusy(true);
+          setError('');
+          try {
+            const result = await closeSupportTicket(ticketId);
+            if (!result.ok) {
+              setError(result.error);
+              return;
+            }
+            router.refresh();
+          } catch {
+            setError(UNEXPECTED);
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="text-sm"
+      >
+        <Archive className="h-4 w-4" aria-hidden="true" />
+        إغلاق التذكرة
+      </BusyButton>
+    </div>
   );
 }

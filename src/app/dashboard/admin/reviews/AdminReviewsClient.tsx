@@ -6,26 +6,37 @@ import { Star, EyeOff, Eye } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import type { ReviewItem } from '@/data/domains/reviews';
 import { setReviewHidden } from '@/actions/reviews';
+import { Field, TextInput, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 export function AdminReviewsClient({ reviews }: { reviews: ReviewItem[] }) {
   const router = useRouter();
   const [hidingId, setHidingId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
+  // الزرار اللي اتداس (`show:id` أو `hide:id`) — هو بس اللي يكتب «جارٍ…».
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const busy = busyKey !== null;
   const [error, setError] = useState('');
+  const [errorField, setErrorField] = useState<string | undefined>();
 
-  const run = async (fn: () => Promise<unknown>) => {
-    setBusy(true);
+  const run = async (key: string, fn: () => ReturnType<typeof setReviewHidden>) => {
+    setBusyKey(key);
     setError('');
+    setErrorField(undefined);
     try {
-      await fn();
+      const result = await fn();
+      if (!result.ok) {
+        setError(result.error);
+        setErrorField(result.field);
+        return;
+      }
       setHidingId(null);
       setReason('');
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
+    } catch {
+      setError('حدث خطأ غير متوقع');
     } finally {
-      setBusy(false);
+      setBusyKey(null);
     }
   };
 
@@ -39,11 +50,8 @@ export function AdminReviewsClient({ reviews }: { reviews: ReviewItem[] }) {
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-          {error}
-        </div>
-      )}
+      {/* خطأ «سبب الإخفاء» بيظهر تحت الخانة — والباقي هنا. */}
+      {!errorField && <FormError message={error} />}
 
       {reviews.map((review) => (
         <div
@@ -110,19 +118,23 @@ export function AdminReviewsClient({ reviews }: { reviews: ReviewItem[] }) {
 
             <div className="shrink-0">
               {review.isHidden ? (
-                <button
-                  type="button"
+                <BusyButton
+                  variant="secondary"
+                  busy={busyKey === `show:${review.id}`}
+                  pendingLabel="جارٍ الإظهار…"
                   disabled={busy}
-                  onClick={() => run(() => setReviewHidden(review.id, false, ''))}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                  onClick={() => run(`show:${review.id}`, () => setReviewHidden(review.id, false, ''))}
+                  className="text-sm"
                 >
-                  <Eye className="h-4 w-4" /> إظهار
-                </button>
+                  <Eye className="h-4 w-4" aria-hidden="true" /> إظهار
+                </BusyButton>
               ) : (
                 <button
                   type="button"
                   onClick={() => {
                     setReason('');
+                    setError('');
+                    setErrorField(undefined);
                     setHidingId(hidingId === review.id ? null : review.id);
                   }}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
@@ -135,31 +147,31 @@ export function AdminReviewsClient({ reviews }: { reviews: ReviewItem[] }) {
 
           {hidingId === review.id && (
             <div className="mt-4 space-y-2 rounded-2xl border border-red-200 bg-red-50 p-4">
-              <label className="text-xs font-bold text-red-800">
-                سبب الإخفاء (يُسجَّل في سجل التدقيق)
-              </label>
-              <input
-                className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="مثال: لغة مسيئة"
-              />
+              <Field
+                label="سبب الإخفاء (يُسجَّل في سجل التدقيق)"
+                name="reason"
+                required
+                error={errorField === 'reason' ? error : undefined}
+              >
+                <TextInput
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="مثال: لغة مسيئة"
+                />
+              </Field>
               <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setHidingId(null)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600"
-                >
+                <BusyButton busy={false} variant="secondary" disabled={busy} onClick={() => setHidingId(null)}>
                   إلغاء
-                </button>
-                <button
-                  type="button"
+                </BusyButton>
+                <BusyButton
+                  variant="danger"
+                  busy={busyKey === `hide:${review.id}`}
+                  pendingLabel="جارٍ الإخفاء…"
                   disabled={busy}
-                  onClick={() => run(() => setReviewHidden(review.id, true, reason))}
-                  className="rounded-xl bg-red-600 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  onClick={() => run(`hide:${review.id}`, () => setReviewHidden(review.id, true, reason))}
                 >
                   تأكيد الإخفاء
-                </button>
+                </BusyButton>
               </div>
             </div>
           )}

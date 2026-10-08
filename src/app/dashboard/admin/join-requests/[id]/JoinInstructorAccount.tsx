@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Loader2, UserPlus } from 'lucide-react';
+import { CheckCircle, UserPlus } from 'lucide-react';
 import { createInstructorFromJoinRequest } from '@/actions/admin-instructors';
 import { TempCodeBox } from '@/components/dashboard/TempCodeBox';
 import { FormError, FormNotice } from '@/components/ui/FormError';
+import { BusyButton } from '@/components/forms/Form';
 
 /**
  * طلب مدرب مقبول ← حساب برمز مؤقت، **والمدرب يكمّل ملفه بنفسه**.
@@ -37,6 +38,7 @@ export function JoinInstructorAccount({
   } | null>(null);
 
   const create = async () => {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
@@ -102,15 +104,10 @@ export function JoinInstructorAccount({
         </p>
       </div>
       <FormError message={error} />
-      <button
-        type="button"
-        onClick={create}
-        disabled={busy}
-        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
-      >
-        {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserPlus className="h-5 w-5" />}
+      <BusyButton busy={busy} pendingLabel="اعمل حساب المدرب وجهّز رسالة الدخول" onClick={create}>
+        <UserPlus className="h-5 w-5" />
         اعمل حساب المدرب وجهّز رسالة الدخول
-      </button>
+      </BusyButton>
       {manualHref && (
         <p className="text-xs font-medium text-amber-800">
           عارف بياناته كاملة؟{' '}

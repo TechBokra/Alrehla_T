@@ -21,10 +21,17 @@ import type { ProviderKind } from '@/types';
  *   فالرسائل اللي الإدارة المفروض تقراها بترجع كنتيجة عادية، والرمي
  *   بيفضل للأعطال الحقيقية اللي مالهاش رسالة مفيدة.
  */
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult = { ok: true } | { ok: false; error: string; field?: string };
 
-function requireProvidersAdmin() {
-  return requireAdmin('canManageInstructors', 'غير مصرح لك بإدارة مقدّمي الخدمة');
+const DENIED = 'غير مصرح لك بإدارة مقدّمي الخدمة';
+
+/** ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null`، وكل دالة لازم تتأكد منها. */
+async function requireProvidersAdmin() {
+  try {
+    return await requireAdmin('canManageInstructors', DENIED);
+  } catch {
+    return null;
+  }
 }
 
 function revalidateProviders() {
@@ -40,8 +47,9 @@ export async function saveProviderDetails(params: {
   status: 'pending' | 'active' | 'suspended';
 }): Promise<ActionResult> {
   const admin = await requireProvidersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const name = params.displayName.trim();
-  if (!name) return { ok: false, error: 'اكتب اسم مقدّم الخدمة' };
+  if (!name) return { ok: false, error: 'اكتب اسم مقدّم الخدمة', field: 'displayName' };
 
   const supabase = await createClient();
   const { data: saved, error } = await supabase
@@ -88,10 +96,11 @@ export async function createIndividualProvider(params: {
   bio: string;
 }): Promise<ActionResult> {
   const admin = await requireProvidersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const email = params.email.trim().toLowerCase();
   const name = params.displayName.trim();
-  if (!email) return { ok: false, error: 'اكتب بريد صاحب الحساب' };
-  if (!name) return { ok: false, error: 'اكتب اسم مقدّم الخدمة' };
+  if (!email) return { ok: false, error: 'اكتب بريد صاحب الحساب', field: 'email' };
+  if (!name) return { ok: false, error: 'اكتب اسم مقدّم الخدمة', field: 'displayName' };
 
   const supabase = await createClient();
 
@@ -197,14 +206,15 @@ export async function saveProviderOffering(params: {
   adminNotes?: string;
 }): Promise<ActionResult> {
   const admin = await requireProvidersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
 
   const price = params.approvedPrice;
   if (price != null && (!Number.isFinite(price) || price < 0)) {
-    return { ok: false, error: 'السعر غير صحيح' };
+    return { ok: false, error: 'السعر غير صحيح', field: 'approvedPrice' };
   }
   // عرض معتمد من غير سعر بيوصل للعميل كخيار بلا رقم.
   if (params.status === 'approved' && (price == null || price <= 0)) {
-    return { ok: false, error: 'لا يمكن اعتماد عرض بدون سعر' };
+    return { ok: false, error: 'لا يمكن اعتماد عرض بدون سعر', field: 'approvedPrice' };
   }
 
   const supabase = await createClient();
@@ -255,6 +265,7 @@ export async function removeProviderOffering(
   serviceId: string,
 ): Promise<ActionResult> {
   const admin = await requireProvidersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const supabase = await createClient();
 
   const { error } = await supabase

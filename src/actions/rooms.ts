@@ -37,7 +37,13 @@ export async function joinSessionRoom(sessionId: string): Promise<JoinResult> {
     return { ok: false, error: 'خدمة الغرف مش مظبوطة على الخادم.' };
   }
 
-  const user = await requireUser();
+  // ⚠️ `requireUser` بترمي — ورسالتها كانت بتوصل ممسوحة (قاعدة «هـ»).
+  let user;
+  try {
+    user = await requireUser();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'يجب تسجيل الدخول أولاً' };
+  }
   const supabase = await createClient();
 
   // ⚠️ **الصفّ بيتقرا بجلسة المستخدم لا بمفتاح الخدمة.** يعني
@@ -136,7 +142,12 @@ export async function openTestRoom(): Promise<TestRoomResult> {
   const room = await createTestRoom();
   if (!room.ok) return { ok: false, error: room.error };
 
-  const user = await requireUser();
+  let user;
+  try {
+    user = await requireUser();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'يجب تسجيل الدخول أولاً' };
+  }
   const token = await createMeetingToken({
     roomName: room.data.name,
     userName: user.fullName || 'الإدارة',

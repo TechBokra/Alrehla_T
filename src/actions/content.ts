@@ -223,8 +223,14 @@ export async function saveSiteImage(params: { key: string; url: string }) {
  */
 export async function savePageContent(
   entries: { key: string; value: string }[],
-) {
-  const user = await requireAdmin('canManageContent', 'غير مصرح لك بتعديل محتوى الصفحات');
+): Promise<{ ok: true; changed: number } | { ok: false; error: string }> {
+  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — `requireAdmin` بترمي فبتتلفّ هنا.
+  let user: Awaited<ReturnType<typeof requireAdmin>>;
+  try {
+    user = await requireAdmin('canManageContent', 'غير مصرح لك بتعديل محتوى الصفحات');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بتعديل محتوى الصفحات' };
+  }
 
   // مفتاح مش معرّف في الكود مالوش أي مكان في الموقع — رفضه أحسن من
   // تخزين صف ميّت في الجدول.
@@ -257,7 +263,7 @@ export async function savePageContent(
       .upsert(toUpsert, { onConflict: 'key' });
     if (error) {
       console.error('Error saving page content', error);
-      throw new Error('تعذّر حفظ النصوص');
+      return { ok: false, error: 'تعذّر حفظ النصوص' };
     }
   }
 
@@ -268,7 +274,7 @@ export async function savePageContent(
       .in('key', toDelete);
     if (error) {
       console.error('Error resetting page content', error);
-      throw new Error('تعذّر استعادة النص الأصلي');
+      return { ok: false, error: 'تعذّر استعادة النص الأصلي' };
     }
   }
 

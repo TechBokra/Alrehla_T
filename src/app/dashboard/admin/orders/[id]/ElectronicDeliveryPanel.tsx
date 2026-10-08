@@ -6,6 +6,7 @@ import { Mail, CheckCircle2, Copy } from 'lucide-react';
 import { markElectronicSent } from '@/actions/admin-orders';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';
+import { BusyButton } from '@/components/forms/Form';
 
 /**
  * النسخة الإلكترونية (ملف 138): الإيميل + «تم الإرسال».
@@ -55,21 +56,26 @@ export function ElectronicDeliveryPanel({
       ) : (
         <div className="mt-4">
           <FormError message={error} />
-          <button
-            type="button"
-            disabled={!paid || pending}
+          <BusyButton
+            busy={pending}
+            pendingLabel="جارٍ التسجيل…"
+            disabled={!paid}
             onClick={() =>
               start(async () => {
                 setError('');
-                const r = await markElectronicSent(orderId);
-                if (!r.ok) setError(r.error);
-                else router.refresh();
+                // ⚠️ لو النداء نفسه وقع (شبكة مثلًا) — رسالة بدل صمت.
+                try {
+                  const r = await markElectronicSent(orderId);
+                  if (!r.ok) setError(r.error);
+                  else router.refresh();
+                } catch {
+                  setError('تعذّر التسجيل — جرّب تاني');
+                }
               })
             }
-            className="rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50"
           >
-            {pending ? 'جارٍ التسجيل…' : 'تم إرسال النسخة الإلكترونية'}
-          </button>
+            تم إرسال النسخة الإلكترونية
+          </BusyButton>
           {!paid && (
             <p className="mt-2 text-xs font-bold text-slate-700">بعد تأكيد الدفع.</p>
           )}

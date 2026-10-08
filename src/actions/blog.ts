@@ -15,9 +15,24 @@ import { logAuditAction } from '@/lib/audit';
  * publish or edit a post from inside the site at all.
  */
 
+/**
+ * ⚠️ **الدوال هنا بترجّع ولا بترمي** (قاعدة «هـ») — Next بيمسح نصّ
+ *    الاستثناء في الإنتاج، فـ«اكتب عنوان المقال» كانت بتوصل «خطأ غير متوقع».
+ */
+export type BlogResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string; field?: keyof BlogPostInput };
+
+const DENIED = 'غير مصرح لك بإدارة المدونة';
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireContentAdmin() {
-  return requireAdmin('canManageContent', 'غير مصرح لك بإدارة المدونة');
+  // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»).
+  try {
+    return await requireAdmin('canManageContent', DENIED);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -49,11 +64,13 @@ export interface BlogPostInput {
 function validate(input: BlogPostInput) {
   const title = input.title.trim();
   const content = input.content.trim();
-  if (!title) throw new Error('اكتب عنوان المقال');
-  if (!content) throw new Error('اكتب محتوى المقال');
+  if (!title) return { ok: false as const, error: 'اكتب عنوان المقال', field: 'title' as const };
+  if (!content) return { ok: false as const, error: 'اكتب محتوى المقال', field: 'content' as const };
 
   const slug = toSlug(input.slug || title);
-  if (!slug) throw new Error('تعذّر توليد رابط للمقال — غيّر العنوان');
+  if (!slug) {
+    return { ok: false as const, error: 'تعذّر توليد رابط للمقال — غيّر العنوان', field: 'title' as const };
+  }
 
   // A draft is simply not yet published: it keeps a future date so the public
   // listing, which orders and filters by date, never shows it.
@@ -62,20 +79,26 @@ function validate(input: BlogPostInput) {
     : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
   return {
-    title,
-    slug,
-    excerpt: input.excerpt.trim(),
-    content,
-    cover_image_url: input.coverImageUrl.trim() || null,
-    author_name: input.authorName.trim() || 'فريق الرحلة',
-    published_at: publishedAt,
-    updated_at: new Date().toISOString(),
+    ok: true as const,
+    row: {
+      title,
+      slug,
+      excerpt: input.excerpt.trim(),
+      content,
+      cover_image_url: input.coverImageUrl.trim() || null,
+      author_name: input.authorName.trim() || 'فريق الرحلة',
+      published_at: publishedAt,
+      updated_at: new Date().toISOString(),
+    },
   };
 }
 
-export async function saveBlogPost(id: string | null, input: BlogPostInput) {
+export async function saveBlogPost(id: string | null, input: BlogPostInput): Promise<BlogResult> {
   const admin = await requireContentAdmin();
-  const row = validate(input);
+  if (!admin) return { ok: false, error: DENIED };
+  const checked = validate(input);
+  if (!checked.ok) return checked;
+  const row = checked.row;
   const supabase = await createClient();
 
   const { data, error } = id
@@ -85,9 +108,9 @@ export async function saveBlogPost(id: string | null, input: BlogPostInput) {
   if (error || !data) {
     console.error('Error saving blog post', error);
     if (String(error?.message ?? '').toLowerCase().includes('duplicate')) {
-      throw new Error('يوجد مقال آخر بنفس الرابط — غيّر العنوان أو الرابط');
+      return { ok: false, error: 'يوجد مقال آخر بنفس الرابط — غيّر العنوان أو الرابط', field: 'slug' };
     }
-    throw new Error('تعذّر حفظ المقال');
+    return { ok: false, error: 'تعذّر حفظ المقال' };
   }
 
   await logAuditAction({
@@ -105,14 +128,16 @@ export async function saveBlogPost(id: string | null, input: BlogPostInput) {
   return { ok: true, id: data.id };
 }
 
-export async function deleteBlogPost(id: string) {
+/** بعد النجاح بيحوّل لقايمة المقالات — فمش بيرجع حاجة غير لو فشل. */
+export async function deleteBlogPost(id: string): Promise<{ ok: false; error: string } | void> {
   const admin = await requireContentAdmin();
+  if (!admin) return { ok: false, error: DENIED };
   const supabase = await createClient();
 
   const { error } = await supabase.from('blog_posts').delete().eq('id', id);
   if (error) {
     console.error('Error deleting blog post', error);
-    throw new Error('تعذّر حذف المقال');
+    return { ok: false, error: 'تعذّر حذف المقال' };
   }
 
   await logAuditAction({

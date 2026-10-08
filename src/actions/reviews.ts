@@ -82,10 +82,16 @@ export async function setReviewHidden(
   reviewId: string,
   isHidden: boolean,
   reason: string
-) {
-  const admin = await requireAdmin('canManageContent', 'غير مصرح لك بإدارة التقييمات');
+): Promise<{ ok: true } | { ok: false; error: string; field?: 'reason' }> {
+  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — `requireAdmin` بترمي فبتتلفّ هنا.
+  let admin: Awaited<ReturnType<typeof requireAdmin>>;
+  try {
+    admin = await requireAdmin('canManageContent', 'غير مصرح لك بإدارة التقييمات');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بإدارة التقييمات' };
+  }
   if (isHidden && !reason.trim()) {
-    throw new Error('اكتب سبب الإخفاء');
+    return { ok: false, error: 'اكتب سبب الإخفاء', field: 'reason' };
   }
 
   const supabase = await createClient();
@@ -101,7 +107,7 @@ export async function setReviewHidden(
 
   if (error || !data) {
     console.error('Error hiding review', error);
-    throw new Error('تعذّر تنفيذ الإجراء');
+    return { ok: false, error: 'تعذّر تنفيذ الإجراء' };
   }
 
   await logAuditAction({
