@@ -678,10 +678,18 @@ export async function getAccountActivity(userId: string): Promise<AccountActivit
   return data as unknown as AccountActivity;
 }
 
-async function requireSuperAdmin() {
-  const admin = await requireAdmin('canManageUsers', 'غير مصرح');
-  if (admin.role !== 'super_admin') throw new Error('حذف الحسابات لمدير النظام فقط');
-  return admin;
+/** مدير النظام بس — بيرجّع الإداري أو رسالة الرفض (مابيرميش). */
+async function requireSuperAdmin(): Promise<
+  { ok: true; admin: Awaited<ReturnType<typeof requireAdmin>> } | { ok: false; error: string }
+> {
+  let admin;
+  try {
+    admin = await requireAdmin('canManageUsers', 'غير مصرح');
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
+  }
+  if (admin.role !== 'super_admin') return { ok: false, error: 'حذف الحسابات لمدير النظام فقط' };
+  return { ok: true, admin };
 }
 
 /** بيتجاهل «مش موجود» — المطلوب إن الحساب مايبقاش موجود، وده حاصل. */
@@ -693,12 +701,9 @@ export async function deleteUserAccount(params: {
   userId: string;
   reason: string;
 }): Promise<UserActionResult<{ mode: 'deleted' | 'archived' }>> {
-  let admin;
-  try {
-    admin = await requireSuperAdmin();
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
-  }
+  const guard = await requireSuperAdmin();
+  if (!guard.ok) return { ok: false, error: guard.error };
+  const admin = guard.admin;
   if (params.userId === admin.id) return { ok: false, error: 'مينفعش تحذف حسابك.' };
   const reason = params.reason.trim();
   if (reason.length < 3) {
@@ -814,12 +819,9 @@ export async function deleteUserAccount(params: {
 
 /** رجوع حساب مؤرشف بالغلط — الدخول والشراء بيرجعوا (الأطفال لأ: أهلهم يفتحوهم). */
 export async function restoreArchivedAccount(userId: string): Promise<UserActionResult> {
-  let admin;
-  try {
-    admin = await requireSuperAdmin();
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
-  }
+  const guard = await requireSuperAdmin();
+  if (!guard.ok) return { ok: false, error: guard.error };
+  const admin = guard.admin;
   if (!isAdminApiConfigured()) {
     return { ok: false, error: 'محتاج مفتاح الخادم — مش متظبط حاليًا.' };
   }

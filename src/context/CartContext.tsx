@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import { isQuantityLocked, type ItemFormat } from '@/lib/item-format';
+import type { ItemFormat } from '@/lib/item-format';
 import {
   CART_CLEAR_EVENT,
   CART_STORAGE_KEY,
@@ -73,7 +73,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      setItems(parseStoredCart<CartItem>(window.localStorage.getItem(CART_STORAGE_KEY), Date.now()));
+      // السلال القديمة المحفوظة ممكن يكون فيها كمية ٢ أو أكتر — بترجع ١.
+      setItems(
+        parseStoredCart<CartItem>(window.localStorage.getItem(CART_STORAGE_KEY), Date.now()).map((i) => ({
+          ...i,
+          quantity: 1,
+        })),
+      );
     } catch {
       // التخزين مقفول (تصفّح خاص) — السلة تشتغل في الذاكرة زي الأول.
     }
@@ -94,36 +100,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items]);
 
+  // ⚠️ **كل بند في «إنها لك» نسخة واحدة** (قرار تامر): القصة والكتاب
+  //    دايمًا متخصصين لطفل بعينه، فمفيش معنى لـ«٢ من نفس القصة». نسخة
+  //    لطفل تاني = تخصيص جديد = بند جديد. كانت الضغطة التانية على «أضف
+  //    للسلة» بتخلّي الكمية ٢، وفي الدفع كان فيه عدّاد +/−.
   const addItem = (item: CartItem) => {
-    setItems((prev) => {
-      const existing = prev.find(i => i.id === item.id);
-      if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i);
-      }
-      return [...prev, item];
-    });
+    setItems((prev) =>
+      prev.some(i => i.id === item.id) ? prev : [...prev, { ...item, quantity: 1 }],
+    );
   };
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter(i => i.id !== id));
   };
 
+  /** الكمية دايمًا ١ — أي رقم أقل من ١ = حذف البند. */
   const updateQuantity = (id: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(id);
-      return;
-    }
-    // ⚠️ الإلكتروني ملف واحد: القاعدة بتحسبه كمية ١ مهما اتبعت، فلو
-    //    الشاشة سمحت بـ٣ كان العميل هيشوف ٣ أضعاف ويدفع واحد.
-    setItems((prev) =>
-      prev.map(i => i.id === id ? { ...i, quantity: isQuantityLocked(i.format) || i.boxPlanId ? 1 : quantity } : i),
-    );
+    if (quantity <= 0) removeItem(id);
   };
 
   const clearCart = () => setItems([]);
 
-  const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
-  const cartTotal = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+  const itemCount = items.length;
+  const cartTotal = items.reduce((acc, i) => acc + i.price, 0);
 
   return (
     <CartContext.Provider

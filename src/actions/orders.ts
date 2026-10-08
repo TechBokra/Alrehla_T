@@ -94,7 +94,8 @@ export async function createOrder(
   const { data, error } = await supabase.rpc('create_customer_order', {
     p_items: items.map((item) => ({
       product_id: item.productId,
-      quantity: Math.max(1, Math.trunc(item.quantity) || 1),
+      // كل بند نسخة واحدة — القصة/الكتاب متخصص لطفل بعينه (قرار تامر).
+      quantity: 1,
       customization_data: (item.customizationData ?? null) as Json,
       addon_ids: item.addonIds ?? [],
       // القاعدة بتقاطعها مع `addon_ids` — فالتخصيص لإضافة مش مختارة

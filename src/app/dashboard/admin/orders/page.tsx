@@ -10,6 +10,7 @@ import { notifyUser } from '@/lib/notifications';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { OrdersClient } from './OrdersClient';
+import { fetchIn } from '@/lib/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,11 +47,12 @@ export default async function Page() {
   const userIds = Array.from(new Set(orders.map((o) => o.userId)));
   const customerNames: Record<string, string> = {};
   if (userIds.length) {
-    const { data: profiles } = await (await createClient())
-      .from('user_profiles')
-      .select('id, full_name')
-      .in('id', userIds);
-    for (const p of profiles ?? []) if (p.full_name) customerNames[p.id] = p.full_name;
+    const supabase = await createClient();
+    // على دفعات — القايمة بتتبعت في الرابط وبتطول مع عدد العملاء (`lib/fetch-all`).
+    const profiles = await fetchIn(userIds, (part) =>
+      supabase.from('user_profiles').select('id, full_name').in('id', part),
+    );
+    for (const p of profiles) if (p.full_name) customerNames[p.id] = p.full_name;
   }
 
   return (

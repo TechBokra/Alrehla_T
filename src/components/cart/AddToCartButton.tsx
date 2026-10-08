@@ -59,7 +59,7 @@ export function AddToCartButton({
         className={`${baseClasses} bg-green-500 text-white hover:bg-green-600 ${className} w-full`}
       >
         <Check className="h-4 w-4" />
-        في السلة{inCart.quantity > 1 ? ` (${inCart.quantity})` : ''} · عرض السلة
+        في السلة · عرض السلة
       </Link>
     );
   }

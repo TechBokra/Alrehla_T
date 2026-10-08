@@ -69,7 +69,6 @@ const FORM_DIRS = [
  * لما ملف يتنضّف، سطره بيتشال من هنا خالص.
  */
 const LEGACY_THROWS: Record<string, number> = {
-  'src/actions/admin-users.ts': 1, // requireSuperAdmin داخلي — المناديين بيلفّوه
   'src/actions/content.ts': 2, // saveSiteImage — شاشة الصور (Cloudinary، مؤجّلة)
 };
 

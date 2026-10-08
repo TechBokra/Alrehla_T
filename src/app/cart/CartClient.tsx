@@ -12,7 +12,7 @@ import { useCart } from '@/context/CartContext';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 
 export default function CartClient() {
-  const { items, removeItem, updateQuantity, cartTotal } = useCart();
+  const { items, removeItem, cartTotal } = useCart();
   
   // A 5% "tax" used to be invented here and added to what the customer paid.
   // There is no tax configured anywhere in the platform.
@@ -55,7 +55,6 @@ export default function CartClient() {
                         {item.customizationData?.childName && (
                           <p className="mt-1 text-sm text-slate-500">اسم الطفل: {item.customizationData.childName}</p>
                         )}
-                        <p className="mt-1 font-medium text-slate-500">الكمية: {item.quantity}</p>
 
                         <div className="mt-4 flex items-center justify-center md:justify-start gap-4">
                           {/* ⚠️ كان `emerald-600` = 3.65:1 — راسب (مقيس والسلة فيها منتجات، 1 أكتوبر). */}

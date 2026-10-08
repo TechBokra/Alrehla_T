@@ -15,6 +15,7 @@ import { cookies } from 'next/headers';
 
 import { createClient } from '@/lib/supabase/server';
 import { isItemFormat } from '@/lib/item-format';
+import { fetchAllPages, fetchIn } from '@/lib/fetch-all';
 
 export const getOrders = async (): Promise<Order[]> => {
   const supabase = await createClient();
@@ -143,20 +144,29 @@ export async function getAllShippingRates(): Promise<ShippingRateRow[]> {
  */
 export async function getAllOrders(): Promise<Order[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // ⚠️ على دفعات — Supabase بيقف عند ١٠٠٠ صف من غير رسالة (`lib/fetch-all`).
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
 
-  if (error || !data) return [];
+  if (error) return [];
 
-  const { data: items } = await supabase
-    .from('order_items')
-    .select('order_id, product_id, quantity, unit_price, customization_data, format')
-    .in('order_id', data.map((o) => o.id));
+  const items = await fetchIn(
+    data.map((o) => o.id),
+    (part) =>
+      supabase
+        .from('order_items')
+        .select('order_id, product_id, quantity, unit_price, customization_data, format')
+        .in('order_id', part),
+  );
 
   const itemsByOrder = new Map<string, OrderItem[]>();
-  for (const item of items ?? []) {
+  for (const item of items) {
     const list = itemsByOrder.get(item.order_id) ?? [];
     list.push({
       productId: item.product_id,

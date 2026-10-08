@@ -9,7 +9,7 @@ import { useCart, type CartItem } from '@/context/CartContext';
 import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
-import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2, Plus, Minus, Trash2 } from 'lucide-react';
+import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -24,7 +24,6 @@ import { optimizedImageUrl } from '@/lib/cloudinary';
 import {
   cartHasElectronic,
   cartNeedsShipping,
-  isQuantityLocked,
   isValidDeliveryEmail,
 } from '@/lib/item-format';
 
@@ -39,7 +38,7 @@ interface Props {
 }
 
 export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippingRates }: Props) {
-  const { items, cartTotal, clearCart, updateQuantity, removeItem, addItem } = useCart();
+  const { items, cartTotal, clearCart, removeItem, addItem } = useCart();
   const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment
   // Card, wallet and Fawry options used to be offered here with forms that
   // were never read by anything: the customer typed a real card number, was
@@ -496,57 +495,20 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                     <p className="text-xs text-slate-500 mt-1">الطفل: {item.customizationData.childName}</p>
                   )}
 
-                  {/* ⚠️ **الكمية كانت رقمًا مكتوبًا لا أكتر، ومفيش زرّ
-                      حذف.** يعني اللي ضغط «أضف للسلة» تلات مرات بالغلط
-                      كان **مايقدرش يرجّعها** — لا من هنا ولا من أي
-                      شاشة تانية. الطريق الوحيد كان إنه يقفل الصفحة
-                      ويبدأ من الأول، ودي خسارة عميل على غلطة ضغطة.
-
-                      ⚠️ ومحدّش بيدفع من غير سبب: الكميات هنا بتغيّر
-                      العرض بس — **السعر والإجمالي بيتحسبوا في القاعدة**
-                      من الأرقام المبعوتة (قاعدة «ف»). */}
+                  {/* ⚠️ **مفيش عدّاد كمية** (قرار تامر): كل بند قصة أو كتاب
+                      متخصص لطفل بعينه — نسخة واحدة دايمًا. نسخة لطفل تاني
+                      = تخصيص جديد = بند جديد. فاضل زرّ «حذف» بس، عشان اللي
+                      ضاف حاجة بالغلط يقدر يشيلها من هنا. */}
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    {isQuantityLocked(item.format) || item.boxPlanId ? (
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        disabled={isPending || isProcessing}
-                        className="text-xs font-bold text-slate-600 hover:text-rose-700 disabled:opacity-40"
-                      >
-                        حذف
-                      </button>
-                    ) : (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={isPending || isProcessing}
-                        aria-label={item.quantity <= 1 ? 'حذف من السلة' : 'إنقاص الكمية'}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40"
-                      >
-                        {item.quantity <= 1 ? <Trash2 className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
-                      </button>
-                      <span className="w-8 text-center text-sm font-bold text-slate-700">{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        disabled={isPending || isProcessing}
-                        aria-label="زيادة الكمية"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:border-slate-400 disabled:opacity-40"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        disabled={isPending || isProcessing}
-                        className="ms-1 text-xs font-bold text-slate-600 hover:text-rose-700 disabled:opacity-40"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                    )}
-                    <span className="text-sm font-bold text-rose-600">{formatPrice((item.price * item.quantity))}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      disabled={isPending || isProcessing}
+                      className="text-xs font-bold text-slate-600 hover:text-rose-700 disabled:opacity-40"
+                    >
+                      حذف
+                    </button>
+                    <span className="text-sm font-bold text-rose-600">{formatPrice(item.price)}</span>
                   </div>
                 </div>
               </div>

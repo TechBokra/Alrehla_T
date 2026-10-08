@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPublicInstructors } from '@/data/domains/writing';
 import { calculateFinalSessionPrice } from '@/lib/utils';
+import { fetchAllPages } from '@/lib/fetch-all';
 import type {
   CreativeService,
   InstructorServiceOffer,
@@ -308,12 +309,17 @@ const SERVICE_ORDER_SELECT =
 /** Every service order — row-level security limits this to admins. */
 export async function getAllServiceOrders(): Promise<ServiceOrderRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('service_orders')
-    .select(SERVICE_ORDER_SELECT)
-    .order('created_at', { ascending: false });
+  // ⚠️ على دفعات — Supabase بيقف عند ١٠٠٠ صف من غير رسالة (`lib/fetch-all`).
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from('service_orders')
+      .select(SERVICE_ORDER_SELECT)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
 
-  if (error || !data) return [];
+  if (error) return [];
   return mapServiceOrders(data);
 }
 
