@@ -15,7 +15,7 @@ import { getSiteSettings } from '@/data/domains/content';
 import { isValidReceiptRef } from '@/lib/receipt-ref';
 
 export type BookingResult =
-  | { ok: true; subscriptionId: string; paymentReference: string }
+  | { ok: true; subscriptionId: string; paymentReference: string; amount: number | null }
   | { ok: false; error: string };
 
 /**
@@ -62,6 +62,8 @@ export async function createCourseBooking(params: {
    *    **بيترفض هنا** — مش بيعدّي وبعدين نكتشف.
    */
   recordingConsent?: boolean;
+  /** كود خصم (ملف 13) — القاعدة بتتحقق منه وبتحسبه. */
+  discountCode?: string;
 }): Promise<BookingResult> {
   const supabase = await createClient();
   const {
@@ -100,6 +102,8 @@ export async function createCourseBooking(params: {
     p_participant_type: params.participantType,
     p_child_id: params.childId || null,
     p_gift_message: params.giftMessage?.trim() || null,
+    // بيتبعت بس لو فيه كود — قبل ملف 13 الدالة مالهاش الخانة دي.
+    ...(params.discountCode?.trim() ? { p_discount_code: params.discountCode.trim() } : {}),
   });
 
   if (error || !data) {
@@ -156,7 +160,7 @@ export async function createCourseBooking(params: {
   // التحويل.
   const { data: row } = await supabase
     .from('course_subscriptions')
-    .select('payment_reference')
+    .select('payment_reference, amount')
     .eq('id', subscriptionId)
     .maybeSingle();
 
@@ -166,6 +170,8 @@ export async function createCourseBooking(params: {
     ok: true,
     subscriptionId,
     paymentReference: row?.payment_reference ?? '',
+    // المبلغ بعد الخصم — من القاعدة (ملف 13).
+    amount: row?.amount != null ? Number(row.amount) : null,
   };
 }
 

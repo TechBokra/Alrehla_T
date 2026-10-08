@@ -1,5 +1,7 @@
 'use client';
 import { PHONE_INPUT_PROPS, PHONE_ERROR, isValidPhone } from '@/lib/phone';
+import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
+import { discountAmount } from '@/lib/discount-codes';
 import { formatPrice } from '@/lib/utils';
 
 import React, { useState } from 'react';
@@ -66,6 +68,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
   // ⚠️ اختبار «إنها لك» (HS0L): غلط الرقم كان بيظهر في خطوة الدفع، بعد
   //    ما العميل يعدّي صفحة البيانات. دلوقتي بيتفحص هنا وتحت الخانة نفسها.
   const [phoneError, setPhoneError] = useState('');
+  // كود الخصم (ملف 13) — للعرض هنا، والقاعدة بتحسبه وقت تسجيل الطلب.
+  const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
 
   const subtotal = cartTotal;
   // Shipping is not flat: it comes from the rate set for the chosen
@@ -97,7 +101,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
   const shippingKnown = !needsShipping || Boolean(matchedRate);
   // الصندوق: سعر المنطقة × عدد الشهور (قرار تامر) — نفس حساب القاعدة.
   const shipping = needsShipping ? (matchedRate?.fee ?? 0) * boxMonths : 0;
-  const grandTotal = subtotal + shipping;
+  // الخصم على المنتجات بس، مش الشحن — نفس حساب القاعدة (ملف 13).
+  const discountOff = discount ? discountAmount(subtotal, discount.percent) : 0;
+  const grandTotal = subtotal - discountOff + shipping;
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +146,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
       // الواجهة بتبعت إيه اتطلب وبس. الأسعار والشحن بيتحسبوا في القاعدة،
       // فالأرقام المعروضة فوق للعرض بس — مش هي اللي بتتحسب على العميل.
       const result = boxItem
-        ? await createBoxSubscriptionOrder(boxItem.boxPlanId, boxItem.customizationData, shippingDetails)
+        ? await createBoxSubscriptionOrder(boxItem.boxPlanId, boxItem.customizationData, shippingDetails, discount?.code)
         : await createOrder(
         items.map(
           (i: {
@@ -168,6 +174,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
           notes: shippingInfo.notes,
           deliveryEmail: hasElectronic ? shippingInfo.email : undefined,
         },
+        discount?.code,
       );
 
       setIsProcessing(false);
@@ -426,6 +433,16 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 </div>
               )}
 
+              <DiscountCodeField
+                line={boxItem ? 'box' : 'enha_lak'}
+                value={discount}
+                onChange={(v) => {
+                  setDiscount(v);
+                  setOrderError('');
+                }}
+                disabled={isProcessing || isPending}
+              />
+
               {mixedBox && (
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
                   <p>
@@ -541,6 +558,14 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
               <span>المجموع الفرعي</span>
               <span className="font-bold">{formatPrice(subtotal)}</span>
             </div>
+            {discountOff > 0 && discount && (
+              <div className="flex justify-between text-sm font-bold text-emerald-800">
+                <span>
+                  خصم <span dir="ltr" className="font-mono">{discount.code}</span> ({discount.percent.toLocaleString('ar-EG')}٪)
+                </span>
+                <span>− {formatPrice(discountOff)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-slate-600">
               <span>مصاريف الشحن</span>
               <span className="font-bold">

@@ -10,6 +10,8 @@ import { TransferInstructions } from '@/components/checkout/TransferInstructions
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { consentLabel, type SessionRecordingSettings } from '@/lib/session-recording';
+import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
+import { discountAmount } from '@/lib/discount-codes';
 
 export function BookingConfirmClient({
   paymentWalletNumber,
@@ -58,7 +60,10 @@ export function BookingConfirmClient({
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [booking, setBooking] = useState<{ id: string; reference: string } | null>(null);
+  const [booking, setBooking] = useState<{ id: string; reference: string; amount: number | null } | null>(null);
+  // كود الخصم (ملف 13) — للعرض، والقاعدة بتحسبه وقت الحجز.
+  const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
+  const discountOff = discount ? discountAmount(packagePrice, discount.percent) : 0;
   const [isPending, startTransition] = useTransition();
 
   // ⚠️ **الموافقة مبدئيًّا مش متعلَّمة، ومفيش «موافق ضمنًا».** ولي
@@ -87,6 +92,7 @@ export function BookingConfirmClient({
         // الخادم بيرفض الحجز لو التسجيل شغّال والقيمة دي مش `true` —
         // فالمربّع مش مجرد زينة في الشاشة.
         recordingConsent,
+        discountCode: discount?.code,
       });
 
       if (!result.ok) {
@@ -94,7 +100,7 @@ export function BookingConfirmClient({
         return;
       }
 
-      setBooking({ id: result.subscriptionId, reference: result.paymentReference });
+      setBooking({ id: result.subscriptionId, reference: result.paymentReference, amount: result.amount });
     });
   };
 
@@ -182,6 +188,20 @@ export function BookingConfirmClient({
           <span>قيمة الباقة</span>
           <span className="text-emerald-700">{formatPrice(packagePrice)}</span>
         </div>
+        {discountOff > 0 && discount && (
+          <>
+            <div className="mt-2 flex justify-between text-sm font-bold text-emerald-800">
+              <span>
+                خصم <span dir="ltr" className="font-mono">{discount.code}</span> ({discount.percent.toLocaleString('ar-EG')}٪)
+              </span>
+              <span>− {formatPrice(discountOff)}</span>
+            </div>
+            <div className="mt-2 flex justify-between border-t border-emerald-200 pt-2 text-xl font-black text-slate-900">
+              <span>المطلوب</span>
+              <span className="text-emerald-700">{formatPrice(packagePrice - discountOff)}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {error && (
@@ -193,7 +213,8 @@ export function BookingConfirmClient({
       {booking ? (
         <PaymentProofForm
           reference={booking.reference}
-          amount={packagePrice}
+          // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+          amount={booking.amount ?? packagePrice - discountOff}
           walletNumber={paymentWalletNumber}
           qrUrl={paymentQrUrl}
           accent="emerald"
@@ -281,6 +302,16 @@ export function BookingConfirmClient({
                  قديمة ممكن تكون كاتبة فيه، وحذف العمود بيمسحها.
                  والدالة `create_course_booking` لسه بتقبل المعامل
                  (بقيمة فاضية)، فمفيش كسر في القاعدة ولا في الدالة. */}
+
+          <DiscountCodeField
+            line="courses"
+            value={discount}
+            onChange={(v) => {
+              setDiscount(v);
+              setError('');
+            }}
+            disabled={isPending}
+          />
 
           <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
 

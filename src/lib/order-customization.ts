@@ -44,7 +44,7 @@ const STORY_GOALS: Record<string, string> = {
 const FIELDS: [key: string, label: string][] = [
   ['childName', 'اسم الطفل'],
   ['heroDescription', 'وصف البطل'],
-  ['storyGoal', 'الهدف التربوي'],
+  ['storyGoal', 'الهدف الأساسي'],
   ['familyMemberNames', 'أسماء أفراد العائلة'],
   ['dedicationText', 'الإهداء'],
   ['coverChoice', 'اختيار الغلاف'],

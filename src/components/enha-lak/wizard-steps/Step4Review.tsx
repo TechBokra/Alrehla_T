@@ -92,7 +92,7 @@ export function Step4Review({
               </div>
             ) : (
               <div>
-                <span className="text-slate-500 block mb-1">الهدف التربوي:</span>
+                <span className="text-slate-500 block mb-1">الهدف الأساسي:</span>
                 <span className="font-bold text-slate-800">{values.storyGoal}</span>
               </div>
             )}

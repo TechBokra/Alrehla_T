@@ -222,6 +222,6 @@ describe('وضع الاشتراك (ملف 140)', () => {
     const { wizardSchema } = await import('./personalization-schema');
     const r = wizardSchema.safeParse({ ...base, storyGoal: '' });
     expect(r.success).toBe(false);
-    expect(JSON.stringify(r.error?.issues)).toContain('الرجاء اختيار الهدف التربوي');
+    expect(JSON.stringify(r.error?.issues)).toContain('الرجاء اختيار الهدف الأساسي');
   });
 });

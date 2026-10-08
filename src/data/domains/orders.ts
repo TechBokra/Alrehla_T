@@ -51,6 +51,9 @@ export const getOrders = async (): Promise<Order[]> => {
     deliveredAt: order.delivered_at || undefined,
     adminNotes: order.admin_notes || undefined,
     shippingFee: order.shipping_fee ?? undefined,
+    // ملف 13 — قبله العمود مش موجود فبيرجع undefined.
+    discountCode: order.discount_code || undefined,
+    discountAmount: order.discount_amount ? Number(order.discount_amount) : undefined,
     recipientName: order.recipient_name || undefined,
     recipientPhone: order.recipient_phone || undefined,
     addressLine: order.address_line || undefined,
@@ -179,6 +182,9 @@ export async function getAllOrders(): Promise<Order[]> {
     deliveredAt: order.delivered_at || undefined,
     adminNotes: order.admin_notes || undefined,
     shippingFee: order.shipping_fee ?? undefined,
+    // ملف 13 — قبله العمود مش موجود فبيرجع undefined.
+    discountCode: order.discount_code || undefined,
+    discountAmount: order.discount_amount ? Number(order.discount_amount) : undefined,
     recipientName: order.recipient_name || undefined,
     recipientPhone: order.recipient_phone || undefined,
     addressLine: order.address_line || undefined,

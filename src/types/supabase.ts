@@ -459,6 +459,8 @@ export type Database = {
           /** وقت موافقة ولي الأمر على تسجيل الجلسات — SQL 111.
            *  فاضي = مفيش موافقة مسجّلة (حجز قبل تفعيل الميزة). */
           recording_consent_at: string | null
+          discount_code: string | null
+          discount_amount: number
         }
         Insert: {
           id?: string
@@ -478,6 +480,8 @@ export type Database = {
           preferred_slot?: Json | null
           gift_message?: string | null
           recording_consent_at?: string | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Update: {
           id?: string
@@ -497,6 +501,8 @@ export type Database = {
           preferred_slot?: Json | null
           gift_message?: string | null
           recording_consent_at?: string | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Relationships: []
       }
@@ -1117,6 +1123,8 @@ export type Database = {
           electronic_sent_at: string | null
           box_plan_id: string | null
           box_details: Json | null
+          discount_code: string | null
+          discount_amount: number
         }
         Insert: {
           id?: string
@@ -1146,6 +1154,8 @@ export type Database = {
           electronic_sent_at?: string | null
           box_plan_id?: string | null
           box_details?: Json | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Update: {
           id?: string
@@ -1175,6 +1185,8 @@ export type Database = {
           electronic_sent_at?: string | null
           box_plan_id?: string | null
           box_details?: Json | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Relationships: []
       }
@@ -1629,6 +1641,8 @@ export type Database = {
           payment_receipt_url: string | null
           participant_type: string
           child_id: string | null
+          discount_code: string | null
+          discount_amount: number
         }
         Insert: {
           id?: string
@@ -1653,6 +1667,8 @@ export type Database = {
           payment_receipt_url?: string | null
           participant_type?: string
           child_id?: string | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Update: {
           id?: string
@@ -1677,6 +1693,8 @@ export type Database = {
           payment_receipt_url?: string | null
           participant_type?: string
           child_id?: string | null
+          discount_code?: string | null
+          discount_amount?: number
         }
         Relationships: []
       }
@@ -1870,6 +1888,82 @@ export type Database = {
           sort_order?: number
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      discount_codes: {
+        Row: {
+          id: string
+          code: string
+          percent: number
+          /** NULL = كل المنصة؛ وإلا enha_lak · box · courses · services (ملف 13). */
+          lines: string[] | null
+          starts_at: string | null
+          ends_at: string | null
+          max_uses: number | null
+          is_active: boolean
+          note: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          percent: number
+          lines?: string[] | null
+          starts_at?: string | null
+          ends_at?: string | null
+          max_uses?: number | null
+          is_active?: boolean
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          percent?: number
+          lines?: string[] | null
+          starts_at?: string | null
+          ends_at?: string | null
+          max_uses?: number | null
+          is_active?: boolean
+          note?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      discount_code_uses: {
+        Row: {
+          id: string
+          code_id: string
+          user_id: string
+          line: string
+          source_id: string
+          discount_amount: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code_id: string
+          user_id: string
+          line: string
+          source_id: string
+          discount_amount: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code_id?: string
+          user_id?: string
+          line?: string
+          source_id?: string
+          discount_amount?: number
+          created_at?: string
         }
         Relationships: []
       }
@@ -2266,7 +2360,7 @@ export type Database = {
         Returns: boolean
       }
       create_box_subscription_order: {
-        Args: { p_plan_id: string; p_details: Json; p_shipping: Json }
+        Args: { p_plan_id: string; p_details: Json; p_shipping: Json; p_discount_code?: string | null }
         Returns: string
       }
       is_admin: {
@@ -2315,13 +2409,22 @@ export type Database = {
           p_child_id?: string | null
           /** إهداء خاص — اتضاف في ملف SQL 86، والقاعدة بتقصّه على 500 حرف. */
           p_gift_message?: string | null
+          /** ملف 13. */
+          p_discount_code?: string | null
         }
         Returns: string
+      }
+      /** كود الخصم ينفع؟ للعرض بس — الخصم الحقيقي وقت الطلب (ملف 13). */
+      discount_code_check: {
+        Args: { p_code: string; p_line: string }
+        Returns: Json
       }
       create_customer_order: {
         Args: {
           p_items: Json
           p_shipping?: Json | null
+          /** ملف 13. */
+          p_discount_code?: string | null
         }
         Returns: string
       }

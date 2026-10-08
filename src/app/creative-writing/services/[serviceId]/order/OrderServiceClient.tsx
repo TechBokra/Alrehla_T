@@ -9,6 +9,8 @@ import { BRIEF_MAX } from '@/lib/service-details';
 import { formatPrice } from '@/lib/utils';
 import { createServiceOrder, submitServiceOrderPayment } from '@/actions/service-orders';
 import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/PaymentProofForm';
+import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
+import { discountAmount } from '@/lib/discount-codes';
 
 interface Props {
   /** Read from site settings — it used to be the placeholder {paymentWalletNumber}. */
@@ -49,7 +51,10 @@ export function OrderServiceClient({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [placed, setPlaced] = useState<{ id: string; reference: string } | null>(null);
+  const [placed, setPlaced] = useState<{ id: string; reference: string; amount: number } | null>(null);
+  // كود الخصم (ملف 13) — للعرض، والقاعدة بتحسبه وقت تسجيل الطلب.
+  const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
+  const discountOff = discount ? discountAmount(amount, discount.percent) : 0;
 
   // ── المستفيد من الخدمة ──────────────────────────────────────
   //
@@ -79,19 +84,20 @@ export function OrderServiceClient({
     e.preventDefault();
     setError(null);
     startTransition(async () => {
-      try {
-        const result = await createServiceOrder({
-          serviceId,
-          providerId,
-          participantType,
-          childId: participantType === 'child' ? childId : null,
-          brief,
-        });
-        setNotice(result.warning ?? null);
-        setPlaced({ id: result.orderId, reference: result.paymentReference });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'تعذّر إنشاء الطلب');
+      const result = await createServiceOrder({
+        serviceId,
+        providerId,
+        participantType,
+        childId: participantType === 'child' ? childId : null,
+        brief,
+        discountCode: discount?.code,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setNotice(result.warning ?? null);
+      setPlaced({ id: result.orderId, reference: result.paymentReference, amount: result.amount });
     });
   };
 
@@ -139,9 +145,20 @@ export function OrderServiceClient({
           </div>
         )}
 
+        {discountOff > 0 && discount && (
+          <div className="flex justify-between border-b border-slate-100 py-3 text-sm font-bold text-emerald-800">
+            <span>
+              خصم <span dir="ltr" className="font-mono">{discount.code}</span> ({discount.percent.toLocaleString('ar-EG')}٪)
+            </span>
+            <span>− {formatPrice(discountOff)}</span>
+          </div>
+        )}
+
         <div className="flex justify-between py-3">
           <span className="font-medium text-slate-500">الإجمالي</span>
-          <span className="text-2xl font-black text-emerald-600">{formatPrice(amount)}</span>
+          <span className="text-2xl font-black text-emerald-600">
+            {formatPrice(placed ? placed.amount : amount - discountOff)}
+          </span>
         </div>
       </div>
 
@@ -159,7 +176,8 @@ export function OrderServiceClient({
       {placed ? (
         <PaymentProofForm
           reference={placed.reference}
-          amount={amount}
+          // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+          amount={placed.amount}
           walletNumber={paymentWalletNumber}
           qrUrl={paymentQrUrl}
           accent="emerald"
@@ -261,6 +279,18 @@ export function OrderServiceClient({
               onChange={(e) => setBrief(e.target.value)}
               placeholder="مثال: قصة كتبتها بنتي (١٠ سنين) عن رحلة للبحر، عايزين مراجعة لغوية وملاحظات على الحبكة."
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none focus:border-emerald-500 focus:bg-white"
+            />
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-8">
+            <DiscountCodeField
+              line="services"
+              value={discount}
+              onChange={(v) => {
+                setDiscount(v);
+                setError(null);
+              }}
+              disabled={isPending}
             />
           </div>
 

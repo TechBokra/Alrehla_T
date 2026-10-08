@@ -82,7 +82,7 @@ export const wizardSchema = z.object({
   if (data.mode !== 'subscription' && (data.storyGoal?.trim().length ?? 0) < 2) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'الرجاء اختيار الهدف التربوي',
+      message: 'الرجاء اختيار الهدف الأساسي',
       path: ['storyGoal'],
     });
   }

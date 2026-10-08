@@ -176,7 +176,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           ))}
         </div>
         
-        <div className="mt-6 border-t border-slate-100 pt-6 flex justify-end">
+        <div className="mt-6 flex flex-col items-end gap-1 border-t border-slate-100 pt-6">
+          {target.discountCode && (
+            <p className="text-sm font-bold text-emerald-800">
+              كود خصم <span dir="ltr" className="font-mono">{target.discountCode}</span>: −{' '}
+              {formatPrice(target.discountAmount ?? 0)}
+            </p>
+          )}
           <div className="text-2xl font-black text-slate-800">الإجمالي: {formatPrice(target.totalAmount)}</div>
         </div>
       </div>

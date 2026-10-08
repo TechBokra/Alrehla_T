@@ -420,6 +420,9 @@ export type Order = {
   deliveredAt?: string;
   adminNotes?: string;
   shippingFee?: number;
+  /** كود الخصم ومبلغه (ملف 13). */
+  discountCode?: string;
+  discountAmount?: number;
   recipientName?: string;
   recipientPhone?: string;
   addressLine?: string;

@@ -106,7 +106,7 @@ export function Step2Details({
         </fieldset>
       ) : (<>
       <div className="space-y-2">
-        <label className="text-sm font-bold text-slate-700">الهدف التربوي (إلزامي)</label>
+        <label className="text-sm font-bold text-slate-700">الهدف الأساسي (إلزامي)</label>
         <select 
           {...register('storyGoal')}
           className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -151,7 +151,7 @@ export function Step2Details({
         <textarea 
           {...register('heroDescription')}
           className="w-full h-24 rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="مثال: يحب الديناصورات، لونه المفضل الأزرق، لديه قطة اسمها بسبوس..."
+          placeholder="أخبرنا عن شخصية بطل الحكاية واهتماماته وأبرز صفاته، وأي تفاصيل ترغب في مشاركتها معنا."
         />
         {errors.heroDescription && <span className="text-sm text-red-500">{errors.heroDescription.message as string}</span>}
       </div>

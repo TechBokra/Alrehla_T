@@ -213,6 +213,7 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'مستحقات المدربين', href: `${A}/finance/instructor-payouts`, permission: 'canManageFinance' },
           { label: 'مستحقات الناشرين', href: `${A}/finance/publisher-payouts`, permission: 'canManageFinance' },
           { label: 'طلبات السحب', href: `${A}/finance/withdrawals`, permission: 'canManageFinance' },
+          { label: 'أكواد الخصم', href: `${A}/finance/discount-codes`, permission: 'canManageFinance' },
         ],
       },
       {

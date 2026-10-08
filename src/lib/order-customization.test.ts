@@ -19,7 +19,7 @@ describe('describeCustomization', () => {
     expect(v.fields).toEqual([
       { label: 'اسم الطفل', value: 'ليلى' },
       { label: 'وصف البطل', value: 'شعرها كيرلي' },
-      { label: 'الهدف التربوي', value: 'بناء الثقة بالنفس' },
+      { label: 'الهدف الأساسي', value: 'بناء الثقة بالنفس' },
       { label: 'أسماء أفراد العائلة', value: 'ماما سارة' },
       { label: 'الإهداء', value: 'لأجمل بطلة' },
     ]);
@@ -31,7 +31,7 @@ describe('describeCustomization', () => {
 
   it('هدف كتبه العميل بنفسه بيظهر زي ما هو', () => {
     expect(describeCustomization({ storyGoal: 'يحب أخته' }).fields).toEqual([
-      { label: 'الهدف التربوي', value: 'يحب أخته' },
+      { label: 'الهدف الأساسي', value: 'يحب أخته' },
     ]);
   });
 

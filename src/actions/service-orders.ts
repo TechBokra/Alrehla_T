@@ -22,7 +22,7 @@ import { isValidReceiptRef } from '@/lib/receipt-ref';
  * Payment is the same manual transfer flow the rest of the platform uses —
  * the customer transfers, gives the reference, and an admin verifies.
  */
-export async function createServiceOrder(params: {
+type CreateServiceOrderParams = {
   serviceId: string;
   /** مقدّم الخدمة المختار. المنصة مقدّم زي أي حد. */
   providerId?: string | null;
@@ -45,7 +45,29 @@ export async function createServiceOrder(params: {
    *    الطلب**، فمقدّم الخدمة بيلاقيها في نفس المكان اللي هيرد فيه.
    */
   brief?: string | null;
-}) {
+  /** كود خصم (ملف 13) — القاعدة بتتحقق منه وبتحسبه. */
+  discountCode?: string | null;
+};
+
+export type CreateServiceOrderResult =
+  | { ok: true; orderId: string; amount: number; paymentReference: string; warning?: string }
+  | { ok: false; error: string };
+
+/**
+ * ⚠️ **بترجّع ولا بترمي** (قاعدة «هـ»): الرسالة اللي بتترمي من أكشن
+ *    Next بيمسحها في الإنتاج، فالعميل كان بيشوف رسالة إنجليزي عامة بدل
+ *    «كود الخصم ده انتهى» أو «مقدّم الخدمة غير متاح». الفحوص جوّه لسه
+ *    بترمي، والغلاف ده بيحوّلها لنتيجة.
+ */
+export async function createServiceOrder(params: CreateServiceOrderParams): Promise<CreateServiceOrderResult> {
+  try {
+    return await createServiceOrderInner(params);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'تعذّر إنشاء الطلب' };
+  }
+}
+
+async function createServiceOrderInner(params: CreateServiceOrderParams): Promise<CreateServiceOrderResult> {
   const supabase = await createClient();
 
   const {
@@ -197,12 +219,18 @@ export async function createServiceOrder(params: {
       // الطلب بيبدأ «بانتظار الدفع» دايمًا: الإيصال بيترفع في خطوة تانية
       // بعد ما العميل يشوف الرقم المرجعي ويحوّل.
       status: 'pending',
+      // ⚠️ بيتبعت بس لو فيه كود — قبل ملف 13 العمود مش موجود.
+      ...(params.discountCode?.trim() ? { discount_code: params.discountCode.trim() } : {}),
     })
-    .select('id, payment_reference')
+    // ⚠️ المبلغ **من القاعدة** (ملف 13 بيحسبه هناك، ومعاه الخصم) — مش
+    //    الرقم اللي اتحسب فوق.
+    .select('id, payment_reference, amount')
     .single();
 
   if (error || !order) {
     console.error('Error creating service order', error);
+    // رسائل الكود والسعر من القاعدة عربي ومفهومة («كود الخصم ده انتهى»).
+    if (error?.code === 'P0001' && error.message) throw new Error(error.message);
     throw new Error('تعذّر إنشاء الطلب');
   }
 
@@ -242,9 +270,9 @@ export async function createServiceOrder(params: {
   revalidatePath('/dashboard/admin/orders/services');
 
   return {
-    ok: true,
+    ok: true as const,
     orderId: order.id,
-    amount,
+    amount: order.amount != null ? Number(order.amount) : amount,
     paymentReference: order.payment_reference ?? '',
     warning,
   };

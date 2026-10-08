@@ -68,6 +68,8 @@ export type PaymentMethod = 'instapay' | 'vodafone_cash';
 export async function createOrder(
   items: NewOrderItem[],
   shipping?: ShippingDetails,
+  /** كود خصم (ملف 13) — القاعدة بتتحقق منه وبتحسبه. */
+  discountCode?: string,
 ): Promise<CreateOrderResult> {
   // حساب الطفل التابع ممنوع من الشراء المباشر — الطلب بيمر على ولي أمره.
   // والحساب الموقوف ممنوع من الشراء الجديد — والمنع الحقيقي محفّز في
@@ -112,6 +114,9 @@ export async function createOrder(
           deliveryEmail: shipping.deliveryEmail?.trim() ?? '',
         }
       : null,
+    // ⚠️ بيتبعت **بس لو فيه كود**: قبل ملف 13 الدالة مالهاش الخانة دي،
+    //    والطلب العادي لازم يفضل شغّال.
+    ...(discountCode?.trim() ? { p_discount_code: discountCode.trim() } : {}),
   });
 
   if (error || !data) {
@@ -176,6 +181,8 @@ export async function createBoxSubscriptionOrder(
   planId: string,
   details: unknown,
   shipping: ShippingDetails,
+  /** كود خصم (ملف 13) — على سعر الخطة، مش الشحن. */
+  discountCode?: string,
 ): Promise<CreateOrderResult> {
   try {
     await requireNotDependent('الاشتراك');
@@ -200,6 +207,7 @@ export async function createBoxSubscriptionOrder(
       governorate: shipping.governorate?.trim() ?? '',
       notes: shipping.notes?.trim() ?? '',
     },
+    ...(discountCode?.trim() ? { p_discount_code: discountCode.trim() } : {}),
   });
 
   if (error || !data) {

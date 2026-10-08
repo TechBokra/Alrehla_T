@@ -48,7 +48,7 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   newChildGender: { step: 1, label: 'الجنس' },
   heroDescription: { step: 2, label: 'وصف البطل' },
   familyMemberNames: { step: 2, label: 'أسماء أفراد العائلة' },
-  storyGoal: { step: 2, label: 'الهدف التربوي' },
+  storyGoal: { step: 2, label: 'الهدف الأساسي' },
   customStoryGoal: { step: 2, label: 'الهدف اللي في بالك' },
   facePhotoFile: { step: 2, label: 'الصورة الشخصية' },
   secondPhotoFile: { step: 2, label: 'الصورة الإضافية' },
