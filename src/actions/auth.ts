@@ -6,6 +6,8 @@ import { syncUserProfile } from '@/data/domains/auth'
 import { authErrorMessage } from '@/lib/auth-errors'
 import { getSafeRedirectPath } from '@/lib/safe-redirect'
 import { SITE_URL } from '@/lib/seo'
+import { headers } from 'next/headers'
+import { getAuthOrigin } from '@/lib/auth-origin'
 
 /**
  * تنظيف البريد قبل ما يروح لـSupabase.
@@ -196,7 +198,7 @@ export async function signOut(): Promise<void> {
  *
  * `/auth/callback?next=/reset-password` — نفس الطريق اللي بيبدّل
  * الكود بجلسة. فالشخص بيوصل `/reset-password` **وهو مسجَّل دخوله
- * فعلًا**، وبيحطّ كلمة مروره بنفس الأكشن اللي بيستخدمه أول دخول.
+ * فعلًا**. أكشن مستقل بيتحقق من إثبات recovery الموقّع قبل الحفظ.
  *
  * ⚠️ **ولازم العنوان ده يتسجّل في Supabase** تحت
  *    Authentication ← URL Configuration ← Redirect URLs، وإلا
@@ -210,13 +212,19 @@ export async function requestPasswordReset(email: string): Promise<AuthActionRes
     return { error: 'اكتب بريدًا إلكترونيًّا صحيحًا.' };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(clean, {
-    redirectTo: `${SITE_URL}/auth/callback?next=/reset-password`,
-  });
-
-  // بنسجّله عندنا ومابنقولوش للزائر — الرسالة واحدة في كل الحالات.
-  if (error) console.error('Error sending password reset', error);
+  try {
+    const supabase = await createClient();
+    const origin = getAuthOrigin((await headers()).get('origin'), SITE_URL);
+    const callback = new URL('/auth/callback', origin);
+    callback.searchParams.set('next', '/reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(clean, {
+      redirectTo: callback.toString(),
+    });
+    // Keep the public result identical for registered and unregistered emails.
+    if (error) console.error('Password reset request failed', { code: error.code, status: error.status });
+  } catch {
+    console.error('Password reset request unavailable');
+  }
 
   return {
     notice:

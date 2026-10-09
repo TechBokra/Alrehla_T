@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { pageMetadata } from '@/lib/seo';
 import { createClient } from '@/lib/supabase/server';
 import { SetPasswordForm } from '@/app/set-password/SetPasswordForm';
+import { hasRecoverySession } from '@/lib/recovery-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *
  * رابط الاسترجاع بيعدّي على `/auth/callback` الأول، وهو بيبدّل الكود
  * بجلسة حقيقية ويوجّه لهنا. **فاللي بيوصل الصفحة دي مسجَّل دخوله
- * فعلًا** — والأكشن `setMyPassword` هو نفسه اللي بيستخدمه أول دخول.
+ * فعلًا** — الصفحة والأكشن يتحققان من إثبات recovery الموقّع.
  *
  * ⚠️ **ومفيش جلسة = الرابط انتهى أو اتفتح غلط.** بنقول كده صراحةً
  *    بدل ما نرمي الشخص على صفحة الدخول من غير ما يعرف السبب — لأن
@@ -39,7 +40,7 @@ export default async function Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !(await hasRecoverySession(supabase, user.id))) {
     return (
       <PageContainer className="py-12 space-y-12 md:py-16">
         <div className="mx-auto w-full max-w-md pt-12 pb-24 text-center">
@@ -76,7 +77,7 @@ export default async function Page() {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
-          <SetPasswordForm />
+          <SetPasswordForm recovery />
         </div>
       </div>
     </PageContainer>

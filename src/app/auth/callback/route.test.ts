@@ -2,14 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from './route'
 
 const exchangeCodeForSession = vi.fn()
-const markRecoverySession = vi.fn()
+const hasRecoverySession = vi.fn()
 
-// ⚠️ العلامة دي هي اللي بتخلّي صفحة الاسترجاع ما تطلبش من الشخص
-//    كلمة المرور الحالية — وهو ناسيها أصلًا. الاختبارات تحت بتحرس
-//    إنها بتتحطّ في الاسترجاع **وبس**.
-vi.mock('@/lib/password-reset-flag', async () => ({
-  RECOVERY_PATH: '/reset-password',
-  markRecoverySession: (...args: unknown[]) => markRecoverySession(...args),
+// Recovery is checked from a verified session, not an admin metadata flag.
+vi.mock('@/lib/recovery-session', async () => ({
+  hasRecoverySession: (...args: unknown[]) => hasRecoverySession(...args),
 }))
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -24,6 +21,7 @@ vi.mock('@/lib/supabase/server', () => ({
 describe('Auth Callback Route GET', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    hasRecoverySession.mockResolvedValue(true)
     exchangeCodeForSession.mockResolvedValue({
       error: null,
       data: { user: { id: 'user-1' } },
@@ -82,32 +80,34 @@ describe('Auth Callback Route GET', () => {
     )
   })
 
-  it('⚠️ بيعلّم الجلسة لما الوجهة تكون صفحة الاسترجاع', async () => {
+  it('checks recovery proof when the destination is reset-password', async () => {
     const request = new Request(
       'https://alrehla.app/auth/callback?code=test-code&next=/reset-password',
     )
     await GET(request)
-    expect(markRecoverySession).toHaveBeenCalledWith('user-1')
+    expect(hasRecoverySession).toHaveBeenCalledWith(expect.any(Object), 'user-1')
   })
 
-  it('⚠️ ومابيعلّمش أي وجهة تانية', async () => {
-    // لو العلامة اتحطّت في أي دخول عادي، تغيير كلمة المرور هيبقى
-    // بلا طلب للكلمة الحالية — يعني الحاجز كله يتفتح.
+  it('does not require recovery proof for ordinary sign-in destinations', async () => {
     const request = new Request(
       'https://alrehla.app/auth/callback?code=test-code&next=/dashboard/student',
     )
     await GET(request)
-    expect(markRecoverySession).not.toHaveBeenCalled()
+    expect(hasRecoverySession).not.toHaveBeenCalled()
   })
 
-  it('⚠️ ومابيعلّمش لما استبدال الكود يفشل', async () => {
-    // كود غلط بيروح لصفحة الخطأ ومفيش حاجة بتتعلّم — ده اللي
-    // بيمنع أي حد إنه يعلّم جلسته بنفسه.
+  it('does not check recovery proof when code exchange fails', async () => {
     exchangeCodeForSession.mockResolvedValue({ error: new Error('bad code') })
     const request = new Request(
       'https://alrehla.app/auth/callback?code=bad&next=/reset-password',
     )
     await GET(request)
-    expect(markRecoverySession).not.toHaveBeenCalled()
+    expect(hasRecoverySession).not.toHaveBeenCalled()
+  })
+
+  it('rejects a normal sign-in code with a forged recovery destination', async () => {
+    hasRecoverySession.mockResolvedValue(false)
+    const response = await GET(new Request('https://alrehla.app/auth/callback?code=normal&next=/reset-password'))
+    expect(response.headers.get('location')).toBe('https://alrehla.app/auth/auth-code-error')
   })
 })

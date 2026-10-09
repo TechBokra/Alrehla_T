@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { getSafeRedirectPath } from '@/lib/safe-redirect';
 import { SignInForm } from '@/components/SignInForm';
+import { FormSuccess } from '@/components/ui/FormError';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
@@ -23,9 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; passwordReset?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, passwordReset } = await searchParams;
   const safeNext = next ? getSafeRedirectPath(next) : '/';
   const otherHref = safeNext !== '/' ? `/sign-up?next=${encodeURIComponent(safeNext)}` : '/sign-up';
   return (
@@ -40,6 +41,9 @@ export default async function SignInPage({
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
+          {passwordReset === 'success' && (
+            <FormSuccess className="mb-6" message="تم تغيير كلمة المرور. سجّل الدخول بكلمة المرور الجديدة." />
+          )}
           <SignInForm />
 
           <div className="mt-8 text-center text-sm font-medium text-slate-600">

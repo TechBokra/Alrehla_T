@@ -1,19 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Mail, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { requestPasswordReset } from '@/actions/auth';
 import { FormError } from '@/components/ui/FormError';
+import { Button } from '@/components/ui/Button';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [remaining, setRemaining] = useState(0);
+  const coolingDown = remaining > 0;
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // UX cooldown only; Supabase enforces the actual server-side rate limits.
+  useEffect(() => {
+    if (!coolingDown) return;
+    const timer = window.setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [coolingDown]);
+
+  const sendReset = async () => {
+    if (busy || coolingDown) return;
     setBusy(true);
     setError('');
     try {
@@ -23,11 +33,17 @@ export function ForgotPasswordForm() {
         return;
       }
       setNotice(result.notice ?? '');
+      setRemaining(60);
     } catch {
       setError('حصلت مشكلة ومكملناش. جرّب تاني.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void sendReset();
   };
 
   // ⚠️ **نفس الشاشة في كل الحالات**، سواء البريد مسجَّل عندنا ولا لأ.
@@ -39,13 +55,15 @@ export function ForgotPasswordForm() {
         <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
           <CheckCircle2 className="h-6 w-6" />
         </div>
-        <p className="leading-relaxed font-medium text-slate-600">{notice}</p>
-        <Link
-          href="/sign-in"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800"
-        >
-          رجوع لتسجيل الدخول
-        </Link>
+        <p role="status" className="leading-relaxed font-medium text-slate-600">{notice}</p>
+        <FormError message={error} />
+        <Button type="button" variant="secondary" pending={busy} pendingText="جارٍ إرسال الرابط…" disabled={coolingDown} onClick={() => { void sendReset(); }}>
+          {coolingDown ? `إعادة الإرسال بعد ${remaining} ثانية` : 'إعادة إرسال الرابط'}
+        </Button>
+        <div className="flex flex-col items-center gap-3">
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => { setNotice(''); setError(''); }}>تغيير البريد الإلكتروني</Button>
+          <Button href="/sign-in" variant="neutral">رجوع لتسجيل الدخول</Button>
+        </div>
       </div>
     );
   }
@@ -62,26 +80,34 @@ export function ForgotPasswordForm() {
           <Mail className="absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
             id="reset-email"
+            name="email"
+            disabled={busy}
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? 'reset-email-error' : undefined}
             type="email"
             required
             autoComplete="email"
             dir="ltr"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setError(''); }}
             className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-12 pl-4 text-right font-medium outline-none transition-all focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
             placeholder="name@example.com"
           />
         </div>
+        {error && <p id="reset-email-error" className="text-sm text-red-600">{error}</p>}
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={busy || email.length === 0}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-60"
+        variant="neutral"
+        pending={busy}
+        pendingText="جارٍ إرسال الرابط…"
+        disabled={coolingDown || email.trim().length === 0}
+        className="w-full gap-2"
       >
-        {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : 'ابعتلي الرابط'}
+        {coolingDown ? `إرسال رابط بعد ${remaining} ثانية` : 'ابعتلي الرابط'}
         {!busy && <ArrowRight className="h-5 w-5 rotate-180" />}
-      </button>
+      </Button>
 
       <p className="text-center text-sm font-medium text-slate-500">
         فاكرها؟{' '}
