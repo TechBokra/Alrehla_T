@@ -20,6 +20,8 @@ export type OrphanAsset = {
   bytes: number;
   format: string;
   createdAt: string;
+  /** يوم المسح التلقائي (لو شغّال). */
+  autoDeleteOn?: string;
 };
 
 /**
@@ -212,6 +214,11 @@ export function OrphanGallery({
                 {asset.createdAt && (
                   <p className="text-xs font-medium text-slate-400">
                     {formatCairo(asset.createdAt, { dateStyle: 'medium' })}
+                  </p>
+                )}
+                {asset.autoDeleteOn && (
+                  <p className="text-[11px] font-bold text-amber-700">
+                    بتتمسح لوحدها {formatCairo(asset.autoDeleteOn, { dateStyle: 'medium' })}
                   </p>
                 )}
               </div>

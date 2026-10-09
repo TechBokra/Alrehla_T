@@ -8,6 +8,7 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SettingsForm } from './SettingsForm';
 import { PaymentQrUploader } from './PaymentQrUploader';
 import { WatermarkFields } from './WatermarkFields';
+import { MAX_CLEANUP_DAYS, MIN_CLEANUP_DAYS } from '@/lib/media-cleanup';
 import { RETENTION_OPTIONS } from '@/lib/session-recording';
 import { Checkbox, Field, FormSection, Select, TextInput } from '@/components/forms/Form';
 
@@ -102,6 +103,38 @@ export default async function Page() {
               null
             }
           />
+        </Section>
+
+        {/* ---------- تنظيف الصور ---------- */}
+        <Section
+          title="تنظيف الصور المتسابة"
+          hint="كل يوم الموقع بيدوّر على الصور اللي مش مستخدمة في أي مكان. الصورة اللي تفضل متسابة المدة دي كلها بتتمسح من Cloudinary لوحدها، ولو رجعت تتستخدم قبلها العدّاد بيتصفّر. المسح بيتسجّل في سجل التدقيق وبيوصلك إشعار."
+        >
+          <Checkbox
+            name="mediaCleanupEnabled"
+            label="امسح الصور المتسابة تلقائيًا"
+            defaultChecked={settings.mediaCleanup.enabled}
+            className="md:col-span-2"
+          />
+          <Field
+            label="بعد كام يوم متسابة"
+            name="mediaCleanupDays"
+            hint={`من ${MIN_CLEANUP_DAYS} لـ ${MAX_CLEANUP_DAYS} يوم. المسح نهائي، فمتقصّرش المدة أوي.`}
+            className="md:col-span-2"
+          >
+            <TextInput
+              type="number"
+              min={MIN_CLEANUP_DAYS}
+              max={MAX_CLEANUP_DAYS}
+              dir="ltr"
+              className="text-left"
+              defaultValue={settings.mediaCleanup.days}
+            />
+          </Field>
+          <p className="text-xs font-bold text-slate-500 md:col-span-2">
+            المسح التلقائي بيقف لوحده لو أكتر من نص الصور متسابة، أو لو فحص الجداول
+            ماكملش — ساعتها راجع من «مكتبة الوسائط».
+          </p>
         </Section>
 
         {/* ---------- شريط التنبيه ---------- */}

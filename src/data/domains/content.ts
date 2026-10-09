@@ -69,6 +69,8 @@ export interface SiteSettings {
   sessionRecording: SessionRecordingSettings;
   /** العلامة المائية على صور الموقع والمنتجات (`lib/watermark-settings`). */
   watermark: WatermarkSettings;
+  /** المسح التلقائي للصور المتسابة (`lib/media-cleanup`). */
+  mediaCleanup: MediaCleanupSettings;
   /** Site imagery, by slot. See src/lib/site-images.ts. */
   images: SiteImages;
 }
@@ -103,6 +105,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       pendingOrderCancelDays: DEFAULT_PENDING_CANCEL_DAYS,
       sessionRecording: DEFAULT_RECORDING_SETTINGS,
       watermark: DEFAULT_WATERMARK,
+      mediaCleanup: DEFAULT_MEDIA_CLEANUP,
       images: {},
     };
   }
@@ -139,6 +142,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
           : DEFAULT_RETENTION_DAYS,
     },
     watermark: normalizeWatermark(value.watermark),
+    mediaCleanup: normalizeMediaCleanup(value.mediaCleanup),
     images: value.images ?? {},
   };
 });
@@ -158,6 +162,11 @@ import {
   normalizeWatermark,
   type WatermarkSettings,
 } from '@/lib/watermark-settings';
+import {
+  DEFAULT_MEDIA_CLEANUP,
+  normalizeMediaCleanup,
+  type MediaCleanupSettings,
+} from '@/lib/media-cleanup';
 
 /**
  * نصوص الصفحات.

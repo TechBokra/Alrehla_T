@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/stale-orders",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/media-cleanup",
+      "schedule": "45 2 * * *"
     }
   ]
 }

@@ -20,6 +20,7 @@ import {
   DEFAULT_WATERMARK_TEXT,
   normalizeWatermark,
 } from '@/lib/watermark-settings';
+import { normalizeMediaCleanup } from '@/lib/media-cleanup';
 
 export type SiteSettingsResult = { ok: true } | { ok: false; error: string };
 
@@ -121,6 +122,14 @@ export async function updateSiteSettings(
       style: formData.get('watermarkStyle'),
       size: formData.get('watermarkSize'),
       position: formData.get('watermarkPosition'),
+    });
+  }
+
+  // المسح التلقائي للصور المتسابة — المدة بين ٧ و٣٦٥ يوم (`lib/media-cleanup`).
+  if (formData.has('mediaCleanupDays')) {
+    next.mediaCleanup = normalizeMediaCleanup({
+      enabled: formData.get('mediaCleanupEnabled') === 'on',
+      days: formData.get('mediaCleanupDays'),
     });
   }
 

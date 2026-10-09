@@ -13,6 +13,9 @@ import {
 } from '@/lib/cloudinary-admin';
 import { formatCairo } from '@/lib/timezone';
 import { OrphanGallery } from './OrphanGallery';
+import { getOrphanLedger } from '@/data/domains/media-cleanup';
+import { getSiteSettings } from '@/data/domains/content';
+import { autoDeleteDate } from '@/lib/media-cleanup';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,15 +42,27 @@ export default async function Page() {
 
   const ready = isCloudinaryAdminConfigured();
 
-  const [listed, scan] = await Promise.all([
+  const [listed, scan, ledger, settings] = await Promise.all([
     ready ? listFolderAssets() : Promise.resolve(null),
     getMediaScan(),
+    getOrphanLedger(),
+    getSiteSettings(),
   ]);
+  const cleanup = settings.mediaCleanup;
   const usage = scan.usage;
 
   const assets = listed?.ok ? listed.data.assets : [];
   const used = assets.filter((a) => usage.has(a.publicId));
-  const orphans = assets.filter((a) => !usage.has(a.publicId));
+  // يوم المسح التلقائي لكل صورة متسابة (لو المسح شغّال والمهمة شافتها).
+  //    (ومابيظهرش لو أكتر من النص متسابة: المهمة بتقف ساعتها.)
+  const unused = assets.filter((a) => !usage.has(a.publicId));
+  const autoRuns = cleanup.enabled && scan.complete && unused.length <= assets.length / 2;
+  const orphans = unused.map((a) => ({
+    ...a,
+    autoDeleteOn: autoRuns
+      ? autoDeleteDate(ledger[a.publicId], cleanup.days)?.toISOString()
+      : undefined,
+  }));
 
   const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
   const orphanBytes = orphans.reduce((sum, a) => sum + a.bytes, 0);
@@ -169,7 +184,10 @@ export default async function Page() {
         </h2>
         <p className="mb-4 text-sm font-medium text-slate-500">
           تقدر تستعملها تاني من زرار «من المكتبة» في أي خانة صورة. ولو متأكد إن
-          صورة مالهاش لازمة، حدّدها واحذفها — الحذف نهائي.
+          صورة مالهاش لازمة، حدّدها واحذفها — الحذف نهائي.{' '}
+          {cleanup.enabled
+            ? `واللي تفضل متسابة ${cleanup.days} يوم بتتمسح لوحدها (التاريخ تحت كل صورة) — الإعداد من «الإعدادات العامة».`
+            : 'المسح التلقائي مقفول من «الإعدادات العامة».'}
         </p>
         <OrphanGallery assets={orphans} deleteLocked={deleteLocked} needsAck={highRatio} />
       </section>
