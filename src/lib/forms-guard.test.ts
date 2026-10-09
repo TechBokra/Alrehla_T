@@ -67,9 +67,7 @@ const FORM_DIRS = [
  * ملفات عمليات لسه فيها `throw` — الرقم ده **سقف**: ينزل بس، مايزيدش.
  * لما ملف يتنضّف، سطره بيتشال من هنا خالص.
  */
-const LEGACY_THROWS: Record<string, number> = {
-  'src/actions/content.ts': 2, // saveSiteImage — شاشة الصور (Cloudinary، مؤجّلة)
-};
+const LEGACY_THROWS: Record<string, number> = {};
 
 const countThrows = (src: string) => (src.match(/throw new Error\(/g) ?? []).length;
 
