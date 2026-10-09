@@ -40,7 +40,6 @@ const RAW_INPUT_ALLOWED = new Set([
   'src/app/dashboard/admin/content/settings/PaymentQrUploader.tsx',
   'src/components/dashboard/ImageField.tsx',
   'src/components/dashboard/GalleryField.tsx',
-  'src/components/dashboard/ProfileFormShell.tsx', // مش مستخدم في أي شاشة
   // أدوات بحث وفلترة واختيار — مش نماذج حفظ، ومستخدمة جوه نماذج الكيت.
   'src/app/dashboard/instructor/sessions/InstructorSessionsClient.tsx',
   'src/app/account/bookings/AccountBookingsClient.tsx',
