@@ -2,6 +2,7 @@
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 
@@ -94,7 +95,7 @@ export async function upsertShippingRate(params: {
   });
 
   revalidatePath('/dashboard/admin/settings/shipping');
-  revalidatePath('/enha-lak/checkout');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -137,7 +138,7 @@ export async function setShippingRateActive(id: string, isActive: boolean): Prom
   });
 
   revalidatePath('/dashboard/admin/settings/shipping');
-  revalidatePath('/enha-lak/checkout');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -194,6 +195,6 @@ export async function adjustShippingRatesByGovernorate(
   });
 
   revalidatePath('/dashboard/admin/settings/shipping');
-  revalidatePath('/enha-lak/checkout');
+  refreshPublicPages();
   return { ok: true, updated: rates.length };
 }

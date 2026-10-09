@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
@@ -31,9 +32,7 @@ function refresh() {
   revalidatePath('/dashboard/admin/products/customization-fields');
   // صفحات التخصيص بتقرا الجلسة فمش متخزّنة — بس لو اتخزّنت بعدين، الخانة
   // الجديدة لازم تبان من غير ما نستنى ساعة.
-  revalidatePath('/enha-lak/custom/[productSlug]', 'page');
-  revalidatePath('/enha-lak/custom-library/[productSlug]', 'page');
-  revalidatePath('/enha-lak/custom-subscription/[tierId]', 'page');
+  refreshPublicPages();
 }
 
 export async function saveCustomizationField(input: {

@@ -242,7 +242,7 @@ export function InstructorProfileClient({
           />
         </Field>
         <Field
-          label="التخصصات (مفصولة بفاصلة)"
+          label="التخصصات (مفصولة بفاصلة)" help="بتظهر كعلامات صغيرة في صفحتك — مثلًا: قصة قصيرة، شعر، كتابة إبداعية."
           name="specialties"
           required={firstProfile}
           error={err('specialties')}

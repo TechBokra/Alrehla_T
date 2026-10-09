@@ -269,7 +269,7 @@ function PlanForm({
           <Field label="اسم الباقة" required>
             <TextInput value={form.name} onChange={(e) => set('name', e.target.value)} />
           </Field>
-          <Field label="المدة بالأشهر" required>
+          <Field label="المدة بالأشهر" help="عدد الصناديق — صندوق كل شهر." required>
             <TextInput
               type="number"
               min={1}
@@ -277,7 +277,7 @@ function PlanForm({
               onChange={(e) => set('durationMonths', Number(e.target.value))}
             />
           </Field>
-          <Field label="السعر الإجمالي (ج.م)" required>
+          <Field label="السعر الإجمالي (ج.م)" help="اللي العميل بيدفعه مرة واحدة للمدة كلها، وبيظهر له «إجمالي الدفع»." required>
             <TextInput
               type="number"
               min={0}

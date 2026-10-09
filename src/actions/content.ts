@@ -2,6 +2,7 @@
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
 import { CONTENT_DEFAULTS, CONTENT_FIELDS } from '@/lib/site-content';
@@ -179,9 +180,7 @@ export async function updateSiteSettings(
   });
 
   revalidatePath('/dashboard/admin/content/settings');
-  revalidatePath('/enha-lak/checkout');
-  revalidatePath('/creative-writing/booking/confirm');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -238,7 +237,7 @@ export async function saveSiteImage(params: { key: string; url: string }) {
 
   revalidatePath('/dashboard/admin/content/images');
   revalidatePath('/dashboard/admin/content/settings');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -316,7 +315,7 @@ export async function savePageContent(
   });
 
   // النصوص دي بتظهر في صفحات عامة كتير، فالتحديث على مستوى الموقع كله.
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   revalidatePath('/dashboard/admin/content/pages');
 
   return { ok: true, changed: clean.length };
@@ -396,7 +395,7 @@ export async function saveTestimonial(
   });
 
   revalidatePath('/dashboard/admin/content/testimonials');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -421,6 +420,6 @@ export async function deleteTestimonial(id: string): Promise<TestimonialResult> 
   });
 
   revalidatePath('/dashboard/admin/content/testimonials');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   return { ok: true };
 }

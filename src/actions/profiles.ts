@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/data/domains/auth';
 import { logAuditAction } from '@/lib/audit';
@@ -66,13 +67,12 @@ export async function updateMyProfile(params: {
   revalidatePath('/dashboard/student/profile');
   revalidatePath('/dashboard/instructor/profile');
   revalidatePath('/account');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
 
   // صفحات المدربين العامة مخزَّنة مؤقتًا (تتجدد كل ساعة). الصورة بقت
   // بتظهر فيها، فلازم تتجدد دلوقتي — وإلا المدرب يغيّر صورته ويشوفها في
   // لوحته بس، ويفضل الموقع العام على القديمة لحد ساعة.
-  revalidatePath('/creative-writing/instructors');
-  revalidatePath('/creative-writing/instructors/[id]', 'page');
+  refreshPublicPages();
 
   return { ok: true };
 }
@@ -151,6 +151,6 @@ export async function updateMyPublisherProfile(params: {
 
   revalidatePath('/dashboard/publisher/profile');
   revalidatePath('/dashboard/publisher');
-  revalidatePath('/enha-lak');
+  refreshPublicPages();
   return { ok: true };
 }

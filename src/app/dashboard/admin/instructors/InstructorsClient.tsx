@@ -400,7 +400,7 @@ function AddInstructorForm({
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
         </Field>
-        <Field label="الاسم المعروض للطلاب" name="displayName">
+        <Field label="الاسم المعروض للطلاب" help="الاسم اللي بيظهر في صفحة المدرب وفي الحجز. ممكن يختلف عن الاسم الكامل." name="displayName">
           <TextInput
             placeholder="يُترك فارغًا = نفس الاسم الكامل"
             value={form.displayName}
@@ -417,14 +417,14 @@ function AddInstructorForm({
             }
           />
         </Field>
-        <Field label="التخصصات (مفصولة بفاصلة)" name="specialties">
+        <Field label="التخصصات (مفصولة بفاصلة)" help="بتظهر كعلامات صغيرة في صفحة المدرب — مثلًا: قصة قصيرة، شعر، كتابة إبداعية." name="specialties">
           <TextInput
             placeholder="الكتابة للأطفال، بناء الشخصيات"
             value={form.specialties}
             onChange={(e) => setForm({ ...form, specialties: e.target.value })}
           />
         </Field>
-        <Field label="نظام العمل" name="workModel">
+        <Field label="نظام العمل" help="بالجلسة: المدرب بيحدد حصيلته من الجلسة والموقع بيضيف نسبة المنصة. راتب شهري: اتفاق ثابت بالتزام 60 ساعة في الشهر على الأقل." name="workModel">
           <Select
             value={form.workModel}
             onChange={(e) =>

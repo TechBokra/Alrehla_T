@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
 import { requireAdmin } from '@/lib/auth-guard';
 
@@ -156,7 +157,6 @@ export async function saveWritingPackage(
   });
 
   revalidatePath('/dashboard/admin/writing/packages');
-  revalidatePath('/creative-writing/packages');
-  revalidatePath('/creative-writing/packages/[slug]', 'page');
+  refreshPublicPages();
   return { ok: true as const };
 }

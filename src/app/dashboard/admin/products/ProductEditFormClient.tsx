@@ -64,7 +64,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
         <Field label="اسم المنتج" name="name" required>
           <TextInput defaultValue={product.name} />
         </Field>
-        <Field label="النوع / التصنيف" name="category" required>
+        <Field label="النوع / التصنيف" help="المكتبة: كتاب جاهز والعميل بيخصّص الغلاف بس. قصة مخصصة: القصة بتتعمل من الأول باسم الطفل وصورته («أنت البطل»)." name="category" required>
           <Select value={category} onChange={(e) => setCategory(e.target.value)}>
             {/* ⚠️ **كانت ستة، تلاتة منهم القاعدة بترفضهم.**
                 «كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف

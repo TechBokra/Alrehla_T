@@ -56,7 +56,7 @@ export default async function Page() {
             <Field label="اسم المنتج" name="name" required>
               <TextInput />
             </Field>
-            <Field label="النوع / التصنيف" name="category" required>
+            <Field label="النوع / التصنيف" help="المكتبة: كتاب جاهز والعميل بيخصّص الغلاف بس. قصة مخصصة: القصة بتتعمل من الأول باسم الطفل وصورته." name="category" required>
               <Select>
                 {/* ⚠️ **كانت أربعة، تلاتة منهم القاعدة بترفضهم**
                     («كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف).

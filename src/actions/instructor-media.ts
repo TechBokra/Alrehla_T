@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { requireInstructor, requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
@@ -140,7 +141,7 @@ export async function removeInstructorMedia(formData: FormData): Promise<MediaRe
   revalidatePath('/dashboard/instructor/profile');
   revalidatePath('/dashboard/admin/instructors/review');
   // لو كانت معتمدة، كانت ظاهرة في صفحته العامة.
-  revalidatePath(`/creative-writing/instructors/${instructorId}`);
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -213,7 +214,7 @@ export async function reviewInstructorMedia(formData: FormData): Promise<MediaRe
   revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
   revalidatePath('/dashboard/instructor/profile');
-  revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -272,6 +273,6 @@ export async function revokeInstructorMedia(formData: FormData): Promise<MediaRe
   revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath(`/dashboard/admin/instructors/${data.instructor_id}`);
   revalidatePath('/dashboard/instructor/profile');
-  revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
+  refreshPublicPages();
   return { ok: true };
 }

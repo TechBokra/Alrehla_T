@@ -73,7 +73,7 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
         <Field label="اسم المنتج" name="name" required>
           <TextInput />
         </Field>
-        <Field label="النوع / التصنيف" name="category" required>
+        <Field label="النوع / التصنيف" help="المكتبة: كتاب جاهز والعميل بيخصّص الغلاف بس. قصة مخصصة: القصة بتتعمل من الأول باسم الطفل وصورته («أنت البطل»)." name="category" required>
           <Select value={category} onChange={(e) => setCategory(e.target.value)}>
             {/* ⚠️ **كانت ستة، تلاتة منهم القاعدة بترفضهم.**
                 «كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف
@@ -100,7 +100,7 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
             المالك: {ownerType === 'publisher' ? 'دار نشر (شريك)' : 'المنصة'}
           </p>
           {ownerType === 'publisher' && (
-            <Field label="دار النشر" name="publisherId" required>
+            <Field label="دار النشر" help="المنتج هيتسجّل باسم الدار دي، ونصيبها بيتحسب من كل بيعة." name="publisherId" required>
               <Select defaultValue="">
                 <option value="">-- اختر الناشر --</option>
                 {publishers.map(pub => (

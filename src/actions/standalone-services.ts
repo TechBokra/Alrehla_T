@@ -2,6 +2,7 @@
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
 import { cleanServiceDetails, type ServiceDetailsInput } from '@/lib/service-details';
@@ -111,9 +112,7 @@ export async function createStandaloneService(
   });
 
   revalidatePath('/dashboard/admin/writing/services');
-  revalidatePath('/creative-writing/services');
-  revalidatePath('/creative-writing/services/[serviceId]', 'page');
-  revalidatePath('/creative-writing');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -152,9 +151,7 @@ export async function updateStandaloneService(
   });
 
   revalidatePath('/dashboard/admin/writing/services');
-  revalidatePath('/creative-writing/services');
-  revalidatePath('/creative-writing/services/[serviceId]', 'page');
-  revalidatePath('/creative-writing');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -200,8 +197,6 @@ export async function setStandaloneServiceActive(
   });
 
   revalidatePath('/dashboard/admin/writing/services');
-  revalidatePath('/creative-writing/services');
-  revalidatePath('/creative-writing/services/[serviceId]', 'page');
-  revalidatePath('/creative-writing');
+  refreshPublicPages();
   return { ok: true };
 }

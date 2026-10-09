@@ -92,7 +92,7 @@ function ServiceForm({
               onChange={(e) => set({ price: Number(e.target.value) })}
             />
           </Field>
-          <Field label="نوع السعر">
+          <Field label="نوع السعر" help="سعر ثابت: الكارت بيكتب السعر زي ما هو. يبدأ من: بيتكتب «يبدأ من» قبل السعر — استخدمه لما السعر بيختلف حسب المدرب أو حجم الشغل.">
             <Select
               value={value.priceType}
               onChange={(e) => set({ priceType: e.target.value as ServiceInput['priceType'] })}
@@ -112,7 +112,7 @@ function ServiceForm({
               }
             />
           </Field>
-          <Field label="ترتيب العرض">
+          <Field label="ترتيب العرض" help="الرقم الأصغر بيظهر الأول في صفحة الخدمات. اللي من غير رقم بييجي في الآخر.">
             <TextInput
               type="number"
               value={value.sortOrder ?? ''}

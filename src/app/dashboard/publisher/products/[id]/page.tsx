@@ -73,7 +73,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <Field label="اسم المنتج" name="name" required>
               <TextInput defaultValue={shown.name} />
             </Field>
-            <Field label="النوع / التصنيف" name="category" required>
+            <Field label="النوع / التصنيف" help="المكتبة: كتاب جاهز والعميل بيخصّص الغلاف بس. قصة مخصصة: القصة بتتعمل من الأول باسم الطفل وصورته." name="category" required>
               <Select defaultValue={shown.category}>
                 {/* ⚠️ **كانت أربعة، تلاتة منهم القاعدة بترفضهم**
                     («كتاب» و«لعبة» و«ملحق» مش في النوع المعرَّف).

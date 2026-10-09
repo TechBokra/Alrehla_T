@@ -168,7 +168,7 @@ export function InstructorSettingsClient({
           </div>
 
           <div className="space-y-6">
-            <Field label="نظام العمل" name="workModel" required>
+            <Field label="نظام العمل" help="بالجلسة: إنت بتحدد حصيلتك من كل جلسة والموقع بيضيف نسبة المنصة على سعر العميل. راتب شهري: اتفاق ثابت مع الإدارة بالتزام 60 ساعة في الشهر على الأقل." name="workModel" required>
               <Select value={workModel} onChange={(e) => setWorkModel(e.target.value as any)}>
                 <option value="per_session">بالجلسة (تحديد حصيلة لكل جلسة)</option>
                 <option value="monthly">راتب شهري (يتطلب 60 ساعة التزام على الأقل)</option>

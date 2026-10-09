@@ -2,6 +2,7 @@
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 
@@ -73,8 +74,7 @@ export async function submitServiceReview(params: {
   }
 
   revalidatePath(`/account/orders/creative-writing/${orderId}`);
-  revalidatePath('/creative-writing/instructors');
-  revalidatePath(`/creative-writing/instructors/${order.instructor_id}`);
+  refreshPublicPages();
   revalidatePath('/dashboard/instructor/ratings');
   revalidatePath('/dashboard/admin/reviews');
   return { ok: true };
@@ -129,7 +129,6 @@ export async function setReviewHidden(
   });
 
   revalidatePath('/dashboard/admin/reviews');
-  revalidatePath('/creative-writing/instructors');
-  revalidatePath(`/creative-writing/instructors/${data.instructor_id}`);
+  refreshPublicPages();
   return { ok: true };
 }

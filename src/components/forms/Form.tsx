@@ -22,6 +22,7 @@ import React, { useId } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { useFormState } from './FormContext';
+import { HelpTip } from './HelpTip';
 
 /** شكل الخانة الواحد — لو محتاج تستعمله على عنصر خاص (نادرًا). */
 export const fieldClass =
@@ -37,6 +38,8 @@ type FieldProps = {
   required?: boolean;
   /** سطر مساعدة تحت الخانة. */
   hint?: React.ReactNode;
+  /** شرح بعلامة «؟» جنب العنوان (`HelpTip`) — للشرح اللي محتاجه أول مرة بس. */
+  help?: React.ReactNode;
   /** خطأ من الشاشة نفسها (غير خطأ الخادم). */
   error?: string;
   className?: string;
@@ -44,7 +47,7 @@ type FieldProps = {
   children: React.ReactElement<Record<string, unknown>>;
 };
 
-export function Field({ label, name, required, hint, error, className = '', children }: FieldProps) {
+export function Field({ label, name, required, hint, help, error, className = '', children }: FieldProps) {
   const auto = useId();
   const { errorField, errorMessage } = useFormState();
   const id = (children.props.id as string | undefined) ?? `f${auto}`;
@@ -66,14 +69,18 @@ export function Field({ label, name, required, hint, error, className = '', chil
 
   return (
     <div className={className} data-field={name}>
-      <label htmlFor={id} className="mb-2 block text-sm font-bold text-slate-700">
-        {label}
-        {required && (
-          <span className="mr-1 text-red-500" aria-hidden="true">
-            *
-          </span>
-        )}
-      </label>
+      {/* ⚠️ الـ«؟» **برّه** الـ`label`: زرار جوّه label بيبعت الضغطة للخانة. */}
+      <div className="mb-2 flex items-center">
+        <label htmlFor={id} className="block text-sm font-bold text-slate-700">
+          {label}
+          {required && (
+            <span className="mr-1 text-red-500" aria-hidden="true">
+              *
+            </span>
+          )}
+        </label>
+        {help && <HelpTip text={help} label={typeof label === 'string' ? `شرح: ${label}` : 'شرح'} />}
+      </div>
       {control}
       {hint && (
         <p id={hintId} className="mt-2 text-xs font-medium leading-relaxed text-slate-500">

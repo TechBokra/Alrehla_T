@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
@@ -40,9 +41,7 @@ function writeError(error: { code?: string; message?: string }, fallback: string
 
 function refresh() {
   revalidatePath('/dashboard/admin/products/story-goals');
-  revalidatePath('/enha-lak/custom/[productSlug]', 'page');
-  revalidatePath('/enha-lak/custom-library/[productSlug]', 'page');
-  revalidatePath('/enha-lak/custom-subscription/[tierId]', 'page');
+  refreshPublicPages();
 }
 
 export async function saveStoryGoal(input: {

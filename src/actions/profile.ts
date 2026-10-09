@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/data/domains/auth';
 
@@ -53,6 +54,6 @@ export async function updateMyProfile(fullName: string): Promise<ProfileResult> 
 
   revalidatePath('/account/settings');
   revalidatePath('/account');
-  revalidatePath('/', 'layout');
+  refreshPublicPages();
   return { ok: true };
 }

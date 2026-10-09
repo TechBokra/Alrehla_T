@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
@@ -148,8 +149,7 @@ export async function saveBoxPlan(
   });
 
   revalidatePath('/dashboard/admin/subscriptions/box/plans');
-  revalidatePath('/enha-lak/subscription');
-  revalidatePath('/enha-lak');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -179,6 +179,6 @@ export async function deleteBoxPlan(id: string): Promise<BoxPlanResult> {
   });
 
   revalidatePath('/dashboard/admin/subscriptions/box/plans');
-  revalidatePath('/enha-lak/subscription');
+  refreshPublicPages();
   return { ok: true };
 }

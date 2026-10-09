@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
@@ -53,8 +54,6 @@ export async function saveHeroProductOrder(ids: string[]): Promise<OrderResult> 
   });
 
   revalidatePath('/dashboard/admin/products/hero-order');
-  revalidatePath('/enha-lak/custom');
-  revalidatePath('/enha-lak');
-  revalidatePath('/');
+  refreshPublicPages();
   return { ok: true };
 }

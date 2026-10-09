@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
@@ -99,7 +100,7 @@ export async function saveAddon(params: {
   });
 
   revalidatePath('/dashboard/admin/addons');
-  revalidatePath('/enha-lak/custom');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -132,6 +133,6 @@ export async function setAddonActive(id: string, isActive: boolean): Promise<Add
   });
 
   revalidatePath('/dashboard/admin/addons');
-  revalidatePath('/enha-lak/custom');
+  refreshPublicPages();
   return { ok: true };
 }

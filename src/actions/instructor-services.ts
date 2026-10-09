@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getMyInstructorId } from '@/data/domains/services';
 import { notifyUser, getInstructorUserId } from '@/lib/notifications';
@@ -186,7 +187,7 @@ export async function saveInstructorServiceOffer(params: {
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
-  revalidatePath('/creative-writing/services');
+  refreshPublicPages();
   revalidatePath('/dashboard/instructor/services');
   return { ok: true };
 }
@@ -214,7 +215,7 @@ export async function removeInstructorServiceOffer(
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
-  revalidatePath('/creative-writing/services');
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -410,7 +411,7 @@ export async function setMyOfferActive(
   }
 
   revalidatePath('/dashboard/instructor/services');
-  revalidatePath('/creative-writing/services');
+  refreshPublicPages();
   return { ok: true };
 }
 

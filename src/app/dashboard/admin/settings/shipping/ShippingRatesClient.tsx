@@ -286,7 +286,7 @@ function RateForm({
             onChange={(e) => onChange({ ...value, governorate: e.target.value })}
           />
         </Field>
-        <Field label="المنطقة / المدينة" required>
+        <Field label="المنطقة / المدينة" help="الاسم اللي العميل بيختاره من القايمة في صفحة الدفع. أي منطقة مش مضافة هنا مش هتظهر له." required>
           <TextInput value={value.city} onChange={(e) => onChange({ ...value, city: e.target.value })} />
         </Field>
         <Field label="السعر (ج.م)" required>

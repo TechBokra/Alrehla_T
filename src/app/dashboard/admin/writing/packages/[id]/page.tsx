@@ -49,7 +49,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <Field label="اسم الباقة" name="name" required>
               <TextInput defaultValue={target.name} />
             </Field>
-            <Field label="الفئة العمرية" name="ageGroup" required>
+            <Field label="الفئة العمرية" help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل." name="ageGroup" required>
               <Select defaultValue={target.ageGroup}>
                 <option value="under_12">أقل من 12 سنة</option>
                 <option value="12_plus">12 سنة فأكثر</option>
@@ -70,10 +70,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="الوصف القصير" name="shortDescription" required>
+            <Field label="الوصف القصير" help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها." name="shortDescription" required>
               <TextInput defaultValue={target.shortDescription} />
             </Field>
-            <Field label="الفئة المستهدفة" name="targetAudience" required>
+            <Field label="الفئة المستهدفة" help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»." name="targetAudience" required>
               <TextInput defaultValue={target.targetAudience} />
             </Field>
           </FormSection>
@@ -83,7 +83,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </Field>
 
           <FormSection columns={3}>
-            <Field label="السعر (ج.م)" name="price" required>
+            <Field label="السعر (ج.م)" help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز." name="price" required>
               <TextInput type="number" defaultValue={target.price} />
             </Field>
             <Field label="عدد الجلسات" name="sessionsCount" required>
@@ -103,16 +103,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   دلوقتي الخانة بتفضل فاضية، و`required` بيلزم
                   الإداري يكتبها بوعي. ولوحة الإدارة أصلًا بتعدّ
                   الباقات الناقصة (`packagesMissingDuration`). */}
-            <Field label="مدة الجلسة" name="sessionDuration" required>
+            <Field label="مدة الجلسة" help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»." name="sessionDuration" required>
               <TextInput defaultValue={target.sessionDuration ?? ''} placeholder="مثال: 40 دقيقة" />
             </Field>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="مدة البرنامج الإجمالية (نص)" name="durationText" required>
+            <Field label="مدة البرنامج الإجمالية (نص)" help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»." name="durationText" required>
               <TextInput defaultValue={target.durationText} />
             </Field>
-            <Field label="ملاحظة المتطلبات السابقة" name="prerequisiteNote">
+            <Field label="ملاحظة المتطلبات السابقة" help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة." name="prerequisiteNote">
               <TextInput defaultValue={target.prerequisiteNote} />
             </Field>
           </FormSection>

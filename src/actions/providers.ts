@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
@@ -36,7 +37,7 @@ async function requireProvidersAdmin() {
 
 function revalidateProviders() {
   revalidatePath('/dashboard/admin/providers');
-  revalidatePath('/creative-writing/services');
+  refreshPublicPages();
 }
 
 /** بيانات المقدّم اللي الإدارة بتعدّلها: الاسم والنبذة والحالة. */

@@ -276,7 +276,7 @@ function AddProvider({
               />
             </Field>
           </div>
-          <Field label="نبذة قصيرة تظهر في قايمة الاختيار">
+          <Field label="نبذة قصيرة تظهر في قايمة الاختيار" help="العميل بيشوفها وهو بيختار مين ينفّذ الخدمة — سطر واحد عن خبرته.">
             <TextArea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -402,7 +402,7 @@ function ProviderCard({
             <Field label="نبذة">
               <TextInput value={bio} onChange={(e) => setBio(e.target.value)} placeholder="نبذة" />
             </Field>
-            <Field label="الحالة">
+            <Field label="الحالة" help="مفعّل: بيظهر للعميل ويستقبل طلبات. معلّق أو موقوف: مابيظهرش للعميل ومابيستقبلش طلبات جديدة.">
               <Select value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
                 <option value="active">مفعّل</option>
                 <option value="pending">معلّق</option>

@@ -34,10 +34,10 @@ export function ProductAgeFields({
       </p>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="من سنّ" name="minAge">
+        <Field label="من سنّ" help="أصغر سن مناسب. الكتاب بيظهر تحت فئات السن اللي داخلة في المدى ده في المكتبة." name="minAge">
           <TextInput inputMode="numeric" defaultValue={minAge ?? ''} placeholder="مثلًا ٦" />
         </Field>
-        <Field label="لحد سنّ" name="maxAge">
+        <Field label="لحد سنّ" help="أكبر سن مناسب. سيبه فاضي لو مناسب لأي سن أكبر." name="maxAge">
           <TextInput inputMode="numeric" defaultValue={maxAge ?? ''} placeholder="فاضي = فأكبر" />
         </Field>
       </div>

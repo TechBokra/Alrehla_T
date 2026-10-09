@@ -3,6 +3,7 @@ import { requireAdmin, requireAnyAdmin } from '@/lib/auth-guard';
 
 import { Instructor } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/supabase';
@@ -328,8 +329,7 @@ export async function approveProfileUpdateRequest(
       console.error('Error applying approved avatar', avatarError);
       return fail('تعذّر تطبيق الصورة الشخصية — الطلب لسه معلّق.');
     }
-    revalidatePath('/creative-writing/instructors');
-    revalidatePath('/creative-writing/instructors/[id]', 'page');
+    refreshPublicPages();
   }
 
   update.updated_at = new Date().toISOString();
@@ -556,9 +556,8 @@ export async function setInstructorPackages(
   });
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
-  revalidatePath('/creative-writing/instructors');
+  refreshPublicPages();
   // ⚠️ أهمهم: معالج الحجز هو اللي بيقرا القايمة.
-  revalidatePath('/creative-writing/booking');
 
   const count = (data as { count?: number } | null)?.count ?? clean.length;
   return { ok: true, count };
@@ -624,12 +623,9 @@ export async function setInstructorStatus(
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/instructors');
-  revalidatePath('/creative-writing/instructors');
-  revalidatePath(`/creative-writing/instructors/${instructorId}`);
+  refreshPublicPages();
   // ⚠️ دي أهمهم: معالج الحجز هو اللي بيقرا القايمة، ومن غيرها
   //    المدرب المفعَّل يفضل مخفي عن ولي الأمر لحد ما الصفحة تتبني تاني.
-  revalidatePath('/creative-writing/booking');
-  revalidatePath('/creative-writing/services');
   return { ok: true, status };
 }
 
@@ -697,6 +693,8 @@ export async function updatePricingFormulaSettings(
   });
 
   revalidatePath('/dashboard/admin/settings/creative-writing-pricing');
+  // المعادلة بتغيّر أسعار المدربين اللي ظاهرة للزوّار.
+  refreshPublicPages();
   return { ok: true };
 }
 
@@ -757,7 +755,6 @@ export async function updateInstructorProfileByAdmin(
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/instructors');
-  revalidatePath('/creative-writing/instructors');
-  revalidatePath(`/creative-writing/instructors/${instructorId}`);
+  refreshPublicPages();
   return { ok: true };
 }

@@ -2,6 +2,7 @@
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logAuditAction } from '@/lib/audit';
@@ -225,7 +226,7 @@ export async function createInstructor(params: {
   });
 
   revalidatePath('/dashboard/admin/instructors');
-  revalidatePath('/creative-writing/instructors');
+  refreshPublicPages();
 
   return {
     ok: true,
