@@ -1,2 +1,0 @@
-Deployment trigger for TechBokra/Alrehla_T.
-Last trigger: 2026-10-08 — test deploy after switching commit author to TechBokra.
