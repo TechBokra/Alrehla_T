@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { getPublicInstructors } from '@/data/domains/writing';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 import { fetchAllPages } from '@/lib/fetch-all';
@@ -25,7 +26,9 @@ export async function getStandaloneServices(options?: {
    */
   includeInactive?: boolean;
 }): Promise<CreativeService[]> {
-  const supabase = await createClient();
+  // ⚡ الموقع العام بعميل الزائر (من غير كوكيز) — عشان صفحة الخدمات تتخزّن
+  //    وتتبعت من Vercel على طول بدل ما تتبني مع كل زيارة. الإدارة بالجلسة.
+  const supabase = options?.includeInactive ? await createClient() : createPublicClient();
   // ⚠️ `*` عن قصد: خانات ملف 09 (الصورة والنماذج…) لو اتطلبت بالاسم قبل ما
   //    الملف يتشغّل، الاستعلام كله بيقع ← الصفحة تقول «مفيش خدمات».
   let query = supabase.from('standalone_services').select('*');
@@ -134,7 +137,8 @@ export async function getInstructorServiceOffers(
 export async function getProvidersForService(
   serviceId: string
 ): Promise<ServiceProvider[]> {
-  const supabase = await createClient();
+  // ⚡ بيانات عامة (معتمدة ومفعّلة) — عميل الزائر عشان الصفحات تتخزّن.
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from('provider_services')

@@ -24,6 +24,7 @@ import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { getSiteSettings } from '@/data/domains/content';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
 import { publicIdFromUrl } from '@/lib/cloudinary-admin';
+import { fetchAllPages } from '@/lib/fetch-all';
 
 /**
  * صور المنتج **بالعلامة المائية** للصفحات العامة (قرار تامر، 1 أكتوبر).
@@ -135,12 +136,15 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
     .eq('review_status', 'approved');
   const { data, error } = await query.order('created_at', { ascending: false });
 
-  if (error || !data || data.length === 0) {
-    if (error) {
-      console.error('Error fetching personalized products:', error);
-    }
-    return [];
+  // ⚠️ (مراجعة م. محمد) **عطل القاعدة مش «مفيش منتجات».** كانت بترجّع
+  //    قايمة فاضية — والصفحة المتخزّنة كانت بتتحفظ فاضية ساعة كاملة،
+  //    والعميل يشوف متجر فاضي. دلوقتي بترمي: الصفحة المتخزّنة القديمة
+  //    بتفضل ظاهرة لحد ما القاعدة ترجع، ولو مفيش نسخة صفحة الخطأ بتظهر.
+  if (error) {
+    console.error('Error fetching personalized products:', error);
+    throw new Error('تعذّر تحميل المنتجات');
   }
+  if (!data || data.length === 0) return [];
 
   return Promise.all(data.map(mapProductRow).sort(byDisplayOrder).map(withWatermark));
 };
@@ -183,10 +187,15 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
  */
 export async function getManagedProducts(): Promise<PersonalizedProduct[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('personalized_products')
-    .select('*')
-    .order('created_at', { ascending: false });
+  // على دفعات — Supabase بيقف عند ١٠٠٠ صف من غير رسالة (`lib/fetch-all`).
+  const { data, error } = await fetchAllPages((from, to) =>
+    supabase
+      .from('personalized_products')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
 
   if (error) {
     // ⚠️ بيترمي ولا بيرجّع فاضي: الفاضي هنا بيتقري «مفيش منتجات»،
@@ -194,7 +203,22 @@ export async function getManagedProducts(): Promise<PersonalizedProduct[]> {
     console.error('تعذّر قراءة منتجات اللوحة', error);
     throw new Error('تعذّر تحميل المنتجات');
   }
-  return (data ?? []).map(mapProductRow);
+  return data.map(mapProductRow);
+}
+
+/**
+ * منتج واحد لصفحة التعديل (إدارة أو ناشر) — **بالرقم مباشرة** بدل ما
+ * الصفحة تجيب الكتالوج كله وتدوّر فيه (مراجعة م. محمد). بالجلسة: السياسات
+ * بتقرّر مين يشوفه (الإداري كله، والناشر بتاعه). `null` = مش موجود/مش ليه.
+ */
+export async function getManagedProductById(id: string): Promise<PersonalizedProduct | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('personalized_products').select('*').eq('id', id).maybeSingle();
+  if (error) {
+    console.error('تعذّر قراءة المنتج', error);
+    throw new Error('تعذّر تحميل المنتج');
+  }
+  return data ? mapProductRow(data) : null;
 }
 
 /**
@@ -209,7 +233,8 @@ export async function getManagedProducts(): Promise<PersonalizedProduct[]> {
 export const getAddonProducts = async (
   options: { includeInactive?: boolean } = {},
 ): Promise<AddonProduct[]> => {
-  const supabase = await createClient();
+  // ⚡ المفعّل عام — عميل الزائر عشان «أنت البطل» تتخزّن. الإدارة بالجلسة.
+  const supabase = options.includeInactive ? await createClient() : createPublicClient();
 
   const query = supabase
     .from('addon_products')

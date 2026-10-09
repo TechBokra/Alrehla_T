@@ -96,7 +96,7 @@ export function BookingConfirmClient({
       });
 
       if (!result.ok) {
-        setError(result.error);
+        setError(result.error ?? 'تعذّر إرسال الإيصال');
         return;
       }
 
@@ -110,7 +110,7 @@ export function BookingConfirmClient({
     startTransition(async () => {
       setError('');
       const result = await submitBookingPaymentProof(booking.id, payment);
-      if (!result.success) {
+      if (!result.ok) {
         setError(result.error ?? 'تعذّر إرسال الإيصال');
         return;
       }

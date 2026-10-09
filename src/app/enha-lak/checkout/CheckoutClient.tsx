@@ -186,7 +186,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
           setStep(1);
           return;
         }
-        setOrderError(result.error);
+        setOrderError(result.error ?? 'تعذّر إرسال الإيصال');
         return;
       }
 
@@ -203,7 +203,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
       const result = await submitPaymentProof(placedOrder.id, payment);
       setIsProcessing(false);
 
-      if (!result.success) {
+      if (!result.ok) {
         setOrderError(result.error ?? 'تعذّر إرسال الإيصال');
         return;
       }

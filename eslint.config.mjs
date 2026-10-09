@@ -10,6 +10,8 @@ const compat = new FlatCompat({
 });
 
 export default [
+  // `eslint .` (بدل `next lint` اللي Next وقّفه): ملفات البناء والمكتبات برّه الفحص.
+  { ignores: ['.next/**', 'node_modules/**', 'coverage/**', 'next-env.d.ts'] },
   ...compat.extends('next/core-web-vitals'),
   {
     rules: {

@@ -252,15 +252,15 @@ export async function submitPaymentProof(
   try {
     user = await requireNotDependent('تأكيد الدفع');
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
   }
 
   if (!payment.receiptUrl) {
-    return { success: false, error: 'ارفع صورة إيصال التحويل' };
+    return { ok: false, error: 'ارفع صورة إيصال التحويل' };
   }
   // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
   if (!isValidReceiptRef(payment.receiptUrl)) {
-    return { success: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
+    return { ok: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
   }
 
   const supabase = await createClient();
@@ -273,10 +273,10 @@ export async function submitPaymentProof(
     .maybeSingle();
 
   if (!order || order.user_id !== user.id) {
-    return { success: false, error: 'الطلب غير موجود' };
+    return { ok: false, error: 'الطلب غير موجود' };
   }
   if (order.status !== 'pending') {
-    return { success: false, error: 'تم إرسال إثبات الدفع لهذا الطلب بالفعل' };
+    return { ok: false, error: 'تم إرسال إثبات الدفع لهذا الطلب بالفعل' };
   }
 
   // ⚠️ **دي أخطر `UPDATE` في الملف** (قاعدة «و»).
@@ -306,14 +306,14 @@ export async function submitPaymentProof(
 
   if (!error && (!updated || updated.length === 0)) {
     return {
-      success: false,
+      ok: false,
       error: 'إثبات الدفع مروّحش للطلب. حدّث الصفحة وجرّب تاني، ولو فضلت كلّمنا فورًا.',
     };
   }
 
   if (error) {
     console.error('Error submitting payment proof:', error);
-    return { success: false, error: 'تعذّر إرسال إثبات الدفع' };
+    return { ok: false, error: 'تعذّر إرسال إثبات الدفع' };
   }
 
   await logAuditAction({
@@ -338,7 +338,7 @@ export async function submitPaymentProof(
   revalidatePath(`/account/orders/${orderId}`);
   revalidatePath('/dashboard/admin/orders');
 
-  return { success: true };
+  return { ok: true };
 }
 
 export async function confirmOrderPayment(orderId: string) {
@@ -353,7 +353,7 @@ export async function confirmOrderPayment(orderId: string) {
     );
   } catch (err) {
     return {
-      success: false,
+      ok: false,
       error: err instanceof Error ? err.message : 'غير مصرح لك بتأكيد الدفع',
     };
   }
@@ -369,11 +369,11 @@ export async function confirmOrderPayment(orderId: string) {
 
   if (error) {
     console.error('Error confirming payment:', error);
-    return { success: false, error: 'تعذّر تأكيد الدفع — جرّب تاني.' };
+    return { ok: false, error: 'تعذّر تأكيد الدفع — جرّب تاني.' };
   }
 
   // ⚠️ قاعدة (و): `UPDATE` على صف مش موجود بينجح **بصفر صفوف وبلا
-  //    خطأ**. والدالة دي كانت بترجّع `{ success: true }` على طول —
+  //    خطأ**. والدالة دي كانت بترجّع `{ ok: true }` على طول —
   //    يعني الإداري يشوف «تم» على **طلب ما اتغيّرش**، ويفتكر إن الفلوس
   //    اتأكدت والطلب داخل التنفيذ.
   //
@@ -381,7 +381,7 @@ export async function confirmOrderPayment(orderId: string) {
   //    مايتأكدش تاني بالغلط.
   if (!updated) {
     return {
-      success: false,
+      ok: false,
       error: 'الطلب مش موجود أو حالته اتغيّرت — حدّث الصفحة وشوفها.',
     };
   }
@@ -398,5 +398,5 @@ export async function confirmOrderPayment(orderId: string) {
   revalidatePath('/enha-lak/checkout');
   revalidatePath('/account/orders/enha-lak');
   revalidatePath('/dashboard/admin/orders');
-  return { success: true };
+  return { ok: true };
 }

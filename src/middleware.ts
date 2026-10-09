@@ -35,6 +35,16 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // ⚠️ **التحويل بياخد الكوكيز المتجدّدة معاه** (ملاحظة م. محمد): لو
+  //    `getUser` جدّد الجلسة، الكوكيز الجديدة بتتحط على `supabaseResponse`
+  //    بس. التحويل كان بيرجّع رد تاني من غيرها — فالمتصفح يفضل بالكوكي
+  //    القديم المنتهي، والزيارة الجاية تطلب دخول تاني.
+  const redirectTo = (url: URL) => {
+    const res = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => res.cookies.set(cookie));
+    return res;
+  };
+
   let role: UserRole = 'visitor';
   let isAuthenticated = !!user;
 
@@ -70,7 +80,7 @@ export async function middleware(request: NextRequest) {
   //    فيها، فالمستخدم مايقدرش يشيلها من المتصفح ويعدّي الحاجز.
   if (isAuthenticated && needsPasswordSetup(user)) {
     if (pathname !== SET_PASSWORD_PATH) {
-      return NextResponse.redirect(new URL(SET_PASSWORD_PATH, request.url));
+      return redirectTo(new URL(SET_PASSWORD_PATH, request.url));
     }
     return supabaseResponse;
   }
@@ -96,10 +106,10 @@ export async function middleware(request: NextRequest) {
       // بدل ما يتوه في لوحة عامة.
       const signInUrl = new URL('/sign-in', request.url);
       signInUrl.searchParams.set('next', pathname + request.nextUrl.search);
-      return NextResponse.redirect(signInUrl);
+      return redirectTo(signInUrl);
     }
     if (allowedRoles && !allowedRoles.includes(role)) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return redirectTo(new URL('/dashboard', request.url));
     }
     return null;
   };
@@ -125,7 +135,7 @@ export async function middleware(request: NextRequest) {
     const redirectResponse = requireAuth();
     if (redirectResponse) return redirectResponse;
     if (role === 'visitor') {
-      return NextResponse.redirect(new URL('/sign-in', request.url));
+      return redirectTo(new URL('/sign-in', request.url));
     }
 
     // ⚠️ حساب الطالب التابع **مالوش مكان هنا.**
@@ -142,7 +152,7 @@ export async function middleware(request: NextRequest) {
     // طلبه هو — فالطالب كان بيشوف **طلباته هو** تحت عنوان «طلبات
     // الأبناء» ونص بيخاطبه كأنه الأب: «لما ابنك يطلب…».
     if (role === 'student') {
-      return NextResponse.redirect(new URL('/dashboard/student', request.url));
+      return redirectTo(new URL('/dashboard/student', request.url));
     }
   }
 

@@ -5,7 +5,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getCurrentUser } from '@/data/domains/auth';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getMediaUsage, SCANNED_COLUMNS } from '@/data/domains/media';
+import { getMediaScan, SCANNED_TABLES } from '@/data/domains/media';
 import {
   FOLDER,
   isCloudinaryAdminConfigured,
@@ -42,10 +42,11 @@ export default async function Page() {
 
   const ready = isCloudinaryAdminConfigured();
 
-  const [listed, usage] = await Promise.all([
+  const [listed, scan] = await Promise.all([
     ready ? listFolderAssets() : Promise.resolve(null),
-    getMediaUsage(),
+    getMediaScan(),
   ]);
+  const usage = scan.usage;
 
   const assets = listed?.ok ? listed.data.assets : [];
   const used = assets.filter((a) => usage.has(a.publicId));
@@ -58,7 +59,8 @@ export default async function Page() {
   // ⚠️ لو أكتر من نص الصور بانت بلا رابط، الأرجح إن القاعدة هي اللي
   //    فاضية أو ناقصة (زي بعد إعادة البناء يوم 2 أكتوبر 2026) — مش إن
   //    الصور زبالة. الحذف بيتقفل لحد ما الصور ترجع لأماكنها.
-  const deleteLocked = assets.length > 0 && orphans.length > assets.length / 2;
+  // فحص ناقص (جدول ماتقراش) = الحذف مقفول خالص — زي الخادم بالظبط.
+  const deleteLocked = !scan.complete || (assets.length > 0 && orphans.length > assets.length / 2);
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
@@ -137,15 +139,20 @@ export default async function Page() {
           اقرا ده قبل ما نفتح الحذف
         </h2>
         <p className="mb-4 text-sm leading-relaxed font-medium text-amber-900">
-          «مالهاش رابط» استنتاج مش حقيقة: بنقارن صور المجلّد بالأعمدة المكتوبة
-          تحت. <strong>أي عمود ناقص معناه صورة شغّالة بتبان مهجورة</strong> —
-          والحذف مالوش تراجع. لو صورة إنت شايفها في الموقع ظاهرة في قايمة
-          «مالهاش رابط»، قول قبل ما نكمّل.
+          «مالهاش رابط» استنتاج مش حقيقة: بنقرا كل صف في الجداول دي ونطلّع أي
+          رابط صورة من أي خانة فيه. <strong>لو أي جدول ماتقراش، الحذف بيتقفل
+          لوحده.</strong> ولو صورة إنت شايفها في الموقع ظاهرة في «مالهاش رابط»،
+          قول قبل ما تحذف — الحذف نهائي.
         </p>
+        {!scan.complete && (
+          <p className="mb-4 rounded-xl bg-rose-100 p-3 text-sm font-bold text-rose-900">
+            الفحص ماخلصش ({scan.failed.join('، ')}) — الحذف مقفول لحد ما يكمل.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
-          {SCANNED_COLUMNS.map((entry) => (
+          {SCANNED_TABLES.map((entry) => (
             <span
-              key={`${entry.table}.${entry.column}`}
+              key={entry.table}
               className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-amber-900"
             >
               {entry.label}

@@ -23,6 +23,15 @@ import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
 import { electronicAvailable } from '@/lib/item-format';
 
+/**
+ * ⚡ الصفحة بتتبني أول ما حد يفتحها، وبعدين **بتتخزّن** وتتبعت جاهزة من
+ *    Vercel (~٠٫١ ثانية بدل ~٠٫٨). من غير الدالة دي كانت بتتبني من الأول مع
+ *    كل زيارة — وده أكتر رابط بيتبعت على واتساب. التعديل من اللوحة بيجدّدها.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

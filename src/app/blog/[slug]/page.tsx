@@ -16,6 +16,15 @@ import { articleSchema, breadcrumbSchema } from '@/lib/structured-data';
 import { getSiteSettings } from '@/data/domains/content';
 import { ShareSection } from '@/components/share/ShareSection';
 
+/**
+ * ⚡ الصفحة بتتبني أول ما حد يفتحها، وبعدين **بتتخزّن** وتتبعت جاهزة من
+ *    Vercel (~٠٫١ ثانية بدل ~٠٫٨). من غير الدالة دي كانت بتتبني من الأول مع
+ *    كل زيارة — وده أكتر رابط بيتبعت على واتساب. التعديل من اللوحة بيجدّدها.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;

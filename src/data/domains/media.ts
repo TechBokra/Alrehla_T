@@ -1,90 +1,106 @@
-import { createClient } from '@/lib/supabase/server';
+import 'server-only';
+import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { publicIdFromUrl } from '@/lib/cloudinary-admin';
+import { fetchAllPages } from '@/lib/fetch-all';
 
 /**
- * كل رابط صورة مستخدَم في القاعدة، وفين بالظبط.
+ * كل صورة مستخدَمة في القاعدة، وفين بالظبط.
  *
- * ── ليه القايمة مكتوبة بالإيد ───────────────────────────────
+ * ⚠️ **أي مكان ناقص = صورة شغّالة هتبان «مهجورة»، والحذف مالوش تراجع.**
  *
- * ⚠️ **أي عمود ناقص من القايمة دي = صورة شغّالة هتبان «مهجورة».**
- *    والحذف مالوش تراجع — فالقايمة دي هي خط الدفاع الوحيد.
+ * ── اللي اتغيّر (مراجعة م. محمد — أولوية عالية) ──────────────────
  *
- * فبتتعرض **في الشاشة نفسها** عشان الإدارة تقدر تراجعها: لو صورة
- * إنت شايفها في الموقع بتظهر هنا كمهجورة، يبقى في عمود ناقص —
- * قول قبل ما تحذف.
+ * كانت قايمة **أعمدة** مكتوبة بالإيد، وكانت ناقصة: صور معرض المنتجات
+ * (`gallery_image_urls`)، وصور المدربين (`instructor_media`)، وصور الإضافات
+ * والخدمات، والصور جوه نص المقالات، ومسودّات الناشرين. وكان بيكمّل لو
+ * جدول فشل، ويقرا بجلسة الإداري (والصفوف الممنوعة بترجع فاضية من غير خطأ).
  *
- * ⚠️ **والمطابقة برقم الصورة لا بالرابط.** نفس الصورة ليها روابط
- *    كتير بمقاسات وقصّات مختلفة (صورة الهيرو وحدها ليها تلاتة).
- *    المطابقة بالرابط الكامل كانت هتقول إن كل نسخة صورة مختلفة.
+ * دلوقتي:
+ *   • **بنقرا الصف كله** في كل جدول ممكن يكون فيه صورة، ونطلّع أي رابط
+ *     Cloudinary من أي خانة (نص، قايمة، JSON) — عمود جديد مابيتنسيش.
+ *   • **بمفتاح الخدمة** وعلى دفعات (من غير حد الـ١٠٠٠ صف).
+ *   • **لو أي جدول فشل، الفحص «ناقص»** — والحذف بيتقفل خالص.
+ *
+ * ⚠️ والمطابقة برقم الصورة لا بالرابط: نفس الصورة ليها روابط بمقاسات كتير.
  */
-export const SCANNED_COLUMNS: { table: string; column: string; label: string }[] = [
-  { table: 'site_settings', column: 'value', label: 'صور الموقع (الإعدادات)' },
-  { table: 'personalized_products', column: 'cover_image_url', label: 'أغلفة المنتجات' },
-  { table: 'blog_posts', column: 'cover_image_url', label: 'صور المدونة' },
-  { table: 'box_subscription_plans', column: 'image_url', label: 'خطط صندوق الرحلة' },
-  { table: 'publishers', column: 'logo_url', label: 'شعارات الناشرين' },
-  { table: 'user_profiles', column: 'avatar_url', label: 'صور الحسابات' },
-  { table: 'child_profiles', column: 'avatar_url', label: 'صور الأطفال' },
-  { table: 'service_providers', column: 'avatar_url', label: 'صور مقدّمي الخدمة' },
-  { table: 'orders', column: 'payment_receipt_url', label: 'إيصالات طلبات المتجر' },
-  { table: 'course_subscriptions', column: 'payment_receipt_url', label: 'إيصالات الباقات' },
-  { table: 'service_orders', column: 'payment_receipt_url', label: 'إيصالات الخدمات' },
-  { table: 'session_attachments', column: 'file_url', label: 'مرفقات الجلسات' },
-  { table: 'join_requests', column: 'portfolio_url', label: 'أعمال طلبات الانضمام' },
+export const SCANNED_TABLES: { table: string; label: string }[] = [
+  { table: 'site_settings', label: 'صور الموقع والإعدادات' },
+  { table: 'page_content', label: 'نصوص الصفحات' },
+  { table: 'personalized_products', label: 'المنتجات (الغلاف والمعرض والمسودّات)' },
+  { table: 'addon_products', label: 'الإضافات' },
+  { table: 'standalone_services', label: 'الخدمات الإبداعية' },
+  { table: 'blog_posts', label: 'المدونة (الغلاف وصور المقال)' },
+  { table: 'box_subscription_plans', label: 'خطط صندوق الرحلة' },
+  { table: 'box_subscriptions', label: 'اشتراكات الصندوق' },
+  { table: 'publishers', label: 'الناشرين' },
+  { table: 'user_profiles', label: 'صور الحسابات' },
+  { table: 'child_profiles', label: 'صور الأطفال' },
+  { table: 'service_providers', label: 'مقدّمي الخدمة' },
+  { table: 'instructor_media', label: 'صور المدربين وأعمالهم' },
+  { table: 'profile_update_requests', label: 'طلبات تعديل ملفات المدربين' },
+  { table: 'testimonials', label: 'آراء العملاء' },
+  { table: 'orders', label: 'طلبات المتجر' },
+  { table: 'order_items', label: 'تخصيص الطلبات' },
+  { table: 'course_subscriptions', label: 'حجوزات الباقات' },
+  { table: 'service_orders', label: 'طلبات الخدمات' },
+  { table: 'service_order_messages', label: 'رسايل طلبات الخدمات' },
+  { table: 'session_attachments', label: 'مرفقات الجلسات' },
+  { table: 'portfolio_documents', label: 'محافظ الطلاب' },
+  { table: 'join_requests', label: 'طلبات الانضمام' },
 ];
 
 export type MediaUsage = Map<string, string[]>;
 
-/**
- * خريطة: رقم الصورة ← أماكن استخدامها.
- *
- * ⚠️ **بتقرا بمفتاح الخدمة عن قصد.** الصور بتتخزّن في جداول
- *    صلاحياتها مختلفة (إيصال دفع، صورة طفل)، ولو قرينا بجلسة
- *    الإداري، أي جدول مالوش سياسة قراءة له هيرجع فاضي — وصوره
- *    **تبان مهجورة** (قاعدة «ك»: الصفوف الممنوعة بترجع فاضية لا
- *    بتديك خطأ). والفاضي هنا معناه حذف.
- */
-export async function getMediaUsage(): Promise<MediaUsage> {
-  const supabase = await createClient();
-  const usage: MediaUsage = new Map();
+export type MediaScan = {
+  usage: MediaUsage;
+  /** كل الجداول اتقرت بالكامل. لو `false` **الحذف ممنوع**. */
+  complete: boolean;
+  /** الجداول اللي ماتقرتش (للعرض في الشاشة). */
+  failed: string[];
+};
 
-  const note = (url: unknown, label: string) => {
-    if (typeof url !== 'string') return;
-    const id = publicIdFromUrl(url);
-    if (!id) return;
+const CLOUDINARY_URL = /https?:\/\/res\.cloudinary\.com\/[^\s"'()<>\\]+/g;
+
+/** أرقام صور Cloudinary في أي قيمة (صف كامل، JSON، نص مقال، قايمة). */
+export function cloudinaryIdsIn(value: unknown): string[] {
+  const ids = (JSON.stringify(value ?? null).match(CLOUDINARY_URL) ?? [])
+    .map((u) => publicIdFromUrl(u))
+    .filter((id): id is string => Boolean(id));
+  return [...new Set(ids)];
+}
+
+/** كل الصور المستخدَمة + هل الفحص كامل. */
+export async function getMediaScan(): Promise<MediaScan> {
+  const usage: MediaUsage = new Map();
+  if (!isAdminApiConfigured()) {
+    return { usage, complete: false, failed: ['مفتاح الخدمة مش متظبط على الخادم'] };
+  }
+  const supabase = createAdminClient();
+  const failed: string[] = [];
+
+  const note = (id: string, label: string) => {
     const places = usage.get(id) ?? [];
     if (!places.includes(label)) places.push(label);
     usage.set(id, places);
   };
 
-  for (const entry of SCANNED_COLUMNS) {
-    // `site_settings` عمود JSON فيه خانات الصور — بيتعامل معاه
-    // بشكل مختلف عن باقي الأعمدة النصّية.
-    if (entry.table === 'site_settings') {
-      const { data } = await supabase.from('site_settings').select('value');
-      for (const row of data ?? []) {
-        const images = (row.value as { images?: Record<string, unknown> })?.images ?? {};
-        for (const value of Object.values(images)) note(value, entry.label);
-      }
-      continue;
-    }
-
-    const { data, error } = await supabase
-      .from(entry.table as 'orders')
-      .select(entry.column);
-
+  for (const { table, label } of SCANNED_TABLES) {
+    const { data, error } = await fetchAllPages((from, to) =>
+      supabase
+        .from(table as 'orders')
+        .select('*')
+        .range(from, to),
+    );
     if (error) {
-      // ⚠️ جدول ما اتقريش = صوره هتبان مهجورة. بنسجّله بصوت عالي.
-      console.error('Media scan failed for', entry.table, error);
+      // ⚠️ جدول ما اتقريش = صوره هتبان مهجورة ← الفحص ناقص والحذف مقفول.
+      console.error('Media scan failed for', table, error);
+      failed.push(label);
       continue;
     }
-
-    for (const row of data ?? []) {
-      // ⚠️ الجدول والعمود متغيّران، فالنوع المشتقّ مش دقيق هنا —
-      //    بنقرا القيمة كمجهولة والفحص الحقيقي في `note` نفسها.
-      note((row as unknown as Record<string, unknown>)[entry.column], entry.label);
+    for (const row of data) {
+      for (const id of cloudinaryIdsIn(row)) note(id, label);
     }
   }
 
-  return usage;
+  return { usage, complete: failed.length === 0, failed };
 }

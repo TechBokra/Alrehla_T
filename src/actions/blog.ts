@@ -125,6 +125,8 @@ export async function saveBlogPost(id: string | null, input: BlogPostInput): Pro
   revalidatePath('/dashboard/admin/content/blog');
   revalidatePath('/blog');
   revalidatePath(`/blog/${data.slug}`);
+  // والرابط القديم لو العنوان اتغيّر.
+  revalidatePath('/blog/[slug]', 'page');
   return { ok: true, id: data.id };
 }
 
@@ -150,5 +152,7 @@ export async function deleteBlogPost(id: string): Promise<{ ok: false; error: st
 
   revalidatePath('/dashboard/admin/content/blog');
   revalidatePath('/blog');
+  // صفحات المقالات بقت بتتخزّن — المقال الممسوح مايفضلش ظاهر من الذاكرة.
+  revalidatePath('/blog/[slug]', 'page');
   redirect('/dashboard/admin/content/blog');
 }

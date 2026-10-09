@@ -46,21 +46,26 @@ type FieldProps = {
 
 export function Field({ label, name, required, hint, error, className = '', children }: FieldProps) {
   const auto = useId();
-  const { errorField } = useFormState();
+  const { errorField, errorMessage } = useFormState();
   const id = (children.props.id as string | undefined) ?? `f${auto}`;
   const hintId = hint ? `${id}-hint` : undefined;
-  const invalid = Boolean(error) || (name !== undefined && errorField === name);
+  // ⚠️ (مراجعة م. محمد) خطأ الخادم على الخانة دي بيظهر **تحتها** لوحده —
+  //    كانت بتتلوّن أحمر بس والرسالة فوق النموذج، فالمستخدم مش عارف ليه.
+  const serverError = name !== undefined && errorField === name ? errorMessage : undefined;
+  const shownError = error || serverError;
+  const errorId = shownError ? `${id}-error` : undefined;
+  const invalid = Boolean(shownError) || (name !== undefined && errorField === name);
 
   const control = React.cloneElement(children, {
     id,
     ...(name !== undefined && children.props.name === undefined ? { name } : {}),
     ...(required ? { required: true } : {}),
-    'aria-describedby': hintId,
+    'aria-describedby': [hintId, errorId].filter(Boolean).join(' ') || undefined,
     'aria-invalid': invalid || undefined,
   });
 
   return (
-    <div className={className}>
+    <div className={className} data-field={name}>
       <label htmlFor={id} className="mb-2 block text-sm font-bold text-slate-700">
         {label}
         {required && (
@@ -75,7 +80,11 @@ export function Field({ label, name, required, hint, error, className = '', chil
           {hint}
         </p>
       )}
-      {error && <p className="mt-2 text-xs font-bold text-red-600">{error}</p>}
+      {shownError && (
+        <p id={errorId} className="mt-2 text-xs font-bold text-red-600">
+          {shownError}
+        </p>
+      )}
     </div>
   );
 }

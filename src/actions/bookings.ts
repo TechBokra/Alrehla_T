@@ -183,16 +183,16 @@ export async function submitBookingPaymentProof(
   const user = await getCurrentUser();
 
   if (user.role === 'visitor') {
-    return { success: false, error: 'لازم تسجّل الدخول الأول' };
+    return { ok: false, error: 'لازم تسجّل الدخول الأول' };
   }
 
   if (await getDependentGuardian()) {
-    return { success: false, error: 'تأكيد الدفع بيتم من حساب ولي أمرك.' };
+    return { ok: false, error: 'تأكيد الدفع بيتم من حساب ولي أمرك.' };
   }
 
   // مرجع إيصال خاص بتاعنا بس — مش أي رابط من المتصفح (`lib/receipt-ref`).
   if (!isValidReceiptRef(payment.receiptUrl)) {
-    return { success: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
+    return { ok: false, error: 'الإيصال ما اترفعش صح — ارفعه تاني.' };
   }
 
   const { data: sub } = await supabase
@@ -202,7 +202,7 @@ export async function submitBookingPaymentProof(
     .single();
 
   if (!sub || sub.user_id !== user.id) {
-    return { success: false, error: 'الحجز ده مش على حسابك' };
+    return { ok: false, error: 'الحجز ده مش على حسابك' };
   }
   
   // إثبات الدفع كان بيترمي هنا بالكامل: الحالة بتتغيّر ومفيش مرجع ولا
@@ -220,12 +220,12 @@ export async function submitBookingPaymentProof(
 
   if (error) {
     console.error('Error submitting payment proof:', error);
-    return { success: false, error: `تعذّر إرسال الإيصال: ${error.message}` };
+    return { ok: false, error: `تعذّر إرسال الإيصال: ${error.message}` };
   }
   // صفر صفوف = رفض صامت من صلاحيات القاعدة. من غير الفحص ده العميل
   // بيشوف «اتبعت» ويستنى مراجعة مش هتيجي، والإدارة مش شايفة أي إيصال.
   if (!saved || saved.length === 0) {
-    return { success: false, error: 'الإيصال مروّحش للقاعدة — جرّب تاني أو كلّم الدعم.' };
+    return { ok: false, error: 'الإيصال مروّحش للقاعدة — جرّب تاني أو كلّم الدعم.' };
   }
 
   await notifyAdmins({
@@ -242,7 +242,7 @@ export async function submitBookingPaymentProof(
   revalidatePath('/dashboard/instructor/sessions');
   revalidatePath('/dashboard/student/sessions');
 
-  return { success: true };
+  return { ok: true };
 }
 
 /**
@@ -390,7 +390,7 @@ export async function confirmBookingPayment(subscriptionId: string) {
   // بتمر على نظام الصلاحيات. يعني تعديل صلاحيات حساب ما كانش بيأثر هنا.
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageBookings')) {
-    return { success: false, error: 'غير مصرح لك بتأكيد الحجوزات' };
+    return { ok: false, error: 'غير مصرح لك بتأكيد الحجوزات' };
   }
 
   const supabase = await createClient();
@@ -404,7 +404,7 @@ export async function confirmBookingPayment(subscriptionId: string) {
 
   if (error || !updated) {
     console.error('Error confirming payment:', error);
-    return { success: false, error: error?.message ?? 'الاشتراك مش موجود' };
+    return { ok: false, error: error?.message ?? 'الاشتراك مش موجود' };
   }
 
   // ---------- توليد الجلسات ----------
@@ -452,7 +452,7 @@ export async function confirmBookingPayment(subscriptionId: string) {
   revalidatePath('/dashboard/instructor/sessions');
   revalidatePath('/dashboard/student/sessions');
 
-  return { success: true, sessionsCreated };
+  return { ok: true, sessionsCreated };
 }
 
 

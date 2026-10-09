@@ -51,6 +51,8 @@ export function ActionForm({
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<string | undefined>();
+  // الرسالة اللي على خانة — `Field` بيعرضها تحت الخانة نفسها.
+  const [fieldMessage, setFieldMessage] = useState('');
   const [notice, setNotice] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
   // ⚠️ **قفل فوري ضد الضغطتين.** `busy` و`fieldset disabled` بيتطبّقوا
@@ -65,11 +67,18 @@ export function ActionForm({
     startTransition(async () => {
       setError('');
       setErrorField(undefined);
+      setFieldMessage('');
       setNotice('');
       try {
         const result = await action(formData);
         if (result && result.ok === false) {
-          setError(result.error);
+          // خانة موجودة في النموذج ← الرسالة تحتها. مفيش ← فوق النموذج زي الأول
+          // (عشان الرسالة ماتضيعش لو اسم الخانة مش متوصّل بـ`Field`).
+          const onField =
+            result.field &&
+            formRef.current?.querySelector(`[data-field="${CSS.escape(result.field)}"]`);
+          setError(onField ? '' : result.error);
+          setFieldMessage(onField ? result.error : '');
           setErrorField(result.field);
           // المؤشر على الخانة الغلط — من غير ما يدوّر عليها في نموذج طويل.
           if (result.field) {
@@ -127,7 +136,7 @@ export function ActionForm({
   };
 
   return (
-    <FormStateContext.Provider value={{ busy, errorField }}>
+    <FormStateContext.Provider value={{ busy, errorField, errorMessage: fieldMessage }}>
       <form ref={formRef} onSubmit={onSubmit} className={className}>
         <FormError message={error} />
         {notice && (

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 
 /**
  * Ratings left by customers.
@@ -110,7 +111,8 @@ export async function getInstructorRatingSummaries(
   const summaries = new Map<string, RatingSummary>();
   if (instructorIds.length === 0) return summaries;
 
-  const supabase = await createClient();
+  // ⚡ التقييمات الظاهرة عامة — عميل الزائر عشان صفحة المدربين تتخزّن.
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from('reviews')
     .select('instructor_id, rating')

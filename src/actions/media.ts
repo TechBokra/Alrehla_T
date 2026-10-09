@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
-import { getMediaUsage } from '@/data/domains/media';
+import { getMediaScan } from '@/data/domains/media';
 import {
   deleteAssets,
   FOLDER,
@@ -126,7 +126,16 @@ export async function deleteUnusedMedia(
   }
 
   // ── الفحص من جديد ────────────────────────────────────────
-  const usage = await getMediaUsage();
+  const scan = await getMediaScan();
+  // ⚠️ (مراجعة م. محمد) **فحص ناقص = مفيش حذف.** جدول ماتقراش معناه إن
+  //    صوره هتبان «مش مستخدمة» وهي شغّالة.
+  if (!scan.complete) {
+    return {
+      ok: false,
+      error: `الحذف مقفول: فحص أماكن الصور ماخلصش (${scan.failed.join('، ')}). جرّب تاني بعد شوية.`,
+    };
+  }
+  const usage = scan.usage;
 
   // ⚠️ نفس قفل الشاشة، هنا في الخادم: لو أكتر من نص صور المجلّد بلا
   //    رابط، الأرجح إن القاعدة فاضية أو ناقصة — مش إن الصور مهجورة.

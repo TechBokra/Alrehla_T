@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getManagedProducts, getPublishers } from '@/data/domains/products';
+import { getManagedProductById, getPublishers } from '@/data/domains/products';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
 import { ProductEditFormClient } from '../ProductEditFormClient';
 import { ProductStateToggle } from '../ProductStateToggle';
@@ -19,8 +19,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   const { id } = await params;
-  const allProducts = await getManagedProducts();
-  const target = allProducts.find(p => p.id === id);
+  const target = await getManagedProductById(id);
   // مفيش سجل بالرقم ده: بنعرض صفحة «غير موجود».
   // كان مكتوب هنا «ولا هات أول واحد في القايمة» — يعني اللي بيفتح
   // رقم مش موجود كان بيشوف سجل حد تاني وهو فاكر إنه بتاعه.

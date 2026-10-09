@@ -30,7 +30,7 @@ export function PayExistingOrder(props: {
           start(async () => {
             setError('');
             const r = await submitPaymentProof(props.orderId, payment);
-            if (!r.success) {
+            if (!r.ok) {
               setError(r.error ?? 'تعذّر إرسال الإيصال');
               return;
             }
