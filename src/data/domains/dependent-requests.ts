@@ -11,7 +11,7 @@ export type DependentRequestRow = {
   id: string;
   childProfileId: string;
   childName: string;
-  kind: 'service' | 'package' | 'name_change';
+  kind: 'service' | 'package' | 'name_change' | 'product';
   /** اسم المطلوب: الباقة أو الخدمة، أو الاسم الجديد لطلب تغيير الاسم. */
   targetName: string;
   /** الاسم اللي الطفل طلبه — لطلبات `name_change` وبس (ملف SQL 93). */
@@ -33,10 +33,12 @@ function map(rows: unknown[]): DependentRequestRow[] {
     childProfileId: row.child_profile_id,
     childName: row.child_profiles?.full_name ?? 'فرد العائلة',
     kind:
-      row.kind === 'package' || row.kind === 'name_change' ? row.kind : 'service',
+      row.kind === 'package' || row.kind === 'name_change' || row.kind === 'product' ? row.kind : 'service',
     targetName:
       row.kind === 'name_change'
         ? (row.requested_name ?? 'اسم جديد')
+        : row.kind === 'product'
+          ? (row.personalized_products?.name ?? 'قصة مابقتش معروضة')
         : row.kind === 'package'
           ? (row.creative_writing_packages?.name ?? 'باقة محذوفة')
           : (row.standalone_services?.name ?? 'خدمة محذوفة'),
@@ -53,10 +55,11 @@ function map(rows: unknown[]): DependentRequestRow[] {
 /** كل الطلبات اللي الداخل دلوقتي مسموح له يشوفها. */
 export async function getDependentRequests(): Promise<DependentRequestRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('dependent_requests')
-    .select(SELECT)
-    .order('created_at', { ascending: false });
+  // ملف 16 ضاف «قصة» (`product_id`). قبله العمود مش موجود — فبنرجع للقديم.
+  const run = (cols: string) =>
+    supabase.from('dependent_requests').select(cols).order('created_at', { ascending: false });
+  let { data, error } = await run(`${SELECT}, product_id, personalized_products(name)`);
+  if (error) ({ data, error } = await run(SELECT));
 
   if (error || !data) {
     if (error) console.error('Error loading dependent requests', error);

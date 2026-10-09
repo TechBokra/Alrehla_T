@@ -1,3 +1,6 @@
+import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { getMySessionChange } from '@/data/domains/session-change-requests';
+import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getSessions, getPublicInstructorById } from '@/data/domains/writing';
 import { notFound, redirect } from 'next/navigation';
@@ -29,6 +32,7 @@ export default async function StudentSessionPage({
   const sessions = await getSessions();
   const session = sessions.find((s) => s.id === id);
   if (!session) notFound();
+  const change = await getMySessionChange(session.id);
 
   // ⚠️ **كانت `getInstructorById` — وهي `select('*')`.**
   //
@@ -77,21 +81,24 @@ export default async function StudentSessionPage({
             </div>
           </div>
           
-          {session.meetingUrl ? (
-            <a
-              href={session.meetingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full rounded-xl bg-indigo-600 px-8 py-4 text-center font-black text-white shadow-lg transition-transform hover:scale-105 active:scale-95 md:w-auto"
-            >
-              دخول الجلسة
-            </a>
-          ) : (
+          {session.status === 'cancelled' ? (
             <span className="w-full rounded-xl bg-white/70 px-8 py-4 text-center font-bold text-indigo-700 md:w-auto">
-              رابط الجلسة لم يُضَف بعد
+              الجلسة دي اتلغت
             </span>
+          ) : (
+            <SessionJoinButton
+              sessionId={session.id}
+              meetingUrl={session.meetingUrl}
+              label="دخول الجلسة"
+              className="w-full md:w-auto"
+            />
           )}
         </div>
+
+        {/* ⭐ (#LQMO) طلب موعد تاني — الإدارة بتوافق. */}
+        {session.status !== 'cancelled' && session.status !== 'completed' && new Date(session.scheduledAt).getTime() > Date.now() && (
+          <SessionChangeRequest sessionId={session.id} existing={change} />
+        )}
 
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex gap-3 text-blue-800">
           <AlertCircle className="h-6 w-6 shrink-0" />

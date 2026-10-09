@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/orders';
-import { getPersonalizedProducts } from '@/data/domains/products';
+import { getPersonalizedProducts, getProductNamesFor } from '@/data/domains/products';
 import { getSiteSettings } from '@/data/domains/content';
 import { OrderLinesList } from '@/components/orders/OrderLinesList';
 import { orderLines } from '@/lib/order-lines';
@@ -35,7 +35,10 @@ export default async function EnhaLakOrdersPage() {
     getSiteSettings(),
   ]);
   const cancelDays = settings.pendingOrderCancelDays;
-  const names = Object.fromEntries(products.map((p) => [p.id, p.name]));
+  const names: Record<string, string> = Object.fromEntries(products.map((p) => [p.id, p.name]));
+  // المنتجات اللي اتخفت بعد ما العميل طلبها — اسمها بيفضل ظاهر في طلباته (4.4).
+  const missing = allOrders.flatMap((o) => o.items.map((i) => i.productId)).filter((id) => id && !names[id]);
+  Object.assign(names, await getProductNamesFor(missing));
   const orders = allOrders.map(order => ({
     // ⚠️ الرقم المرجعي، مش رقم الصف: هو اللي العميل كتبه في ملاحظة التحويل،
     //    وهو اللي بيظهر للإدارة — فلو كلّم الدعم، الرقم واحد في الشاشتين.

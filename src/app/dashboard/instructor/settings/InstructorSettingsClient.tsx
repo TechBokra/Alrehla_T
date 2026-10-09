@@ -254,7 +254,12 @@ export function InstructorSettingsClient({
         </div>
 
         {/* خطأ على خانة بعينها بيظهر تحتها؛ الباقي هنا. */}
-        {!saveProfile.errorField && <FormError message={saveProfile.error} />}
+        {/* ⚠️ خطأ على خانة مش في الصفحة دي (من «ملفي وصوري» مثلًا) كان
+            بيتخبّى خالص — فالزرار بيتداس ومفيش أي رد (#ARWL). */}
+        {(!saveProfile.errorField ||
+          !['monthlyHoursCommitted', 'requestedPrice'].includes(saveProfile.errorField)) && (
+          <FormError message={saveProfile.error} />
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
           {isSaved ? (

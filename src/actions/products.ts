@@ -574,6 +574,56 @@ export async function reviewProduct(formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  // ══ ملف 16 (#GRXN): تعديل ناشر على منتج **معروض** ═══════════
+  //
+  // المعروض فضل زي ما هو والتعديل في `pending_changes`. الاعتماد بينقله
+  // للمنتج، والرفض بيمسحه بس — **المنتج مابيختفيش في الحالتين**. كان
+  // الرفض بيقفل المنتج والنسخة القديمة ضايعة.
+  const { data: current } = await supabase
+    .from('personalized_products')
+    .select('review_status, pending_changes')
+    .eq('id', id)
+    .maybeSingle();
+  const draft = current?.pending_changes as Record<string, unknown> | null | undefined;
+  if (current?.review_status === 'approved' && draft && typeof draft === 'object') {
+    const EDITABLE = [
+      'name', 'category', 'price', 'electronic_price', 'publisher_cost', 'short_description',
+      'long_description', 'cover_image_url', 'gallery_image_urls', 'features', 'min_age', 'max_age',
+    ] as const;
+    const apply = Object.fromEntries(EDITABLE.filter((k) => k in draft).map((k) => [k, draft[k]]));
+    const { data: edited, error: editError } = await supabase
+      .from('personalized_products')
+      .update(
+        decision === 'approved'
+          ? ({ ...apply, pending_changes: null, review_note: null } as never)
+          : { pending_changes: null, review_note: note },
+      )
+      .eq('id', id)
+      .not('pending_changes', 'is', null)
+      .select('id, name, slug')
+      .maybeSingle();
+    if (editError) {
+      console.error('تعذّر مراجعة تعديل المنتج', editError);
+      return { ok: false as const, error: 'تعذّر حفظ القرار' };
+    }
+    if (!edited) return { ok: false as const, error: 'تم البتّ في التعديل ده من قبل — حدّث الصفحة' };
+
+    await logAuditAction({
+      actorProfileId: actorId,
+      actorName,
+      action: decision === 'approved' ? 'product_edit_approved' : 'product_edit_rejected',
+      entityType: 'PersonalizedProduct',
+      entityId: id,
+      metadata: { name: edited.name, ...(decision === 'rejected' ? { note } : {}) },
+    });
+    revalidatePath('/dashboard/admin/products/review');
+    revalidatePath('/dashboard/publisher/products');
+    revalidatePath('/enha-lak', 'layout');
+    revalidatePath(`/enha-lak/product/${edited.slug}`);
+    return { ok: true as const };
+  }
+
   const { data, error } = await supabase
     .from('personalized_products')
     .update({

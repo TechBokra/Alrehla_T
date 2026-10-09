@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireUser, getDependentGuardian } from '@/lib/auth-guard';
 import { notifyUser } from '@/lib/notifications';
 import { logAuditAction } from '@/lib/audit';
+import { customizationPath } from '@/lib/product-categories';
 
 /**
  * طلبات الأبناء — «الطفل عايز إيه»، وولي الأمر بيبتّ.
@@ -53,7 +54,9 @@ async function loadDependent() {
  * ومش محتاج يمر من هنا.
  */
 export async function createDependentRequest(params: {
-  kind: 'service' | 'package';
+  kind: 'service' | 'package' | 'product';
+  /** قصة أو كتاب (ملف 16 — #ATWG). */
+  productId?: string | null;
   serviceId?: string | null;
   providerId?: string | null;
   packageId?: string | null;
@@ -74,6 +77,9 @@ export async function createDependentRequest(params: {
   if (params.kind === 'package' && !params.packageId) {
     return { ok: false, error: 'الباقة مش محددة' };
   }
+  if (params.kind === 'product' && !params.productId) {
+    return { ok: false, error: 'القصة مش محددة' };
+  }
 
   const supabase = await createClient();
 
@@ -84,8 +90,14 @@ export async function createDependentRequest(params: {
     .select('id')
     .eq('child_profile_id', dependent.childId)
     .eq('status', 'pending')
-    .eq(params.kind === 'service' ? 'service_id' : 'package_id',
-        (params.kind === 'service' ? params.serviceId : params.packageId) as string)
+    .eq(
+      params.kind === 'service' ? 'service_id' : params.kind === 'product' ? 'product_id' : 'package_id',
+      (params.kind === 'service'
+        ? params.serviceId
+        : params.kind === 'product'
+          ? params.productId
+          : params.packageId) as string,
+    )
     .maybeSingle();
 
   if (existing) {
@@ -103,6 +115,7 @@ export async function createDependentRequest(params: {
       provider_id: params.kind === 'service' ? (params.providerId ?? null) : null,
       package_id: params.kind === 'package' ? params.packageId : null,
       instructor_id: params.kind === 'package' ? (params.instructorId ?? null) : null,
+      ...(params.kind === 'product' ? { product_id: params.productId } : {}),
       note: params.note?.trim() || null,
       status: 'pending',
     })
@@ -110,6 +123,8 @@ export async function createDependentRequest(params: {
 
   if (error) {
     console.error('Error creating dependent request', error);
+    // قبل ملف 16 نوع «قصة» مش موجود في القاعدة.
+    if (params.kind === 'product') return { ok: false, error: 'طلب القصص من حساب الطفل لسه مااتفعّلش — قول لولي أمرك.' };
     return { ok: false, error: `تعذّر إرسال الطلب: ${error.message}` };
   }
   if (!created || created.length === 0) {
@@ -384,6 +399,17 @@ export async function approveDependentRequest(
   // العائلة» بإيده ويدوّر على الاسم — يعني ممكن يكمّل الطلب باسمه هو
   // بالغلط، والخدمة تتنفّذ على إنها له. الموافقة لازم تربط، مش تسلّم
   // يدويًا.
+  // ⭐ ملف 16 (#ATWG): قصة أو كتاب ← معالج التخصيص بتاعها من أوله.
+  //    ولي الأمر بيختار الابن في أول خطوة ويكمّل التخصيص والدفع زي أي طلب.
+  if (request.kind === 'product') {
+    const productId = (request as { product_id?: string | null }).product_id;
+    const { data: product } = productId
+      ? await supabase.from('personalized_products').select('slug, category').eq('id', productId).maybeSingle()
+      : { data: null };
+    const path = product ? customizationPath(product.category, product.slug) : null;
+    return { ok: true, href: path?.href ?? '/enha-lak' };
+  }
+
   if (request.kind === 'service') {
     const providerId = request.provider_id;
     const params = new URLSearchParams({ child: request.child_profile_id });

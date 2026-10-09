@@ -68,7 +68,9 @@ export default async function StudentRequestsPage() {
                     <p className="mt-1 text-xs font-medium text-slate-500">
                       {r.kind === 'name_change'
                         ? 'تغيير الاسم'
-                        : r.kind === 'package'
+                        : r.kind === 'product'
+                          ? 'قصة / كتاب'
+                          : r.kind === 'package'
                           ? 'باقة تدريبية'
                           : 'خدمة إبداعية'}
                       {r.providerName ? ` · ${r.providerName}` : ''}

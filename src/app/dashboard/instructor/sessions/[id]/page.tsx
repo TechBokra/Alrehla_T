@@ -5,6 +5,8 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { InstructorSessionClient } from './InstructorSessionClient';
 import { getSiteSettings, getSiteContent } from '@/data/domains/content';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
+import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { getMySessionChange } from '@/data/domains/session-change-requests';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +26,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   ]);
   const session = sessions.find((s) => s.id === id);
   if (!session) notFound();
+  const change = await getMySessionChange(session.id);
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
@@ -40,6 +43,12 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         className="mb-6"
       />
       <InstructorSessionClient session={session} />
+      {/* ⭐ (#LQMO) المدرب يطلب موعد تاني — الإدارة بتوافق. */}
+      {session.status !== 'cancelled' && session.status !== 'completed' && new Date(session.scheduledAt).getTime() > Date.now() && (
+        <div className="mt-6">
+          <SessionChangeRequest sessionId={session.id} existing={change} />
+        </div>
+      )}
     </div>
   );
 }

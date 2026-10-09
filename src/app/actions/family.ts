@@ -88,6 +88,8 @@ export async function createFamilyMember(
 ): Promise<{ ok: true; child: ChildProfile } | { ok: false; error: string; field?: string }> {
   const guard = await guardNotDependent('إضافة فرد للعائلة');
   if (!guard.ok) return { ok: false, error: guard.error };
+  // النوع إجباري (#7VAD) — «غير محدد» اتشالت من الشاشة.
+  if (gender !== 'male' && gender !== 'female') return { ok: false, error: 'اختر النوع', field: 'gender' };
   const { user } = guard;
   const supabase = await createClient();
 
@@ -132,6 +134,8 @@ export async function updateFamilyMember(
 ): Promise<FamilyResult> {
   const guard = await guardNotDependent('تعديل بيانات فرد العائلة');
   if (!guard.ok) return { ok: false, error: guard.error };
+  // النوع إجباري (#7VAD) — «غير محدد» اتشالت من الشاشة.
+  if (gender !== 'male' && gender !== 'female') return { ok: false, error: 'اختر النوع', field: 'gender' };
   const { user } = guard;
   const supabase = await createClient();
 

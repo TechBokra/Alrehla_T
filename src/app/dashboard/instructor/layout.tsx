@@ -47,6 +47,9 @@ export default async function InstructorLayout({
           { href: '/dashboard/instructor/payouts', label: 'مستحقاتي' },
           { href: '/dashboard/instructor/profile', label: 'ملفي وصوري' },
           { href: '/dashboard/instructor/settings', label: 'الإعدادات' },
+          // ⭐ (#VRKC في اختبار الإدارة) الشراء مش ممنوع عليه — بس اللوحة
+          //    ماكانش فيها طريق لطلباته ولا الدفع ولا المركز العائلي.
+          { href: '/account', label: 'مشترياتي وأطفالي' },
         ]}
       />
       {onboarding === 'needs_profile' && (

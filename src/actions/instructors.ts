@@ -96,6 +96,16 @@ export async function submitInstructorProfileUpdate(
   // ⚠️ **الملف الأول إلزامي كله** — والفحص هنا مش في الشاشة بس (قاعدة
   //    «ع»): من غيره نداء مباشر كان يبعت ملف فاضي للمراجعة. والصورة
   //    بتتقري من القاعدة (الشاشة بتحفظها قبل الطلب ده).
+  //
+  // ⚠️ **بس لو الطلب فيه بيانات الملف** (#ARWL في اختبار الإدارة): صفحة
+  //    «الإعدادات» بتبعت المواعيد ونظام العمل لوحدهم، فالفحص كان
+  //    بيرفضها دايمًا لمدرب ملفه ناقص — والرسالة كانت بتتخبّى.
+  const touchesProfile = (['displayName', 'bio', 'specialties', 'yearsExperience'] as const).some(
+    (k) => changes[k] !== undefined,
+  );
+  if (isFirstProfile && !touchesProfile) {
+    return fail('كمّل ملفك الأول من «ملفي وصوري» وابعته للمراجعة — بعدها تقدر تبعت المواعيد.');
+  }
   if (isFirstProfile) {
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -592,6 +602,17 @@ export async function setInstructorStatus(
     return { ok: false, error: 'الحفظ مروّحش للقاعدة — راجع الصلاحيات.' };
   }
 
+  // ⚠️ **حالته كمقدّم خدمة بتمشي معاه** (#SGCB في اختبار الإدارة): صف
+  //    مقدّم الخدمة بيتعمل «مستني» مع المدرب، وماكانش بيتفعّل لما المدرب
+  //    يتفعّل — فعروضه المعتمدة كانت بتتشال من صفحة الخدمات («قريبًا»)
+  //    من غير ما حد يعرف.
+  const providerStatus = status === 'active' ? 'active' : status === 'suspended' ? 'suspended' : 'pending';
+  const { error: providerError } = await supabase
+    .from('service_providers')
+    .update({ status: providerStatus, updated_at: new Date().toISOString() })
+    .eq('instructor_id', instructorId);
+  if (providerError) console.error('Error syncing provider status', providerError);
+
   await logAuditAction({
     actorProfileId: currentUser.id,
     actorName: currentUser.fullName,
@@ -608,6 +629,7 @@ export async function setInstructorStatus(
   // ⚠️ دي أهمهم: معالج الحجز هو اللي بيقرا القايمة، ومن غيرها
   //    المدرب المفعَّل يفضل مخفي عن ولي الأمر لحد ما الصفحة تتبني تاني.
   revalidatePath('/creative-writing/booking');
+  revalidatePath('/creative-writing/services');
   return { ok: true, status };
 }
 

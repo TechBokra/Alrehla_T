@@ -88,6 +88,11 @@ function mapProductRow(p: any): PersonalizedProduct {
     isActive: p.is_active ?? true,
     createdAt: p.created_at ?? undefined,
     sortOrder: typeof p.sort_order === 'number' ? p.sort_order : 0,
+    // ملف 16: المسودة = نفس الصف بقيم الناشر الجديدة فوقه.
+    pendingDraft:
+      p.pending_changes && typeof p.pending_changes === 'object'
+        ? mapProductRow({ ...p, ...p.pending_changes, pending_changes: null })
+        : undefined,
   };
 }
 
@@ -534,17 +539,22 @@ export async function getMyPublisher(): Promise<Publisher | null> {
  * ⚠️ ودي مصيدة «ك» بالظبط: الصفوف الممنوعة بترجع فاضية لا بخطأ.
  */
 export async function getPendingProducts(): Promise<
-  (PersonalizedProduct & { publisherName?: string })[]
+  (PersonalizedProduct & { publisherName?: string; isEdit?: boolean; liveName?: string })[]
 > {
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('personalized_products')
-    .select('*')
-    .eq('review_status', 'pending')
-    // الأقدم أولًا: اللي مستني من أسبوع يتشاف قبل اللي اتبعت النهارده.
-    .order('updated_at', { ascending: true });
+  // ⚠️ ملف 16: تعديلات الناشر على المعتمد (`pending_changes`) مستنية برضه.
+  //    قبل ما الملف يتشغّل العمود مش موجود — فبنرجع للاستعلام القديم بدل
+  //    ما الشاشة تفضى.
+  const base = () =>
+    supabase
+      .from('personalized_products')
+      .select('*')
+      // الأقدم أولًا: اللي مستني من أسبوع يتشاف قبل اللي اتبعت النهارده.
+      .order('updated_at', { ascending: true });
+  let { data, error } = await base().or('review_status.eq.pending,pending_changes.not.is.null');
+  if (error) ({ data, error } = await base().eq('review_status', 'pending'));
 
   if (error) {
     console.error('تعذّر قراءة المنتجات المستنية', error);
@@ -569,10 +579,33 @@ export async function getPendingProducts(): Promise<
   }
 
   return rows.map((p) => ({
-    ...mapProductRow(p),
+    // تعديل على معتمد: الشاشة بتعرض **المقترح**، ومعاه علامة إنه تعديل.
+    ...(p.review_status === 'approved' && p.pending_changes
+      ? { ...mapProductRow(p).pendingDraft!, isEdit: true, liveName: String(p.name ?? '') }
+      : mapProductRow(p)),
     reviewStatus: 'pending' as const,
     publisherName: p.publisher_id
       ? (names.get(p.publisher_id as string) ?? 'ناشر غير معروف')
       : undefined,
   }));
+}
+
+/**
+ * أسماء منتجات بعينها — **حتى لو اتخفت** (4.4 في اختبار الإدارة).
+ *
+ * ⚠️ قواعد الحماية بتخلّي العميل يقرا المنتجات المعروضة بس، فالمنتج اللي
+ *    اتخفى كان بيظهر في «طلباتي» «منتج لم يعد معروضًا» — والعميل مش فاهم
+ *    هو طلب إيه. بعميل الإدارة، **الاسم بس**، ولأرقام جاية من طلبات العميل
+ *    نفسه (الصفحة بتبعتها).
+ */
+export async function getProductNamesFor(ids: string[]): Promise<Record<string, string>> {
+  const unique = Array.from(new Set(ids.filter(Boolean)));
+  if (unique.length === 0) return {};
+  const { createAdminClient, isAdminApiConfigured } = await import('@/lib/supabase/admin');
+  if (!isAdminApiConfigured()) return {};
+  const { data } = await createAdminClient()
+    .from('personalized_products')
+    .select('id, name')
+    .in('id', unique.slice(0, 200));
+  return Object.fromEntries((data ?? []).map((p) => [p.id, p.name]));
 }

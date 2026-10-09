@@ -1,3 +1,6 @@
+import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { getMySessionChange } from '@/data/domains/session-change-requests';
+import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, FileText, Video, ArrowLeft } from 'lucide-react';
@@ -80,6 +83,7 @@ export default async function DependentFollowUpPage({
     (s) => s.status !== 'cancelled' && s.status !== 'completed' && new Date(s.scheduledAt).getTime() >= now,
   );
 
+  const nextChange = nextSession ? await getMySessionChange(nextSession.id) : null;
   const age = calculateAge(child.birthDate);
   const reviewed = documents.filter((d) => d.status === 'reviewed').length;
 
@@ -117,17 +121,17 @@ export default async function DependentFollowUpPage({
             {instructorName(nextSession.instructorId) &&
               ` · مع ${instructorName(nextSession.instructorId)}`}
           </p>
-          {nextSession.meetingUrl && (
-            <a
-              href={nextSession.meetingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-600 px-6 font-bold text-white transition-colors hover:bg-emerald-700"
-            >
-              <Video className="h-5 w-5" />
-              رابط الجلسة
-            </a>
-          )}
+          {/* الغرفة اللي النظام بيعملها كانت للإدارة بس (5.3) — دلوقتي لولي الأمر كمان. */}
+          <SessionJoinButton
+            sessionId={nextSession.id}
+            meetingUrl={nextSession.meetingUrl}
+            label="ادخل الجلسة"
+            className="mt-4"
+          />
+          {/* ⭐ (#LQMO) ولي الأمر يطلب موعد تاني — الإدارة بتوافق. */}
+          <div className="mt-4">
+            <SessionChangeRequest sessionId={nextSession.id} existing={nextChange} />
+          </div>
         </section>
       )}
 

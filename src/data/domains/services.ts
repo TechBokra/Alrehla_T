@@ -72,11 +72,24 @@ export async function getInstructorServiceOffers(
 ): Promise<InstructorServiceOffer[]> {
   const supabase = await createClient();
 
-  const { data: provider } = await supabase
+  let { data: provider } = await supabase
     .from('service_providers')
     .select('id')
     .eq('instructor_id', instructorId)
     .maybeSingle();
+
+  // مدرب اتعمل له صف «فرد» قبل ما يبقى مدرب (#6BJL) — عروضه هناك.
+  if (!provider) {
+    const { data: inst } = await supabase.from('instructors').select('user_id').eq('id', instructorId).maybeSingle();
+    if (inst?.user_id) {
+      ({ data: provider } = await supabase
+        .from('service_providers')
+        .select('id')
+        .eq('user_id', inst.user_id)
+        .limit(1)
+        .maybeSingle());
+    }
+  }
 
   // مدرب لسه ملوش صف مقدّم خدمة = مفيش عروض. الصف بيتعمل أول ما يقدّم
   // عرض (في `actions/instructor-services.ts`).
@@ -454,3 +467,27 @@ export async function getServiceOrderMessages(
   }));
 }
 
+
+/**
+ * عدد مقدّمي الخدمة اللي **العميل يقدر يطلب منهم فعلًا** لكل خدمة.
+ *
+ * ⚠️ (#SGCB في اختبار الإدارة) «تفعيل» الخدمة لوحده مابيخلّيهاش تتطلب:
+ *    لازم مقدّم مفعّل عارضها بسعر معتمد — وإلا بتظهر «قريبًا». الرقم ده
+ *    بيظهر في شاشة الخدمات عشان الإدارة تعرف من غير ما تجرّب كعميل.
+ *    نفس شروط `getProvidersForService`.
+ */
+export async function getOrderableProviderCounts(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('provider_services')
+    .select('service_id, approved_price, service_providers(status)')
+    .eq('status', 'approved')
+    .eq('is_active', true);
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const provider = row.service_providers as unknown as { status: string } | null;
+    if (!provider || provider.status !== 'active' || row.approved_price == null) continue;
+    counts[row.service_id] = (counts[row.service_id] ?? 0) + 1;
+  }
+  return counts;
+}

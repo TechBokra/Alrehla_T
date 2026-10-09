@@ -1,4 +1,5 @@
 'use client';
+import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import React, { useState } from 'react';
 import { InstructorSession } from '@/types';
 import { Video, Clock, User, CheckCircle2, AlertCircle, FileText, Send } from 'lucide-react';
@@ -75,19 +76,17 @@ export function InstructorSessionClient({ session }: Props) {
           </div>
         </div>
         
-        {session.meetingUrl ? (
-          <a
-            href={session.meetingUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full rounded-xl bg-indigo-600 px-8 py-4 text-center font-black text-white shadow-lg transition-transform hover:scale-105 active:scale-95 md:w-auto"
-          >
-            دخول الجلسة الآن
-          </a>
-        ) : (
+        {session.status === 'cancelled' ? (
           <span className="w-full rounded-xl bg-white/70 px-8 py-4 text-center font-bold text-indigo-700 md:w-auto">
-            رابط الجلسة لم يُضَف بعد
+            الجلسة دي اتلغت
           </span>
+        ) : (
+          <SessionJoinButton
+            sessionId={session.id}
+            meetingUrl={session.meetingUrl}
+            label="دخول الجلسة الآن"
+            className="w-full md:w-auto"
+          />
         )}
       </div>
 

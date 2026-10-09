@@ -100,6 +100,47 @@ export async function updateBoxShipment(params: {
   return { ok: true };
 }
 
+/**
+ * هدف قصة شهر بعينه (#9OSP في اختبار الإدارة).
+ *
+ * العميل بيسيب شهور فاضية («تختاره الإدارة») — وماكانش فيه مكان
+ * الإدارة تختار منه. بيتغيّر طول ما الشهر لسه ماتشحنش.
+ */
+export async function setBoxShipmentGoal(params: { shipmentId: string; goal: string }): Promise<Result> {
+  const me = await admin();
+  if (!me) return { ok: false, error: 'غير مصرح لك بإدارة الاشتراكات' };
+  const goal = params.goal.trim();
+  if (goal.length > 200) return { ok: false, error: 'الهدف طويل أوي' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('box_shipments')
+    .update({ goal: goal || null, updated_at: new Date().toISOString() })
+    .eq('id', params.shipmentId)
+    .in('status', ['pending', 'preparing'])
+    .select('subscription_id, month_number');
+  if (error) {
+    console.error('Error setting box shipment goal', error);
+    return { ok: false, error: 'تعذّر حفظ الهدف — جرّب تاني' };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: 'الشهر ده اتشحن خلاص — الهدف مابقاش يتغيّر.' };
+  }
+
+  await logAuditAction({
+    actorProfileId: me.id,
+    actorName: me.fullName,
+    action: 'box_shipment_goal_set',
+    entityType: 'BoxShipment',
+    entityId: params.shipmentId,
+    metadata: { goal: goal || null, month: data[0].month_number },
+  });
+  revalidatePath(`/dashboard/admin/subscriptions/box/${data[0].subscription_id}`);
+  revalidatePath('/dashboard/admin/subscriptions/box/shipments');
+  revalidatePath('/account/subscriptions/box');
+  return { ok: true };
+}
+
 /** إيقاف مؤقت / إلغاء / تفعيل — الإلغاء بيوقّف خصم المشترك فورًا. */
 export async function setBoxSubscriptionStatus(
   subscriptionId: string,

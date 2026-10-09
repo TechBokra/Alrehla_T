@@ -21,6 +21,9 @@ export default async function PublisherLayout({
           // شاشة المستحقات كانت موجودة ومحدش بيوصّل لها.
           { href: '/dashboard/publisher/payouts', label: 'مستحقاتي' },
           { href: '/dashboard/publisher/profile', label: 'ملفي' },
+          // ⭐ (#VRKC في اختبار الإدارة) الشراء مش ممنوع عليه — بس اللوحة
+          //    ماكانش فيها طريق لطلباته ولا الدفع ولا المركز العائلي.
+          { href: '/account', label: 'مشترياتي وأطفالي' },
         ]}
       />
       <main className="flex flex-1 flex-col">{children}</main>

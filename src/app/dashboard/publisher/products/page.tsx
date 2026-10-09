@@ -34,6 +34,14 @@ export default async function PublisherProductsPage() {
     stateDisplay: (
       <div className="space-y-1">
         <ProductStateBadge product={product} />
+        {product.pendingDraft && (
+          <p className="text-xs font-bold text-blue-800">فيه تعديل مستني الإدارة — المعروض زي ما هو</p>
+        )}
+        {product.reviewStatus === 'approved' && !product.pendingDraft && product.reviewNote && (
+          <p className="max-w-[240px] text-xs leading-relaxed font-medium text-amber-800">
+            آخر تعديل اترفض: {product.reviewNote}
+          </p>
+        )}
         {product.reviewStatus === 'rejected' && product.reviewNote && (
           <p className="max-w-[240px] text-xs leading-relaxed font-medium text-slate-600">
             {product.reviewNote}

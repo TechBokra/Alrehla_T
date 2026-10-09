@@ -9,7 +9,7 @@ import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { checkScheduleTime, parseCairoInput } from '@/lib/session-plan';
 import { getSubscriptionSessionPlan } from '@/data/domains/session-admin';
 import { getSiteSettings } from '@/data/domains/content';
-import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
+import { createSessionRoom, isDailyConfigured, updateRoomTimes } from '@/lib/daily';
 
 /**
  * The session's meeting room and its time.
@@ -259,7 +259,7 @@ export async function updateSessionDetails(params: {
   const supabase = await createClient();
   const { data: before } = await supabase
     .from('sessions')
-    .select('scheduled_at, instructor_id, course_subscription_id')
+    .select('scheduled_at, instructor_id, course_subscription_id, room_name')
     .eq('id', sessionId)
     .maybeSingle();
 
@@ -290,6 +290,13 @@ export async function updateSessionDetails(params: {
   // لرابط الجلسة كان بيبعت للمدرب وللطالب إشعار كاذب إن الميعاد اتأجّل.
   const previousTime = before?.scheduled_at ? new Date(before.scheduled_at).getTime() : null;
   const rescheduled = previousTime !== null && previousTime !== when.getTime();
+
+  // الغرفة على الميعاد الجديد (#LQMO). فشلها مايلغيش التعديل — زرار
+  // «جهّز غرف الجلسات القادمة» في «الغرف» بيصلّحها.
+  if (rescheduled && before?.room_name && isDailyConfigured()) {
+    const retimed = await updateRoomTimes({ roomName: before.room_name, startsAt: when, durationMinutes: 40 });
+    if (!retimed.ok) console.error('Room retime failed', retimed.error);
+  }
 
   // Both sides need to know — a moved session that nobody is told about is
   // a missed session.

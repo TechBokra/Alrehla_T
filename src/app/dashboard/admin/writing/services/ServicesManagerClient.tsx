@@ -21,6 +21,8 @@ import { FormError } from '@/components/ui/FormError';
 
 interface Props {
   services: CreativeService[];
+  /** رقم الخدمة ← عدد المقدّمين اللي العميل يقدر يطلب منهم. */
+  providerCounts?: Record<string, number>;
 }
 
 const EMPTY: ServiceInput = {
@@ -202,7 +204,7 @@ function ServiceForm({
   );
 }
 
-export function ServicesManagerClient({ services }: Props) {
+export function ServicesManagerClient({ services, providerCounts = {} }: Props) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -314,7 +316,7 @@ export function ServicesManagerClient({ services }: Props) {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-base font-black text-slate-800">{service.name}</h3>
                   {service.category && (
                     <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-500">
@@ -325,6 +327,19 @@ export function ServicesManagerClient({ services }: Props) {
                   {!service.isActive && (
                     <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
                       موقوفة — مش ظاهرة للعملاء
+                    </span>
+                  )}
+                  {service.isActive && !providerCounts[service.id] && (
+                    <a
+                      href="/dashboard/admin/providers"
+                      className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-800 hover:underline"
+                    >
+                      مفيش مقدّم معتمد — بتظهر «قريبًا»
+                    </a>
+                  )}
+                  {service.isActive && (providerCounts[service.id] ?? 0) > 0 && (
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                      بتتطلب · {(providerCounts[service.id] ?? 0).toLocaleString('ar-EG')} مقدّم
                     </span>
                   )}
                 </div>

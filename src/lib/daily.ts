@@ -206,6 +206,26 @@ export async function createSessionRoom(params: {
 }
 
 /**
+ * مواعيد غرفة جلسة اتأجّلت — نفس `nbf`/`exp` بتوع `createSessionRoom`.
+ *
+ * ⚠️ من غيرها الجلسة اللي اتغيّر ميعادها كانت غرفتها بتفضل على الميعاد
+ *    القديم: يا مقفولة لسه، يا انتهت — والطرفين يلاقوا الباب مقفول.
+ */
+export async function updateRoomTimes(params: {
+  roomName: string;
+  startsAt: Date;
+  durationMinutes: number;
+}): Promise<DailyResult<DailyRoom>> {
+  const start = Math.floor(params.startsAt.getTime() / 1000);
+  return call<DailyRoom>(`/rooms/${encodeURIComponent(params.roomName)}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      properties: { nbf: start - 15 * 60, exp: start + params.durationMinutes * 60 + 30 * 60 },
+    }),
+  });
+}
+
+/**
  * غرفة تجربة — مش مربوطة بجلسة ولا بتسجيل.
  *
  * بتنتهي بعد ساعة، عشان اللوحة ما تتملاش غرف تجارب منسية بتتحاسب

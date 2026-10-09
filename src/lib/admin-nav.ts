@@ -166,6 +166,8 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'الحجوزات', href: `${A}/bookings`, permission: 'canManageBookings' },
           { label: 'التقويم', href: `${A}/bookings/calendar`, permission: 'canManageBookings' },
+          // ⭐ (#LQMO) الأهل والمدرب بيطلبوا موعد تاني — الإدارة بتبتّ.
+          { label: 'طلبات تغيير المواعيد', href: `${A}/bookings/change-requests`, permission: 'canManageBookings' },
           { label: 'الجلسات والتقارير', href: `${A}/sessions`, permission: 'canManageBookings' },
           { label: 'الغرف المباشرة', href: `${A}/rooms`, permission: 'canManageBookings' },
           // «طلب مساعدة في الحجز» من حساب العميل — مكانه مع الجلسات (ملاحظة تامر).

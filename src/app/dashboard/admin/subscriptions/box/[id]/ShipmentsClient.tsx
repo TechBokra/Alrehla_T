@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BoxShipment } from '@/types';
-import { updateBoxShipment, setBoxSubscriptionStatus } from '@/actions/box-subscriptions';
+import { updateBoxShipment, setBoxSubscriptionStatus, setBoxShipmentGoal } from '@/actions/box-subscriptions';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';
-import { TextInput, BusyButton } from '@/components/forms/Form';
+import { TextInput, BusyButton, Select } from '@/components/forms/Form';
 
 const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
@@ -27,9 +27,12 @@ const TONE: Record<BoxShipment['status'], string> = {
 export function ShipmentsClient({
   shipments,
   freeAddonName,
+  goals = [],
 }: {
   shipments: BoxShipment[];
   freeAddonName?: string;
+  /** أهداف التخصيص الخاصة بالصندوق (منتجات المنصة ← أهداف التخصيص). */
+  goals?: string[];
 }) {
   const router = useRouter();
   // الزرار اللي شغّال (`شحنة:حالة`) — هو بس اللي بيكتب «جارٍ…»، والباقي بيتقفل.
@@ -37,6 +40,21 @@ export function ShipmentsClient({
   // الخطأ بيظهر تحت الشهر اللي فشل.
   const [failure, setFailure] = useState<{ id: string; error: string } | null>(null);
   const [tracking, setTracking] = useState<Record<string, string>>({});
+
+  const saveGoal = async (id: string, goal: string) => {
+    if (busyKey) return;
+    setFailure(null);
+    setBusyKey(`${id}:goal`);
+    try {
+      const r = await setBoxShipmentGoal({ shipmentId: id, goal });
+      if (!r.ok) setFailure({ id, error: r.error });
+      else router.refresh();
+    } catch {
+      setFailure({ id, error: UNEXPECTED });
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   const run = async (id: string, status: 'preparing' | 'shipped' | 'delivered') => {
     if (busyKey) return;
@@ -65,9 +83,32 @@ export function ShipmentsClient({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="font-black text-slate-900">الشهر {s.monthNumber.toLocaleString('ar-EG')}</p>
-              <p className="text-sm text-slate-700">
-                الهدف: {s.goal ?? <span className="font-bold text-amber-800">تختاره الإدارة</span>}
-              </p>
+              {/* ⭐ (#9OSP) الإدارة بتختار هدف الشهر لحد ما يتشحن. */}
+              {s.status === 'pending' || s.status === 'preparing' ? (
+                <div className="mt-1 flex items-center gap-2 text-sm text-slate-700">
+                  <span>الهدف:</span>
+                  <div className="w-60">
+                    <Select
+                      aria-label={`هدف قصة الشهر ${s.monthNumber}`}
+                      value={s.goal ?? ''}
+                      disabled={busyKey !== null}
+                      onChange={(e) => saveGoal(s.id, e.target.value)}
+                    >
+                      <option value="">تختاره الإدارة (لسه)</option>
+                      {[...new Set([...(s.goal ? [s.goal] : []), ...goals])].map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  {busyKey === `${s.id}:goal` && <span className="text-xs text-slate-500">بيتحفظ…</span>}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-700">
+                  الهدف: {s.goal ?? <span className="font-bold text-amber-800">ماتحددش</span>}
+                </p>
+              )}
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${TONE[s.status]}`}>
               {LABEL[s.status]}

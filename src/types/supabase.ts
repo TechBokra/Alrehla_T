@@ -576,6 +576,7 @@ export type Database = {
           service_id: string | null
           provider_id: string | null
           package_id: string | null
+          product_id: string | null
           instructor_id: string | null
           preferred_slot: Json | null
           note: string | null
@@ -595,6 +596,7 @@ export type Database = {
           service_id?: string | null
           provider_id?: string | null
           package_id?: string | null
+          product_id?: string | null
           instructor_id?: string | null
           preferred_slot?: Json | null
           note?: string | null
@@ -613,6 +615,7 @@ export type Database = {
           service_id?: string | null
           provider_id?: string | null
           package_id?: string | null
+          product_id?: string | null
           instructor_id?: string | null
           preferred_slot?: Json | null
           note?: string | null
@@ -1241,6 +1244,7 @@ export type Database = {
           /** أكبر سنّ مناسب — ملف 132. فاضي مع min_age = «فأكبر». */
           max_age: number | null
           /** روابط قديمة بتحوّل للحالي — ملف 136. */
+          pending_changes: Json | null
           previous_slugs: string[]
           sort_order: number
         }
@@ -1267,6 +1271,7 @@ export type Database = {
           long_description?: string | null
           min_age?: number | null
           max_age?: number | null
+          pending_changes?: Json | null
           previous_slugs?: string[]
           sort_order?: number
         }
@@ -1293,6 +1298,7 @@ export type Database = {
           long_description?: string | null
           min_age?: number | null
           max_age?: number | null
+          pending_changes?: Json | null
           previous_slugs?: string[]
           sort_order?: number
         }
@@ -1797,6 +1803,48 @@ export type Database = {
           is_active?: boolean
           updated_at?: string
           city?: string | null
+        }
+        Relationships: []
+      }
+      session_change_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          proposed_at: string
+          reason: string
+          requester_profile_id: string
+          requester_role: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          proposed_at: string
+          reason: string
+          requester_profile_id: string
+          requester_role: string
+          session_id: string
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          proposed_at?: string
+          reason?: string
+          requester_profile_id?: string
+          requester_role?: string
+          session_id?: string
+          status?: string
         }
         Relationships: []
       }

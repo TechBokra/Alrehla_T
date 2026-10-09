@@ -97,7 +97,11 @@ export function FamilyClient({
       return;
     }
 
-    const gender = formData.gender || null;
+    if (formData.gender !== 'male' && formData.gender !== 'female') {
+      fail('اختر النوع', 'gender');
+      return;
+    }
+    const gender = formData.gender;
 
     startTransition(async () => {
       try {
@@ -238,14 +242,18 @@ export function FamilyClient({
               onChange={(v) => setFormData({ ...formData, birthDate: v })}
             />
           </Field>
-          <Field label="النوع" name="gender" className="w-40">
+          {/* ⚠️ (#7VAD في اختبار الإدارة) «غير محدد» اتشالت — النوع إجباري.
+              الطفل القديم اللي مالوش نوع بيظهر «اختر…» ولازم يتحدد. */}
+          <Field label="النوع" name="gender" required error={err('gender')} className="w-40">
             <Select
               value={formData.gender}
               onChange={(e) =>
                 setFormData({ ...formData, gender: e.target.value as 'male' | 'female' | '' })
               }
             >
-              <option value="">غير محدد</option>
+              <option value="" disabled>
+                اختر…
+              </option>
               <option value="male">ذكر</option>
               <option value="female">أنثى</option>
             </Select>

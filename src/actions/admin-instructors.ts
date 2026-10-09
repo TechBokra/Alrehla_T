@@ -185,15 +185,31 @@ export async function createInstructor(params: {
   //    والرمز المؤقت في إيد الإدارة؛ الرمي هنا كان هيدّيها رسالة خطأ
   //    على عملية **تمّت** ويخلّيها تعيد الإنشاء فيطلع حسابان.
   //    فبنرجّع العلامة والشاشة تقولها.
-  const { error: providerError } = await supabaseAdmin
+  //
+  // ⚠️ **لو الشخص ده مقدّم خدمة فرد قبل كده** (#6BJL في اختبار الإدارة):
+  //    كان بيتعمل له صف تاني — عروضه على الأول، ولوحة المدرب بتقرا من
+  //    التاني الفاضي، فمايشوفش خدماته. دلوقتي الصف القديم بيتحوّل
+  //    لصف المدرب (بعروضه وطلباته) بدل صف جديد.
+  const { data: existingProvider } = await supabaseAdmin
     .from('service_providers')
-    .insert({
-      kind: 'instructor',
-      instructor_id: created.id,
-      display_name: displayName,
-      bio: params.bio.trim(),
-      status: 'pending',
-    });
+    .select('id')
+    .eq('user_id', userId)
+    .eq('kind', 'individual')
+    .maybeSingle();
+  const { error: providerError } = existingProvider
+    ? await supabaseAdmin
+        .from('service_providers')
+        .update({ kind: 'instructor', instructor_id: created.id, updated_at: new Date().toISOString() })
+        .eq('id', existingProvider.id)
+    : await supabaseAdmin
+        .from('service_providers')
+        .insert({
+          kind: 'instructor',
+          instructor_id: created.id,
+          display_name: displayName,
+          bio: params.bio.trim(),
+          status: 'pending',
+        });
 
   if (providerError) {
     console.error('Failed to create linked service_provider row', providerError);

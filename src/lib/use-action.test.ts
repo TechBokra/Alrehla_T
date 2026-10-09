@@ -86,3 +86,12 @@ describe('isControlFlowError — الانتقال مش عطل', () => {
     expect(isControlFlowError('نص')).toBe(false);
   });
 });
+
+describe('staleOrOffline', () => {
+  it('الصفحة القديمة والانقطاع ليهم رسالة واضحة', async () => {
+    const { staleOrOffline } = await import('./use-action');
+    expect(staleOrOffline('Failed to find Server Action "abc". This request might be from an older or newer deployment.')).toContain('حدّث الصفحة');
+    expect(staleOrOffline('Failed to fetch')).toContain('الاتصال');
+    expect(staleOrOffline('An error occurred in the Server Components render')).toBeNull();
+  });
+});

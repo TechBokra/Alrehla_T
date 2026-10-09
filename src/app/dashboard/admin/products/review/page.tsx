@@ -99,11 +99,20 @@ export default async function ProductReviewPage() {
                   <div className="min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-3">
                       <h2 className="text-lg font-black text-slate-900">{product.name}</h2>
-                      <StatusBadge label="في انتظار المراجعة" type="pending" />
+                      <StatusBadge label={product.isEdit ? 'تعديل مستني المراجعة' : 'في انتظار المراجعة'} type="pending" />
                       {!product.isActive && (
                         <StatusBadge label="موقوف" type="neutral" />
                       )}
                     </div>
+
+                    {/* ملف 16 (#GRXN): تعديل على منتج معروض — المعروض مكمّل زي ما هو. */}
+                    {product.isEdit && (
+                      <p className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm font-medium text-blue-900">
+                        ده <strong>تعديل</strong> على منتج معروض دلوقتي
+                        {product.liveName && product.liveName !== product.name && <> (اسمه الحالي «{product.liveName}»)</>}.
+                        البيانات اللي هنا هي المقترحة. الاعتماد بيطبّقها، والرفض بيسيب المعروض زي ما هو.
+                      </p>
+                    )}
 
                     {product.publisherName && (
                       <p className="flex items-center gap-1.5 text-sm font-bold text-slate-600">

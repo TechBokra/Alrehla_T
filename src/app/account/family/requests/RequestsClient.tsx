@@ -121,7 +121,9 @@ export function RequestsClient({ requests }: { requests: DependentRequestRow[] }
                 <p className="mt-1 text-xs font-bold text-slate-400">
                   {request.kind === 'name_change'
                     ? 'تغيير الاسم'
-                    : request.kind === 'package'
+                    : request.kind === 'product'
+                      ? 'قصة / كتاب'
+                      : request.kind === 'package'
                       ? 'باقة'
                       : 'خدمة إبداعية'}
                   {request.providerName && ` · ${request.providerName}`}

@@ -158,7 +158,7 @@ export function useAction<Args extends unknown[], R>(
         //    العربية إلا لو الرسالة بتبان عربية فعلًا.
         const raw = err instanceof Error ? err.message.trim() : '';
         const looksArabic = /[؀-ۿ]/.test(raw);
-        setError(looksArabic ? raw : fallbackError);
+        setError(looksArabic ? raw : (staleOrOffline(raw) ?? fallbackError));
         return undefined;
       } finally {
         setPending(false);
@@ -173,4 +173,21 @@ export function useAction<Args extends unknown[], R>(
   }, []);
 
   return { run, pending, error, errorField, clearError };
+}
+
+/**
+ * أعطال مش من العملية نفسها — ليها رسالة أوضح من «تعذّر الحفظ».
+ *
+ * ⚠️ **الصفحة القديمة** (#ARWL في اختبار الإدارة): لو الصفحة مفتوحة من
+ *    قبل ما نسخة جديدة من الموقع تنزل، الزرار بينادي عملية مابقتش
+ *    موجودة على الخادم. التحديث بيحلّها — فبنقول كده بدل رسالة عامة.
+ */
+export function staleOrOffline(message: string): string | null {
+  if (/server action|failed to find/i.test(message)) {
+    return 'الصفحة دي قديمة (نزلت نسخة جديدة من الموقع) — حدّث الصفحة وجرّب تاني.';
+  }
+  if (/failed to fetch|network|load failed/i.test(message)) {
+    return 'الاتصال بالإنترنت اتقطع — جرّب تاني.';
+  }
+  return null;
 }

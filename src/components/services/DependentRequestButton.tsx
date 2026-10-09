@@ -15,13 +15,15 @@ import { Field, TextArea, BusyButton } from '@/components/forms/Form';
  */
 export function DependentRequestButton({
   kind,
+  productId,
   serviceId,
   providerId,
   packageId,
   instructorId,
   label = 'اطلب من ولي أمرك',
 }: {
-  kind: 'service' | 'package';
+  kind: 'service' | 'package' | 'product';
+  productId?: string;
   serviceId?: string;
   providerId?: string;
   packageId?: string;
@@ -42,6 +44,7 @@ export function DependentRequestButton({
       try {
         result = await createDependentRequest({
           kind,
+          productId: productId ?? null,
           serviceId: serviceId ?? null,
           providerId: providerId ?? null,
           packageId: packageId ?? null,

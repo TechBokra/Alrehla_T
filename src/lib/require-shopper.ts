@@ -25,6 +25,8 @@ export async function requireShopper(returnPath: string): Promise<void> {
   //    وفشل الفحص نفسه بيرمي (مش بيعدّي) — نفس قاعدة `getDependentGuardian`.
   const dependent = await getDependentGuardian(user.id);
   if (dependent) {
-    redirect('/enha-lak/ask-guardian');
+    // ⭐ (#ATWG — قرار تامر) الصفحة بتعرف هو كان عايز إيه، فبتعرض زرار
+    //    «اطلب القصة دي من ولي أمرك» بدل رسالة ثابتة.
+    redirect(`/enha-lak/ask-guardian?from=${encodeURIComponent(returnPath)}`);
   }
 }
