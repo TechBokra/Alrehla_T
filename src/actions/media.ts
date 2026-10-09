@@ -93,7 +93,8 @@ const MAX_PER_CALL = 50;
  *    مرة للعرض ومرة قبل الحذف مباشرةً.
  */
 export async function deleteUnusedMedia(
-  publicIds: string[]
+  publicIds: string[],
+  options: { acknowledgeHighRatio?: boolean } = {},
 ): Promise<DeleteMediaResult> {
   let user;
   try {
@@ -137,18 +138,21 @@ export async function deleteUnusedMedia(
   }
   const usage = scan.usage;
 
-  // ⚠️ نفس قفل الشاشة، هنا في الخادم: لو أكتر من نص صور المجلّد بلا
-  //    رابط، الأرجح إن القاعدة فاضية أو ناقصة — مش إن الصور مهجورة.
-  //    (بعد إعادة بناء القاعدة يوم 2 أكتوبر 2026 كل الصور بانت كده.)
+  // ⚠️ نفس تنبيه الشاشة، هنا في الخادم: لو أكتر من نص صور المجلّد بلا
+  //    رابط، ممكن تكون صور لسه ما رجعتش لأماكنها (زي بعد إعادة بناء
+  //    القاعدة يوم 2 أكتوبر 2026). الفحص نفسه كامل (اتأكدنا فوق)، فده
+  //    **مش قفل** — ده شرط إن الإدارة تأكّد إنها راجعت الصور.
+  //    (قرار تامر، 9 أكتوبر: القفل التام كان مانع التنضيف خالص.)
   const listed = await listFolderAssets();
   if (!listed.ok) return { ok: false, error: listed.error };
   const all = listed.data.assets;
   const unusedCount = all.filter((a) => !usage.has(a.publicId)).length;
-  if (all.length > 0 && unusedCount > all.length / 2) {
+  const highRatio = all.length > 0 && unusedCount > all.length / 2;
+  if (highRatio && options.acknowledgeHighRatio !== true) {
     return {
       ok: false,
       error:
-        'الحذف مقفول: أكتر من نص صور المكتبة مش مستخدمة — الأرجح إن الصور لسه ما رجعتش لأماكنها في الموقع.',
+        'أكتر من نص صور المكتبة مش مستخدمة — علّم «راجعت الصور» الأول عشان تأكّد إنها مش محتاجة ترجع لأماكنها.',
     };
   }
   const stillUsed = ids.filter((id) => usage.has(id));
@@ -171,7 +175,11 @@ export async function deleteUnusedMedia(
     actorName: user.fullName,
     action: 'حذف صور من المخزن',
     entityType: 'media',
-    metadata: { count: result.data.deleted, publicIds: result.data.deleted },
+    metadata: {
+      count: result.data.deleted.length,
+      publicIds: result.data.deleted,
+      acknowledgedHighRatio: highRatio,
+    },
   });
 
   revalidatePath('/dashboard/admin/media');

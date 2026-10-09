@@ -19,16 +19,13 @@ export const dynamic = 'force-dynamic';
 /**
  * صور الموقع على Cloudinary.
  *
- * ── النسخة دي **بتعرض وبس** ─────────────────────────────────
+ * ── الحذف ────────────────────────────────────────────────
  *
- * ⚠️ **مفيش زرّ حذف عن قصد.** «مهجورة» هنا استنتاج: بنقارن صور
- *    المجلّد بالروابط اللي في القاعدة. والقايمة اللي بنفحصها
- *    **مكتوبة بالإيد** — وأي عمود ناقص منها بيخلّي صورة شغّالة
- *    تبان مهجورة. والحذف مالوش تراجع.
- *
- *    فالقايمة معروضة تحت: راجعها. لو صورة إنت شايفها في الموقع
- *    ظاهرة هنا كمهجورة، يبقى في عمود ناقص — قول قبل ما نفتح
- *    الحذف أصلًا.
+ * «مش مستخدمة» استنتاج: بنقرا كل صف في كل جدول ممكن يكون فيه صورة
+ * (`data/domains/media`). **لو أي جدول ماتقراش الحذف مقفول خالص.**
+ * ولو الفحص كامل بس أكتر من نص الصور بلا رابط، الحذف محتاج تأكيد
+ * «راجعت الصور» (ممكن تكون صور لسه ما رجعتش لأماكنها). والخادم بيعيد
+ * الفحص قبل الحذف نفسه.
  *
  * ⚠️ **وكل حاجة مقيَّدة بمجلّد `alrehla/`.** حساب Cloudinary ده
  *    مشترك مع مشروع تاني (`Onlyhelio`)، ولولا القيد ده كانت صور
@@ -56,11 +53,13 @@ export default async function Page() {
   const orphanBytes = orphans.reduce((sum, a) => sum + a.bytes, 0);
   const totalBytes = assets.reduce((sum, a) => sum + a.bytes, 0);
 
-  // ⚠️ لو أكتر من نص الصور بانت بلا رابط، الأرجح إن القاعدة هي اللي
-  //    فاضية أو ناقصة (زي بعد إعادة البناء يوم 2 أكتوبر 2026) — مش إن
-  //    الصور زبالة. الحذف بيتقفل لحد ما الصور ترجع لأماكنها.
   // فحص ناقص (جدول ماتقراش) = الحذف مقفول خالص — زي الخادم بالظبط.
-  const deleteLocked = !scan.complete || (assets.length > 0 && orphans.length > assets.length / 2);
+  const deleteLocked = !scan.complete;
+  // ⚠️ أكتر من نص الصور بلا رابط والفحص **كامل**: مش قفل، تأكيد.
+  //    كان قفل تام لحد ما الرقم يقل — بس في مرحلة التأسيس الرقم ده طبيعي
+  //    (صور تجارب ورفع واستبدال كتير)، فالتنضيف كان مستحيل. دلوقتي الإدارة
+  //    بتعلّم «راجعت الصور» وبعدها الحذف يتفتح. (قرار تامر، 9 أكتوبر.)
+  const highRatio = scan.complete && assets.length > 0 && orphans.length > assets.length / 2;
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
@@ -118,16 +117,16 @@ export default async function Page() {
           مش إن نصّ المخزن زبالة — الاحتمال الأرجح إن **جدول ما
           اتقريش** فصوره كلها بانت بلا رابط. وده بالظبط السيناريو
           اللي بيخلّي ضغطة حذف تمسح شغل شهور. */}
-      {deleteLocked && (
-        <p className="mb-6 flex gap-3 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
+      {highRatio && (
+        <p className="mb-6 flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <span>
-            أكتر من نص صور المجلّد ({orphans.length} من {assets.length}) بانت
-            بلا رابط. ده رقم كبير غير متوقّع — الأرجح إن جدول ما اتقريش لا إن
-            الصور دي فعلًا مهجورة.{' '}
-            <strong>الحذف مقفول لحد ما الرقم ده يقل.</strong> رجّع الصور
-            لأماكنها من زرار «من المكتبة» في خانات الصور (صور الموقع، المنتجات،
-            المدونة، خطط الصندوق).
+            أكتر من نص صور المجلّد ({orphans.length} من {assets.length}) مش
+            مستخدمة. الفحص قرا كل الجداول، فالرقم ده حقيقي — غالبًا صور تجارب
+            أو صور اتبدّلت. بس راجعها الأول: لو فيها صورة المفروض تبقى في
+            الموقع (منتج، صورة صفحة، مقال)، رجّعها لمكانها من زرار «من
+            المكتبة» قبل ما تحذف. <strong>الحذف بيتفتح بعد ما تعلّم «راجعت
+            الصور» تحت.</strong>
           </span>
         </p>
       )}
@@ -136,7 +135,7 @@ export default async function Page() {
       <section className="mb-10 rounded-3xl border border-amber-200 bg-amber-50 p-6">
         <h2 className="mb-2 flex items-center gap-2 font-black text-amber-900">
           <AlertTriangle className="h-5 w-5" />
-          اقرا ده قبل ما نفتح الحذف
+          اقرا ده قبل ما تحذف
         </h2>
         <p className="mb-4 text-sm leading-relaxed font-medium text-amber-900">
           «مالهاش رابط» استنتاج مش حقيقة: بنقرا كل صف في الجداول دي ونطلّع أي
@@ -172,7 +171,7 @@ export default async function Page() {
           تقدر تستعملها تاني من زرار «من المكتبة» في أي خانة صورة. ولو متأكد إن
           صورة مالهاش لازمة، حدّدها واحذفها — الحذف نهائي.
         </p>
-        <OrphanGallery assets={orphans} deleteLocked={deleteLocked} />
+        <OrphanGallery assets={orphans} deleteLocked={deleteLocked} needsAck={highRatio} />
       </section>
 
       <Gallery

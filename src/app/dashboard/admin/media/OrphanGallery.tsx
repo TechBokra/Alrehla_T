@@ -12,6 +12,7 @@ import {
 import { deleteUnusedMedia } from '@/actions/media';
 import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
+import { Checkbox } from '@/components/forms/Form';
 
 export type OrphanAsset = {
   publicId: string;
@@ -34,11 +35,16 @@ export type OrphanAsset = {
 export function OrphanGallery({
   assets,
   deleteLocked = false,
+  needsAck = false,
 }: {
   assets: OrphanAsset[];
-  /** الحذف مقفول (أكتر من نص الصور بلا رابط — الأرجح القاعدة ناقصة). */
+  /** الحذف مقفول (فحص الجداول ماخلصش). */
   deleteLocked?: boolean;
+  /** أكتر من نص الصور بلا رابط: الحذف محتاج «راجعت الصور» الأول. */
+  needsAck?: boolean;
 }) {
+  const [acked, setAcked] = useState(false);
+  const blocked = deleteLocked || (needsAck && !acked);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState('');
@@ -52,10 +58,14 @@ export function OrphanGallery({
       return next;
     });
 
-  const allSelected = assets.length > 0 && selected.size === assets.length;
+  // ⚠️ الخادم بيقبل ٥٠ صورة بالكتير في المرة — «حدّد الكل» بيحدّد أول ٥٠،
+  //    وبعد الحذف تضغطه تاني للباقي (كان بيحدّد الكل والحذف يترفض).
+  const BATCH = 50;
+  const target = Math.min(assets.length, BATCH);
+  const allSelected = assets.length > 0 && selected.size >= target;
   const toggleAll = () =>
     setSelected(
-      allSelected ? new Set() : new Set(assets.map((a) => a.publicId))
+      allSelected ? new Set() : new Set(assets.slice(0, BATCH).map((a) => a.publicId))
     );
 
   const selectedBytes = assets
@@ -77,7 +87,7 @@ export function OrphanGallery({
     startTransition(async () => {
       setError('');
       setNotice('');
-      const result = await deleteUnusedMedia(ids);
+      const result = await deleteUnusedMedia(ids, { acknowledgeHighRatio: acked });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -106,11 +116,21 @@ export function OrphanGallery({
         </p>
       )}
 
+      {needsAck && !deleteLocked && (
+        <Checkbox
+          label="راجعت الصور دي، ومفيش منها حاجة المفروض ترجع مكانها في الموقع"
+          hint="الحذف نهائي. لو شاكك في صورة، سيبها — مش بتضر وهي موجودة."
+          checked={acked}
+          onChange={(e) => setAcked(e.target.checked)}
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
+        />
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={toggleAll}
-          disabled={busy || deleteLocked}
+          disabled={busy || blocked}
           className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 disabled:opacity-50"
         >
           {allSelected ? (
@@ -118,13 +138,13 @@ export function OrphanGallery({
           ) : (
             <Square className="h-4 w-4" />
           )}
-          {allSelected ? 'إلغاء التحديد' : 'حدّد الكل'}
+          {allSelected ? 'إلغاء التحديد' : assets.length > BATCH ? `حدّد أول ${BATCH}` : 'حدّد الكل'}
         </button>
 
         <button
           type="button"
           onClick={remove}
-          disabled={busy || deleteLocked || selected.size === 0}
+          disabled={busy || blocked || selected.size === 0}
           className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-40"
         >
           {busy ? (
@@ -174,7 +194,7 @@ export function OrphanGallery({
                   type="checkbox"
                   checked={isOn}
                   onChange={() => toggle(asset.publicId)}
-                  disabled={busy || deleteLocked}
+                  disabled={busy || blocked}
                   className="absolute top-2 right-2 h-5 w-5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                 />
               </div>
