@@ -67,6 +67,8 @@ export interface SiteSettings {
    * و`retentionDays` مدة الاحتفاظ قبل الحذف التلقائي.
    */
   sessionRecording: SessionRecordingSettings;
+  /** العلامة المائية على صور الموقع والمنتجات (`lib/watermark-settings`). */
+  watermark: WatermarkSettings;
   /** Site imagery, by slot. See src/lib/site-images.ts. */
   images: SiteImages;
 }
@@ -100,6 +102,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       instructorPriceAlert: 0,
       pendingOrderCancelDays: DEFAULT_PENDING_CANCEL_DAYS,
       sessionRecording: DEFAULT_RECORDING_SETTINGS,
+      watermark: DEFAULT_WATERMARK,
       images: {},
     };
   }
@@ -135,6 +138,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
           ? Number(value.sessionRecording?.retentionDays)
           : DEFAULT_RETENTION_DAYS,
     },
+    watermark: normalizeWatermark(value.watermark),
     images: value.images ?? {},
   };
 });
@@ -149,6 +153,11 @@ import {
   type SessionRecordingSettings,
 } from '@/lib/session-recording';
 import { CONTENT_DEFAULTS, type SiteContent } from '@/lib/site-content';
+import {
+  DEFAULT_WATERMARK,
+  normalizeWatermark,
+  type WatermarkSettings,
+} from '@/lib/watermark-settings';
 
 /**
  * نصوص الصفحات.

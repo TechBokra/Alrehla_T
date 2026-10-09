@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder, watermarkedImageUrl } from '@/lib/cloudinary';
 import { publicIdFromUrl } from '@/lib/cloudinary-admin';
+import { DEFAULT_WATERMARK, watermarkLayer } from '@/lib/watermark-settings';
 
 const CLOUD = 'https://res.cloudinary.com/dwg0hr34g/image/upload/v1/alrehla/site/x.jpg';
 
@@ -155,11 +156,11 @@ describe('رقم الصورة من رابطها', () => {
 });
 
 describe('العلامة المائية على صور المنتجات', () => {
-  const LAYER = 'alrehla:site:logo';
+  const LAYER = watermarkLayer(DEFAULT_WATERMARK)!;
 
-  it('الشعار في الركن، والصورة بمقاس ثابت يتصغّر بعدها', () => {
+  it('البطاقة في النص تحت، والصورة بمقاس ثابت يتصغّر بعدها', () => {
     expect(watermarkedImageUrl(CLOUD, LAYER)).toBe(
-      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_alrehla:site:logo,fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v1/alrehla/site/x.jpg',
+      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v1/alrehla/site/x.jpg',
     );
   });
 
@@ -176,22 +177,18 @@ describe('العلامة المائية على صور المنتجات', () => {
     expect(watermarkedImageUrl(undefined, LAYER)).toBeUndefined();
   });
 
-  it('رقم الشعار بصيغة الطبقة من رابطه', () => {
-    const id = publicIdFromUrl('https://res.cloudinary.com/x/image/upload/v1789/alrehla/site/logo.png');
-    expect(id?.replace(/\//g, ':')).toBe('alrehla:site:logo');
-  });
 });
 
 import { addWatermark, watermarkCloudinaryUrlsIn } from './cloudinary';
 describe('addWatermark — صور الموقع كلها', () => {
-  const L = 'alrehla:site:logo1';
+  const L = watermarkLayer(DEFAULT_WATERMARK)!;
   it('بعد تحويل المقاس، قبل رقم النسخة', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/f_auto,w_700/v12/alrehla/blog/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v12/alrehla/blog/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v12/alrehla/blog/a.jpg`);
   });
   it('صورة خام: بتتصغّر الأول', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/v12/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_${L},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/l_text:Arial_60_bold_stroke:alrehla.org,co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24/v12/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v12/a.jpg`);
   });
   it('مابتتكدّسش، ومابتلمسش غير Cloudinary، ومن غير شعار = زي ما هي', () => {
     const once = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', L);
@@ -201,7 +198,7 @@ describe('addWatermark — صور الموقع كلها', () => {
   });
   it('صور جوّه نص المقال', () => {
     const out = watermarkCloudinaryUrlsIn('![x](https://res.cloudinary.com/d/image/upload/v1/a.jpg) و <img src="https://res.cloudinary.com/d/image/upload/v2/b.png">', L);
-    expect(out.match(/l_alrehla:site:logo1/g)?.length).toBe(2);
+    expect(out.match(/l_text:Cairo/g)?.length).toBe(2);
   });
 });
 
@@ -220,7 +217,7 @@ describe('isUploadedImageUrl', () => {
 describe('downloadableImageUrl', () => {
   it('بالعلامة بس، وباسم ملف إنجليزي آمن', async () => {
     const { downloadableImageUrl, addWatermark } = await import('./cloudinary');
-    const marked = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', 'alrehla:site:logo');
+    const marked = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', watermarkLayer(DEFAULT_WATERMARK));
     expect(downloadableImageUrl(marked, 'Story Hero 1')).toBe(
       marked.replace('/upload/', '/upload/fl_attachment:story-hero-1/'),
     );

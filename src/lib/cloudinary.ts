@@ -81,7 +81,6 @@ export function optimizedImageUrl(url: string | null | undefined, width = 800): 
  * `dpr_auto` بيخلي الشاشات عالية الدقة تاخد نسخة أوضح من غير ما الشاشات
  * العادية تحمّل بايت زيادة.
  */
-import { WATERMARK_TEXT } from '@/lib/site-url';
 import { SITE_IMAGE_BY_KEY, type SiteImageKey } from '@/lib/site-images';
 
 export function slotImageUrl(
@@ -170,7 +169,7 @@ export function blurPlaceholder(url: string | null | undefined): string | undefi
 }
 
 /**
- * صورة منتج **بالعلامة المائية** — شعار المنصة في الركن، شفاف جزئيًّا.
+ * صورة منتج **بالعلامة المائية** (شكلها من الإعدادات — `lib/watermark-settings`).
  *
  * ── قرار تامر (1 أكتوبر): «لازم كدا في الكل» ──────────────────
  *
@@ -183,36 +182,26 @@ export function blurPlaceholder(url: string | null | undefined): string | undefi
  *    الأصلية **مابيوصلش للصفحة خالص**. والتصغير لمقاس الكارت بيعمله
  *    `next/image` بعدها.
  *
- * ⚠️ **ومن غير شعار (أو شعار مش على Cloudinary) الصورة بترجع زي ما
+ * ⚠️ **العلامة مقفولة (أو صورة مش على Cloudinary) = الصورة زي ما
  *    هي** — العلامة إضافة، وغيابها مايوقعش الصفحة.
  */
 export function watermarkedImageUrl(
   url: string | null | undefined,
-  watermarkLayerId: string | null,
+  watermark: string | null,
 ): string | undefined {
   if (!url) return undefined;
-  if (!watermarkLayerId) return url;
+  if (!watermark) return url;
   if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
   // متحوّلة قبل كده (عليها علامة أو مقاس) — مانكدّسش.
   if (/\/upload\/[a-z]{1,3}_/.test(url)) return url;
-  return url.replace('/upload/', `/upload/f_auto,q_auto:good,c_limit,w_1600/${watermarkLayers(watermarkLayerId)}/`);
+  return url.replace('/upload/', `/upload/f_auto,q_auto:good,c_limit,w_1600/${watermark}/`);
 }
 
-/**
- * طبقتين العلامة: الشعار (تحت يمين) + الدومين مكتوب (تحت شمال).
- *
- * ⚠️ **الدومين مكتوب** (قرار تامر بعد شراء الدومين): الصور بتتشارك على
- *    واتساب، واللي يشوفها لازم يعرف يوصل للموقع من غير ما يدوّر.
- *    كتابة غامقة بحواف بيضا — بتتقري على الغلاف الفاتح والغامق.
- *    و`fl_relative,w_0.3` = عرضها ٣٠٪ من الصورة مهما كان مقاسها.
- *    (اتجرّبت على Cloudinary فعلًا — ٩ أكتوبر.)
+/*
+ * شكل العلامة نفسها (الكتابة، اللون، الحجم، المكان، والتشغيل) من
+ * «الإعدادات العامة» — `lib/watermark-settings`. الدوال هنا بتاخد الطبقة
+ * جاهزة (`watermark`)، و`null` = مقفولة والصورة بتطلع زي ما هي.
  */
-function watermarkLayers(layerId: string): string {
-  return (
-    `l_${layerId},fl_relative,w_0.22,o_45,g_south_east,x_24,y_24/` +
-    `l_text:Arial_60_bold_stroke:${WATERMARK_TEXT},co_rgb:1e293b,bo_4px_solid_white,o_80,fl_relative,w_0.3,g_south_west,x_24,y_24`
-  );
-}
 
 /**
  * رابط **تحميل** لصورة عليها العلامة (قرار تامر: «العملاء يحمّلوا الصور
@@ -245,25 +234,25 @@ export function downloadableImageUrl(url: string | null | undefined, name = 'alr
  * ⚠️ مش للشعار نفسه ولا لكود الدفع (QR) ولا الصور الشخصية — الصفحة هي
  *    اللي بتقرر تناديها على إيه.
  */
-export function addWatermark(url: string | null | undefined, layerId: string | null): string {
+export function addWatermark(url: string | null | undefined, watermark: string | null): string {
   if (!url) return '';
-  if (!layerId || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  if (!watermark || !url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
   if (url.includes('/l_')) return url; // عليها علامة قبل كده
   const base = /\/upload\/[a-z]{1,3}_/.test(url) ? url : optimizedImageUrl(url, 1600);
   const [head, rest] = base.split('/upload/');
   const segs = rest.split('/');
   let i = 0;
   while (i < segs.length - 1 && /^[a-z]{1,3}_/.test(segs[i])) i++;
-  segs.splice(i, 0, watermarkLayers(layerId));
+  segs.splice(i, 0, watermark);
   return `${head}/upload/${segs.join('/')}`;
 }
 
 /**
  * صور Cloudinary **جوّه نص** (محتوى مقال) — كل رابط بتتحط عليه العلامة.
  */
-export function watermarkCloudinaryUrlsIn(text: string, layerId: string | null): string {
-  if (!text || !layerId) return text;
-  return text.replace(/https:\/\/res\.cloudinary\.com\/[^\s"')<>]+?\/upload\/[^\s"')<>]+/g, (u) => addWatermark(u, layerId));
+export function watermarkCloudinaryUrlsIn(text: string, watermark: string | null): string {
+  if (!text || !watermark) return text;
+  return text.replace(/https:\/\/res\.cloudinary\.com\/[^\s"')<>]+?\/upload\/[^\s"')<>]+/g, (u) => addWatermark(u, watermark));
 }
 
 /**

@@ -21,9 +21,8 @@ export { productRedirectPath } from '@/lib/product-display';
 import { createClient } from '@/lib/supabase/server';
 import { sharePerUnit } from '@/lib/publisher-sales';
 import { getPublisherPricingSettings } from '@/data/domains/admin';
-import { getSiteSettings } from '@/data/domains/content';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
-import { publicIdFromUrl } from '@/lib/cloudinary-admin';
+import { getWatermarkLayer } from '@/lib/watermark';
 import { fetchAllPages } from '@/lib/fetch-all';
 
 /**
@@ -37,11 +36,10 @@ import { fetchAllPages } from '@/lib/fetch-all';
  * ⚠️ **واللوحات مابتمرّش من هنا** (`getManagedProducts`): الإدارة
  *    والناشر محتاجين الصورة الأصلية — يراجعوها ويبدّلوها.
  *
- * الشعار من «صور الموقع ← الشعار»، وبصيغة طبقة Cloudinary (`/` ← `:`).
+ * شكلها وتشغيلها من «الإعدادات العامة ← العلامة المائية».
  */
 async function withWatermark(product: PersonalizedProduct): Promise<PersonalizedProduct> {
-  const settings = await getSiteSettings();
-  const layer = publicIdFromUrl(settings.images.logo)?.replace(/\//g, ':') ?? null;
+  const layer = await getWatermarkLayer();
   if (!layer) return product;
   return {
     ...product,

@@ -15,6 +15,11 @@ import { CONTENT_DEFAULTS, CONTENT_FIELDS } from '@/lib/site-content';
  */
 import { DEFAULT_RETENTION_DAYS } from '@/lib/session-recording';
 import { normalizeCancelDays } from '@/lib/stale-orders';
+import {
+  cleanWatermarkText,
+  DEFAULT_WATERMARK_TEXT,
+  normalizeWatermark,
+} from '@/lib/watermark-settings';
 
 export type SiteSettingsResult = { ok: true } | { ok: false; error: string };
 
@@ -103,6 +108,20 @@ export async function updateSiteSettings(
       enabled: formData.get('recordingEnabled') === 'on',
       retentionDays: days,
     };
+  }
+
+  // العلامة المائية — كائن واحد، وبيتنضّف بنفس الدالة اللي بتقراه
+  // (`normalizeWatermark`): الكتابة بتتقص لـ٤٠ حرف ومن غير الحروف اللي
+  // بتكسر رابط Cloudinary، وأي اختيار مش معروف بيرجع للافتراضي.
+  if (formData.has('watermarkText')) {
+    const text = cleanWatermarkText(formData.get('watermarkText'));
+    next.watermark = normalizeWatermark({
+      enabled: formData.get('watermarkEnabled') === 'on',
+      text: text || DEFAULT_WATERMARK_TEXT,
+      style: formData.get('watermarkStyle'),
+      size: formData.get('watermarkSize'),
+      position: formData.get('watermarkPosition'),
+    });
   }
 
   // شريط التنبيه العلوي — كائن واحد عشان التلات حاجات يتحفظوا مع بعض.

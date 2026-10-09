@@ -7,6 +7,7 @@ import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SettingsForm } from './SettingsForm';
 import { PaymentQrUploader } from './PaymentQrUploader';
+import { WatermarkFields } from './WatermarkFields';
 import { RETENTION_OPTIONS } from '@/lib/session-recording';
 import { Checkbox, Field, FormSection, Select, TextInput } from '@/components/forms/Form';
 
@@ -85,6 +86,22 @@ export default async function Page() {
           <Field label="رابط إنستجرام" name="instagramUrl">
             <TextInput type="url" dir="ltr" className="text-left" defaultValue={settings.instagramUrl} />
           </Field>
+        </Section>
+
+        {/* ---------- العلامة المائية ---------- */}
+        <Section
+          title="العلامة المائية"
+          hint="بطاقة صغيرة على صور الموقع والمنتجات، بتفضل ظاهرة لو حد حفظ الصورة أو شاركها. التغيير بيطلع على كل الصور مرة واحدة بعد الحفظ."
+        >
+          <WatermarkFields
+            initial={settings.watermark}
+            sampleUrl={
+              settings.images.homeHero ??
+              settings.images.homeReading ??
+              settings.images.homeFamily ??
+              null
+            }
+          />
         </Section>
 
         {/* ---------- شريط التنبيه ---------- */}
