@@ -5,7 +5,7 @@ import type { UserRole } from '@/types';
 import { needsPasswordSetup, SET_PASSWORD_PATH } from '@/lib/first-login';
 import { getSupabasePublicKey, getSupabaseUrl } from '@/lib/supabase/env';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });

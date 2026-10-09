@@ -1,22 +1,21 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { FlatCompat } from '@eslint/eslintrc';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-export default [
+export default defineConfig([
   // `eslint .` (بدل `next lint` اللي Next وقّفه): ملفات البناء والمكتبات برّه الفحص.
-  { ignores: ['.next/**', 'node_modules/**', 'coverage/**', 'next-env.d.ts'] },
-  ...compat.extends('next/core-web-vitals'),
+  globalIgnores(['.next/**', 'out/**', 'build/**', 'node_modules/**', 'coverage/**', 'next-env.d.ts']),
+  ...nextVitals,
   {
     rules: {
       'react/no-unescaped-entities': 'off',
       '@next/next/no-img-element': 'off',
+
+      // Next 16 adds React Compiler diagnostics to the recommended preset.
+      // Keep existing initialization/time-based rendering visible for follow-up
+      // without changing application behavior during the framework migration.
+      // The compiler is not enabled; rules-of-hooks remains an error.
+      'react-hooks/purity': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
 
       // ⚠️ **الحارس ده اتحط بعد عطل حقيقي على الإنتاج.**
       //
@@ -44,4 +43,4 @@ export default [
       ],
     },
   },
-];
+]);

@@ -6,14 +6,18 @@ import { useState } from 'react'
 import { signIn } from '@/actions/auth'
 import { isControlFlowError } from '@/lib/use-action'
 import { FormError } from '@/components/ui/FormError'
+import { Button } from '@/components/ui/Button'
+import { signInWithGoogle } from '@/lib/supabase/google-sign-in'
 
 export function SignInForm() {
   const [pending, setPending] = useState(false)
+  const [googlePending, setGooglePending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (pending || googlePending) return
     setPending(true)
     setError(null)
 
@@ -44,9 +48,37 @@ export function SignInForm() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    if (pending || googlePending) return
+    setGooglePending(true)
+    setError(null)
+    try {
+      await signInWithGoogle(
+        window.location.origin,
+        new URLSearchParams(window.location.search).get('next'),
+      )
+      // Keep the button pending until the browser leaves for Google.
+    } catch {
+      setError('تعذّر تسجيل الدخول باستخدام Google. جرّب تاني أو استخدم البريد وكلمة المرور.')
+      setGooglePending(false)
+    }
+  }
+
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       <FormError message={error} />
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        disabled={pending || googlePending}
+        pending={googlePending}
+        pendingText="جارٍ الانتقال إلى Google…"
+        onClick={handleGoogleSignIn}
+      >
+        تسجيل الدخول باستخدام Google
+      </Button>
+      <p className="text-center text-sm text-slate-500">أو باستخدام البريد الإلكتروني</p>
       <div className="space-y-2">
         <label htmlFor="signin-email" className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
         <div className="relative">
@@ -90,7 +122,7 @@ export function SignInForm() {
       </div>
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || googlePending}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-70"
       >
         {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'تسجيل الدخول'}

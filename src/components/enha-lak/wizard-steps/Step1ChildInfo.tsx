@@ -28,6 +28,13 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
   // تحديد الوضع الحالي بناءً على القيمة المحفوظة
   const [mode, setMode] = useState<TargetMode>('self');
 
+  const handleSelectMember = (m: ChildProfile) => {
+    setValue('familyMemberId', m.id, { shouldValidate: true });
+    setValue('newChildName', m.fullName, { shouldValidate: true });
+    setValue('newChildBirthDate', m.birthDate || '', { shouldValidate: true });
+    setValue('newChildGender', m.gender || '', { shouldValidate: true });
+  };
+
   useEffect(() => {
     Promise.all([fetchFamilyMembers(), getWizardUserInfo()]).then(([family, user]) => {
       setMembers(family);
@@ -86,13 +93,6 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
         handleSelectMember(members[0]);
       }
     }
-  };
-
-  const handleSelectMember = (m: ChildProfile) => {
-    setValue('familyMemberId', m.id, { shouldValidate: true });
-    setValue('newChildName', m.fullName, { shouldValidate: true });
-    setValue('newChildBirthDate', m.birthDate || '', { shouldValidate: true });
-    setValue('newChildGender', m.gender || '', { shouldValidate: true });
   };
 
   const handleNextStep = () => {

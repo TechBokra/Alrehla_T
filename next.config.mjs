@@ -20,7 +20,7 @@ const contentSecurityPolicy = [
 
   // Next بيحقن سكربتات inline للترطيب (hydration) من غير nonce، فـ
   // 'unsafe-inline' مطلوبة. و'unsafe-eval' للتطوير بس.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
 
   // Tailwind وNext بيكتبوا styles inline.
   "style-src 'self' 'unsafe-inline'",
@@ -33,10 +33,10 @@ const contentSecurityPolicy = [
   // data: و blob: لمعاينة الصورة قبل رفعها.
   // و`api.cloudinary.com`: صور الأطفال الخاصة بتتعرض للإدارة من رابط
   // `download` المؤقت (`@/lib/cloudinary-private`).
-  "img-src 'self' data: blob: https://res.cloudinary.com https://api.cloudinary.com https://ui-avatars.com https://picsum.photos",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://api.cloudinary.com https://ui-avatars.com https://picsum.photos https://*.google-analytics.com https://www.googletagmanager.com",
 
   // Supabase (REST + realtime عبر websocket) ورفع Cloudinary المباشر.
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
 
   "frame-ancestors 'none'",
   "form-action 'self'",

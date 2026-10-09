@@ -9,6 +9,7 @@ import { Providers } from '@/components/providers/Providers';
 import { getSiteSettings } from '@/data/domains/content';
 import { slotImageUrl } from '@/lib/cloudinary';
 import { SITE_URL } from '@/lib/seo';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 
 const cairo = Cairo({
   subsets: ['arabic'],
@@ -85,6 +86,7 @@ export default function RootLayout({
         className={`${cairo.variable} flex min-h-screen flex-col font-sans text-slate-800 antialiased bg-[#FCFDFD] selection:bg-amber-200 selection:text-amber-900`}
         suppressHydrationWarning
       >
+        <GoogleAnalytics />
         <Providers>
           <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-rose-500 to-emerald-500 z-50" />
           <AnnouncementBar />
