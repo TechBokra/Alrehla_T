@@ -34,7 +34,8 @@ export function SiteImagesClient({ images }: { images: SiteImages }) {
     setError('');
     try {
       const uploaded = await uploadImage(file, 'alrehla/site');
-      await saveSiteImage({ key, url: uploaded.url });
+      const result = await saveSiteImage({ key, url: uploaded.url });
+      if (!result.ok) { setError(result.error); return; }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
@@ -48,7 +49,8 @@ export function SiteImagesClient({ images }: { images: SiteImages }) {
     setBusyKey(key);
     setError('');
     try {
-      await saveSiteImage({ key, url });
+      const result = await saveSiteImage({ key, url });
+      if (!result.ok) { setError(result.error); return; }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر حفظ الصورة');
@@ -61,7 +63,8 @@ export function SiteImagesClient({ images }: { images: SiteImages }) {
     setBusyKey(key);
     setError('');
     try {
-      await saveSiteImage({ key, url: '' });
+      const result = await saveSiteImage({ key, url: '' });
+      if (!result.ok) { setError(result.error); return; }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر حذف الصورة');
