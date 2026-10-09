@@ -27,7 +27,8 @@ export function PaymentQrUploader({ value }: { value: string }) {
       const finalUrl = file
         ? (await uploadImage(file, 'alrehla/site')).url
         : url;
-      await saveSiteImage({ key: 'paymentQrUrl', url: finalUrl });
+      const result = await saveSiteImage({ key: 'paymentQrUrl', url: finalUrl });
+      if (!result.ok) { setError(result.error); return; }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر حفظ الصورة');
