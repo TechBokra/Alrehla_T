@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { User, Upload } from 'lucide-react';
-import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { optimizedImageUrl } from '@/lib/cloudinary';
+import { uploadImage } from '@/lib/upload-client';
 
 /**
  * Choosing a profile or logo image.

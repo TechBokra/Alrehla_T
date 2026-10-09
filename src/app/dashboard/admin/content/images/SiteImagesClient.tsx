@@ -9,7 +9,8 @@ import {
   type SiteImages,
   type SiteImageSlot,
 } from '@/lib/site-images';
-import { uploadImage, slotImageUrl } from '@/lib/cloudinary';
+import { slotImageUrl } from '@/lib/cloudinary';
+import { uploadImage } from '@/lib/upload-client';
 import { saveSiteImage } from '@/actions/content';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 

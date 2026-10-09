@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Upload, Trash2, QrCode } from 'lucide-react';
-import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { optimizedImageUrl } from '@/lib/cloudinary';
+import { uploadImage } from '@/lib/upload-client';
 import { saveSiteImage } from '@/actions/content';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 

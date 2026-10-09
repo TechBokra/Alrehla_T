@@ -89,6 +89,51 @@ export function privateUploadTicket(
 }
 
 /**
+ * تذكرة رفع صورة **عامة** (صور المنتجات والموقع والصور الشخصية).
+ *
+ * نفس فكرة الخاصة: السيرفر بيوقّع على المجلّد، فالمتصفح مايقدرش يرفع
+ * في مكان تاني، ومحدّش يقدر يرفع من غير ما ياخد تذكرة (يعني يكون داخل
+ * ودوره مسموح له المجلّد — `lib/upload-folders`).
+ *
+ * `upload_preset` لسه موجود في التوقيع عشان إعدادات الـpreset (لو فيها
+ * تحويلات أو حدود) تفضل شغالة زي ما هي. وده بيشتغل سواء الـpreset
+ * «Unsigned» أو «Signed» — فلما نقلبه «Signed» في لوحة Cloudinary
+ * الطريق القديم بس هو اللي بيتقفل.
+ */
+export const PUBLIC_UPLOAD_PRESET =
+  process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'alreha';
+const PUBLIC_FORMATS = 'jpg,jpeg,png,webp,heic,heif,svg';
+
+export type PublicUploadTicket = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  uploadPreset: string;
+  allowedFormats: string;
+};
+
+export function publicUploadTicket(folder: string, now = Date.now()): PublicUploadTicket | null {
+  const c = credentials();
+  if (!c) return null;
+  const timestamp = Math.floor(now / 1000);
+  const signature = signParams(
+    { allowed_formats: PUBLIC_FORMATS, folder, timestamp, upload_preset: PUBLIC_UPLOAD_PRESET },
+    c.secret,
+  );
+  return {
+    cloudName: c.cloud,
+    apiKey: c.key,
+    timestamp,
+    signature,
+    folder,
+    uploadPreset: PUBLIC_UPLOAD_PRESET,
+    allowedFormats: PUBLIC_FORMATS,
+  };
+}
+
+/**
  * رابط مؤقت لصورة خاصة — **بينتهي** (افتراضيًّا بعد ساعة).
  *
  * ⚠️ مش رابط العرض الموقَّع العادي (`s--…--`): ده **مابينتهيش**، ولو

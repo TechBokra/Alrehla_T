@@ -3,7 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
-import { uploadImage, optimizedImageUrl } from '@/lib/cloudinary';
+import { optimizedImageUrl } from '@/lib/cloudinary';
+import { uploadImage } from '@/lib/upload-client';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 import { UploadProgress } from '@/components/dashboard/ImageField';
 
