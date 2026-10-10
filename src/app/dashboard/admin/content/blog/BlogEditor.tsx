@@ -1,4 +1,5 @@
 'use client';
+import { useNow } from '@/components/providers/ClientTimeProvider';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,7 +23,8 @@ const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة و
  */
 export function BlogEditor({ post }: { post: BlogPost | null }) {
   const router = useRouter();
-  const isDraft = post ? new Date(post.publishedAt) > new Date() : false;
+  const now = useNow();
+  const isDraft = post ? new Date(post.publishedAt).getTime() > now : false;
 
   const [title, setTitle] = useState(post?.title ?? '');
   const [slug, setSlug] = useState(post?.slug ?? '');

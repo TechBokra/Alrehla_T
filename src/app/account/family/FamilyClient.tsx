@@ -6,7 +6,8 @@ import { createFamilyMember, updateFamilyMember, deleteFamilyMember } from '@/ap
 import { Button } from '@/components/ui/Button';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { Trash2, Edit2, Plus, X, FileText } from 'lucide-react';
-import { calculateAge } from '@/lib/utils';
+import { ageAtTime } from '@/lib/time-values';
+import { useNow } from '@/components/providers/ClientTimeProvider';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
 import { AvatarPicker } from '@/components/dashboard/AvatarPicker';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
@@ -22,6 +23,7 @@ export function FamilyClient({
   /** مفتاح الخدمة متظبط على الخادم؟ */
   accountsEnabled: boolean;
 }) {
+  const now = useNow();
   const [members, setMembers] = useState<ChildProfile[]>(initialMembers);
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
@@ -163,7 +165,7 @@ export function FamilyClient({
       header: 'العمر (سنوات)', 
       accessorKey: 'age',
       cell: (child: ChildProfile) => {
-        const age = calculateAge(child.birthDate);
+        const age = ageAtTime(child.birthDate, now);
         return age !== null ? age.toString() : '-';
       }
     },

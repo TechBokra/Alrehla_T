@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Clock, Video, Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { calendarDate, isTodayAt } from '@/lib/time-values';
 
 export type SessionRow = {
   id: string;
@@ -38,9 +40,7 @@ export function SessionsList({
 }: SessionsListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-
-  const now = Date.now();
-  const todayStr = new Date().toDateString();
+  const now = useNow();
 
   // فلترة بالبحث
   const filtered = useMemo(() => {
@@ -77,7 +77,7 @@ export function SessionsList({
       {/* شريط البحث إن كان عدد الجلسات كبيراً */}
       {enableSearch && sessions.length > 5 && (
         <div className="relative">
-          <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute top-1/2 right-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
@@ -86,7 +86,7 @@ export function SessionsList({
               setCurrentPage(1);
             }}
             placeholder="ابحث في الجلسات..."
-            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-xs md:text-sm font-medium outline-none transition-colors focus:border-amber-500 shadow-2xs"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-xs font-medium shadow-2xs transition-colors outline-none focus:border-amber-500 md:text-sm"
           />
           {searchQuery && (
             <button
@@ -95,7 +95,7 @@ export function SessionsList({
                 setSearchQuery('');
                 setCurrentPage(1);
               }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+              className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
             >
               مسح
             </button>
@@ -112,15 +112,20 @@ export function SessionsList({
         <div className="space-y-3">
           {displayedSessions.map((session) => {
             const date = new Date(session.scheduledAt);
-            const isToday = todayStr === date.toDateString();
+            const isToday = isTodayAt(session.scheduledAt, now);
             const past = date.getTime() < now;
-            const badge = STATUS[session.status] ?? { label: session.status, type: 'neutral' as const };
+            const badge = STATUS[session.status] ?? {
+              label: session.status,
+              type: 'neutral' as const,
+            };
 
             return (
               <div
                 key={session.id}
                 className={`flex flex-col justify-between gap-4 rounded-2xl border p-4 md:flex-row md:items-center ${
-                  isToday ? 'border-amber-300 bg-amber-50/60' : 'border-slate-200 bg-white'
+                  isToday
+                    ? 'border-amber-300 bg-amber-50/60'
+                    : 'border-slate-200 bg-white'
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -129,14 +134,19 @@ export function SessionsList({
                       isToday
                         ? 'bg-amber-500 text-white shadow-xs'
                         : past
-                        ? 'border border-slate-200 bg-slate-50 text-slate-400'
-                        : 'border border-slate-200 bg-white text-slate-700'
+                          ? 'border border-slate-200 bg-slate-50 text-slate-400'
+                          : 'border border-slate-200 bg-white text-slate-700'
                     }`}
                   >
                     <span className="text-xs">
-                      {date.toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE, month: 'short' })}
+                      {date.toLocaleDateString('ar-EG', {
+                        timeZone: PLATFORM_TIMEZONE,
+                        month: 'short',
+                      })}
                     </span>
-                    <span className="text-lg leading-none">{date.getDate()}</span>
+                    <span className="text-lg leading-none">
+                      {calendarDate(date).getDate()}
+                    </span>
                   </div>
 
                   <div className="min-w-0">
@@ -166,7 +176,7 @@ export function SessionsList({
                       href={session.meetingUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold whitespace-nowrap text-white transition-colors hover:bg-slate-800 md:flex-none shadow-xs"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2 text-sm font-bold whitespace-nowrap text-white shadow-xs transition-colors hover:bg-slate-800 md:flex-none"
                     >
                       <Video className="h-4 w-4" />
                       دخول الجلسة
@@ -174,7 +184,7 @@ export function SessionsList({
                   )}
                   <Link
                     href={session.href}
-                    className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-center text-sm font-bold whitespace-nowrap text-slate-700 transition-colors hover:bg-slate-50 shadow-2xs"
+                    className="rounded-xl border border-slate-200 bg-white px-5 py-2 text-center text-sm font-bold whitespace-nowrap text-slate-700 shadow-2xs transition-colors hover:bg-slate-50"
                   >
                     التفاصيل
                   </Link>
@@ -190,7 +200,8 @@ export function SessionsList({
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-600 shadow-2xs">
           <span>
             عرض {(safeCurrentPage - 1) * pageSize + 1} -{' '}
-            {Math.min(safeCurrentPage * pageSize, filtered.length)} من أصل {filtered.length}
+            {Math.min(safeCurrentPage * pageSize, filtered.length)} من أصل{' '}
+            {filtered.length}
           </span>
 
           <div className="flex items-center gap-1">

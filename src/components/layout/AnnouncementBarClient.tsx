@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useDeadline } from '@/components/providers/ClientTimeProvider';
 import { Megaphone, X } from 'lucide-react';
 
 /**
@@ -9,8 +10,9 @@ import { Megaphone, X } from 'lucide-react';
  * القفل بيتخزّن في المتصفح ومربوط بنص التنبيه نفسه: لو غيّرت النص،
  * الشريط بيرجع يظهر لكل اللي قفلوه — وده المطلوب، لأنه تنبيه جديد.
  */
-export function AnnouncementBarClient({ text }: { text: string }) {
+export function AnnouncementBarClient({ text, expiresAt }: { text: string; expiresAt: number | null }) {
   const [dismissed, setDismissed] = React.useState(false);
+  const expired = useDeadline(expiresAt);
 
   // بصمة قصيرة للنص عشان ما نخزّنش النص كامل في المتصفح.
   const signature = React.useMemo(() => {
@@ -29,7 +31,7 @@ export function AnnouncementBarClient({ text }: { text: string }) {
     }
   }, [signature]);
 
-  if (dismissed) return null;
+  if (dismissed || expired) return null;
 
   return (
     <div className="relative z-40 bg-slate-900 px-4 py-2.5 text-white">

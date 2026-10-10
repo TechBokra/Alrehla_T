@@ -14,5 +14,5 @@ import { AnnouncementBarClient } from './AnnouncementBarClient';
 export async function AnnouncementBar() {
   const announcement = await getAnnouncementData();
   if (!announcement) return null;
-  return <AnnouncementBarClient text={announcement.text} />;
+  return <AnnouncementBarClient text={announcement.text} expiresAt={announcement.expiresAt} />;
 }

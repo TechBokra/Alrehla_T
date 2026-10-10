@@ -64,8 +64,8 @@ describe('server page temporal view models', () => {
   it('hides expired announcements at the exact boundary', () => {
     const announcement = { enabled: true, text: 'Notice', until: now.toISOString() } as SiteSettings['announcement'];
     expect(visibleAnnouncement(announcement, now)).toBeNull();
-    expect(visibleAnnouncement({ ...announcement, until: '2026-10-09T12:00:01Z' }, now)).toEqual({ text: 'Notice' });
-    expect(visibleAnnouncement({ ...announcement, until: 'invalid' }, now)).toEqual({ text: 'Notice' });
+    expect(visibleAnnouncement({ ...announcement, until: '2026-10-09T12:00:01Z' }, now)).toEqual({ text: 'Notice', expiresAt: Date.parse('2026-10-09T12:00:01Z') });
+    expect(visibleAnnouncement({ ...announcement, until: 'invalid' }, now)).toEqual({ text: 'Notice', expiresAt: null });
     expect(visibleAnnouncement({ ...announcement, enabled: false }, now)).toBeNull();
   });
   it('sets blog status from one publication boundary', () => {

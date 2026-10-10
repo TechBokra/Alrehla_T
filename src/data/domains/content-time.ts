@@ -8,7 +8,7 @@ export function visibleAnnouncement(announcement: SiteSettings['announcement'], 
   const until = validDate(announcement.until);
   // Preserve the previous behavior for a missing/invalid expiration date.
   if (until && !isAfter(until, now)) return null;
-  return { text: announcement.text };
+  return { text: announcement.text, expiresAt: until?.getTime() ?? null };
 }
 export async function getAnnouncementData() {
   const { announcement } = await getSiteSettings();

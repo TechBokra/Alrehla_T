@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { ar } from 'react-day-picker/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { calendarDate } from '@/lib/time-values';
 import 'react-day-picker/style.css';
 
 interface BirthDatePickerProps {
@@ -41,7 +43,8 @@ export function BirthDatePicker({ value, onChange, id }: BirthDatePickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selected = fromISO(value);
-  const today = new Date();
+  const now = useNow();
+  const today = calendarDate(new Date(now));
 
   useEffect(() => {
     if (!open) return;

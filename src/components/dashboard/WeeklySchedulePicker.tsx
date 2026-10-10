@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { dateKey } from '@/lib/time-values';
 import { DayOfWeek, WeeklySlot } from '@/types';
 import {
   Calendar,
@@ -72,7 +74,8 @@ export function WeeklySchedulePicker({
   const [copiedDay, setCopiedDay] = useState<DayOfWeek | null>(null);
   const [timeError, setTimeError] = useState('');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = useNow();
+  const todayStr = dateKey(now);
 
   const getDaySlots = (day: DayOfWeek) => {
     return schedule

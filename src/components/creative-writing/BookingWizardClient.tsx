@@ -1,4 +1,7 @@
 'use client';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { isBefore, isValid, parseISO } from 'date-fns';
+import { calendarDate } from '@/lib/time-values';
 import React, { useState, useEffect } from 'react';
 import { PublicInstructor, WeeklySlot, BookedSlot, DayOfWeek } from '@/types';
 import { formatPrice } from '@/lib/utils';
@@ -71,6 +74,7 @@ export function BookingWizardClient({
   presetInstructorId,
   presetChild,
 }: BookingWizardProps) {
+  const now = useNow();
   const router = useRouter();
   const searchParams = useSearchParams();
   // الباقة اللي جاية من صفحة الباقات، لو كانت لسه متاحة.
@@ -349,9 +353,8 @@ export function BookingWizardClient({
                         if (s.day !== dayKey) return false;
                         // استبعاد المواعيد المؤقتة التي انقضى تاريخ نهايتها المحدد باليوم
                         if (s.commitmentType === 'fixed_term' && s.commitmentEndsAt) {
-                          const ends = new Date(s.commitmentEndsAt);
-                          ends.setHours(23, 59, 59, 999);
-                          if (ends.getTime() < Date.now()) return false;
+                          const ends = parseISO(s.commitmentEndsAt);
+                          if (isValid(ends) && isBefore(calendarDate(ends), calendarDate(new Date(now)))) return false;
                         }
                         return true;
                       })

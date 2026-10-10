@@ -10,6 +10,8 @@ import { getSiteSettings } from '@/data/domains/content';
 import { slotImageUrl } from '@/lib/cloudinary';
 import { SITE_URL } from '@/lib/seo';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { ClientTimeProvider } from '@/components/providers/ClientTimeProvider';
+import { getServerNow } from '@/data/server-time';
 
 const cairo = Cairo({
   subsets: ['arabic'],
@@ -87,6 +89,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <GoogleAnalytics />
+        <ClientTimeProvider initialTimestamp={getServerNow().getTime()}>
         <Providers>
           <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-rose-500 to-emerald-500 z-50" />
           <AnnouncementBar />
@@ -95,6 +98,7 @@ export default function RootLayout({
           <Footer />
           <FloatingActions />
         </Providers>
+        </ClientTimeProvider>
       </body>
     </html>
   );

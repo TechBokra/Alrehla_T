@@ -1,4 +1,6 @@
 'use client';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { isTodayAt } from '@/lib/time-values';
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -49,8 +51,7 @@ export function InstructorSessionsClient({ sessions }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const now = Date.now();
-  const todayDateString = new Date().toDateString();
+  const now = useNow();
 
   // استخراج قائمة الباقات الفريدة للفلترة
   const availablePackages = useMemo(() => {
@@ -70,7 +71,7 @@ export function InstructorSessionsClient({ sessions }: Props) {
 
     sessions.forEach((s) => {
       const time = new Date(s.scheduledAt).getTime();
-      const isToday = new Date(s.scheduledAt).toDateString() === todayDateString;
+      const isToday = isTodayAt(s.scheduledAt, now);
       if (isToday) todayCount++;
       if (time >= now && s.status !== 'cancelled' && s.status !== 'completed') {
         upcomingCount++;
@@ -86,14 +87,14 @@ export function InstructorSessionsClient({ sessions }: Props) {
       completed: completedCount,
       pending: pendingCount,
     };
-  }, [sessions, now, todayDateString]);
+  }, [sessions, now]);
 
   // فلترة وترتيب الجلسات في الذاكرة لأقصى سرعة
   const filteredSessions = useMemo(() => {
     return sessions
       .filter((session) => {
         const sessionTime = new Date(session.scheduledAt).getTime();
-        const isToday = new Date(session.scheduledAt).toDateString() === todayDateString;
+        const isToday = isTodayAt(session.scheduledAt, now);
 
         // فلترة الحالة
         if (statusFilter === 'upcoming') {
@@ -149,7 +150,7 @@ export function InstructorSessionsClient({ sessions }: Props) {
           return timeA - timeB;
         }
       });
-  }, [sessions, statusFilter, packageFilter, searchQuery, sortBy, now, todayDateString]);
+  }, [sessions, statusFilter, packageFilter, searchQuery, sortBy, now]);
 
   // الحسابات الخاصة بالصفحات (Pagination)
   const totalPages = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
@@ -408,7 +409,7 @@ export function InstructorSessionsClient({ sessions }: Props) {
         <div className="space-y-3">
           {paginatedSessions.map((session) => {
             const date = new Date(session.scheduledAt);
-            const isToday = todayDateString === date.toDateString();
+            const isToday = isTodayAt(session.scheduledAt, now);
             const isPast = date.getTime() < now;
             const badge = STATUS_CONFIG[session.status] ?? {
               label: session.status,

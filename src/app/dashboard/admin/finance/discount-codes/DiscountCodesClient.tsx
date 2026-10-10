@@ -1,4 +1,5 @@
 'use client';
+import { useNow } from '@/components/providers/ClientTimeProvider';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,8 +48,7 @@ function fromRow(r: DiscountCodeRow): DiscountCodeInput {
 }
 
 /** الحالة اللي الإدارة محتاجة تشوفها: شغّال، متوقف، لسه، انتهى، خلص عدده. */
-function stateOf(r: DiscountCodeRow): { label: string; type: 'success' | 'warning' | 'neutral' | 'danger' } {
-  const now = Date.now();
+function stateOf(r: DiscountCodeRow, now: number): { label: string; type: 'success' | 'warning' | 'neutral' | 'danger' } {
   if (!r.isActive) return { label: 'متوقف', type: 'neutral' };
   if (r.endsAt && new Date(r.endsAt).getTime() <= now) return { label: 'انتهى', type: 'neutral' };
   if (r.maxUses !== null && r.used >= r.maxUses) return { label: 'خلص عدده', type: 'warning' };
@@ -57,6 +57,7 @@ function stateOf(r: DiscountCodeRow): { label: string; type: 'success' | 'warnin
 }
 
 export function DiscountCodesClient({ codes }: { codes: DiscountCodeRow[] }) {
+  const now = useNow();
   const router = useRouter();
   const [draft, setDraft] = useState<DiscountCodeInput | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -199,7 +200,7 @@ export function DiscountCodesClient({ codes }: { codes: DiscountCodeRow[] }) {
       ) : (
         <ul className="space-y-3">
           {codes.map((r) => {
-            const state = stateOf(r);
+            const state = stateOf(r, now);
             return (
               <li key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">

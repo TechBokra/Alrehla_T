@@ -1,4 +1,5 @@
 'use client';
+import { useNow } from '@/components/providers/ClientTimeProvider';
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -21,8 +22,8 @@ const VIEWS: { key: View; label: string }[] = [
 ];
 
 /** من قد إيه — «من ٣ ساعات» / «من يومين». */
-function ago(iso: string): string {
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+function ago(iso: string, now: number): string {
+  const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
   if (mins < 60) return `من ${mins.toLocaleString('ar-EG')} دقيقة`;
   const hours = Math.round(mins / 60);
   if (hours < 48) return `من ${hours.toLocaleString('ar-EG')} ساعة`;
@@ -30,6 +31,7 @@ function ago(iso: string): string {
 }
 
 export function TasksClient({ tasks, people, me }: { tasks: WorkTask[]; people: AdminPerson[]; me: string }) {
+  const now = useNow();
   const router = useRouter();
   const [view, setView] = useState<View>('mine');
   const [line, setLine] = useState<WorkLine | ''>('');
@@ -137,7 +139,7 @@ export function TasksClient({ tasks, people, me }: { tasks: WorkTask[]; people: 
                   <p className="mt-1 text-xs text-slate-500">
                     {t.status === 'done' && t.doneAt
                       ? `اتقفلت ${formatCairo(t.doneAt, { dateStyle: 'medium', timeStyle: 'short' })}`
-                      : `مفتوحة ${ago(t.createdAt)}`}
+                      : `مفتوحة ${ago(t.createdAt, now)}`}
                     {' · '}
                     {t.assigneeIds.length
                       ? `المسؤول: ${t.assigneeIds.map((id) => names[id] ?? 'إداري').join('، ')}`

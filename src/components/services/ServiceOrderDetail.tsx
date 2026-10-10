@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useNow } from '@/components/providers/ClientTimeProvider';
+import { ageAtTime } from '@/lib/time-values';
 import { useRouter } from 'next/navigation';
 import { Send, Package, CheckCircle2, Play, Truck, AlertCircle, Lock } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
@@ -78,19 +80,13 @@ const btnBase =
   'inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-50';
 
 /** السن بالسنين من تاريخ الميلاد — «9 سنة» أوضح من تاريخ خام. */
-function childAge(birthDate: string): string {
-  const born = new Date(birthDate);
-  if (Number.isNaN(born.getTime())) return '';
-  const now = new Date();
-  let years = now.getFullYear() - born.getFullYear();
-  const beforeBirthday =
-    now.getMonth() < born.getMonth() ||
-    (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
-  if (beforeBirthday) years -= 1;
-  return years > 0 ? `${years} سنة` : '';
+function childAge(birthDate: string, now: number): string {
+  const years = ageAtTime(birthDate, now);
+  return years !== null && years > 0 ? `${years} سنة` : '';
 }
 
 export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }: Props) {
+  const now = useNow();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ActionError | null>(null);
@@ -139,7 +135,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
     actionsError?.field === field ? actionsError.message : undefined;
 
   const daysSinceDelivery = order.deliveredAt
-    ? Math.floor((Date.now() - new Date(order.deliveredAt).getTime()) / 86_400_000)
+    ? Math.floor((now - new Date(order.deliveredAt).getTime()) / 86_400_000)
     : null;
 
   return (
@@ -167,7 +163,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
             {order.participantType === 'child' && order.participantName && (
               <p className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700">
                 المستفيد: {order.participantName}
-                {order.participantBirthDate && ` · ${childAge(order.participantBirthDate)}`}
+                {order.participantBirthDate && ` · ${childAge(order.participantBirthDate, now)}`}
               </p>
             )}
           </div>
@@ -512,6 +508,7 @@ function DuePanel({
   order: ServiceOrderRow;
   viewer: OrderViewer;
 }) {
+  const now = useNow();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [date, setDate] = useState(order.dueAt ? order.dueAt.slice(0, 10) : '');
@@ -520,7 +517,7 @@ function DuePanel({
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<string | undefined>();
 
-  const late = isOverdue(order.dueAt);
+  const late = isOverdue(order.dueAt, new Date(now));
 
   const save = async () => {
     setBusy(true);
@@ -551,7 +548,7 @@ function DuePanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className={`font-bold ${late ? 'text-red-700' : 'text-slate-700'}`}>
-            مهلة التسليم: {dueLabel(order.dueAt)}
+            مهلة التسليم: {dueLabel(order.dueAt, new Date(now))}
           </p>
           {order.dueNote ? (
             <p className="mt-1 text-sm font-medium text-slate-500">{order.dueNote}</p>
