@@ -9,9 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { formatPrice } from '@/lib/utils';
 import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
-import { addonCustomerPrice } from '@/lib/item-format';
 import { PenTool, Plus } from 'lucide-react';
 import { getSiteContent } from '@/data/domains/content';
 
@@ -21,6 +19,7 @@ import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
+import { AddonCard } from '@/components/enha-lak/AddonCard';
 import { Reveal } from '@/components/ui/Reveal';
 
 
@@ -77,7 +76,7 @@ export default async function CustomPage() {
       </Section>
 
       {/* Addons */}
-      <Section containerClassName="max-w-4xl rounded-3xl border border-slate-100 bg-slate-50/50 p-8 md:p-12 pb-24">
+      <Section containerClassName="max-w-6xl rounded-3xl border border-slate-100 bg-slate-50/50 p-6 md:p-12 pb-24">
         {/* ⚠️ **كان هنا زرار «أضف للسلة» على كل إضافة.**
 
             والإضافة **مش منتج يتباع لوحده**: هي بتتعلّق بقصة، وسعرها
@@ -104,32 +103,13 @@ export default async function CustomPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          {addons.map((addon) => (
-            <Card
-              key={addon.id}
-              accentColor="rose"
-              className="flex flex-col justify-between p-6 shadow-sm"
-            >
-              <div>
-                <h3 className="mb-2 text-xl font-bold text-slate-800">
-                  {addon.name}
-                </h3>
-                <p className="mb-4 text-sm leading-relaxed font-medium text-slate-500">
-                  {addon.description}
-                </p>
-              </div>
-              <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-lg font-black text-rose-700">
-                  {/* شامل التخصيص — كان سعر الإضافة من غيره (ملاحظة تامر). */}
-                  {formatPrice(addonCustomerPrice(addon))}
-                </span>
-                <span className="text-end text-xs font-bold text-slate-600">
-                  <span className="block text-emerald-800">باسم الطفل وصورته</span>
-                  {content['custom.addons.badge']}
-                </span>
-              </div>
-            </Card>
+        {/* ⚠️ كانت كروت نص من غير صورة ولا صفحة تفاصيل. بقت بنفس شكل كروت
+            القصص فوق (ملاحظة تامر، 10 أكتوبر) — والكارت بيودّي لصفحة الإضافة. */}
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {addons.map((addon, i) => (
+            <Reveal key={addon.id} delay={Math.min(i, 5) * 60} className="h-full">
+              <AddonCard addon={addon} badge={content['custom.addons.badge']} />
+            </Reveal>
           ))}
         </div>
       </Section>

@@ -42,6 +42,10 @@ export async function saveAddon(params: {
   sortOrder: number;
   /** صورة اختيارية (ملف 12) — فاضي = من غير صورة. */
   imageUrl?: string | null;
+  /** ملف 19 — صفحة التفاصيل. */
+  galleryImageUrls?: string[];
+  longDescription?: string;
+  features?: string[];
 }): Promise<AddonResult> {
   const admin = await requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة الإضافات');
 
@@ -55,6 +59,18 @@ export async function saveAddon(params: {
   if (imageUrl && !imageUrl.startsWith(CLOUDINARY_PREFIX)) {
     return { ok: false, error: 'صورة الإضافة لازم تترفع من زرار «رفع صورة» أو المكتبة — مش رابط من برّه' };
   }
+
+  // ملف 19 — نفس حدود القاعدة، برسالة مفهومة بدل خطأ القيد.
+  const gallery = (params.galleryImageUrls ?? []).map((u) => u.trim()).filter(Boolean);
+  if (gallery.length > 8) return { ok: false, error: 'الصور الفرعية لحد ٨ صور' };
+  if (gallery.some((u) => !u.startsWith(CLOUDINARY_PREFIX))) {
+    return { ok: false, error: 'الصور الفرعية لازم تترفع من زرار الرفع أو المكتبة — مش روابط من برّه' };
+  }
+  const features = (params.features ?? []).map((f) => f.trim()).filter(Boolean);
+  if (features.length > 10) return { ok: false, error: 'نقاط التفاصيل لحد ١٠ نقاط' };
+  const longDescription = (params.longDescription ?? '').trim();
+  if (longDescription.length > 5000) return { ok: false, error: 'الوصف الكامل طويل — لحد ٥٠٠٠ حرف' };
+  const hasDetails = gallery.length > 0 || features.length > 0 || longDescription.length > 0;
 
   const supabase = await createClient();
   const base = {
@@ -70,7 +86,13 @@ export async function saveAddon(params: {
     customization_price: 0,
     updated_at: new Date().toISOString(),
   };
-  const row = { ...base, image_url: imageUrl || null };
+  const withImage = { ...base, image_url: imageUrl || null };
+  const row = {
+    ...withImage,
+    gallery_image_urls: gallery.length ? gallery : null,
+    long_description: longDescription || null,
+    features: features.length ? features : null,
+  };
 
   const write = (r: typeof base) =>
     params.id
@@ -78,6 +100,12 @@ export async function saveAddon(params: {
       : supabase.from('addon_products').insert({ ...r, slug: slugify(name) });
 
   let { error } = await write(row);
+  // ⚠️ قبل ملف 19 خانات التفاصيل مش موجودة: نحفظ من غيرها بدل ما تعديل
+  //    الإضافات يقف — إلا لو الإدارة كتبت فيها، فنقول بدل ما نضيّعها.
+  if (error && isMissingSchemaError(error)) {
+    if (hasDetails) return { ok: false, error: 'الصور الفرعية والوصف الكامل محتاجين ملف 19 يتشغّل الأول — احفظ من غيرهم دلوقتي' };
+    ({ error } = await write(withImage));
+  }
   // ⚠️ قبل ملف 12 العمود مش موجود: من غير صورة = السلوك القديم، فنحفظ من
   //    غيره بدل ما تعديل الإضافات يقف لحد ما الملف يتشغّل.
   if (error && isMissingSchemaError(error)) {

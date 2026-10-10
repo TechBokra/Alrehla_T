@@ -1,6 +1,7 @@
 import { formatPrice } from '@/lib/utils';
 import React from 'react';
 import Image from 'next/image';
+import { ExternalLink } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
@@ -112,7 +113,19 @@ export function Step3Addons({
                 </div>
                 <div className="shrink-0 font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
               </div>
-
+              {/* صفحة الإضافة (ملف 19) في تاب جديد — عشان التخصيص اللي اتكتب
+                  مايضيعش. وبرّه خانة الاختيار عشان الضغطة ماتختارهاش. */}
+              <div className="-mt-2 px-5 pb-4 text-end">
+                <a
+                  href={`/enha-lak/addon/${addon.slug}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex min-h-[32px] items-center gap-1 text-xs font-bold text-slate-500 underline-offset-2 hover:text-rose-600 hover:underline"
+                >
+                  التفاصيل والصور
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                </a>
+              </div>
             </div>
           );
         })}

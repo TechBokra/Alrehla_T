@@ -483,8 +483,14 @@ export type AddonProduct = {
   supportsCustomization: boolean;
   /** الفرق اللي بيتضاف على السعر لو العميل اختار «بتخصيص». */
   customizationPrice: number;
-  /** صورة اختيارية من Cloudinary (ملف 12) — بتظهر للعميل في خطوة الإضافات. */
+  /** الصورة الرئيسية من Cloudinary (ملف 12) — الكارت وأول صورة في المعرض. */
   imageUrl?: string;
+  /** صور فرعية لصفحة التفاصيل (ملف 19، لحد ٨). */
+  galleryImageUrls?: string[];
+  /** الوصف الكامل لصفحة التفاصيل (ملف 19). `description` هو السطر القصير. */
+  longDescription?: string;
+  /** نقاط التفاصيل (ملف 19). */
+  features?: string[];
 };
 
 // خطة اشتراك

@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ImageIcon, Plus, X } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, ImageIcon, Plus, X } from 'lucide-react';
 import { saveAddon, setAddonActive } from '@/actions/addons';
 import { formatPrice } from '@/lib/utils';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { ImageField } from '@/components/dashboard/ImageField';
+import { GalleryField } from '@/components/dashboard/GalleryField';
 import type { AddonProduct } from '@/types';
 import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
@@ -22,6 +24,11 @@ const EMPTY = {
   isActive: true,
   sortOrder: 0,
   imageUrl: '',
+  // ملف 19 — صفحة التفاصيل.
+  galleryImageUrls: [] as string[],
+  longDescription: '',
+  /** سطر لكل نقطة — نفس خانة تفاصيل المنتج. */
+  features: '',
 };
 
 export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
@@ -42,6 +49,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
       isActive: addon.isActive,
       sortOrder: addon.sortOrder,
       imageUrl: addon.imageUrl ?? '',
+      galleryImageUrls: addon.galleryImageUrls ?? [],
+      longDescription: addon.longDescription ?? '',
+      features: (addon.features ?? []).join('\n'),
     });
     setOpen(true);
     setError('');
@@ -62,6 +72,9 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
         isActive: form.isActive,
         sortOrder: Number(form.sortOrder),
         imageUrl: form.imageUrl || null,
+        galleryImageUrls: form.galleryImageUrls,
+        longDescription: form.longDescription,
+        features: form.features.split('\n'),
       });
     } catch {
       setError(UNEXPECTED);
@@ -134,7 +147,7 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                 onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
               />
             </Field>
-            <Field label="الوصف" className="md:col-span-2">
+            <Field label="الوصف القصير" className="md:col-span-2" hint="سطر أو اتنين — بيظهر في الكارت">
               <TextArea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -153,15 +166,42 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               <ImageField
                 key={form.id || 'new'}
                 name="imageUrl"
-                label="صورة الإضافة (اختياري)"
+                label="الصورة الرئيسية"
                 folder="alrehla/addons"
                 aspect="square"
                 library
                 value={form.imageUrl}
                 onChange={(imageUrl) => setForm((f) => ({ ...f, imageUrl }))}
-                hint="بتظهر للعميل صغيرة جنب الإضافة في خطوة الإضافات."
+                hint="بتظهر في الكارت، وأول صورة في صفحة التفاصيل، وجنب الإضافة في خطوة التخصيص."
               />
             </div>
+            {/* ⚠️ `key` زي الصورة الرئيسية: المعرض بيمسك الصور في حالته. */}
+            <div className="md:col-span-2">
+              <GalleryField
+                key={`gallery-${form.id || 'new'}`}
+                name="galleryImageUrls"
+                folder="alrehla/addons"
+                label="صور فرعية (لحد ٨)"
+                hint="بتظهر في صفحة تفاصيل الإضافة تحت الصورة الرئيسية."
+                library
+                value={form.galleryImageUrls}
+                onChange={(galleryImageUrls) => setForm((f) => ({ ...f, galleryImageUrls }))}
+              />
+            </div>
+            <Field label="الوصف الكامل" className="md:col-span-2" hint="لصفحة التفاصيل. ينفع ## عنوان و- نقطة و**عريض**">
+              <TextArea
+                rows={6}
+                value={form.longDescription}
+                onChange={(e) => setForm({ ...form, longDescription: e.target.value })}
+              />
+            </Field>
+            <Field label="نقاط التفاصيل" className="md:col-span-2" hint="سطر لكل نقطة (لحد ١٠) — المقاس، الخامة…">
+              <TextArea
+                rows={4}
+                value={form.features}
+                onChange={(e) => setForm({ ...form, features: e.target.value })}
+              />
+            </Field>
             <Checkbox
               className="md:pt-9"
               label="معروضة للعملاء"
@@ -234,6 +274,16 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
             </div>
 
             <div className="flex gap-2">
+              {addon.isActive && (
+                <Link
+                  href={`/enha-lak/addon/${addon.slug}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200"
+                >
+                  الصفحة
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => edit(addon)}

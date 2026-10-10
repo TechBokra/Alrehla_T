@@ -228,27 +228,9 @@ export async function getManagedProductById(id: string): Promise<PersonalizedPro
  * كانت بترجّع قايمة فاضية دايمًا في الإنتاج، وقبلها كانت تلات إضافات
  * بأسعار مكتوبة في كود المتصفح مالهاش جدول. دلوقتي من `addon_products`.
  */
-export const getAddonProducts = async (
-  options: { includeInactive?: boolean } = {},
-): Promise<AddonProduct[]> => {
-  // ⚡ المفعّل عام — عميل الزائر عشان «أنت البطل» تتخزّن. الإدارة بالجلسة.
-  const supabase = options.includeInactive ? await createClient() : createPublicClient();
-
-  const query = supabase
-    .from('addon_products')
-    // ⚠️ `*` مش قايمة أعمدة: `image_url` جاي من ملف 12، ولو الكود اتنشر
-    //    قبل الملف، تسمية العمود كانت هترجّع خطأ وتخفي كل الإضافات.
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true });
-
-  const { data, error } = options.includeInactive
-    ? await query
-    : await query.eq('is_active', true);
-
-  if (error || !data) return [];
-
-  return data.map((a) => ({
+/** صفّ الإضافة من القاعدة ← شكل الكود. مكان واحد للقايمة والإضافة الواحدة. */
+function mapAddonRow(a: any): AddonProduct {
+  return {
     id: a.id,
     slug: a.slug,
     name: a.name,
@@ -259,7 +241,61 @@ export const getAddonProducts = async (
     supportsCustomization: a.supports_customization ?? false,
     customizationPrice: a.customization_price ?? 0,
     imageUrl: a.image_url || undefined,
-  }));
+    // ملف 19 — قبله الخانات دي مش موجودة فبتيجي `undefined`.
+    galleryImageUrls: a.gallery_image_urls?.length ? a.gallery_image_urls : undefined,
+    longDescription: a.long_description || undefined,
+    features: a.features?.length ? a.features : undefined,
+  };
+}
+
+/** صور الإضافة بالعلامة المائية للصفحات العامة — نفس قاعدة صور المنتج. */
+async function addonWithWatermark(addon: AddonProduct): Promise<AddonProduct> {
+  const layer = await getWatermarkLayer();
+  if (!layer) return addon;
+  return {
+    ...addon,
+    imageUrl: watermarkedImageUrl(addon.imageUrl, layer),
+    galleryImageUrls: addon.galleryImageUrls?.map((u) => watermarkedImageUrl(u, layer) ?? u),
+  };
+}
+
+export const getAddonProducts = async (
+  options: { includeInactive?: boolean } = {},
+): Promise<AddonProduct[]> => {
+  // ⚡ المفعّل عام — عميل الزائر عشان «أنت البطل» تتخزّن. الإدارة بالجلسة.
+  const supabase = options.includeInactive ? await createClient() : createPublicClient();
+
+  const query = supabase
+    .from('addon_products')
+    // ⚠️ `*` مش قايمة أعمدة: `image_url` جاي من ملف 12 والمعرض من ملف 19،
+    //    ولو الكود اتنشر قبل الملف، تسمية العمود كانت هترجّع خطأ وتخفي
+    //    كل الإضافات.
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
+
+  const { data, error } = options.includeInactive
+    ? await query
+    : await query.eq('is_active', true);
+
+  if (error || !data) return [];
+
+  const addons = data.map(mapAddonRow);
+  // ⚠️ الإدارة محتاجة الصورة الأصلية (تراجعها وتبدّلها) — العلامة للعام بس.
+  return options.includeInactive ? addons : Promise.all(addons.map(addonWithWatermark));
+};
+
+/** إضافة واحدة مفعّلة لصفحة تفاصيلها العامة. */
+export const getAddonBySlug = async (rawSlug: string): Promise<AddonProduct | null> => {
+  const slug = decodeSlug(rawSlug);
+  const { data, error } = await createPublicClient()
+    .from('addon_products')
+    .select('*')
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (error || !data) return null;
+  return addonWithWatermark(mapAddonRow(data));
 };
 
 export const getSubscriptionTiers = async (

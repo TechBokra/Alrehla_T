@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
 import { getBlogPosts } from '@/data/domains/content';
-import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
+import { getAddonProducts, getPersonalizedProducts, getPublishers } from '@/data/domains/products';
 import { getPublicInstructors, getWritingPackages } from '@/data/domains/writing';
 import { getStandaloneServices } from '@/data/domains/services';
 
@@ -51,6 +51,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // صفحات تفاصيل الإضافات (ملف 19).
+  const addonRoutes = (await getAddonProducts()).map((addon) => ({
+    url: `${baseUrl}/enha-lak/addon/${addon.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.5,
+  }));
+
   const publishers = await getPublishers();
   const publisherRoutes = publishers.map((pub: any) => ({
     url: `${baseUrl}/enha-lak/publisher/${pub.slug}`,
@@ -93,6 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...serviceRoutes,
     ...blogRoutes,
     ...productRoutes,
+    ...addonRoutes,
     ...publisherRoutes,
     ...instructorRoutes,
   ];
