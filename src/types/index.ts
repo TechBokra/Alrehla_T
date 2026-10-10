@@ -206,6 +206,11 @@ export type CreativeService = {
   requirements?: string;
   /** مدة التسليم بالأيام. */
   deliveryDays?: number;
+  // ── ملف 20: رفع الملفات على الطلب ───────────────────────
+  allowsFiles?: boolean;
+  /** حد حجم الملف بالميجا (١–١٠). */
+  fileMaxMb?: number;
+  fileKinds?: ('pdf' | 'word' | 'image')[];
 };
 
 /** One instructor's offer to provide one creative service, at a price. */

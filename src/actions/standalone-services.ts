@@ -6,6 +6,8 @@ import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
 import { cleanServiceDetails, type ServiceDetailsInput } from '@/lib/service-details';
+import { isMissingSchemaError } from '@/lib/applies-to';
+import { normalizeKinds, normalizeMaxMb, type FileKind } from '@/lib/private-files';
 
 /**
  * Managing the standalone creative services ("الخدمات الإبداعية").
@@ -41,6 +43,8 @@ async function guard() {
   }
 }
 
+const FILES_NEED_SQL = 'رفع الملفات محتاج ملف 20 يتشغّل على القاعدة الأول — شيل علامة «تسمح برفع ملفات» واحفظ دلوقتي.';
+
 export interface ServiceInput extends ServiceDetailsInput {
   name: string;
   price: number;
@@ -49,6 +53,10 @@ export interface ServiceInput extends ServiceDetailsInput {
   category: string;
   priceType: 'fixed' | 'starts_from';
   sortOrder: number | null;
+  /** ملف 20 — العميل ومقدّم الخدمة يرفعوا ملفات على الطلب. */
+  allowsFiles?: boolean;
+  fileMaxMb?: number;
+  fileKinds?: FileKind[];
 }
 
 function validate(input: ServiceInput) {
@@ -78,7 +86,26 @@ function validate(input: ServiceInput) {
       price_type: input.priceType,
       sort_order: input.sortOrder,
     },
+    files: {
+      allows_files: input.allowsFiles === true,
+      file_max_mb: normalizeMaxMb(input.fileMaxMb),
+      file_kinds: normalizeKinds(input.fileKinds),
+    },
   };
+}
+
+/**
+ * الكتابة مع خانات الملفات (ملف 20) — وقبل الملف ما يتشغّل بنحفظ من
+ * غيرها، إلا لو الإدارة فعّلت الملفات فبنقول بدل ما نضيّع الاختيار.
+ */
+async function writeService<T, R extends object, F extends { allows_files: boolean }>(
+  run: (row: R | (R & F)) => PromiseLike<{ data: T; error: { code?: string; message?: string } | null }>,
+  valid: { row: R; files: F },
+): Promise<{ data: T; error: { code?: string; message?: string } | null; filesNeedSql?: boolean }> {
+  const first = await run({ ...valid.row, ...valid.files });
+  if (!first.error || !isMissingSchemaError(first.error)) return first;
+  if (valid.files.allows_files) return { ...first, filesNeedSql: true };
+  return run(valid.row);
 }
 
 export async function createStandaloneService(
@@ -91,11 +118,11 @@ export async function createStandaloneService(
   if (!valid.ok) return valid;
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('standalone_services')
-    .insert(valid.row)
-    .select('id')
-    .single();
+  const { data, error, filesNeedSql } = await writeService(
+    (row) => supabase.from('standalone_services').insert(row).select('id').single(),
+    valid,
+  );
+  if (filesNeedSql) return { ok: false, error: FILES_NEED_SQL };
 
   if (error || !data) {
     console.error('Error creating standalone service', error);
@@ -127,11 +154,11 @@ export async function updateStandaloneService(
   if (!valid.ok) return valid;
   const supabase = await createClient();
 
-  const { data: saved, error } = await supabase
-    .from('standalone_services')
-    .update(valid.row)
-    .eq('id', id)
-    .select('id');
+  const { data: saved, error, filesNeedSql } = await writeService(
+    (row) => supabase.from('standalone_services').update(row).eq('id', id).select('id'),
+    valid,
+  );
+  if (filesNeedSql) return { ok: false, error: FILES_NEED_SQL };
 
   if (error) {
     console.error('Error updating standalone service', error);

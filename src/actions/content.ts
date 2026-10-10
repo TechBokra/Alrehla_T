@@ -1,4 +1,6 @@
 'use server';
+
+import { normalizeRetentionDays } from '@/lib/private-files';
 import { requireAdmin } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
@@ -132,6 +134,11 @@ export async function updateSiteSettings(
       enabled: formData.get('mediaCleanupEnabled') === 'on',
       days: formData.get('mediaCleanupDays'),
     });
+  }
+
+  // مدة حفظ ملفات الطلبات ومساحة الكتابة (ملف 20) — من ٧ لـ٣٦٥ يوم.
+  if (formData.has('fileRetentionDays')) {
+    next.fileRetentionDays = normalizeRetentionDays(formData.get('fileRetentionDays'));
   }
 
   // شريط التنبيه العلوي — كائن واحد عشان التلات حاجات يتحفظوا مع بعض.

@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { fetchFamilyMembers } from '@/app/actions/family';
 import { getStudentDocuments } from '@/data/domains/writing';
 import { formatCairo } from '@/lib/timezone';
+import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,6 +117,11 @@ export default async function DependentPortfolioPage({
                   </p>
                 </div>
               )}
+
+              {/* ملفات المستند (ملف 20) — قراية وتحميل بس. */}
+              <div className="mt-5">
+                <DocumentFilesSection document={doc} viewer="guardian" />
+              </div>
             </article>
           ))}
         </div>

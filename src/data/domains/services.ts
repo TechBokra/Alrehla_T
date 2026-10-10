@@ -1,3 +1,4 @@
+import { normalizeKinds, normalizeMaxMb } from '@/lib/private-files';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { getPublicInstructors } from '@/data/domains/writing';
@@ -57,6 +58,10 @@ export async function getStandaloneServices(options?: {
     deliverables: row.deliverables?.length ? row.deliverables : undefined,
     requirements: row.requirements || undefined,
     deliveryDays: row.delivery_days ?? undefined,
+    // ملف 20 — قبله الخانات مش موجودة = الرفع مقفول.
+    allowsFiles: row.allows_files === true,
+    fileMaxMb: normalizeMaxMb(row.file_max_mb),
+    fileKinds: normalizeKinds(row.file_kinds),
   }));
 }
 

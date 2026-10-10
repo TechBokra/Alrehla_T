@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { TaskBanner } from '@/components/admin/TaskBanner';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { ServiceOrderDetail } from '@/components/services/ServiceOrderDetail';
+import { OrderFilesSection } from '@/components/files/OrderFilesSection';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getServiceOrderDetail, getServiceOrderMessages } from '@/data/domains/services';
@@ -40,6 +41,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         messages={messages}
         viewer="admin"
         currentProfileId={user.id}
+        filesSlot={<OrderFilesSection order={order} viewer="admin" />}
       />
     </div>
   );

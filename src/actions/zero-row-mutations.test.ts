@@ -1335,7 +1335,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
     });
 
     it('succeeds on valid status transition with status guard in update', async () => {
-      const updateSelectMock = vi.fn().mockResolvedValue({ data: [{ id: 'order-1' }], error: null });
+      const updateSelectMock = vi.fn().mockResolvedValue({ data: [{ id: 'order-1', status: 'in_progress' }], error: null });
       const updateStatusEqMock = vi.fn().mockReturnValue({ select: updateSelectMock });
       const updateIdEqMock = vi.fn().mockReturnValue({ eq: updateStatusEqMock });
       const updateMock = vi.fn().mockReturnValue({ eq: updateIdEqMock });
@@ -1479,7 +1479,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
     it('succeeds: updates status first, then inserts delivery message and notifies buyer', async () => {
       const insertMessageMock = vi.fn().mockResolvedValue({ error: null });
-      const updateSelectMock = vi.fn().mockResolvedValue({ data: [{ id: 'order-1' }], error: null });
+      const updateSelectMock = vi.fn().mockResolvedValue({ data: [{ id: 'order-1', status: 'delivered' }], error: null });
       const updateInMock = vi.fn().mockReturnValue({ select: updateSelectMock });
       const updateIdEqMock = vi.fn().mockReturnValue({ in: updateInMock });
       const updateMock = vi.fn().mockReturnValue({ eq: updateIdEqMock });

@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox, MessageSquareHeart } from 'lucide-react';
+  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox, MessageSquareHeart, NotebookPen,
+} from 'lucide-react';
 
 /**
  * قائمة حساب العميل — **مصدر واحد**.
@@ -73,6 +74,7 @@ const groupsFor = (isGuardian: boolean): NavGroup[] => [
       // الصفحة دي ما كانش ليها رابط في القائمة الجانبية إطلاقًا.
       { href: '/account/orders/creative-writing', label: 'الخدمات الإبداعية', Icon: PenTool },
       { href: '/account/bookings', label: 'المواعيد والجلسات', Icon: Calendar },
+      { href: '/account/writing', label: 'مساحة الكتابة', Icon: NotebookPen },
     ],
   },
   {

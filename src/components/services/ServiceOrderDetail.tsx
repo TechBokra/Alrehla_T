@@ -34,6 +34,8 @@ interface Props {
   viewer: OrderViewer;
   /** The signed-in user's profile id, to align their own messages. */
   currentProfileId: string;
+  /** قسم الملفات (ملف 20) — بيتبني على الخادم (`OrderFilesSection`). */
+  filesSlot?: React.ReactNode;
 }
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -85,7 +87,7 @@ function childAge(birthDate: string, now: number): string {
   return years !== null && years > 0 ? `${years} سنة` : '';
 }
 
-export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }: Props) {
+export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, filesSlot }: Props) {
   const now = useNow();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -412,6 +414,8 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId }
             )}
         </div>
       )}
+
+      {filesSlot}
 
       {/* Conversation */}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

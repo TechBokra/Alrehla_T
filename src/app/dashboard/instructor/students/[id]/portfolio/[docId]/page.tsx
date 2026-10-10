@@ -3,6 +3,7 @@ import { getDocumentById, getInstructorStudents } from '@/data/domains/writing';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { InstructorDocumentClient } from './InstructorDocumentClient';
+import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,10 @@ export default async function InstructorDocumentPage({ params }: { params: Promi
         backHref={`/dashboard/instructor/students/${studentId}`}
       />
       <InstructorDocumentClient document={document} studentName={student.name} />
+      {/* ملفات الكاتب، وتصحيحك كملف (ملف 20). */}
+      <div className="mt-6">
+        <DocumentFilesSection document={document} viewer="instructor" />
+      </div>
     </div>
   );
 }

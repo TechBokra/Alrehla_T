@@ -115,6 +115,9 @@ export type Database = {
           image_url: string | null
           created_at: string
           updated_at: string
+          gallery_image_urls: string[] | null
+          long_description: string | null
+          features: string[] | null
         }
         Insert: {
           id?: string
@@ -129,6 +132,9 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           updated_at?: string
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
+          features?: string[] | null
         }
         Update: {
           id?: string
@@ -143,6 +149,9 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           updated_at?: string
+          gallery_image_urls?: string[] | null
+          long_description?: string | null
+          features?: string[] | null
         }
         Relationships: []
       }
@@ -1337,6 +1346,51 @@ export type Database = {
         }
         Relationships: []
       }
+      private_files: {
+        Row: {
+          id: string
+          order_id: string | null
+          document_id: string | null
+          uploader_profile_id: string
+          file_name: string
+          public_id: string
+          resource_type: string
+          format: string | null
+          bytes: number
+          is_delivery: boolean
+          created_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          order_id?: string | null
+          document_id?: string | null
+          uploader_profile_id: string
+          file_name: string
+          public_id: string
+          resource_type: string
+          format?: string | null
+          bytes: number
+          is_delivery?: boolean
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          order_id?: string | null
+          document_id?: string | null
+          uploader_profile_id?: string
+          file_name?: string
+          public_id?: string
+          resource_type?: string
+          format?: string | null
+          bytes?: number
+          is_delivery?: boolean
+          created_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
       pricing_formula_settings: {
         Row: {
           id: string
@@ -2162,6 +2216,9 @@ export type Database = {
           deliverables: string[] | null
           requirements: string | null
           delivery_days: number | null
+          allows_files: boolean
+          file_max_mb: number
+          file_kinds: string[]
         }
         Insert: {
           id?: string
@@ -2178,6 +2235,9 @@ export type Database = {
           deliverables?: string[] | null
           requirements?: string | null
           delivery_days?: number | null
+          allows_files?: boolean
+          file_max_mb?: number
+          file_kinds?: string[]
         }
         Update: {
           id?: string
@@ -2194,6 +2254,9 @@ export type Database = {
           deliverables?: string[] | null
           requirements?: string | null
           delivery_days?: number | null
+          allows_files?: boolean
+          file_max_mb?: number
+          file_kinds?: string[]
         }
         Relationships: []
       }

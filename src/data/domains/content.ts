@@ -71,6 +71,11 @@ export interface SiteSettings {
   watermark: WatermarkSettings;
   /** المسح التلقائي للصور المتسابة (`lib/media-cleanup`). */
   mediaCleanup: MediaCleanupSettings;
+  /**
+   * ملفات طلبات الخدمات ومساحة الكتابة (ملف 20): بتتمسح من Cloudinary
+   * بعد المدة دي من قفل الطلب أو مراجعة المستند (`lib/private-files`).
+   */
+  fileRetentionDays: number;
   /** Site imagery, by slot. See src/lib/site-images.ts. */
   images: SiteImages;
 }
@@ -106,6 +111,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       sessionRecording: DEFAULT_RECORDING_SETTINGS,
       watermark: DEFAULT_WATERMARK,
       mediaCleanup: DEFAULT_MEDIA_CLEANUP,
+      fileRetentionDays: DEFAULT_FILE_RETENTION_DAYS,
       images: {},
     };
   }
@@ -143,11 +149,13 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     },
     watermark: normalizeWatermark(value.watermark),
     mediaCleanup: normalizeMediaCleanup(value.mediaCleanup),
+    fileRetentionDays: normalizeRetentionDays(value.fileRetentionDays),
     images: value.images ?? {},
   };
 });
 
 import { cache } from 'react';
+import { DEFAULT_FILE_RETENTION_DAYS, normalizeRetentionDays } from '@/lib/private-files';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import type { SiteImages } from '@/lib/site-images';

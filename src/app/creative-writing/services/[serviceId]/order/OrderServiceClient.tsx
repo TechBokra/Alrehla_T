@@ -34,6 +34,8 @@ interface Props {
    * على إنها له.
    */
   presetChildId?: string;
+  /** ملف 20 — جملة الملفات (الأنواع والحجم ومدة الحفظ)، أو فاضي لو الخدمة مابتقبلش. */
+  filesNote?: string;
 }
 
 export function OrderServiceClient({
@@ -47,6 +49,7 @@ export function OrderServiceClient({
   paymentWalletNumber,
   paymentQrUrl,
   presetChildId,
+  filesNote,
 }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -261,8 +264,15 @@ export function OrderServiceClient({
             </label>
             <p className="mb-4 text-sm font-medium text-slate-500">
               قول لمقدّم الخدمة عايز إيه بالظبط — بتوصله أول رسالة في محادثة الطلب،
-              وتقدر تبعتله ملفات وتكمّل الكلام هناك بعد الدفع.
+              وتقدر تكمّل الكلام هناك بعد الدفع.
             </p>
+            {/* ⚠️ كانت بتقول «تقدر تبعتله ملفات» لكل الخدمات — ومفيش رفع أصلًا.
+                دلوقتي بس للخدمات اللي الإدارة فعّلت فيها الملفات (ملف 20). */}
+            {filesNote && (
+              <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm font-bold text-sky-900 ring-1 ring-sky-100">
+                {filesNote}
+              </p>
+            )}
             {requirements && (
               <div className="mb-4 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm font-medium text-amber-900">
                 <ClipboardList className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />

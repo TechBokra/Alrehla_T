@@ -316,7 +316,7 @@ async function loadOrderFor(orderId: string) {
 
   const { data: order } = await supabase
     .from('service_orders')
-    .select('id, buyer_profile_id, instructor_id, status, amount, instructor_earning, standalone_service_id')
+    .select('id, buyer_profile_id, instructor_id, provider_id, status, amount, instructor_earning, standalone_service_id')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -324,19 +324,33 @@ async function loadOrderFor(orderId: string) {
   return { ok: true as const, supabase, user, order };
 }
 
-async function isAssignedInstructor(
+/**
+ * المستخدم ده هو مقدّم الخدمة المكلّف بالطلب؟
+ *
+ * ⚠️ **كان بيشوف `instructor_id` بس.** الطلبات الجديدة بتتسند لـ
+ *    `provider_id` (مدرب، أو مقدّم فردي مش مدرب) — فالمقدّم الفردي كان
+ *    بياخد «هذا الطلب ليس مسنَدًا إليك» على طلبه هو. نفس شرط حارس
+ *    القاعدة (`guard_service_order_fields`).
+ */
+async function isOrderProvider(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  instructorId: string | null,
+  order: { instructor_id: string | null; provider_id: string | null },
   userId: string
 ) {
-  if (!instructorId) return false;
-  const { data } = await supabase
-    .from('instructors')
-    .select('id')
-    .eq('id', instructorId)
-    .eq('user_id', userId)
-    .maybeSingle();
-  return Boolean(data);
+  if (order.instructor_id) {
+    const { data } = await supabase
+      .from('instructors')
+      .select('id')
+      .eq('id', order.instructor_id)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (data) return true;
+  }
+  if (order.provider_id) {
+    const providerUserId = await getProviderUserId(order.provider_id);
+    if (providerUserId === userId) return true;
+  }
+  return false;
 }
 
 function revalidateOrder(orderId: string) {
@@ -418,7 +432,7 @@ export async function startServiceOrder(orderId: string): Promise<ServiceOrderRe
   if (!loaded.ok) return loaded;
   const { supabase, user, order } = loaded;
 
-  if (!(await isAssignedInstructor(supabase, order.instructor_id, user.id))) {
+  if (!(await isOrderProvider(supabase, order, user.id))) {
     return fail('هذا الطلب ليس مسنَدًا إليك');
   }
   if (order.status !== 'paid') {
@@ -430,10 +444,12 @@ export async function startServiceOrder(orderId: string): Promise<ServiceOrderRe
     .update({ status: 'in_progress' })
     .eq('id', orderId)
     .eq('status', 'paid')
-    .select('id');
+    .select('status');
 
   if (error) return fail('تعذّر تحديث حالة الطلب');
-  if (!started || started.length === 0) {
+  // ⚠️ حارس القاعدة بيرجّع الحالة لورا **من غير خطأ** لو الانتقال مش
+  //    مسموح — فالصف بيرجع والحالة زي ما هي. كان الزرار يقول «تمام».
+  if (!started || started.length === 0 || started[0].status !== 'in_progress') {
     return fail('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
   }
 
@@ -463,7 +479,7 @@ export async function deliverServiceOrder(
   if (!loaded.ok) return loaded;
   const { supabase, user, order } = loaded;
 
-  if (!(await isAssignedInstructor(supabase, order.instructor_id, user.id))) {
+  if (!(await isOrderProvider(supabase, order, user.id))) {
     return fail('هذا الطلب ليس مسنَدًا إليك');
   }
   if (order.status !== 'in_progress' && order.status !== 'paid') {
@@ -480,10 +496,10 @@ export async function deliverServiceOrder(
     .update({ status: 'delivered', delivered_at: new Date().toISOString() })
     .eq('id', orderId)
     .in('status', ['in_progress', 'paid'])
-    .select('id');
+    .select('status');
 
   if (error) return fail('تعذّر تسجيل التسليم');
-  if (!delivered || delivered.length === 0) {
+  if (!delivered || delivered.length === 0 || delivered[0].status !== 'delivered') {
     return fail('الطلب مش موجود أو تغيّرت حالته — التسليم مااتسجّلش.');
   }
 

@@ -137,6 +137,28 @@ export default async function Page() {
           </p>
         </Section>
 
+        {/* ---------- ملفات الطلبات ومساحة الكتابة (ملف 20) ---------- */}
+        <Section
+          title="ملفات الطلبات ومساحة الكتابة"
+          hint="الملفات اللي العملاء والمدربين بيرفعوها على طلبات الخدمات وفي مساحة الكتابة. بتتمسح من السيرفر لوحدها بعد المدة دي من قفل الطلب (أو مراجعة المستند)، والعميل بيشوف التنبيه ده قبل ما يرفع."
+        >
+          <Field
+            label="تتمسح بعد كام يوم"
+            name="fileRetentionDays"
+            hint="من ٧ لـ ٣٦٥ يوم. المسح نهائي."
+            className="md:col-span-2"
+          >
+            <TextInput
+              type="number"
+              min={7}
+              max={365}
+              dir="ltr"
+              className="text-left"
+              defaultValue={settings.fileRetentionDays}
+            />
+          </Field>
+        </Section>
+
         {/* ---------- شريط التنبيه ---------- */}
         <Section
           title="شريط التنبيه العلوي"

@@ -8,9 +8,11 @@ import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 interface Props {
   documents: PortfolioDocument[];
+  /** مكان المساحة: الطفل في لوحته، والعميل في حسابه (`/account/writing`). */
+  basePath?: string;
 }
 
-export function PortfolioListClient({ documents }: Props) {
+export function PortfolioListClient({ documents, basePath = '/dashboard/student/portfolio' }: Props) {
   
   const getStatusDisplay = (status: string) => {
     switch(status) {
@@ -25,7 +27,7 @@ export function PortfolioListClient({ documents }: Props) {
     <div className="space-y-6">
       <div className="flex justify-end">
         <Link 
-          href="/dashboard/student/portfolio/new" 
+          href={`${basePath}/new`} 
           className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 font-bold text-white transition-colors hover:bg-slate-800 shadow-md"
         >
           <Plus className="h-5 w-5" />
@@ -35,7 +37,7 @@ export function PortfolioListClient({ documents }: Props) {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {documents.map(doc => (
-          <Link href={`/dashboard/student/portfolio/${doc.id}`} key={doc.id} className="block group">
+          <Link href={`${basePath}/${doc.id}`} key={doc.id} className="block group">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md h-full flex flex-col">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">

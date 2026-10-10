@@ -213,3 +213,58 @@ export function publicIdFromUrl(url: string | null | undefined): string | null {
   const plain = url.match(/\/upload\/(?:[^/]+\/)*?([^/]+\/[^/]+?)(?:\.[a-z0-9]+)?$/i);
   return plain?.[1] ?? null;
 }
+
+/* ================================================================
+ * الملفات الخاصة (ملف 20) — ملفات طلبات الخدمات ومساحة الكتابة
+ * ================================================================
+ * مقيّدة بمجلّدين بس، زي حارس `FOLDER` فوق: أي رقم برّاهم بيترفض.
+ */
+
+export const PRIVATE_FILE_PREFIXES = ['alrehla/private/orders/', 'alrehla/private/writing/'] as const;
+
+function isPrivateFileId(publicId: string): boolean {
+  return PRIVATE_FILE_PREFIXES.some((p) => publicId.startsWith(p)) && !publicId.includes('..');
+}
+
+function encodePublicId(publicId: string): string {
+  return publicId.split('/').map(encodeURIComponent).join('/');
+}
+
+export type PrivateAsset = {
+  public_id: string;
+  resource_type: 'image' | 'raw';
+  format?: string;
+  bytes: number;
+};
+
+/** بيانات ملف خاص زي ما Cloudinary شايفه — الحجم والنوع الحقيقيين. */
+export async function getPrivateAsset(
+  resourceType: 'image' | 'raw',
+  publicId: string,
+): Promise<CloudinaryResult<PrivateAsset>> {
+  if (!isPrivateFileId(publicId)) return { ok: false, error: 'رقم ملف غير صالح' };
+  return call<PrivateAsset>(`/resources/${resourceType}/authenticated/${encodePublicId(publicId)}`);
+}
+
+/** مسح ملفات خاصة بأرقامها (نوع واحد في المرة). */
+export async function deletePrivateAssets(
+  resourceType: 'image' | 'raw',
+  publicIds: string[],
+): Promise<CloudinaryResult<{ deleted: string[] }>> {
+  if (publicIds.some((id) => !isPrivateFileId(id))) {
+    console.error('Refused private delete outside folders', publicIds);
+    return { ok: false, error: 'فيه ملفات برّه مجلّدات الملفات الخاصة — الطلب اترفض بالكامل.' };
+  }
+  if (publicIds.length === 0) return { ok: true, data: { deleted: [] } };
+
+  const result = await call<{ deleted?: Record<string, string> }>(
+    `/resources/${resourceType}/authenticated`,
+    { method: 'DELETE', body: JSON.stringify({ public_ids: publicIds }) },
+  );
+  if (!result.ok) return result;
+  // «not_found» = اتمسح قبل كده — نعتبره ممسوح عشان الصف يتعلّم.
+  const deleted = Object.entries(result.data.deleted ?? {})
+    .filter(([, state]) => state === 'deleted' || state === 'not_found')
+    .map(([id]) => id);
+  return { ok: true, data: { deleted } };
+}

@@ -16,7 +16,8 @@ import {
 import { ImageField } from '@/components/dashboard/ImageField';
 import { GalleryField } from '@/components/dashboard/GalleryField';
 import { optimizedImageUrl } from '@/lib/cloudinary';
-import { BusyButton, Field, Select, TextArea, TextInput } from '@/components/forms/Form';
+import { BusyButton, Checkbox, Field, Select, TextArea, TextInput } from '@/components/forms/Form';
+import { FILE_KINDS, FILE_MAX_MB_LIMIT, type FileKind } from '@/lib/private-files';
 import { FormError } from '@/components/ui/FormError';
 
 interface Props {
@@ -38,6 +39,9 @@ const EMPTY: ServiceInput = {
   deliverablesText: '',
   requirements: '',
   deliveryDays: null,
+  allowsFiles: false,
+  fileMaxMb: FILE_MAX_MB_LIMIT,
+  fileKinds: ['pdf', 'word', 'image'],
 };
 
 /**
@@ -191,6 +195,54 @@ function ServiceForm({
         </div>
       </section>
 
+      {/* ── ملف 20: رفع ملفات على الطلب ─────────────────────── */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-black text-slate-700">الملفات على الطلب</h3>
+        <Checkbox
+          label="تسمح برفع ملفات"
+          hint="العميل يبعت ملفه (قصة، واجب…) ومقدّم الخدمة يسلّم ملف. الملفات مخفية — مابيشوفهاش غير أطراف الطلب والإدارة، وبتتمسح بعد المدة اللي في الإعدادات العامة."
+          checked={value.allowsFiles === true}
+          onChange={(e) => set({ allowsFiles: e.target.checked })}
+        />
+        {value.allowsFiles && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="أقصى حجم للملف (ميجا)" hint={`من 1 لـ ${FILE_MAX_MB_LIMIT} — حد Cloudinary الحالي.`}>
+              <TextInput
+                type="number"
+                min={1}
+                max={FILE_MAX_MB_LIMIT}
+                dir="ltr"
+                className="text-left"
+                value={value.fileMaxMb ?? FILE_MAX_MB_LIMIT}
+                onChange={(e) => set({ fileMaxMb: Number(e.target.value) })}
+              />
+            </Field>
+            <fieldset>
+              <legend className="mb-2 text-sm font-bold text-slate-700">الأنواع المسموحة</legend>
+              <div className="flex flex-wrap gap-4">
+                {FILE_KINDS.map(({ kind, label }) => {
+                  const kinds: FileKind[] = value.fileKinds ?? [];
+                  return (
+                    <Checkbox
+                      key={kind}
+                      label={label}
+                      checked={kinds.includes(kind)}
+                      onChange={(e) =>
+                        set({
+                          fileKinds: e.target.checked
+                            ? [...kinds, kind]
+                            : kinds.filter((k) => k !== kind),
+                        })
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </fieldset>
+          </div>
+        )}
+      </section>
+
       <div className="flex justify-end gap-2">
         {/* الإلغاء مش بيحفظ — فـ`busy` بيقفله بس من غير «جارٍ الحفظ…». */}
         <BusyButton variant="secondary" busy={false} disabled={busy} onClick={onCancel}>
@@ -247,6 +299,9 @@ export function ServicesManagerClient({ services, providerCounts = {} }: Props) 
     deliverablesText: (s.deliverables ?? []).join('\n'),
     requirements: s.requirements ?? '',
     deliveryDays: s.deliveryDays ?? null,
+    allowsFiles: s.allowsFiles === true,
+    fileMaxMb: s.fileMaxMb ?? FILE_MAX_MB_LIMIT,
+    fileKinds: s.fileKinds ?? ['pdf', 'word', 'image'],
   });
 
   return (

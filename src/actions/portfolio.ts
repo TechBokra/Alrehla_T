@@ -73,6 +73,8 @@ async function writeDocument(
 
   revalidatePath('/dashboard/student/portfolio');
   revalidatePath(`/dashboard/student/portfolio/${documentId}`);
+  revalidatePath('/account/writing');
+  revalidatePath(`/account/writing/${documentId}`);
   return { ok: true, id: documentId };
 }
 
@@ -115,6 +117,7 @@ export async function createPortfolioDocument(params: {
   }
 
   revalidatePath('/dashboard/student/portfolio');
+  revalidatePath('/account/writing');
   return { ok: true, id: data.id };
 }
 

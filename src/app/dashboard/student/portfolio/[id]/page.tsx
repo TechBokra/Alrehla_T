@@ -3,6 +3,7 @@ import { getDocumentById, getStudentSessions } from '@/data/domains/writing';
 import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DocumentEditorClient } from './DocumentEditorClient';
+import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,11 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         title={document ? 'تعديل النص' : 'نص جديد'} 
         backHref="/dashboard/student/portfolio"
       />
-      <DocumentEditorClient initialDocument={document} hasInstructor={hasInstructor} />
+      <DocumentEditorClient
+        initialDocument={document}
+        hasInstructor={hasInstructor}
+        filesSlot={document ? <DocumentFilesSection document={document} viewer="writer" /> : undefined}
+      />
     </div>
   );
 }

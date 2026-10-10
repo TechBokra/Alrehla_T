@@ -214,6 +214,7 @@ describe('service-orders: الفشل المتوقَّع بيرجع نتيجة م
         user: { id: 'inst-user' },
         order: inProgress,
         instructorRow: { id: 'inst-1' },
+        updateResult: { data: [{ id: 'order-1', status: 'delivered' }], error: null },
         insertResult: { error: { message: 'rls' } },
       }).db;
       await expect(deliverServiceOrder('order-1', 'رسالة تسليم طويلة كفاية')).resolves.toEqual({

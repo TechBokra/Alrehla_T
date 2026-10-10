@@ -176,3 +176,80 @@ export function receiptViewUrl(ref: string | null | undefined): string | null {
   if (photo) return privateImageUrl(photo);
   return ref;
 }
+
+/* ================================================================
+ * الملفات الخاصة (ملف 20) — PDF وWord وصور في الطلبات ومساحة الكتابة
+ * ================================================================ */
+
+export type PrivateFileTicket = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  type: typeof PRIVATE_TYPE;
+  allowedFormats: string;
+  resourceType: 'image' | 'raw';
+};
+
+/**
+ * تذكرة رفع ملف خاص في مجلد الطلب أو المستند.
+ *
+ * التوقيع بيشمل المجلد والأنواع، فالمتصفح مايقدرش يرفع في مكان تاني
+ * ولا نوع تاني. **الحجم مابيتوقّعش** (Cloudinary مالوش باراميتر ليه) —
+ * الخادم بيفحصه بعد الرفع من Cloudinary نفسه، ويمسح الملف لو أكبر.
+ */
+export function privateFileTicket(
+  folder: string,
+  resourceType: 'image' | 'raw',
+  extensions: string[],
+  now = Date.now(),
+): PrivateFileTicket | null {
+  const c = credentials();
+  if (!c) return null;
+  const timestamp = Math.floor(now / 1000);
+  const allowedFormats = extensions.join(',');
+  const signature = signParams(
+    { allowed_formats: allowedFormats, folder, timestamp, type: PRIVATE_TYPE },
+    c.secret,
+  );
+  return {
+    cloudName: c.cloud,
+    apiKey: c.key,
+    timestamp,
+    signature,
+    folder,
+    type: PRIVATE_TYPE,
+    allowedFormats,
+    resourceType,
+  };
+}
+
+/**
+ * رابط تحميل مؤقت لملف خاص (افتراضيًّا ١٠ دقايق) — بينزل باسم الملف.
+ *
+ * ⚠️ رقم الملف الخام فيه الامتداد نفسه (`…/abc.pdf`)، فمابنبعتش `format`.
+ */
+export function privateFileUrl(
+  file: { publicId: string; resourceType: 'image' | 'raw'; format?: string | null },
+  options: { ttlSeconds?: number; now?: number } = {},
+): string | null {
+  const c = credentials();
+  if (!c) return null;
+  const timestamp = Math.floor((options.now ?? Date.now()) / 1000);
+  const params: Record<string, string | number> = {
+    attachment: 'true',
+    expires_at: timestamp + (options.ttlSeconds ?? 600),
+    public_id: file.publicId,
+    timestamp,
+    type: PRIVATE_TYPE,
+  };
+  if (file.resourceType === 'image' && file.format) params.format = file.format;
+  const signature = signParams(params, c.secret);
+  const query = new URLSearchParams({
+    ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
+    api_key: c.key,
+    signature,
+  });
+  return `https://api.cloudinary.com/v1_1/${c.cloud}/${file.resourceType}/download?${query}`;
+}

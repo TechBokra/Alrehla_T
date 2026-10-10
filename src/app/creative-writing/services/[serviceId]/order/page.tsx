@@ -22,6 +22,8 @@ import { getStandaloneServices, getProvidersForService } from '@/data/domains/se
 import { getCurrentUser } from '@/data/domains/auth';
 import { OrderServiceClient } from './OrderServiceClient';
 
+import { kindsLabel } from '@/lib/private-files';
+
 export const dynamic = 'force-dynamic';
 
 export default async function OrderServicePage({
@@ -103,6 +105,11 @@ export default async function OrderServicePage({
           providerName={providerName}
           amount={amount}
           presetChildId={childParam}
+          filesNote={
+            service.allowsFiles
+              ? `بعد الدفع تقدر ترفع ملفك على صفحة الطلب (${kindsLabel(service.fileKinds ?? [])} لحد ${service.fileMaxMb ?? 10} ميجا). الملفات بتتمسح من السيرفر بعد ${settings.fileRetentionDays} يوم من قفل الطلب.`
+              : undefined
+          }
         />
       </Section>
     </PageContainer>

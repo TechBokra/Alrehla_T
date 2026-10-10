@@ -21,9 +21,18 @@ interface Props {
    * **ومحدش يشوفه**. طريق مسدود بلا أي رسالة.
    */
   hasInstructor: boolean;
+  /** مكان المساحة: الطفل في لوحته، والعميل في حسابه (`/account/writing`). */
+  basePath?: string;
+  /** ملفات المستند (ملف 20) — بتتبني على الخادم، وبس بعد أول حفظ. */
+  filesSlot?: React.ReactNode;
 }
 
-export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) {
+export function DocumentEditorClient({
+  initialDocument,
+  hasInstructor,
+  basePath = '/dashboard/student/portfolio',
+  filesSlot,
+}: Props) {
   const router = useRouter();
   const [documentId, setDocumentId] = useState(initialDocument?.id ?? null);
   const [title, setTitle] = useState(initialDocument?.title || '');
@@ -79,7 +88,7 @@ export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) 
     // بعده يعدّل نفس النص بدل ما يعمل نسخة جديدة.
     if (!documentId) {
       setDocumentId(result.id);
-      router.replace(`/dashboard/student/portfolio/${result.id}`);
+      router.replace(`${basePath}/${result.id}`);
     }
   };
 
@@ -168,6 +177,15 @@ export function DocumentEditorClient({ initialDocument, hasInstructor }: Props) 
             </div>
           )}
         </div>
+
+        {/* ملفات المستند (ملف 20) — ملف من جهازك للمدرب، وتصحيحه راجع هنا. */}
+        {filesSlot ?? (
+          !documentId && (
+            <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs font-bold text-slate-500">
+              احفظ النص الأول — وبعدها تقدر ترفع ملف (Word أو PDF أو صورة) تبعته مع النص.
+            </p>
+          )
+        )}
 
         {/* Instructor Feedback */}
         <div className={`rounded-3xl border ${isReviewed ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'} p-6 shadow-sm`}>
