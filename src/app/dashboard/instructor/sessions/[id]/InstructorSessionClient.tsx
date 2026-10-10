@@ -11,12 +11,15 @@ import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 
 interface Props {
   session: InstructorSession;
+  /** التقرير اللي اتحفظ قبل كده — الشاشة كانت بتفتح فاضية كل مرة. */
+  savedReport?: { attendance: 'present' | 'absent'; report: string } | null;
 }
 
-export function InstructorSessionClient({ session }: Props) {
-  const [attendance, setAttendance] = useState<'present' | 'absent' | null>(null);
-  const [report, setReport] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+export function InstructorSessionClient({ session, savedReport = null }: Props) {
+  const [attendance, setAttendance] = useState<'present' | 'absent' | null>(savedReport?.attendance ?? null);
+  const [report, setReport] = useState(savedReport?.report ?? '');
+  // تقرير محفوظ = بيتعرض مقفول، وزرار «تعديل» بيفتحه.
+  const [isSubmitted, setIsSubmitted] = useState(Boolean(savedReport));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -171,12 +174,12 @@ export function InstructorSessionClient({ session }: Props) {
           <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <FileText className="h-6 w-6 text-emerald-600" />
-              <h3 className="text-xl font-black text-slate-800">تقرير الجلسة (للطالب والإدارة)</h3>
+              <h3 className="text-xl font-black text-slate-800">تقرير الجلسة (للطالب وولي الأمر والإدارة)</h3>
             </div>
             
             <div className="space-y-6">
               <div className="rounded-xl bg-blue-50 p-4 border border-blue-100 text-sm text-blue-800">
-                <p><strong>ملاحظة للمدرب:</strong> يُرجى كتابة ملخص قصير لما تم إنجازه اليوم، والمهام المطلوبة من الطالب للجلسة القادمة. هذا التقرير سيظهر في حساب الطالب.</p>
+                <p><strong>ملاحظة للمدرب:</strong> يُرجى كتابة ملخص قصير لما تم إنجازه اليوم، والمهام المطلوبة من الطالب للجلسة القادمة. هذا التقرير سيظهر في حساب الطالب وولي الأمر.</p>
               </div>
 
               <Field label="ملاحظات وتقدم الطالب في الجلسة" name="report" required>
@@ -189,6 +192,22 @@ export function InstructorSessionClient({ session }: Props) {
                   className="resize-none"
                 />
               </Field>
+
+              {isSubmitted && (
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <p className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    التقرير محفوظ — ظاهر للطالب وولي الأمر والإدارة.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsSubmitted(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:border-slate-400"
+                  >
+                    تعديل التقرير
+                  </button>
+                </div>
+              )}
 
               {!isSubmitted && (
                 <div className="flex justify-end pt-4">

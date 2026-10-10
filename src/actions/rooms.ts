@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import {
   createMeetingToken,
+  ejectUserFromRoom,
   createSessionRoom,
   createTestRoom,
   deleteRoom,
@@ -79,6 +80,9 @@ export async function joinSessionRoom(sessionId: string): Promise<JoinResult> {
   // التذكرة بتنتهي بعد ساعتين من دلوقتي — أطول من أي جلسة، وأقصر
   // من إنها تبقى رابطًا دائمًا.
   const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+  // نسخة قديمة لنفس الشخص في الغرفة بتطلع قبل الدخول الجديد.
+  await ejectUserFromRoom(session.room_name, user.id);
 
   const token = await createMeetingToken({
     roomName: session.room_name,

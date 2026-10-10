@@ -14,7 +14,10 @@ export function getInstructorChangeItems(
   const items: ChangeSummaryItem[] = [];
 
   // 1. باقات التدريب
-  if (changes.packageIds !== undefined) {
+  // ⚠️ `Array.isArray` مش `!== undefined`: طلب قديم ممكن يكون فيه
+  //    `packageIds: null` — و`null.length` كانت بتوقّع صفحة المراجعة كلها
+  //    («حدث خطأ غير متوقع»، ملاحظة الفريق 10 أكتوبر).
+  if (Array.isArray(changes.packageIds)) {
     const pkgIds = changes.packageIds;
     let detail = '';
     if (pkgIds.length === 0) {
@@ -34,8 +37,8 @@ export function getInstructorChangeItems(
   }
 
   // 2. الجدول الأسبوعي
-  if (changes.weeklySchedule !== undefined) {
-    const slots = (changes.weeklySchedule as WeeklySlot[]) || [];
+  if (changes.weeklySchedule !== undefined && changes.weeklySchedule !== null) {
+    const slots = Array.isArray(changes.weeklySchedule) ? (changes.weeklySchedule as WeeklySlot[]) : [];
     const total = slots.length;
     const tempSlots = slots.filter((s) => s.commitmentType === 'fixed_term');
     const ongoingCount = total - tempSlots.length;

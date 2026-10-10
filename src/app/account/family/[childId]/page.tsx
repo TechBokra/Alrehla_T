@@ -9,6 +9,8 @@ import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { getDependentFollowUpData } from '@/data/domains/dependent-follow-up';
 import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
+import { SessionReportCard } from '@/components/sessions/SessionReportCard';
+import { getSessionReportsFor } from '@/data/domains/writing';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +64,10 @@ export default async function DependentFollowUpPage({
     age,
     reviewed,
   } = result.data;
+  // تقارير المدرب عن الجلسات اللي تمّت (ملاحظة الفريق، 10 أكتوبر).
+  const reports = await getSessionReportsFor(
+    mySessions.filter((s) => s.status === 'completed').map((s) => s.id),
+  );
 
   return (
     <div className="space-y-8">
@@ -182,6 +188,11 @@ export default async function DependentFollowUpPage({
                   <StatusBadge type="neutral" label="ملغاة" />
                 ) : (
                   <StatusBadge type="warning" label="قادمة" />
+                )}
+                {reports.get(s.id) && (
+                  <div className="w-full">
+                    <SessionReportCard report={reports.get(s.id)!} compact />
+                  </div>
                 )}
               </div>
             ))}

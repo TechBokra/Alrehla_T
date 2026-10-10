@@ -3,7 +3,7 @@ import { compareAsc, compareDesc, isBefore, parseISO } from 'date-fns';
 import { readServerQuery } from '@/data/server-query';
 import { canChangeSessionAt, getServerNow, validDate } from '@/data/server-time';
 import type { StudentSession } from '@/types';
-import { getStudentSessions, getInstructorSessions, getSessions, getPublicInstructorById } from './writing';
+import { getStudentSessions, getInstructorSessions, getSessions, getPublicInstructorById, getSessionReport } from './writing';
 import { getMySessionChange } from './session-change-requests';
 import { getSiteContent, getSiteSettings } from './content';
 
@@ -37,10 +37,10 @@ export async function getInstructorSessionPageData(id: string) {
     const sessions = await getInstructorSessions(options);
     const session = sessions.find((item) => item.id === id);
     if (!session) return null;
-    const [settings, content, change] = await Promise.all([
-      getSiteSettings(), getSiteContent(), getMySessionChange(id, options),
+    const [settings, content, change, report] = await Promise.all([
+      getSiteSettings(), getSiteContent(), getMySessionChange(id, options), getSessionReport(id),
     ]);
-    return { session, settings, content, change, canRequestChange: canChangeSessionAt(session, getServerNow()) };
+    return { session, settings, content, change, report, canRequestChange: canChangeSessionAt(session, getServerNow()) };
   }, 'تعذّر تحميل بيانات الجلسة. جرّب تاني.');
 }
 
@@ -50,10 +50,11 @@ export async function getStudentSessionPageData(id: string) {
     const sessions = await getSessions(options);
     const session = sessions.find((item) => item.id === id);
     if (!session) return null;
-    const [change, instructor] = await Promise.all([
+    const [change, instructor, report] = await Promise.all([
       getMySessionChange(id, options),
       session.instructorId ? getPublicInstructorById(session.instructorId, options) : Promise.resolve(null),
+      getSessionReport(id),
     ]);
-    return { session, change, instructor, canRequestChange: canChangeSessionAt(session, getServerNow()) };
+    return { session, change, instructor, report, canRequestChange: canChangeSessionAt(session, getServerNow()) };
   }, 'تعذّر تحميل بيانات الجلسة. جرّب تاني.');
 }

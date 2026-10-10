@@ -19,7 +19,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const result = await getInstructorSessionPageData(id);
   if (!result.success) return <FormError message={result.error.message} />;
   if (!result.data) notFound();
-  const { session, settings, content, change, canRequestChange } = result.data;
+  const { session, settings, content, change, report, canRequestChange } = result.data;
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
@@ -35,7 +35,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
         template={content['recording.notice']}
         className="mb-6"
       />
-      <InstructorSessionClient session={session} />
+      <InstructorSessionClient session={session} savedReport={report} />
       {/* ⭐ (#LQMO) المدرب يطلب موعد تاني — الإدارة بتوافق. */}
       {canRequestChange && (
         <div className="mt-6">

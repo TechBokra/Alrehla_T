@@ -329,9 +329,30 @@ export async function createMeetingToken(params: {
         is_owner: isOwner,
         exp: Math.floor(expiresAt.getTime() / 1000),
         ...(startRecording ? { start_cloud_recording: true } : {}),
+        // ⚠️ (ملاحظة الفريق، 10 أكتوبر) الطالب وولي الأمر: من غير مشاركة
+        //    شاشة ومن غير زرار تسجيل. المدرب والإدارة (المالكين) زي ما هم.
+        ...(isOwner ? {} : { enable_screenshare: false, enable_recording_ui: false }),
       },
     }),
   });
+}
+
+/**
+ * طرد نسخة قديمة لنفس الشخص من الغرفة قبل ما يدخل تاني.
+ *
+ * ⚠️ (ملاحظة الفريق، 10 أكتوبر) الطالب أو المدرب لو فتح الجلسة تاني
+ *    (تاب جديد، أو موبايل بعد الكمبيوتر) كان بيبان في الغرفة **مرتين**.
+ *    دلوقتي الدخول الجديد بيطلّع القديم — مش بيمنع الجديد، عشان اللي
+ *    النت فصل عنده يرجع على طول.
+ *
+ * فشل الطرد مابيوقفش الدخول — أسوأ حاجة يبان مرتين زي الأول.
+ */
+export async function ejectUserFromRoom(roomName: string, userId: string): Promise<void> {
+  const result = await call<{ ejectedIds?: string[] }>(`/rooms/${encodeURIComponent(roomName)}/eject`, {
+    method: 'POST',
+    body: JSON.stringify({ user_ids: [userId] }),
+  });
+  if (!result.ok) console.error('Daily eject failed', result.error);
 }
 
 // ── الحضور المباشر ───────────────────────────────────────────

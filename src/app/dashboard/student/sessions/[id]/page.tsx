@@ -1,4 +1,5 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { SessionReportCard } from '@/components/sessions/SessionReportCard';
 import { getStudentSessionPageData } from '@/data/domains/session-pages';
 import { FormError } from '@/components/ui/FormError';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
@@ -32,7 +33,7 @@ export default async function StudentSessionPage({
   const result = await getStudentSessionPageData(id);
   if (!result.success) return <FormError message={result.error.message} />;
   if (!result.data) notFound();
-  const { session, change, instructor, canRequestChange } = result.data;
+  const { session, change, instructor, report, canRequestChange } = result.data;
 
   // ⚠️ **كانت `getInstructorById` — وهي `select('*')`.**
   //
@@ -91,6 +92,9 @@ export default async function StudentSessionPage({
             />
           )}
         </div>
+
+        {/* تقرير المدرب بعد الجلسة (ملاحظة الفريق، 10 أكتوبر). */}
+        {report && <SessionReportCard report={report} />}
 
         {/* ⭐ (#LQMO) طلب موعد تاني — الإدارة بتوافق. */}
         {canRequestChange && (

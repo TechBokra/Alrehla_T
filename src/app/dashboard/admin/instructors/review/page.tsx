@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2, ImageIcon, User } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth-guard';
+import { Unauthorized } from '@/components/admin/Unauthorized';
 import {
   getInstructorMediaForAdmin,
   getInstructorReviewGroups,
@@ -35,7 +36,13 @@ export const dynamic = 'force-dynamic';
  *    بيشوف الكامل.
  */
 export default async function InstructorReviewPage() {
-  await requireAdmin('canManageInstructors');
+  // ⚠️ `requireAdmin` بترمي — من غير صلاحية كانت الصفحة بتقع على
+  //    «حدث خطأ غير متوقع» بدل ما تقول «مش مسموح».
+  try {
+    await requireAdmin('canManageInstructors');
+  } catch {
+    return <Unauthorized />;
+  }
   const [groups, decided, packages] = await Promise.all([
     getInstructorReviewGroups(),
     getInstructorMediaForAdmin(),
