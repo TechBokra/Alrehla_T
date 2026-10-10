@@ -32,6 +32,7 @@ import {
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
 import { onboardingState } from '@/lib/instructor-onboarding';
+import { getInstructorOverviewTiming } from '@/data/domains/dashboard-time';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,30 +62,12 @@ export default async function InstructorDashboard() {
     redirect('/dashboard/instructor/profile');
   }
 
-  // الجلسات القادمة غير الملغاة وغير المنتهية
-  const confirmedBookings = allBookings.filter(
-    (b) => b.status !== 'cancelled' && b.status !== 'completed'
-  );
-
-  // الترتيب حسب الأقرب موعداً أولاً
-  const upcomingSessions = [...confirmedBookings].sort(
-    (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
-  );
-
-  // جلسات اليوم
-  const todayStr = new Date().toDateString();
-  const todaySessions = allBookings.filter(
-    (b) => new Date(b.scheduledAt).toDateString() === todayStr && b.status !== 'cancelled'
-  );
-
-  // أقرب جلسة قادمة للعرض البارز
-  const nextSession = upcomingSessions[0] || null;
+  const { confirmedBookings, todaySessions, nextSession, previewSessions } =
+    await getInstructorOverviewTiming(allBookings);
 
   // عدد الطلاب الحاليين المختلفين
   const uniqueStudents = new Set(allBookings.map((b) => b.studentRef)).size;
 
-  // معاينة لعدد محدود من الجلسات القادمة (أحدث 3 جلسات فقط)
-  const previewSessions = upcomingSessions.slice(0, 3);
 
   // الطلبات المعلقة قيد المراجعة لدى الإدارة
   const pendingRequests = updateRequests.filter((r) => r.status === 'pending');
@@ -287,7 +270,7 @@ export default async function InstructorDashboard() {
                 })}
               </span>
               <span className="text-base font-black leading-none">
-                {new Date(nextSession.scheduledAt).getDate()}
+                {nextSession.dayOfMonth}
               </span>
             </div>
             <div>
@@ -354,7 +337,7 @@ export default async function InstructorDashboard() {
             <div className="space-y-2.5">
               {previewSessions.map((session) => {
                 const date = new Date(session.scheduledAt);
-                const isToday = todayStr === date.toDateString();
+                const isToday = session.isToday;
 
                 return (
                   <div
@@ -379,7 +362,7 @@ export default async function InstructorDashboard() {
                             month: 'short',
                           })}
                         </span>
-                        <span className="text-sm font-black leading-none">{date.getDate()}</span>
+                        <span className="text-sm font-black leading-none">{session.dayOfMonth}</span>
                       </div>
 
                       <div className="min-w-0">

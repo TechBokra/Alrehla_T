@@ -1,13 +1,13 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
-import { getMySessionChange } from '@/data/domains/session-change-requests';
+import { getStudentSessionPageData } from '@/data/domains/session-pages';
+import { FormError } from '@/components/ui/FormError';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getSessions, getPublicInstructorById } from '@/data/domains/writing';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Video, Clock, User, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { formatCairo } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,10 +29,10 @@ export default async function StudentSessionPage({
     redirect('/dashboard');
   }
 
-  const sessions = await getSessions();
-  const session = sessions.find((s) => s.id === id);
-  if (!session) notFound();
-  const change = await getMySessionChange(session.id);
+  const result = await getStudentSessionPageData(id);
+  if (!result.success) return <FormError message={result.error.message} />;
+  if (!result.data) notFound();
+  const { session, change, instructor, canRequestChange } = result.data;
 
   // ⚠️ **كانت `getInstructorById` — وهي `select('*')`.**
   //
@@ -42,9 +42,6 @@ export default async function StudentSessionPage({
   //    الطالب**، وأي حد يفتح «مصدر الصفحة» يقراه.
   //
   //    الدالة العامة بترجّع الأعمدة الآمنة وحدها (ملف 83).
-  const instructor = session.instructorId
-    ? await getPublicInstructorById(session.instructorId)
-    : null;
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
@@ -64,7 +61,7 @@ export default async function StudentSessionPage({
               <div className="flex items-center gap-3 text-indigo-700 font-medium">
                 <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  {new Date(session.scheduledAt).toLocaleString('ar-EG', { timeZone: PLATFORM_TIMEZONE,
+                  {formatCairo(session.scheduledAt, {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}
@@ -96,7 +93,7 @@ export default async function StudentSessionPage({
         </div>
 
         {/* ⭐ (#LQMO) طلب موعد تاني — الإدارة بتوافق. */}
-        {session.status !== 'cancelled' && session.status !== 'completed' && new Date(session.scheduledAt).getTime() > Date.now() && (
+        {canRequestChange && (
           <SessionChangeRequest sessionId={session.id} existing={change} />
         )}
 

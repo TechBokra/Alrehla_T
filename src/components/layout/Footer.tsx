@@ -12,6 +12,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getSiteSettings, getSiteContent } from '@/data/domains/content';
+import { getCopyrightYear } from '@/data/domains/content-time';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram } from 'lucide-react';
 
@@ -39,7 +40,7 @@ const LINK_CLASS =
  * وبيرجع للشعار العادي لو النسخة الداكنة مترفعتش.
  */
 export default async function Footer() {
-  const [settings, content] = await Promise.all([getSiteSettings(), getSiteContent()]);
+  const [settings, content, year] = await Promise.all([getSiteSettings(), getSiteContent(), getCopyrightYear()]);
   const logo = settings.images.logoDark || settings.images.logo;
   const siteName = settings.siteName || 'منصة الرحلة';
 
@@ -182,7 +183,7 @@ export default async function Footer() {
           الحيّ أداه 2.63:1 والمطلوب 4.5:1. `slate-500` بيدّي 4.69:1. */}
       <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 text-xs font-medium text-slate-600 md:flex-row">
         <p>
-          © {new Date().getFullYear()} {siteName}. {content['footer.copyright']}
+          © {year} {siteName}. {content['footer.copyright']}
         </p>
       </div>
     </footer>

@@ -1,12 +1,11 @@
 import { getCurrentUser } from '@/data/domains/auth';
-import { getInstructorSessions } from '@/data/domains/writing';
+import { getInstructorSessionPageData } from '@/data/domains/session-pages';
+import { FormError } from '@/components/ui/FormError';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { InstructorSessionClient } from './InstructorSessionClient';
-import { getSiteSettings, getSiteContent } from '@/data/domains/content';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
-import { getMySessionChange } from '@/data/domains/session-change-requests';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,16 +16,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   }
 
   const { id } = await params;
-  // رقم الجلسة في الرابط كان بيتقرا وما بيتستخدمش: الصفحة كانت بتعرض
-  // **أول جلسة في القايمة** مهما كان الرابط، بتعليق «mock first booking».
-  const [sessions, settings, content] = await Promise.all([
-    getInstructorSessions(),
-    getSiteSettings(),
-    getSiteContent(),
-  ]);
-  const session = sessions.find((s) => s.id === id);
-  if (!session) notFound();
-  const change = await getMySessionChange(session.id);
+  const result = await getInstructorSessionPageData(id);
+  if (!result.success) return <FormError message={result.error.message} />;
+  if (!result.data) notFound();
+  const { session, settings, content, change, canRequestChange } = result.data;
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
@@ -44,7 +37,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       />
       <InstructorSessionClient session={session} />
       {/* ⭐ (#LQMO) المدرب يطلب موعد تاني — الإدارة بتوافق. */}
-      {session.status !== 'cancelled' && session.status !== 'completed' && new Date(session.scheduledAt).getTime() > Date.now() && (
+      {canRequestChange && (
         <div className="mt-6">
           <SessionChangeRequest sessionId={session.id} existing={change} />
         </div>

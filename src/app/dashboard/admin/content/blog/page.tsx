@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getBlogPosts } from '@/data/domains/content';
+import { getAdminBlogPublicationData } from '@/data/domains/content-time';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
@@ -18,7 +18,7 @@ export default async function Page() {
 
   // Drafts are dated in the future, so they never reach the public listing —
   // but the admin must see them.
-  const posts = await getBlogPosts({ includeDrafts: true });
+  const posts = await getAdminBlogPublicationData();
 
   const formatted = posts.map(p => ({
     ...p,
@@ -26,8 +26,8 @@ export default async function Page() {
     dateDisplay: formatDate(p.publishedAt),
     statusDisplay: (
       <StatusBadge 
-        type={new Date(p.publishedAt) > new Date() ? 'neutral' : 'success'} 
-        label={new Date(p.publishedAt) > new Date() ? 'مسودة' : 'منشور'} 
+        type={p.isDraft ? 'neutral' : 'success'}
+        label={p.isDraft ? 'مسودة' : 'منشور'}
       />
     )
   }));

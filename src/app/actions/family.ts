@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ChildProfile } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireNotDependent } from '@/lib/auth-guard';
+import { getFamilyMembers } from '@/data/domains/family';
 
 /**
  * ⚠️ **ليه `requireNotDependent` في كل دالة بتكتب هنا؟**
@@ -45,27 +46,7 @@ async function guardNotDependent(action: string) {
 }
 
 export async function fetchFamilyMembers(): Promise<ChildProfile[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data, error } = await supabase.from('child_profiles')
-    .select('*')
-    .eq('user_profile_id', user.id)
-    .order('created_at', { ascending: true });
-      
-  if (error || !data) return [];
-    
-  return data.map((child: any) => ({
-    id: child.id,
-    userProfileId: child.user_profile_id,
-    fullName: child.full_name,
-    birthDate: child.birth_date,
-    gender: (child.gender as 'male' | 'female' | null) ?? null,
-    avatarUrl: child.avatar_url,
-    createdAt: child.created_at,
-    accountProfileId: child.account_profile_id ?? null
-  }));
+  return getFamilyMembers();
 }
 
 /**

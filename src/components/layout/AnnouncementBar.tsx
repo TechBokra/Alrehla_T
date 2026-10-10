@@ -1,4 +1,4 @@
-import { getSiteSettings } from '@/data/domains/content';
+import { getAnnouncementData } from '@/data/domains/content-time';
 import { AnnouncementBarClient } from './AnnouncementBarClient';
 
 /**
@@ -12,16 +12,7 @@ import { AnnouncementBarClient } from './AnnouncementBarClient';
  * الفحص بيتم على السيرفر، فالشريط المنتهي ما بيوصلش للمتصفح أصلًا.
  */
 export async function AnnouncementBar() {
-  const { announcement } = await getSiteSettings();
-
-  if (!announcement.enabled || !announcement.text.trim()) return null;
-
-  if (announcement.until) {
-    const until = new Date(announcement.until);
-    if (!Number.isNaN(until.getTime()) && until.getTime() <= Date.now()) {
-      return null;
-    }
-  }
-
+  const announcement = await getAnnouncementData();
+  if (!announcement) return null;
   return <AnnouncementBarClient text={announcement.text} />;
 }

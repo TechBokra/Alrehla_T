@@ -1,5 +1,4 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
-import { getMySessionChange } from '@/data/domains/session-change-requests';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -7,16 +6,9 @@ import { Calendar, FileText, Video, ArrowLeft } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
-import { fetchFamilyMembers } from '@/app/actions/family';
-import {
-  getCourseSubscriptions,
-  getSessions,
-  getWritingPackages,
-  getStudentDocuments,
-  getPublicInstructors,
-} from '@/data/domains/writing';
+import { getDependentFollowUpData } from '@/data/domains/dependent-follow-up';
+import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
-import { calculateAge } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,42 +42,26 @@ export default async function DependentFollowUpPage({
 }) {
   const { childId } = await params;
 
-  // ⚠️ القايمة دي بترجّع أبناء الداخل دلوقتي وحدهم، فالبحث فيها **هو**
-  //    التحقق: رقم طفل حد تاني مش هيتلاقى وبيروح على 404.
-  const family = await fetchFamilyMembers();
-  const child = family.find((c) => c.id === childId);
-  if (!child) notFound();
-
-  const [subscriptions, sessions, packages, instructors] = await Promise.all([
-    getCourseSubscriptions(),
-    getSessions(),
-    getWritingPackages(),
-    getPublicInstructors(),
-  ]);
-
-  const documents = child.accountProfileId
-    ? await getStudentDocuments(child.accountProfileId)
-    : [];
-
-  const mySubs = subscriptions.filter((s) => s.childId === child.id);
-  const mySubIds = new Set(mySubs.map((s) => s.id));
-  const mySessions = sessions
-    .filter((s) => mySubIds.has(s.courseSubscriptionId))
-    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-
-  const instructorName = (id?: string) =>
-    instructors.find((i) => i.id === id)?.displayName;
-  const packageName = (id: string) =>
-    packages.find((p) => p.id === id)?.name ?? 'باقة غير معروفة';
-
-  const now = Date.now();
-  const nextSession = mySessions.find(
-    (s) => s.status !== 'cancelled' && s.status !== 'completed' && new Date(s.scheduledAt).getTime() >= now,
-  );
-
-  const nextChange = nextSession ? await getMySessionChange(nextSession.id) : null;
-  const age = calculateAge(child.birthDate);
-  const reviewed = documents.filter((d) => d.status === 'reviewed').length;
+  const result = await getDependentFollowUpData(childId);
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') notFound();
+    return (
+      <div className="space-y-8">
+        <DashboardPageHeader title="متابعة الطفل" backHref="/account/family" />
+        <FormError message={result.error.message} />
+      </div>
+    );
+  }
+  const {
+    child,
+    subscriptions: mySubs,
+    sessions: mySessions,
+    documents,
+    nextSession,
+    nextChange,
+    age,
+    reviewed,
+  } = result.data;
 
   return (
     <div className="space-y-8">
@@ -95,12 +71,20 @@ export default async function DependentFollowUpPage({
       />
 
       <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <PersonAvatar name={child.fullName} avatarUrl={child.avatarUrl} size={64} />
+        <PersonAvatar
+          name={child.fullName}
+          avatarUrl={child.avatarUrl}
+          size={64}
+        />
         <div>
-          <h2 className="text-xl font-black text-slate-800">{child.fullName}</h2>
+          <h2 className="text-xl font-black text-slate-800">
+            {child.fullName}
+          </h2>
           <p className="mt-1 text-sm font-medium text-slate-500">
             {age !== null ? `${age} سنة` : 'تاريخ الميلاد مش مسجّل'}
-            {child.accountProfileId ? ' · عنده حساب دخول' : ' · من غير حساب دخول'}
+            {child.accountProfileId
+              ? ' · عنده حساب دخول'
+              : ' · من غير حساب دخول'}
           </p>
         </div>
       </div>
@@ -117,9 +101,9 @@ export default async function DependentFollowUpPage({
             {formatCairo(nextSession.scheduledAt)}
           </p>
           <p className="mt-1 text-sm font-medium text-slate-600">
-            {nextSession.packageName ?? packageName(nextSession.packageId)}
-            {instructorName(nextSession.instructorId) &&
-              ` · مع ${instructorName(nextSession.instructorId)}`}
+            {nextSession.packageName}
+            {nextSession.instructorName &&
+              ` · مع ${nextSession.instructorName}`}
           </p>
           {/* الغرفة اللي النظام بيعملها كانت للإدارة بس (5.3) — دلوقتي لولي الأمر كمان. */}
           <SessionJoinButton
@@ -130,7 +114,10 @@ export default async function DependentFollowUpPage({
           />
           {/* ⭐ (#LQMO) ولي الأمر يطلب موعد تاني — الإدارة بتوافق. */}
           <div className="mt-4">
-            <SessionChangeRequest sessionId={nextSession.id} existing={nextChange} />
+            <SessionChangeRequest
+              sessionId={nextSession.id}
+              existing={nextChange}
+            />
           </div>
         </section>
       )}
@@ -144,18 +131,18 @@ export default async function DependentFollowUpPage({
           </p>
         ) : (
           mySubs.map((sub) => {
-            const own = mySessions.filter((s) => s.courseSubscriptionId === sub.id);
-            const done = own.filter((s) => s.status === 'completed').length;
             return (
               <div
                 key={sub.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5"
               >
                 <span className="font-bold text-slate-800">
-                  {packageName(sub.packageId)}
+                  {sub.packageName}
                 </span>
                 <span className="text-sm font-bold text-slate-600">
-                  {own.length > 0 ? `${done} من ${own.length} جلسة` : 'الجلسات لسه ما اتجدولتش'}
+                  {sub.sessionCount > 0
+                    ? `${sub.completedSessions} من ${sub.sessionCount} جلسة`
+                    : 'الجلسات لسه ما اتجدولتش'}
                 </span>
               </div>
             );
@@ -186,8 +173,7 @@ export default async function DependentFollowUpPage({
                   </p>
                   <p className="mt-0.5 text-xs font-medium text-slate-500">
                     {formatCairo(s.scheduledAt)}
-                    {instructorName(s.instructorId) &&
-                      ` · ${instructorName(s.instructorId)}`}
+                    {s.instructorName && ` · ${s.instructorName}`}
                   </p>
                 </div>
                 {s.status === 'completed' ? (
@@ -207,10 +193,10 @@ export default async function DependentFollowUpPage({
       <section className="space-y-3">
         <h2 className="text-lg font-black text-slate-800">معرض أعماله</h2>
         {!child.accountProfileId ? (
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm font-medium leading-relaxed text-amber-900">
-            معرض الأعمال بيتكتب من حساب الطالب نفسه، و{child.fullName} لسه
-            مالوش حساب دخول. تقدر تفتحله واحدًا من عمود «حساب الدخول» في
-            المركز العائلي.
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed font-medium text-amber-900">
+            معرض الأعمال بيتكتب من حساب الطالب نفسه، و{child.fullName} لسه مالوش
+            حساب دخول. تقدر تفتحله واحدًا من عمود «حساب الدخول» في المركز
+            العائلي.
           </p>
         ) : (
           <Link

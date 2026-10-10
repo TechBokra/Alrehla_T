@@ -3,6 +3,7 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { getPublicInstructors } from '@/data/domains/writing';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 import { fetchAllPages } from '@/lib/fetch-all';
+import type { QueryReadOptions } from '@/data/query-result';
 import type {
   CreativeService,
   InstructorServiceOffer,
@@ -277,16 +278,36 @@ export type ServiceOrderRow = {
   participantBirthDate: string | null;
 };
 
-async function mapServiceOrders(rows: any[]): Promise<ServiceOrderRow[]> {
+async function mapServiceOrders(
+  rows: any[],
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  options: QueryReadOptions = {},
+): Promise<ServiceOrderRow[]> {
+  // child_id is an application reference, not a PostgREST foreign-key join.
+  // Reuse the session client so child-profile RLS remains enforced.
+  const childIds = [...new Set(rows
+    .filter((row) => row.participant_type === 'child' && typeof row.child_id === 'string' && row.child_id)
+    .map((row) => row.child_id as string))];
+  const participants = new Map<string, { full_name: string; birth_date: string | null }>();
+  // Bound URL size and result size for large admin lists; never query per order.
+  for (let start = 0; start < childIds.length; start += 200) {
+    const { data, error } = await supabase.from('child_profiles')
+      .select('id, full_name, birth_date')
+      .in('id', childIds.slice(start, start + 200));
+    if (error && options.throwOnError) throw error;
+    if (error) {
+      console.error('Service-order participant lookup failed', { code: error.code });
+      continue;
+    }
+    for (const child of data ?? []) participants.set(child.id, child);
+  }
   return rows.map((row) => {
     const service = row.standalone_services as { name: string } | null;
     const instructor = row.instructors as { display_name: string } | null;
     const provider = row.service_providers as
       | { display_name: string; kind: 'platform' | 'instructor' | 'individual' }
       | null;
-    const participant = row.child_profiles as
-      | { full_name: string; birth_date: string | null }
-      | null;
+    const participant = row.participant_type === 'child' ? participants.get(row.child_id) : undefined;
     return {
       id: row.id,
       buyerProfileId: row.buyer_profile_id,
@@ -317,11 +338,9 @@ async function mapServiceOrders(rows: any[]): Promise<ServiceOrderRow[]> {
   });
 }
 
-// اسم المستفيد جاي مع الطلب. من غيره مقدّم الخدمة بينفّذ شغل مايعرفش
-// هو لمين — وفي خدمة تربوية للأطفال ده فرق في المحتوى نفسه مش في
-// العرض بس.
+// Related child profiles are loaded explicitly: this schema has no child_id FK.
 const SERVICE_ORDER_SELECT =
-  'id, buyer_profile_id, standalone_service_id, instructor_id, provider_id, due_at, due_note, amount, status, transaction_reference, payment_reference, payment_method, payment_receipt_url, created_at, delivered_at, completed_at, instructor_earning, participant_type, child_id, standalone_services(name), instructors(display_name), service_providers(display_name, kind), child_profiles(full_name, birth_date)';
+  'id, buyer_profile_id, standalone_service_id, instructor_id, provider_id, due_at, due_note, amount, status, transaction_reference, payment_reference, payment_method, payment_receipt_url, created_at, delivered_at, completed_at, instructor_earning, participant_type, child_id, standalone_services(name), instructors(display_name), service_providers(display_name, kind)';
 
 /** Every service order — row-level security limits this to admins. */
 export async function getAllServiceOrders(): Promise<ServiceOrderRow[]> {
@@ -337,11 +356,11 @@ export async function getAllServiceOrders(): Promise<ServiceOrderRow[]> {
   );
 
   if (error) return [];
-  return mapServiceOrders(data);
+  return mapServiceOrders(data, supabase);
 }
 
 /** The signed-in customer's own service orders. */
-export async function getMyServiceOrders(): Promise<ServiceOrderRow[]> {
+export async function getMyServiceOrders(options: QueryReadOptions = {}): Promise<ServiceOrderRow[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -354,8 +373,9 @@ export async function getMyServiceOrders(): Promise<ServiceOrderRow[]> {
     .eq('buyer_profile_id', user.id)
     .order('created_at', { ascending: false });
 
+  if (error && options.throwOnError) throw error;
   if (error || !data) return [];
-  return mapServiceOrders(data);
+  return mapServiceOrders(data, supabase, options);
 }
 
 /**
@@ -391,7 +411,7 @@ export async function getServiceOrdersForInstructor(
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
-  return mapServiceOrders(data);
+  return mapServiceOrders(data, supabase);
 }
 
 /** طلبات مقدّم خدمة بعينه — المنصة أو مدرب أو مستقل. */
@@ -406,7 +426,7 @@ export async function getServiceOrdersByProvider(
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
-  return mapServiceOrders(data);
+  return mapServiceOrders(data, supabase);
 }
 
 /**
@@ -425,7 +445,7 @@ export async function getServiceOrderDetail(orderId: string): Promise<ServiceOrd
     .maybeSingle();
 
   if (error || !data) return null;
-  const [row] = await mapServiceOrders([data]);
+  const [row] = await mapServiceOrders([data], supabase);
   return row ?? null;
 }
 

@@ -1,7 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { SessionsList, SessionRow } from '@/components/dashboard/SessionsList';
-import { getStudentSessions } from '@/data/domains/writing';
+import { SessionsList } from '@/components/dashboard/SessionsList';
+import { getStudentSessionsPageData } from '@/data/domains/session-pages';
+import { FormError } from '@/components/ui/FormError';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,26 +10,9 @@ export const dynamic = 'force-dynamic';
  * جلسات الطالب — نفس الفجوة اللي كانت عند المدرب بالظبط.
  */
 export default async function Page() {
-  // بتشتغل للطالب البالغ وللطفل صاحب الحساب التابع. `getSessions()`
-  // العامة كانت بتدّي الطفل صفر جلسات، لأن الاشتراك صاحبه ولي الأمر.
-  const sessions = await getStudentSessions();
-
-  const rows: SessionRow[] = sessions.map((session) => ({
-    id: session.id,
-    href: `/dashboard/student/sessions/${session.id}`,
-    title: `الجلسة ${session.sessionNumber}`,
-    subtitle: session.instructorName
-      ? `${session.packageName} · ${session.instructorName}`
-      : session.packageName,
-    scheduledAt: session.scheduledAt,
-    status: session.status,
-    meetingUrl: session.meetingUrl,
-  }));
-
-  const upcoming = rows.filter((r) => new Date(r.scheduledAt).getTime() >= Date.now());
-  const past = rows
-    .filter((r) => new Date(r.scheduledAt).getTime() < Date.now())
-    .reverse();
+  const result = await getStudentSessionsPageData();
+  if (!result.success) return <FormError message={result.error.message} />;
+  const { upcoming, past } = result.data;
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">

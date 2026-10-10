@@ -2,10 +2,11 @@ import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/auth';
-import { hasAdminPermission, calculateAge } from '@/lib/utils';
+import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getAdminUserAuthData } from '@/data/domains/admin-user-auth';
+import { getChildrenAgeData } from '@/data/domains/dashboard-time';
 import {
   AdminUserDetailClient,
   type UserOrderRow,
@@ -32,21 +33,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const targetUser = allUsers.find((u) => u.id === id);
   if (!targetUser) notFound();
 
-  // جلب البريد المسجَّل في المصادقة (Supabase Auth) لو متاح
-  let accountEmail = targetUser.email || '';
-  // محظور في Auth = التعليق كامل (مش شراء بس).
-  let loginBlocked = false;
-  try {
-    const adminAuth = createAdminClient();
-    const { data: authData } = await adminAuth.auth.admin.getUserById(id);
-    if (authData?.user?.email) {
-      accountEmail = authData.user.email;
-    }
-    const bannedUntil = (authData?.user as { banned_until?: string | null } | undefined)?.banned_until;
-    loginBlocked = Boolean(bannedUntil && new Date(bannedUntil).getTime() > Date.now());
-  } catch {
-    // العودة للبريد المحفوظ في الملف
-  }
+  const { accountEmail, loginBlocked } = await getAdminUserAuthData(id, targetUser.email || '');
 
   const supabase = await createClient();
 
@@ -116,11 +103,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     .eq('user_profile_id', id)
     .order('created_at', { ascending: true });
 
-  const childrenList: UserChildRow[] = (childrenData || []).map((c: any) => ({
+  const childrenWithAge = await getChildrenAgeData(childrenData || []);
+  const childrenList: UserChildRow[] = childrenWithAge.map((c) => ({
     id: c.id,
     fullName: c.full_name,
-    birthDate: c.birth_date,
-    age: calculateAge(c.birth_date),
+    birthDate: c.birth_date ?? undefined,
+    age: c.age,
     createdAt: c.created_at,
   }));
 

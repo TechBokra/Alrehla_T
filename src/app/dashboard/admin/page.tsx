@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { SITE_IMAGE_SLOTS } from '@/lib/site-images';
 import { hasAdminPermission, formatPrice, formatDate } from '@/lib/utils';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { getAdminOverviewTiming } from '@/data/domains/dashboard-time';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,33 +65,12 @@ export default async function AdminDashboard() {
     : { data: [] };
   const buyerNames = new Map((buyers ?? []).map((b) => [b.id, b.full_name]));
 
-  // ---------- أجندة اليوم ----------
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-
-  const todaySessions = bookings
-    .filter((s) => {
-      const at = new Date(s.scheduledAt);
-      return at >= startOfToday && at < endOfToday && s.status !== 'cancelled';
-    })
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-
-  // جلسة معدّيها موعدها ولسه محدش قفلها — دي بتتنسي بسهولة.
-  const overdueSessions = bookings.filter(
-    (s) => new Date(s.scheduledAt) < now && s.status === 'confirmed'
-  );
-
-  // ---------- نظرة عامة ----------
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const ordersThisWeek = orders.filter((o) => new Date(o.createdAt) >= weekAgo).length;
+  const { todaySessions, overdueSessions, ordersThisWeek, publishedPosts } =
+    await getAdminOverviewTiming(bookings, orders, posts);
   const activePackages = packages.filter((p) => p.isActive).length;
   const urgentCount = reviewQueue.reduce((sum, i) => sum + i.count, 0);
 
   // ---------- ملخص المحتوى ----------
-  const publishedPosts = posts.filter(
-    (p) => new Date(p.publishedAt).getTime() <= now.getTime()
-  ).length;
   const missingImages = SITE_IMAGE_SLOTS.filter(
     (slot) => !settings.images[slot.key as keyof typeof settings.images]
   );

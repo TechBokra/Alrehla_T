@@ -18,17 +18,20 @@ import { cairoParts } from '@/lib/timezone';
 import { isSessionOverdue } from '@/lib/session-status';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import type { QueryReadOptions } from '@/data/query-result';
 
 // Import from auth if needed
 
 
 
 
-export const getWritingPackages = async (): Promise<WritingPackage[]> => {
+export const getWritingPackages = async (options: QueryReadOptions = {}): Promise<WritingPackage[]> => {
   const supabase = createPublicClient();
   const { data, error } = await supabase.from('creative_writing_packages')
     .select('*')
     .order('created_at', { ascending: true });
+
+  if (error && options.throwOnError) throw error;
 
   if ((error || !data || data.length === 0)) {
     return [];
@@ -140,9 +143,10 @@ function toPublicInstructor(row: PublicInstructorRow): PublicInstructor {
 }
 
 /** قائمة المدربين للصفحات العامة — بالأعمدة الآمنة وحدها. */
-export const getPublicInstructors = async (): Promise<PublicInstructor[]> => {
+export const getPublicInstructors = async (options: QueryReadOptions = {}): Promise<PublicInstructor[]> => {
   const supabase = createPublicClient();
   const { data, error } = await supabase.rpc('public_instructors');
+  if (error && options.throwOnError) throw error;
 
   if (error || !data) {
     // ⚠️ فاضي هنا معناه «مفيش مدربين» **أو** «الدالة مش موجودة» —
@@ -158,9 +162,11 @@ export const getPublicInstructors = async (): Promise<PublicInstructor[]> => {
 /** مدرب واحد للصفحات العامة — بالأعمدة الآمنة وحدها. */
 export const getPublicInstructorById = async (
   id: string,
+  options: QueryReadOptions = {},
 ): Promise<PublicInstructor | null> => {
   const supabase = createPublicClient();
   const { data, error } = await supabase.rpc('public_instructor', { p_id: id });
+  if (error && options.throwOnError) throw error;
 
   if (error) {
     console.error('Error loading public instructor', error);
@@ -477,9 +483,10 @@ type InstructorSessionRow = {
  * و«الطالب #»، وعدّاد «الطلاب الحاليين: 1» اللي كان بيعدّ قيمة
  * `'unknown'` واحدة مش طالب.
  */
-export async function getInstructorSessions(): Promise<InstructorSession[]> {
+export async function getInstructorSessions(options: QueryReadOptions = {}): Promise<InstructorSession[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('instructor_sessions');
+  if (error && options.throwOnError) throw error;
 
   if (error || !data) {
     if (error) console.error('Error loading instructor sessions', error);
@@ -513,9 +520,10 @@ export async function getInstructorSessions(): Promise<InstructorSession[]> {
  * الصفوف لا الأعمدة، والسياسة كانت هتخلي الطفل يشوف إيصال تحويل أبوه
  * والمبلغ. الدالة بترجّع الجلسة والباقة والمدرب وبس.
  */
-export async function getStudentSessions(): Promise<StudentSession[]> {
+export async function getStudentSessions(options: QueryReadOptions = {}): Promise<StudentSession[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('student_sessions');
+  if (error && options.throwOnError) throw error;
 
   if (error || !data) {
     if (error) console.error('Error loading student sessions', error);
@@ -588,13 +596,14 @@ export async function getBookedSlotsByInstructor(
   return result;
 }
 
-export async function getCourseSubscriptions(): Promise<CourseSubscription[]> {
+export async function getCourseSubscriptions(options: QueryReadOptions = {}): Promise<CourseSubscription[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('course_subscriptions')
     .select('id, package_id, user_id, participant_type, child_id, status, started_at, created_at')
     .order('created_at', { ascending: false });
 
+  if (error && options.throwOnError) throw error;
   if (error || !data) return [];
 
   return data.map((row) => ({
@@ -611,13 +620,14 @@ export async function getCourseSubscriptions(): Promise<CourseSubscription[]> {
 
 
 
-export async function getStudentDocuments(studentId: string) {
+export async function getStudentDocuments(studentId: string, options: QueryReadOptions = {}) {
   const supabase = await createClient();
   const { data, error } = await supabase.from('portfolio_documents')
     .select('*')
     .eq('student_id', studentId)
     .order('created_at', { ascending: false });
 
+  if (error && options.throwOnError) throw error;
   if ((error || !data || data.length === 0)) {
     return [];
   }
@@ -729,7 +739,7 @@ export async function getProfileUpdateRequestsByInstructor(
   }));
 }
 
-export const getSessions = async (): Promise<SessionWithDetails[]> => {
+export const getSessions = async (options: QueryReadOptions = {}): Promise<SessionWithDetails[]> => {
   const supabase = await createClient();
   // اسم الباقة والرقم المرجعي بيتجابوا مع الجلسة.
   //
@@ -744,6 +754,7 @@ export const getSessions = async (): Promise<SessionWithDetails[]> => {
     )
     .order('scheduled_at', { ascending: true });
 
+  if (error && options.throwOnError) throw error;
   if (error || !data || data.length === 0) {
     return [];
   }

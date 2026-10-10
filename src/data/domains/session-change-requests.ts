@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import type { QueryReadOptions } from '@/data/query-result';
 
 /**
  * طلبات تغيير موعد الجلسات (ملف 16 — #LQMO).
@@ -21,7 +22,7 @@ export type SessionChangeRow = {
 };
 
 /** آخر طلب للجلسة دي من الداخل دلوقتي (القاعدة بتفلتر: طلباته هو بس). */
-export async function getMySessionChange(sessionId: string): Promise<SessionChangeRow | null> {
+export async function getMySessionChange(sessionId: string, options: QueryReadOptions = {}): Promise<SessionChangeRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('session_change_requests')
@@ -30,6 +31,7 @@ export async function getMySessionChange(sessionId: string): Promise<SessionChan
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error && options.throwOnError) throw error;
   if (error || !data) return null;
   return {
     id: data.id,

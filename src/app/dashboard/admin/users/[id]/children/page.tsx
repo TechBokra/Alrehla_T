@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getAllUsers, getCurrentUser } from '@/data/domains/auth';
-import { hasAdminPermission, calculateAge } from '@/lib/utils';
+import { hasAdminPermission } from '@/lib/utils';
+import { getChildrenAgeData } from '@/data/domains/dashboard-time';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { createClient } from '@/lib/supabase/server';
@@ -30,8 +31,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     .eq('user_profile_id', id)
     .order('created_at', { ascending: true });
 
-  const formattedChildren = (childrenData || []).map((child: any) => {
-    const age = calculateAge(child.birth_date);
+  const childrenWithAge = await getChildrenAgeData(childrenData || []);
+  const formattedChildren = childrenWithAge.map((child) => {
+    const age = child.age;
     return {
       name: child.full_name,
       ageDisplay: age !== null ? `${age} سنوات` : '-'

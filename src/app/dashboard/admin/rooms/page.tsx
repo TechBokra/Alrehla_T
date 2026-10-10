@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { formatCairo } from '@/lib/timezone';
 import { sessionStatusView } from '@/lib/session-status';
 import { retentionLabel } from '@/lib/session-recording';
+import { getRoomsTiming } from '@/data/domains/dashboard-time';
 import {
   DAILY_FREE_MINUTES,
   SESSION_ROOM_PREFIX,
@@ -71,15 +72,7 @@ export default async function Page() {
     ready ? listRecordings(100) : Promise.resolve(null),
   ]);
 
-  const now = Date.now();
-  const upcoming = sessions
-    .filter(
-      (s) =>
-        s.status !== 'completed' &&
-        s.status !== 'cancelled' &&
-        new Date(s.scheduledAt).getTime() > now,
-    )
-    .slice(0, 50);
+  const { upcoming, dayOfMonth } = await getRoomsTiming(sessions);
 
   const withoutRoom = upcoming.filter((s) => !s.roomName).length;
 
@@ -115,7 +108,6 @@ export default async function Page() {
 
   // ⚠️ التقدير خطّي على أيام الشهر — تقريب صريح، مش تنبّؤ. بيتكتب
   //    جنبه إنه تقدير عشان محدّش يبني عليه قرار وهو فاكره رقمًا.
-  const dayOfMonth = new Date().getDate();
   const projected = dayOfMonth > 0 ? Math.round((minutes / dayOfMonth) * 30) : 0;
 
   const liveRows = (presence?.ok ? presence.data : []).map((p) => {
