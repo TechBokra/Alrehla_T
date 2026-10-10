@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useFormState } from './FormContext';
 
@@ -22,10 +22,14 @@ export function DecisionButton({
   const { busy } = useFormState();
   const [clicked, setClicked] = useState(false);
 
-  // النموذج خلص — الضغطة الجاية تبدأ من الأول.
-  useEffect(() => {
+  // النموذج خلص — الضغطة الجاية تبدأ من الأول. بنقارن بالحالة اللي فاتت
+  // (في نفس الرسم، من غير effect): الضغطة نفسها بتحصل وbusy لسه false،
+  // فلو قارنّا بـ`busy` بس كانت هتتمسح قبل ما النموذج يبدأ.
+  const [prevBusy, setPrevBusy] = useState(busy);
+  if (busy !== prevBusy) {
+    setPrevBusy(busy);
     if (!busy) setClicked(false);
-  }, [busy]);
+  }
 
   return (
     <Button

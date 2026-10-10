@@ -25,6 +25,7 @@ export function AnnouncementBarClient({ text, expiresAt }: { text: string; expir
 
   React.useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ القراية بعد أول رسم عشان ماتختلفش عن نسخة الخادم.
       setDismissed(window.localStorage.getItem(signature) === '1');
     } catch {
       // متصفح بيمنع التخزين — الشريط بيفضل ظاهر، وده أأمن من إخفائه.

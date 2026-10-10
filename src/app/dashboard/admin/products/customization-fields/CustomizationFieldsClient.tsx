@@ -53,7 +53,12 @@ export function CustomizationFieldsClient({
   const formError = errorInForm ? error : '';
 
   // القايمة بتتحدّث من الخادم بعد أي حفظ — بس الأسهم بتتحرك قدامك على طول.
-  React.useEffect(() => setRows(fields), [fields]);
+  // (من غير effect: لما الخادم يبعت قايمة جديدة بنحدّث النسخة المحلية في نفس الرسم.)
+  const [synced, setSynced] = useState(fields);
+  if (synced !== fields) {
+    setSynced(fields);
+    setRows(fields);
+  }
 
   const run = async (
     fn: () => Promise<{ ok: true } | { ok: false; error: string }>,

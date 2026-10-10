@@ -140,6 +140,7 @@ export function LibraryCustomizationWizard({
   }, [product.id, methods]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/incompatible-library -- watch من react-hook-form؛ React Compiler مش متفعّل، والاشتراك بيتقفل في التنضيف.
     const subscription = methods.watch((value) => {
       const toSave = { ...value };
       delete toSave.coverPhotoFile;

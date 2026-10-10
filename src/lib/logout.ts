@@ -27,5 +27,6 @@ export async function logout(): Promise<void> {
     // الكوكيز بتتمسح في الخادم؛ لو النداء نفسه وقع، التحميل الكامل
     // بيبيّن الحالة الحقيقية.
   }
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- تحميل كامل مقصود بعد الخروج: بيمسح أي بيانات للحساب القديم في ذاكرة الصفحة.
   window.location.assign('/');
 }

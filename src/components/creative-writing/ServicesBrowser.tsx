@@ -16,6 +16,7 @@ export function ServicesBrowser({ cards, categories }: { cards: ServiceCardData[
 
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get('category');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- التصنيف من رابط المتصفح؛ مش متاح وقت بناء الصفحة على الخادم.
     if (c && categories.includes(c)) setActive(c);
   }, [categories]);
 

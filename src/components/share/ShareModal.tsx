@@ -41,6 +41,7 @@ export function ShareModal({ isOpen, onClose, data, theme = 'brand' }: ShareModa
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- زرار المشاركة متاح في بعض المتصفحات بس، ومفيش طريقة نعرف ده على الخادم.
       setCanNativeShare(true);
     }
   }, []);

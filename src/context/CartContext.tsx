@@ -74,6 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       // السلال القديمة المحفوظة ممكن يكون فيها كمية ٢ أو أكتر — بترجع ١.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- السلة محفوظة في المتصفح؛ لازم تتقري بعد أول رسم عشان ماتختلفش عن نسخة الخادم.
       setItems(
         parseStoredCart<CartItem>(window.localStorage.getItem(CART_STORAGE_KEY), Date.now()).map((i) => ({
           ...i,

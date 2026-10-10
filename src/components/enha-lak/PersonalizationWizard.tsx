@@ -125,6 +125,7 @@ export function PersonalizationWizard({
         console.error("Failed to parse saved form state", e);
       }
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- استرجاع خطوات المعالج المحفوظة في المتصفح بعد أول رسم.
     setIsLoaded(true);
   }, [product.id, reset, methods]);
 
@@ -253,7 +254,7 @@ export function PersonalizationWizard({
     // ── اشتراك الصندوق (ملف 140) ───────────────────────────
     if (subscription) {
       addItem({
-        id: `box-${subscription.planId}-${Date.now()}`,
+        id: `box-${subscription.planId}-${crypto.randomUUID()}`,
         productId: subscription.planId,
         name: product.name,
         // السعر للعرض — القاعدة بتسعّر من الخطة، والشحن × الشهور في الدفع.
@@ -289,7 +290,7 @@ export function PersonalizationWizard({
 
     // 2. Add to cart
     addItem({
-      id: product.id + '-' + Date.now(),
+      id: `${product.id}-${crypto.randomUUID()}`,
       productId: product.id,
       name: format === 'printed' ? product.name : `${product.name} — ${FORMAT_LABELS[format]}`,
       // للعرض بس — القاعدة بتسعّر من الجدول. ⚠️ **بالإضافات**: كان سعر

@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { useObjectUrl } from '@/lib/use-object-url';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { DEFAULT_GOALS, type StoryGoal } from '@/lib/story-goals';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
@@ -35,29 +36,8 @@ export function Step2Details({
   
   const facePhotoFile = watch('facePhotoFile');
   const secondPhotoFile = watch('secondPhotoFile');
-
-  const [facePhotoPreviewUrl, setFacePhotoPreviewUrl] = useState<string | null>(null);
-  const [secondPhotoPreviewUrl, setSecondPhotoPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!facePhotoFile) {
-      setFacePhotoPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(facePhotoFile);
-    setFacePhotoPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [facePhotoFile]);
-
-  useEffect(() => {
-    if (!secondPhotoFile) {
-      setSecondPhotoPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(secondPhotoFile);
-    setSecondPhotoPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [secondPhotoFile]);
+  const facePhotoPreviewUrl = useObjectUrl(facePhotoFile);
+  const secondPhotoPreviewUrl = useObjectUrl(secondPhotoFile);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];

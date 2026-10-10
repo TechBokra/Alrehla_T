@@ -2,7 +2,7 @@
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { isBefore, isValid, parseISO } from 'date-fns';
 import { calendarDate } from '@/lib/time-values';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PublicInstructor, WeeklySlot, BookedSlot, DayOfWeek } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Calendar, Clock, User, ArrowRight, Video } from 'lucide-react';
@@ -125,15 +125,14 @@ export function BookingWizardClient({
    *    في الحالة**. فيكمّل ويدفع لمدرب مش بيدرّب الباقة دي أصلًا،
    *    وهو شايف إنه اختار صح.
    */
-  useEffect(() => {
-    if (
-      selectedInstructorId &&
-      !activeInstructors.some((i) => i.id === selectedInstructorId)
-    ) {
-      setSelectedInstructorId('');
-      setSelectedSlot(null);
-    }
-  }, [selectedPackage, selectedInstructorId, activeInstructors]);
+  // (في نفس الرسم من غير effect — React بيعيد الرسم فورًا بالاختيار الفاضي.)
+  if (
+    selectedInstructorId &&
+    !activeInstructors.some((i) => i.id === selectedInstructorId)
+  ) {
+    setSelectedInstructorId('');
+    setSelectedSlot(null);
+  }
 
   const bookedUntilFor = (instructorId: string, slot: WeeklySlot): string | null => {
     const taken = (bookedSlots[instructorId] ?? []).find(

@@ -29,7 +29,12 @@ export function StoryGoalsClient({ goals, products }: { goals: StoryGoal[]; prod
   const formError = errorInForm ? error : '';
 
   // القايمة بتتحدّث من الخادم بعد أي حفظ — بس الأسهم بتتحرك قدامك على طول.
-  React.useEffect(() => setRows(goals), [goals]);
+  // (من غير effect: لما الخادم يبعت قايمة جديدة بنحدّث النسخة المحلية في نفس الرسم.)
+  const [synced, setSynced] = useState(goals);
+  if (synced !== goals) {
+    setSynced(goals);
+    setRows(goals);
+  }
 
   const run = async (fn: () => Promise<Result>, inForm = false) => {
     setBusy(true);

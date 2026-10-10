@@ -3,6 +3,7 @@ import { formatPrice } from '@/lib/utils';
 
 import React, { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { useObjectUrl } from '@/lib/use-object-url';
 import { AddonProduct, ChildProfile, PersonalizedProduct } from '@/types';
 import Image from 'next/image';
 import { optimizedImageUrl } from '@/lib/cloudinary';
@@ -38,8 +39,6 @@ export function OrderSummarySidebar({
   const facePhotoFile = watch('facePhotoFile');
   const familyMemberId = watch('familyMemberId');
   const newChildName = watch('newChildName');
-  
-  const [facePhotoPreviewUrl, setFacePhotoPreviewUrl] = useState<string | null>(null);
 
   /**
    * أفراد العائلة — عشان صورة الطفل المختار تبان في الملخّص قبل ما
@@ -54,16 +53,7 @@ export function OrderSummarySidebar({
   useEffect(() => {
     fetchFamilyMembers().then(setMembers).catch(() => setMembers([]));
   }, []);
-
-  useEffect(() => {
-    if (!facePhotoFile) {
-      setFacePhotoPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(facePhotoFile);
-    setFacePhotoPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [facePhotoFile]);
+  const facePhotoPreviewUrl = useObjectUrl(facePhotoFile);
   
   const selectedMember = members.find((m) => m.id === familyMemberId) ?? null;
   // اسم المستفيد الحقيقي أو صاحب الحساب

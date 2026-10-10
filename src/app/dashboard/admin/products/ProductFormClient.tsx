@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Publisher, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
@@ -39,16 +39,13 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
   const categories = owner === 'publisher' ? PUBLISHER_PRODUCT_CATEGORIES : ASSIGNABLE_PRODUCT_CATEGORIES;
   const [category, setCategory] = useState<string>(categories[0]);
   const [basePrice, setBasePrice] = useState(0);
-  const [finalPrice, setFinalPrice] = useState(0);
   const [coverImageUrl, setCoverImageUrl] = useState('');
 
-  useEffect(() => {
-    if (ownerType === 'publisher' && basePrice > 0) {
-      setFinalPrice(customerPriceFromCost(basePrice, pricingSettings));
-    } else {
-      setFinalPrice(basePrice);
-    }
-  }, [ownerType, basePrice, pricingSettings]);
+  // سعر العميل بيتحسب من التكلفة مع كل رسم — مش state بيتظبط في effect.
+  const finalPrice =
+    ownerType === 'publisher' && basePrice > 0
+      ? customerPriceFromCost(basePrice, pricingSettings)
+      : basePrice;
 
   /**
    * ⚠️ **النموذج كان `<form action={saveProduct}>` والأكشن بيرمي.**

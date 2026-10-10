@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
+import { useObjectUrl } from '@/lib/use-object-url';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
 import { photoFileProblem } from '@/lib/private-upload-client';
@@ -18,18 +19,7 @@ export function Step2CoverDetails({
   const { register, watch, setValue, setError, formState: { errors } } = useFormContext();
   
   const coverPhotoFile = watch('coverPhotoFile');
-
-  const [coverPhotoPreviewUrl, setCoverPhotoPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!coverPhotoFile) {
-      setCoverPhotoPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(coverPhotoFile);
-    setCoverPhotoPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [coverPhotoFile]);
+  const coverPhotoPreviewUrl = useObjectUrl(coverPhotoFile);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

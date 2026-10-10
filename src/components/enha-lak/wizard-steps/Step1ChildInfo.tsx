@@ -57,6 +57,7 @@ export function Step1ChildInfo({ onNext }: { onNext: () => void }) {
         }
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- مقصود: بيتنفّذ مرة واحدة عند فتح الخطوة (اختيار الوضع الأول)، مش مع كل تغيير في الخانات.
   }, []);
 
   const [refreshing, setRefreshing] = useState(false);

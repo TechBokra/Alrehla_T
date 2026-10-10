@@ -14,7 +14,7 @@ import {
   TextInput,
 } from '@/components/forms/Form';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Publisher, PersonalizedProduct, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';
@@ -41,15 +41,12 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
   const [basePrice, setBasePrice] = useState(
     product.ownerType === 'publisher' ? (product.publisherCost ?? product.price) : product.price,
   );
-  const [finalPrice, setFinalPrice] = useState(product.price);
 
-  useEffect(() => {
-    if (ownerType === 'publisher' && basePrice > 0) {
-      setFinalPrice(customerPriceFromCost(basePrice, pricingSettings));
-    } else {
-      setFinalPrice(basePrice);
-    }
-  }, [ownerType, basePrice, pricingSettings]);
+  // سعر العميل بيتحسب من التكلفة مع كل رسم — مش state بيتظبط في effect.
+  const finalPrice =
+    ownerType === 'publisher' && basePrice > 0
+      ? customerPriceFromCost(basePrice, pricingSettings)
+      : basePrice;
 
   // ⚠️ الأكشن كان بيرمي، وNext بيمسح نصّ الاستثناء في الإنتاج
   //    (قاعدة «هـ») — فالإداري بيشوف صفحة خطأ عامة بدل ما يعرف

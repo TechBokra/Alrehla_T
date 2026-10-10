@@ -11,11 +11,13 @@ export default defineConfig([
       '@next/next/no-img-element': 'off',
 
       // Next 16 adds React Compiler diagnostics to the recommended preset.
-      // Keep existing initialization/time-based rendering visible for follow-up
-      // without changing application behavior during the framework migration.
-      // The compiler is not enabled; rules-of-hooks remains an error.
-      'react-hooks/purity': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
+      // The 21 warnings left by the migration were fixed or documented with a
+      // reason on 10 Oct 2026, so these are errors again: new code that reads
+      // the clock during render or syncs state in an effect fails CI.
+      // A genuine browser-only read (localStorage, URL, navigator) takes an
+      // `eslint-disable-next-line` with the reason, like the existing ones.
+      'react-hooks/purity': 'error',
+      'react-hooks/set-state-in-effect': 'error',
 
       // ⚠️ **الحارس ده اتحط بعد عطل حقيقي على الإنتاج.**
       //
