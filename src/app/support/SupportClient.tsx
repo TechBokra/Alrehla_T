@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SupportTicketForm } from './SupportTicketForm';
+import type { Faq } from '@/lib/support-faqs';
 import {
   Search,
   MessageCircle,
@@ -13,11 +14,45 @@ import {
   Ticket,
   ArrowLeft,
   ChevronDown,
+  Package,
+  PenTool,
+  NotebookPen,
+  LifeBuoy,
 } from 'lucide-react';
 
-export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
+const FALLBACK_EMAIL = 'Alrehla@tech-bokra.com';
+
+/** البحث بيتجاهل التشكيل وأشكال الألف والتاء المربوطة والياء. */
+function normalize(text: string): string {
+  return text
+    .replace(/[\u064B-\u0652\u0640]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .toLowerCase()
+    .trim();
+}
+
+export default function SupportClient({
+  isSignedIn,
+  whatsappNumber,
+  contactEmail,
+  faqs,
+  text,
+}: {
+  isSignedIn: boolean;
+  whatsappNumber?: string;
+  contactEmail?: string;
+  /** من «إدارة المحتوى» — القسم ← الأسئلة (`lib/support-faqs`). */
+  faqs: Record<string, Faq[]>;
+  /** باقي نصوص الصفحة من «إدارة المحتوى» (`support.*`). */
+  text: Record<string, string>;
+}) {
   const [activeTab, setActiveTab] = useState('enha-lak');
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [query, setQuery] = useState('');
+  const wa = whatsappNumber?.replace(/\D/g, '');
+  const email = contactEmail?.trim() || FALLBACK_EMAIL;
 
   const tabs = [
     { id: 'enha-lak', label: 'إنها لك' },
@@ -26,96 +61,72 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
     { id: 'general', label: 'عامة' },
   ];
 
-  const faqs: Record<string, { q: string; a: string }[]> = {
-    'enha-lak': [
-      {
-        q: 'كيف يمكنني تتبع طلبي؟',
-        a: 'يمكنك تتبع طلبك من لوحة التحكم في قسم "مكتبتي" باستخدام رقم الطلب.',
-      },
-      {
-        q: 'كم يستغرق شحن القصة المخصصة؟',
-        a: 'القصة الإلكترونية جاهزة خلال 3-5 أيام عمل، والمطبوعة خلال 7-10 أيام عمل، بخلاف مدة الشحن حسب المحافظة.',
-      },
-      {
-        q: 'هل يمكنني تعديل القصة بعد الطلب؟',
-        a: 'لا يمكن التعديل بعد مرور 24 ساعة من الطلب لأن القصة تُطبع خصيصًا لطفلك بناءً على البيانات المدخلة.',
-      },
-    ],
-    'creative-writing': [
-      {
-        q: 'هل يمكنني تغيير موعد الجلسة؟',
-        a: 'نعم، يمكنك تغيير الموعد بالتنسيق مع المدرب، شرط إبلاغ الفريق قبل 24 ساعة على الأقل من موعد الجلسة لتجنب احتسابها.',
-      },
-      {
-        q: 'ما المنصة المستخدمة للجلسات؟',
-        a: 'تُعقد الجلسات عبر Google Meet أو Dooly، ويصلك رابط الجلسة مع تفاصيل موعدها، وستصلك روابط الدخول عبر البريد الإلكتروني.',
-      },
-      {
-        q: 'كيف أختار المدرب؟',
-        a: 'يمكنك استعراض ملفات المدربين من صفحة المدربين، واختيار المدرب الأنسب لك عند حجز الباقة.',
-      },
-      {
-        q: 'ماذا يحدث إذا غبت عن الموعد؟',
-        a: 'يتم احتساب الجلسة في حالة التغيب دون عذر مسبق يتم إبلاغنا به قبل 24 ساعة على الأقل.',
-      },
-    ],
-    partners: [
-      {
-        q: 'كيف يمكن لدار نشر أن تعرض كتبها؟',
-        a: 'نرحب بدور النشر التي تشاركنا نفس الرؤية. يرجى إرسال تفاصيل إصداراتكم عبر نموذج التذكرة باختيار "شراكات".',
-      },
-      {
-        q: 'كيف أقدّم عرض خدمة أو منتج كشريك؟',
-        a: 'يمكنك تقديم عرضك عبر نموذج التواصل أسفل الصفحة، وسيقوم فريقنا بمراجعته والرد عليك.',
-      },
-      {
-        q: 'كيف تتم مراجعة واعتماد الشركاء؟',
-        a: 'نقوم بمراجعة جميع الطلبات للتأكد من توافق المنتجات أو الخدمات مع معايير المنصة وقيمها التربوية قبل الاعتماد.',
-      },
-    ],
-    general: [
-      {
-        q: 'ما طرق الدفع المتاحة؟',
-        a: 'الدفع حاليًا بالتحويل على المحفظة الإلكترونية أو إنستاباي. الدفع بالبطاقة سيُتاح عند ربط بوابة دفع رسمية.',
-      },
-      {
-        q: 'ما سياسة الاسترداد؟',
-        a: 'يختلف الاسترداد حسب الخدمة؛ المنتجات المخصصة غير قابلة للاسترداد بعد بدء العمل، بينما يمكن استرداد بعض الخدمات قبل بدئها. يرجى مراجعة الشروط والأحكام.',
-      },
-      {
-        q: 'كيف أدير حسابي؟',
-        a: 'يمكنك إدارة حسابك من خلال لوحة التحكم بعد تسجيل الدخول لتحديث بياناتك أو متابعة طلباتك.',
-      },
-      {
-        q: 'أين أجد سياسة الخصوصية؟',
-        a: 'يمكنك العثور على سياسة الخصوصية الخاصة بنا بالضغط على الرابط في أسفل هذه الصفحة.',
-      },
-    ],
-  };
+
+  // البحث في كل الأقسام — كان مربع البحث شكل بس ومابيعملش حاجة.
+  const results = useMemo(() => {
+    const q = normalize(query);
+    if (!q) return null;
+    return tabs.flatMap((tab) =>
+      (faqs[tab.id] ?? [])
+        .filter((f) => normalize(`${f.q} ${f.a}`).includes(q))
+        .map((f) => ({ ...f, section: tab.label })),
+    );
+    // `faqs` و`tabs` ثابتين جوّه الرسم.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+  const shown = results ?? (faqs[activeTab] ?? []).map((f) => ({ ...f, section: '' }));
 
   return (
     <PageContainer className="!py-0 !space-y-0">
       {/* Hero Section */}
       <Section containerClassName="max-w-4xl space-y-6 text-center">
         <h1 className="text-4xl leading-tight font-black text-slate-900 md:text-6xl">
-          كيف يمكننا مساعدتك؟
+          {text['support.title']}
         </h1>
         <p className="mx-auto max-w-2xl text-lg leading-relaxed font-medium text-slate-500 md:text-xl">
-          ابحث عن إجابتك، أو تواصل معنا إذا لم تجد ما تحتاجه.
+          {text['support.subtitle']}
         </p>
         <div className="relative mx-auto mt-8 max-w-xl">
           <input
-            type="text"
-            placeholder="ابحث في الأسئلة: الدفع، الشحن، الجلسات، الحساب..."
+            type="search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpenFaqIndex(null);
+            }}
+            aria-label="ابحث في الأسئلة الشائعة"
+            placeholder={text['support.search']}
             className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-4 pr-12 font-medium text-slate-700 shadow-sm transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
           />
           <Search className="absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-slate-400" />
         </div>
+
+        {/* اختصارات للأماكن اللي أغلب الناس بيدوروا عليها. */}
+        {isSignedIn && (
+          <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-2 pt-2">
+            {[
+              { href: '/account/orders/enha-lak', label: 'طلباتي', Icon: Package },
+              { href: '/account/orders/creative-writing', label: 'طلبات الخدمات', Icon: PenTool },
+              { href: '/account/writing', label: 'مساحة الكتابة', Icon: NotebookPen },
+              { href: '/account/support', label: 'تذاكري', Icon: LifeBuoy },
+            ].map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 hover:border-amber-300 hover:text-amber-700"
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {label}
+              </Link>
+            ))}
+          </div>
+        )}
       </Section>
 
       {/* FAQs Section */}
       <Section containerClassName="max-w-4xl">
-        {/* Tabs */}
+        {/* Tabs — بتختفي وقت البحث (النتايج من كل الأقسام). */}
+        {results === null && (
         <div className="mb-10 flex flex-wrap justify-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-2">
           {tabs.map((tab) => (
             <button
@@ -134,10 +145,19 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
             </button>
           ))}
         </div>
+        )}
+
+        {results !== null && (
+          <p className="mb-6 text-center text-sm font-bold text-slate-500">
+            {results.length > 0
+              ? `${results.length} نتيجة لـ«${query.trim()}»`
+              : 'لا توجد نتائج — جرّب كلمة أخرى أو تواصل معنا بالأسفل.'}
+          </p>
+        )}
 
         {/* FAQ Accordion */}
         <div className="space-y-4">
-          {faqs[activeTab].map((faq, idx) => (
+          {shown.map((faq, idx) => (
             <Card
               key={idx}
               accentColor="amber"
@@ -147,9 +167,13 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
                 onClick={() =>
                   setOpenFaqIndex(openFaqIndex === idx ? null : idx)
                 }
-                className="flex w-full items-center justify-between p-6 text-right outline-none"
+                aria-expanded={openFaqIndex === idx}
+                className="flex w-full items-center justify-between gap-4 p-6 text-right outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
               >
                 <span className="text-lg font-bold text-slate-800">
+                  {faq.section && (
+                    <span className="mb-1 block text-xs font-bold text-amber-600">{faq.section}</span>
+                  )}
                   {faq.q}
                 </span>
                 <ChevronDown
@@ -159,7 +183,7 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
               <div
                 className={`overflow-hidden px-6 transition-all duration-300 ease-in-out ${
                   openFaqIndex === idx
-                    ? 'max-h-40 pb-6 opacity-100'
+                    ? 'max-h-96 pb-6 opacity-100'
                     : 'max-h-0 opacity-0'
                 }`}
               >
@@ -183,7 +207,7 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
       {/* Contact Section */}
       <Section containerClassName="max-w-6xl">
         <h2 className="mb-12 text-center text-3xl font-black text-slate-800">
-          قنوات التواصل
+          {text['support.channels.title']}
         </h2>
 
         <div className="grid items-start gap-8 md:grid-cols-3">
@@ -193,14 +217,21 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
             </div>
             <h3 className="mb-2 text-xl font-bold text-slate-800">واتساب</h3>
             <p className="mb-6 font-medium text-slate-500">
-              راسلنا عبر واتساب
+              {text['support.whatsapp.text']}
             </p>
-            <Button
-              className="w-full !bg-green-600 shadow-md hover:!bg-green-700"
-              accentColor="amber"
-            >
-              ابدأ المحادثة
-            </Button>
+            {/* ⚠️ كان زرار من غير رابط — مابيعملش حاجة. */}
+            {wa ? (
+              <a
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-green-600 px-6 font-bold text-white shadow-md hover:bg-green-700"
+              >
+                ابدأ المحادثة
+              </a>
+            ) : (
+              <p className="text-sm font-bold text-slate-400">غير متاح حاليًا — استخدم التذكرة.</p>
+            )}
           </Card>
 
           <Card accentColor="amber" className="p-8 text-center">
@@ -211,15 +242,15 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
               البريد الإلكتروني
             </h3>
             <p className="mb-6 font-medium text-slate-500">
-              للشكاوى والمقترحات
+              {text['support.email.text']}
             </p>
             <Button
-              href="mailto:Alrehla@tech-bokra.com"
+              href={`mailto:${email}`}
               variant="secondary"
               accentColor="amber"
               className="w-full !border-0 !bg-slate-100 !text-slate-700 hover:!bg-slate-200"
             >
-              Alrehla@tech-bokra.com
+              <span dir="ltr" className="truncate">{email}</span>
             </Button>
           </Card>
 
@@ -229,11 +260,11 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
                 <Ticket className="h-5 w-5" />
               </div>
               <h3 className="text-xl font-bold text-slate-800">
-                افتح تذكرة دعم
+                {text['support.ticket.title']}
               </h3>
             </div>
             <p className="mb-6 text-sm font-medium text-slate-500">
-              لم تجد إجابة؟ أرسل لنا تذكرة وسنرد عليك في أقرب وقت.
+              {text['support.ticket.text']}
             </p>
 
             <SupportTicketForm isSignedIn={isSignedIn} />
@@ -244,12 +275,12 @@ export default function SupportClient({ isSignedIn }: { isSignedIn: boolean }) {
       {/* Join Us Link */}
       <div className="mt-12 pb-16 w-full text-center">
         <p className="inline-flex items-center gap-2 text-lg font-medium text-slate-600">
-          هل ترغب في الانضمام لفريقنا؟{' '}
+          {text['support.join.text']}{' '}
           <Link
             href="/join-us"
             className="flex items-center gap-1 font-bold text-amber-600 hover:underline"
           >
-            قدم طلبك هنا <ArrowLeft className="h-4 w-4" />
+            {text['support.join.link']} <ArrowLeft className="h-4 w-4" />
           </Link>
         </p>
       </div>

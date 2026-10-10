@@ -17,6 +17,13 @@
  * بيتعدّل.
  */
 
+import {
+  DEFAULT_FAQ_CREATIVE_WRITING,
+  DEFAULT_FAQ_ENHA_LAK,
+  DEFAULT_FAQ_GENERAL,
+  DEFAULT_FAQ_PARTNERS,
+} from './support-faqs';
+
 export type ContentFieldType =
   /** سطر واحد — عنوان أو زر */
   | 'text'
@@ -1078,6 +1085,33 @@ const enhaLakBox: ContentGroup = {
   ],
 };
 
+/* ------------------------------------------------------------------ */
+/* الدعم والمساعدة                                                       */
+/* ------------------------------------------------------------------ */
+
+const support: ContentGroup = {
+  id: 'support',
+  title: 'الدعم والمساعدة',
+  path: '/support',
+  note: 'رقم الواتساب والبريد من «الإعدادات العامة». الأسئلة بتتكتب كنص عادي بالشكل اللي تحت كل خانة.',
+  fields: [
+    { key: 'support.title', label: 'العنوان الرئيسي', type: 'text', fallback: 'كيف يمكننا مساعدتك؟' },
+    { key: 'support.subtitle', label: 'الجملة تحت العنوان', type: 'text', fallback: 'ابحث عن إجابتك، أو تواصل معنا إذا لم تجد ما تحتاجه.' },
+    { key: 'support.search', label: 'نص خانة البحث', type: 'text', fallback: 'ابحث في الأسئلة: الدفع، الشحن، الجلسات، الملفات...' },
+    { key: 'support.faq.enhaLak', label: 'أسئلة «إنها لك»', type: 'longtext', fallback: DEFAULT_FAQ_ENHA_LAK, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
+    { key: 'support.faq.creativeWriting', label: 'أسئلة «بداية الرحلة»', type: 'longtext', fallback: DEFAULT_FAQ_CREATIVE_WRITING, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
+    { key: 'support.faq.partners', label: 'أسئلة «الشركاء»', type: 'longtext', fallback: DEFAULT_FAQ_PARTNERS, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
+    { key: 'support.faq.general', label: 'أسئلة «عامة»', type: 'longtext', fallback: DEFAULT_FAQ_GENERAL, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
+    { key: 'support.channels.title', label: 'عنوان قسم التواصل', type: 'text', fallback: 'قنوات التواصل' },
+    { key: 'support.whatsapp.text', label: 'واتساب — الوصف', type: 'text', fallback: 'راسلنا عبر واتساب' },
+    { key: 'support.email.text', label: 'البريد — الوصف', type: 'text', fallback: 'للشكاوى والمقترحات' },
+    { key: 'support.ticket.title', label: 'التذكرة — العنوان', type: 'text', fallback: 'افتح تذكرة دعم' },
+    { key: 'support.ticket.text', label: 'التذكرة — الوصف', type: 'text', fallback: 'لم تجد إجابة؟ أرسل لنا تذكرة وسنرد عليك في أقرب وقت.' },
+    { key: 'support.join.text', label: 'سطر «انضم لفريقنا» في آخر الصفحة', type: 'text', fallback: 'هل ترغب في الانضمام لفريقنا؟' },
+    { key: 'support.join.link', label: 'رابط «انضم لفريقنا»', type: 'text', fallback: 'قدم طلبك هنا' },
+  ],
+};
+
 export const CONTENT_GROUPS: ContentGroup[] = [
   home,
   footer,
@@ -1090,6 +1124,7 @@ export const CONTENT_GROUPS: ContentGroup[] = [
   creativeWriting,
   creativeWritingAbout,
   joinUs,
+  support,
   writingPackages,
   writingInstructors,
   creativeServices,
