@@ -1,6 +1,8 @@
 import { getDocumentFiles } from '@/data/domains/private-files';
 import { FILE_KINDS, WORKSPACE_FILE_MAX_MB } from '@/lib/private-files';
 import { PrivateFilesPanel } from './PrivateFilesPanel';
+import { getCurrentUser } from '@/data/domains/auth';
+import { canManageWriterContent } from '@/lib/document-control';
 
 /**
  * ملفات مستند في مساحة الكتابة (ملف 20).
@@ -13,10 +15,16 @@ export async function DocumentFilesSection({
   document,
   viewer,
 }: {
-  document: { id: string; status: string; updatedAt?: string | null };
+  document: { id: string; studentId: string; status: string; updatedAt?: string | null };
   viewer: 'writer' | 'instructor' | 'guardian';
 }) {
-  const { files, retentionDays } = await getDocumentFiles(document);
+  // ولي الأمر يمسح ملفات ابنه الأصغر من ١٢ (قرار تامر).
+  let manageAll = false;
+  if (viewer === 'guardian') {
+    const user = await getCurrentUser();
+    manageAll = await canManageWriterContent(user.id, document.studentId);
+  }
+  const { files, retentionDays } = await getDocumentFiles(document, { manageAll });
   if (viewer === 'guardian' && files.length === 0) return null;
 
   return (

@@ -161,3 +161,15 @@ export function privateFilesFolder(owner: { orderId?: string; documentId?: strin
   if (owner.orderId) return `alrehla/private/orders/${owner.orderId}`;
   return `alrehla/private/writing/${owner.documentId}`;
 }
+
+/**
+ * سنّ الحماية في المنصة (قرار تامر، 10 أكتوبر): **أقل من ١٢ سنة**.
+ * ولي الأمر بيتحكّم في محتوى ابنه الأصغر من كده (يمسح نصوصه وملفاته)،
+ * واللي أكبر بيتحكّم في محتواه بنفسه.
+ */
+export const PROTECTED_AGE = 12;
+
+/** ولي الأمر يتحكّم في محتوى الطفل ده؟ السن مش معروف = أيوه (الأحوط). */
+export function guardianControls(age: number | null): boolean {
+  return age === null || age < PROTECTED_AGE;
+}

@@ -5,6 +5,7 @@ import {
   fileExpired,
   fileExpiryDate,
   fileProblem,
+  guardianControls,
   kindOfExtension,
   normalizeKinds,
   normalizeMaxMb,
@@ -90,5 +91,15 @@ describe('retention', () => {
     expect(fileExpired({ createdAt: '2026-10-01T00:00:00Z' }, { closed: true }, 30, now)).toBe(true);
     expect(fileExpiryDate({ createdAt: '2026-10-01T00:00:00Z' }, { closed: true }, 30)?.toISOString())
       .toBe('2026-10-31T00:00:00.000Z');
+  });
+});
+
+describe('guardianControls', () => {
+  it('guardians control under-12 and unknown ages only', () => {
+    expect(guardianControls(8)).toBe(true);
+    expect(guardianControls(11)).toBe(true);
+    expect(guardianControls(12)).toBe(false);
+    expect(guardianControls(15)).toBe(false);
+    expect(guardianControls(null)).toBe(true);
   });
 });

@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/data/domains/auth';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { deletePrivateAssets } from '@/lib/cloudinary-admin';
+import { canManageWriterContent } from '@/lib/document-control';
 
 /**
  * The student's writing portfolio: saving a draft, sending it for review, and
@@ -210,4 +213,63 @@ export async function submitInstructorFeedback(
   revalidatePath('/dashboard/student/portfolio');
   revalidatePath(`/dashboard/student/portfolio/${documentId}`);
   return { ok: true };
+}
+
+/**
+ * مسح نص من مساحة الكتابة (طلب تامر، 10 أكتوبر) — **أي حالة**: مسودة أو
+ * مُرسل أو متراجع. النص بتاع صاحبه، وبيتمسح معاه ملفاته وملاحظات المدرب.
+ *
+ *   • صاحبه يمسحه.
+ *   • ولي أمره يمسحه لو الطفل أصغر من ١٢ (`canManageWriterContent`).
+ *
+ * ⚠️ مفيش سياسة مسح للمستخدم على الجدول — المسح بمفتاح الخدمة **بعد**
+ *    التحقق هنا. والملفات بتتمسح من Cloudinary الأول عشان مايفضلش ملف
+ *    يتيم بعد ما صفّه يختفي.
+ */
+export async function deletePortfolioDocument(
+  documentId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const user = await getCurrentUser();
+    if (user.role === 'visitor') return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
+
+    const supabase = await createClient();
+    // RLS: صاحبه وولي أمره ومدربه والإدارة بس بيشوفوه.
+    const { data: doc } = await supabase
+      .from('portfolio_documents')
+      .select('id, student_id')
+      .eq('id', documentId)
+      .maybeSingle();
+    if (!doc) return { ok: false, error: 'النص غير موجود' };
+    if (user.role === 'instructor' || !(await canManageWriterContent(user.id, doc.student_id))) {
+      return { ok: false, error: 'مش مسموح لك تمسح النص ده' };
+    }
+
+    const admin = createAdminClient();
+    const { data: files } = await admin
+      .from('private_files')
+      .select('public_id, resource_type')
+      .eq('document_id', documentId)
+      .is('deleted_at', null);
+    for (const type of ['raw', 'image'] as const) {
+      const ids = (files ?? []).filter((f) => (f.resource_type === 'image' ? 'image' : 'raw') === type).map((f) => f.public_id);
+      if (ids.length === 0) continue;
+      const gone = await deletePrivateAssets(type, ids);
+      if (!gone.ok) return { ok: false, error: 'تعذّر مسح ملفات النص — جرّب تاني' };
+    }
+
+    // صفوف الملفات بتتمسح معاه (ON DELETE CASCADE — ملف 20).
+    const { error } = await admin.from('portfolio_documents').delete().eq('id', documentId);
+    if (error) {
+      console.error('Error deleting portfolio document', error);
+      return { ok: false, error: 'تعذّر مسح النص — جرّب تاني' };
+    }
+
+    revalidatePath('/dashboard/student/portfolio');
+    revalidatePath('/account/writing');
+    revalidatePath('/account/family', 'layout');
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'تعذّر مسح النص — جرّب تاني' };
+  }
 }

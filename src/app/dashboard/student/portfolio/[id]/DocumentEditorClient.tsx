@@ -9,6 +9,7 @@ import {
 } from '@/actions/portfolio';
 import { Save, Send, MessageSquare, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BusyButton } from '@/components/forms/Form';
+import { DeleteDocumentButton } from '@/components/writing/DeleteDocumentButton';
 
 interface Props {
   initialDocument: PortfolioDocument | null;
@@ -167,6 +168,11 @@ export function DocumentEditorClient({
             <div className="mt-4 text-sm font-bold text-emerald-600 flex items-center justify-center gap-1 animate-in fade-in">
               <CheckCircle2 className="h-4 w-4" /> {saveMessage}
             </div>
+          )}
+
+          {/* مسح النص (طلب تامر) — أي حالة، على خطوتين. */}
+          {documentId && (
+            <DeleteDocumentButton documentId={documentId} afterHref={basePath} className="mt-4 border-t border-slate-100 pt-4" />
           )}
 
           {/* الخطأ كان بيطلع في `alert` برسالة عامة «حدث خطأ أثناء الحفظ»

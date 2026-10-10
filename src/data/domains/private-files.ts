@@ -12,6 +12,8 @@ export type PrivateFileView = {
   /** رفعه الطرف التاني (مقدّم الخدمة / المدرب). */
   fromProvider: boolean;
   uploadedByMe: boolean;
+  /** يقدر يمسحه: رافعه، أو ولي أمر صاحب المستند الأصغر من ١٢. */
+  canDelete: boolean;
   deleted: boolean;
   /** هيتمسح إمتى (ISO) — `null` لو الطلب لسه شغال. */
   expiresAt: string | null;
@@ -36,6 +38,8 @@ async function listFiles(
   column: 'order_id' | 'document_id',
   id: string,
   owner: { closed: boolean; closedAt?: string | null },
+  /** ولي الأمر بيتحكّم في محتوى صاحب المستند (أصغر من ١٢). */
+  manageAll = false,
 ): Promise<{ files: PrivateFileView[]; retentionDays: number }> {
   const supabase = await createClient();
   const [{ data: { user } }, settings, { data, error }] = await Promise.all([
@@ -59,6 +63,7 @@ async function listFiles(
       createdAt: f.created_at,
       fromProvider: f.is_delivery,
       uploadedByMe: f.uploader_profile_id === user?.id,
+      canDelete: f.uploader_profile_id === user?.id || manageAll,
       deleted: Boolean(f.deleted_at),
       expiresAt: fileExpiryDate({ createdAt: f.created_at }, owner, retentionDays)?.toISOString() ?? null,
     })),
@@ -70,8 +75,11 @@ export function getOrderFiles(order: { id: string; status: string; completedAt?:
   return listFiles('order_id', order.id, { closed, closedAt: order.completedAt ?? null });
 }
 
-export function getDocumentFiles(doc: { id: string; status: string; updatedAt?: string | null }) {
+export function getDocumentFiles(
+  doc: { id: string; status: string; updatedAt?: string | null },
+  options: { manageAll?: boolean } = {},
+) {
   // المستند «بيتقفل» لما المدرب يراجعه.
   const closed = doc.status === 'reviewed';
-  return listFiles('document_id', doc.id, { closed, closedAt: closed ? doc.updatedAt ?? null : null });
+  return listFiles('document_id', doc.id, { closed, closedAt: closed ? doc.updatedAt ?? null : null }, options.manageAll);
 }

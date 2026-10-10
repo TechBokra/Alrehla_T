@@ -2,9 +2,10 @@
 
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, FileText, Paperclip, Upload } from 'lucide-react';
+import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
 import { cloudinaryPost } from '@/lib/cloudinary';
 import {
+  deletePrivateFile,
   getDocumentFileTicket,
   getOrderFileTicket,
   getPrivateFileLink,
@@ -59,6 +60,27 @@ export function PrivateFilesPanel({
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  // المسح على خطوتين: «مسح» ← «متأكد؟ امسح» (مالوش رجوع).
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const remove = async (id: string) => {
+    setError('');
+    setDeleting(id);
+    try {
+      const result = await deletePrivateFile(id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setConfirming(null);
+      router.refresh();
+    } catch {
+      setError('تعذّر مسح الملف — جرّب تاني');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const upload = async (file: File) => {
     setError('');
@@ -175,6 +197,37 @@ export function PrivateFilesPanel({
                   {downloading === f.id ? 'جارٍ…' : 'تحميل'}
                 </button>
               )}
+              {f.canDelete &&
+                (confirming === f.id ? (
+                  <span className="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => remove(f.id)}
+                      disabled={deleting !== null}
+                      className="min-h-[40px] rounded-lg bg-red-600 px-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deleting === f.id ? 'جارٍ…' : 'متأكد؟ امسح'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(null)}
+                      disabled={deleting !== null}
+                      className="min-h-[40px] rounded-lg px-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                    >
+                      لأ
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(f.id)}
+                    aria-label={`مسح ${f.fileName}`}
+                    className="inline-flex min-h-[40px] items-center gap-1 rounded-lg px-2 text-sm font-bold text-slate-500 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    مسح
+                  </button>
+                ))}
             </li>
           ))}
         </ul>

@@ -23,6 +23,7 @@ import {
   type FileRules,
 } from '@/lib/private-files';
 import { notifyUser, getInstructorUserId, getProviderUserId } from '@/lib/notifications';
+import { canManageWriterContent } from '@/lib/document-control';
 
 /**
  * رفع وتحميل الملفات الخاصة (ملف 20).
@@ -234,6 +235,67 @@ export async function getPrivateFileLink(fileId: string): Promise<{ ok: true; ur
     return { ok: true, url };
   } catch (err) {
     return fail(errorText(err, 'تعذّر تجهيز التحميل'));
+  }
+}
+
+/* ── الحذف ─────────────────────────────────────────────────── */
+
+/**
+ * مسح ملف (طلب تامر، 10 أكتوبر) — من Cloudinary فورًا، والصف كمان.
+ *
+ *   • اللي رفعه بس يمسحه — مش ملفات الطرف التاني.
+ *   • ولي الأمر يمسح ملفات مستندات ابنه الأصغر من ١٢.
+ *
+ * ⚠️ مالوش رجوع. والمحادثة والطلب نفسه بيفضلوا (سجل).
+ */
+export async function deletePrivateFile(fileId: string): Promise<FileResult> {
+  try {
+    const user = await requireUser();
+    const supabase = await createClient();
+    // RLS: لو مش من أطراف الطلب/المستند الصف مابيرجعش أصلًا.
+    const { data: file } = await supabase
+      .from('private_files')
+      .select('id, order_id, document_id, uploader_profile_id, public_id, resource_type, deleted_at')
+      .eq('id', fileId)
+      .maybeSingle();
+    if (!file) return fail('الملف غير موجود');
+
+    let allowed = file.uploader_profile_id === user.id;
+    if (!allowed && file.document_id) {
+      const { data: doc } = await supabase
+        .from('portfolio_documents')
+        .select('student_id')
+        .eq('id', file.document_id)
+        .maybeSingle();
+      // ولي الأمر (للأصغر من ١٢) — مش المدرب.
+      allowed = Boolean(doc) && doc!.student_id !== user.id && user.role !== 'instructor'
+        && (await canManageWriterContent(user.id, doc!.student_id));
+    }
+    if (!allowed) return fail('تقدر تمسح الملفات اللي إنت رفعتها بس');
+
+    if (!file.deleted_at) {
+      const gone = await deletePrivateAssets(file.resource_type === 'image' ? 'image' : 'raw', [file.public_id]);
+      if (!gone.ok) return fail('تعذّر مسح الملف — جرّب تاني');
+    }
+    const { error } = await createAdminClient().from('private_files').delete().eq('id', file.id);
+    if (error) {
+      console.error('Private file row delete failed', error);
+      return fail('الملف اتمسح بس فضل في القايمة — حدّث الصفحة');
+    }
+
+    if (file.order_id) {
+      revalidatePath(`/account/orders/creative-writing/${file.order_id}`);
+      revalidatePath(`/dashboard/provider/orders/${file.order_id}`);
+      revalidatePath(`/dashboard/instructor/services/orders/${file.order_id}`);
+      revalidatePath(`/dashboard/admin/orders/services/${file.order_id}`);
+    }
+    if (file.document_id) {
+      revalidatePath(`/dashboard/student/portfolio/${file.document_id}`);
+      revalidatePath(`/account/writing/${file.document_id}`);
+    }
+    return { ok: true };
+  } catch (err) {
+    return fail(errorText(err, 'تعذّر مسح الملف'));
   }
 }
 

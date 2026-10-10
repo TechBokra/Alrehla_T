@@ -7,6 +7,9 @@ import { fetchFamilyMembers } from '@/app/actions/family';
 import { getStudentDocuments } from '@/data/domains/writing';
 import { formatCairo } from '@/lib/timezone';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
+import { DeleteDocumentButton } from '@/components/writing/DeleteDocumentButton';
+import { getCurrentUser } from '@/data/domains/auth';
+import { canManageWriterContent } from '@/lib/document-control';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +54,11 @@ export default async function DependentPortfolioPage({
   const documents = child.accountProfileId
     ? await getStudentDocuments(child.accountProfileId)
     : [];
+  // ولي الأمر يمسح نصوص ابنه الأصغر من ١٢ (قرار تامر، 10 أكتوبر).
+  const user = await getCurrentUser();
+  const canDelete = child.accountProfileId
+    ? await canManageWriterContent(user.id, child.accountProfileId)
+    : false;
 
   return (
     <div className="space-y-6">
@@ -118,18 +126,24 @@ export default async function DependentPortfolioPage({
                 </div>
               )}
 
-              {/* ملفات المستند (ملف 20) — قراية وتحميل بس. */}
+              {/* ملفات المستند (ملف 20) — تحميل، ومسح للأصغر من ١٢. */}
               <div className="mt-5">
                 <DocumentFilesSection document={doc} viewer="guardian" />
               </div>
+
+              {canDelete && (
+                <DeleteDocumentButton documentId={doc.id} className="mt-4 max-w-xs" />
+              )}
             </article>
           ))}
         </div>
       )}
 
       <p className="text-sm font-medium text-slate-500">
-        العرض هنا للمتابعة بس — الكتابة والتعديل في المعرض من حساب
-        {' '}{child.fullName} نفسه.
+        الكتابة والتعديل في المعرض من حساب {child.fullName} نفسه.
+        {canDelete
+          ? ' وتقدر تمسح نصوصه وملفاته لأنه أصغر من ١٢ سنة.'
+          : ' العرض هنا للمتابعة بس.'}
       </p>
     </div>
   );
