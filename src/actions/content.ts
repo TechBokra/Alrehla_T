@@ -197,8 +197,13 @@ export async function updateSiteSettings(
  * Kept separate from the settings form so a single upload is one write, and a
  * partial save can never blank out the other slots.
  */
-export async function saveSiteImage(params: { key: string; url: string }) {
-  const user = await requireAdmin('canManageContent', 'غير مصرح لك بتعديل صور الموقع');
+export async function saveSiteImage(params: { key: string; url: string }): Promise<SiteSettingsResult> {
+  let user: Awaited<ReturnType<typeof requireAdmin>>;
+  try {
+    user = await requireAdmin('canManageContent', 'غير مصرح لك بتعديل صور الموقع');
+  } catch {
+    return { ok: false, error: 'غير مصرح لك بتعديل صور الموقع' };
+  }
 
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -227,11 +232,11 @@ export async function saveSiteImage(params: { key: string; url: string }) {
 
   if (error) {
     console.error('Error saving site image', error);
-    throw new Error(`تعذّر حفظ الصورة: ${error.message}`);
+    return { ok: false, error: `تعذّر حفظ الصورة: ${error.message}` };
   }
 
   if (!saved || saved.length === 0) {
-    throw new Error('الحفظ مروّحش للقاعدة — صلاحيات جدول الإعدادات مش سامحة بالكتابة.');
+    return { ok: false, error: 'الحفظ مروّحش للقاعدة — صلاحيات جدول الإعدادات مش سامحة بالكتابة.' };
   }
 
   await logAuditAction({
