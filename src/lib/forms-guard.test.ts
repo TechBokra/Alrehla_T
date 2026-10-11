@@ -35,15 +35,15 @@ const rel = (p: string) => relative(ROOT, p).split('\\').join('/');
  * (`ImageField`/`GalleryField` هما نفسهم خانة الرفع اللي الكيت بيلفّها.)
  */
 const RAW_INPUT_ALLOWED = new Set([
-  'src/app/dashboard/admin/media/OrphanGallery.tsx',
-  'src/app/dashboard/admin/content/images/SiteImagesClient.tsx',
-  'src/app/dashboard/admin/content/settings/PaymentQrUploader.tsx',
+  'src/app/(admin)/dashboard/admin/media/OrphanGallery.tsx',
+  'src/app/(admin)/dashboard/admin/content/images/SiteImagesClient.tsx',
+  'src/app/(admin)/dashboard/admin/content/settings/PaymentQrUploader.tsx',
   'src/components/dashboard/ImageField.tsx',
   'src/components/dashboard/GalleryField.tsx',
   // أدوات بحث وفلترة واختيار — مش نماذج حفظ، ومستخدمة جوه نماذج الكيت.
-  'src/app/dashboard/instructor/sessions/InstructorSessionsClient.tsx',
-  'src/app/account/bookings/AccountBookingsClient.tsx',
-  'src/app/support/SupportClient.tsx',
+  'src/app/(admin)/dashboard/instructor/sessions/InstructorSessionsClient.tsx',
+  'src/app/(client)/account/bookings/AccountBookingsClient.tsx',
+  'src/app/(client)/support/SupportClient.tsx',
   'src/components/dashboard/AvatarPicker.tsx',
   'src/components/dashboard/InviteLinkBox.tsx',
   'src/components/dashboard/LibraryPicker.tsx',
@@ -56,9 +56,9 @@ const RAW_INPUT_ALLOWED = new Set([
 
 /** كل اللوحات وحساب العميل — مش لوحة الإدارة بس. */
 const FORM_DIRS = [
-  'src/app/dashboard',
-  'src/app/account',
-  'src/app/support',
+  'src/app/(admin)/dashboard',
+  'src/app/(client)/account',
+  'src/app/(client)/support',
   'src/components/dashboard',
   'src/components/services',
 ];

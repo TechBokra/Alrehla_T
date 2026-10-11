@@ -1,20 +1,33 @@
 'use client';
 
-import { createContext, startTransition, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import { subscribeClock, subscribeDeadline } from '@/lib/client-clock';
 
 const TimeContext = createContext<number | null>(null);
 
 /** One shared timer. Unrelated children do not subscribe to the clock. */
-export function ClientTimeProvider({ initialTimestamp, children }: {
+export function ClientTimeProvider({
+  initialTimestamp,
+  children,
+}: {
   initialTimestamp: number;
   children?: ReactNode;
 }) {
   const [now, setNow] = useState(initialTimestamp);
-  // Non-urgent clock updates should not interrupt typing or streamed hydration.
-  useEffect(() => subscribeClock((timestamp) => {
-    startTransition(() => setNow(timestamp));
-  }), []);
+  useEffect(
+    () =>
+      subscribeClock((timestamp) => {
+        startTransition(() => setNow(timestamp));
+      }),
+    []
+  );
   return <TimeContext.Provider value={now}>{children}</TimeContext.Provider>;
 }
 

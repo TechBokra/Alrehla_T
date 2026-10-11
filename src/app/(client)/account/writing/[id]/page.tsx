@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getDocumentById, getStudentSessions } from '@/data/domains/writing';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { DocumentEditorClient } from '@/app/dashboard/student/portfolio/[id]/DocumentEditorClient';
+import { DocumentEditorClient } from '@/app/(admin)/dashboard/student/portfolio/[id]/DocumentEditorClient';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
 
 export const dynamic = 'force-dynamic';

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/data/domains/auth';
 import { getStudentDocuments } from '@/data/domains/writing';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { PortfolioListClient } from '@/app/dashboard/student/portfolio/PortfolioListClient';
+import { PortfolioListClient } from '@/app/(admin)/dashboard/student/portfolio/PortfolioListClient';
 
 export const dynamic = 'force-dynamic';
 

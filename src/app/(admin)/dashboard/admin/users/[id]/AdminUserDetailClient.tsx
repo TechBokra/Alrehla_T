@@ -35,7 +35,6 @@ import {
   Lock,
 } from 'lucide-react';
 import type { UserProfile, UserRole } from '@/types';
-import { ROLE_LABELS } from '@/app/dashboard/admin/users/UsersClient';
 import { resetUserPassword, updateUserRole } from '@/actions/admin-users';
 import {
   roleChoices,
@@ -48,7 +47,14 @@ import { formatDate, formatPrice } from '@/lib/utils';
 import { formatCairo, PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { Pagination } from '@/components/dashboard/Pagination';
 import { FormError } from '@/components/ui/FormError';
-import { Field, TextInput, Select, BusyButton, fieldClass } from '@/components/forms/Form';
+import {
+  Field,
+  TextInput,
+  Select,
+  BusyButton,
+  fieldClass,
+} from '@/components/forms/Form';
+import { ROLE_LABELS } from '../UsersClient';
 
 export interface UserOrderRow {
   id: string;
@@ -136,11 +142,19 @@ export function AdminUserDetailClient({
   const currentRoleLabel = (() => {
     const decoded = choiceToRole(currentRole, adminRoles);
     return decoded
-      ? roleDisplayName(decoded.role, decoded.adminRoleId, adminRoles, ROLE_LABELS)
+      ? roleDisplayName(
+          decoded.role,
+          decoded.adminRoleId,
+          adminRoles,
+          ROLE_LABELS
+        )
       : currentRole;
   })();
   const [roleSaving, setRoleSaving] = useState(false);
-  const [roleFeedback, setRoleFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [roleFeedback, setRoleFeedback] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
   // خطأ الخادم على خانة الدور نفسها (`field: 'role'`) — بيظهر تحتها.
   const [roleFieldError, setRoleFieldError] = useState('');
 
@@ -157,10 +171,14 @@ export function AdminUserDetailClient({
     tempCode: string;
     isCustom: boolean;
   } | null>(null);
-  const [copiedKey, setCopiedKey] = useState<'id' | 'code' | 'whatsapp' | null>(null);
+  const [copiedKey, setCopiedKey] = useState<'id' | 'code' | 'whatsapp' | null>(
+    null
+  );
 
   // Orders tab sub-view
-  const [orderSubTab, setOrderSubTab] = useState<'products' | 'services'>('products');
+  const [orderSubTab, setOrderSubTab] = useState<'products' | 'services'>(
+    'products'
+  );
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [orderPage, setOrderPage] = useState(1);
@@ -183,7 +201,8 @@ export function AdminUserDetailClient({
     try {
       const res = await resetUserPassword({
         userId: user.id,
-        customPassword: passwordMode === 'custom' ? customPasswordInput.trim() : undefined,
+        customPassword:
+          passwordMode === 'custom' ? customPasswordInput.trim() : undefined,
       });
       if (res.ok) {
         setPasswordResult(res);
@@ -194,7 +213,9 @@ export function AdminUserDetailClient({
         setPasswordError(res.error);
       }
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'تعذّر إعادة تعيين كلمة المرور');
+      setPasswordError(
+        err instanceof Error ? err.message : 'تعذّر إعادة تعيين كلمة المرور'
+      );
     } finally {
       setResettingPassword(false);
     }
@@ -210,7 +231,11 @@ export function AdminUserDetailClient({
 
   const handleCopyWhatsapp = async () => {
     if (!passwordResult) return;
-    const emailToUse = passwordResult.email || accountEmail || user.email || 'بريدك الإلكتروني المسجل';
+    const emailToUse =
+      passwordResult.email ||
+      accountEmail ||
+      user.email ||
+      'بريدك الإلكتروني المسجل';
     const msg = `مرحباً أستاذ/ة ${user.fullName}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلات:\n• البريد الإلكتروني: ${emailToUse}\n• كلمة المرور المؤقتة: ${passwordResult.tempCode}\n• رابط الدخول: ${SITE_URL}/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
     handleCopy(msg, 'whatsapp');
   };
@@ -223,10 +248,17 @@ export function AdminUserDetailClient({
     try {
       const decoded = choiceToRole(selectedNewRole, adminRoles);
       if (!decoded) {
-        setRoleFeedback({ ok: false, msg: 'الدور المختار غير صالح — حدّث الصفحة.' });
+        setRoleFeedback({
+          ok: false,
+          msg: 'الدور المختار غير صالح — حدّث الصفحة.',
+        });
         return;
       }
-      const res = await updateUserRole(user.id, decoded.role, decoded.adminRoleId);
+      const res = await updateUserRole(
+        user.id,
+        decoded.role,
+        decoded.adminRoleId
+      );
       if (res.ok) {
         setCurrentRole(selectedNewRole);
         setRoleFeedback({ ok: true, msg: 'تم تغيير دور المستخدم بنجاح.' });
@@ -247,10 +279,14 @@ export function AdminUserDetailClient({
   // Filtered Product Orders
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
-      if (orderStatusFilter !== 'all' && o.status !== orderStatusFilter) return false;
+      if (orderStatusFilter !== 'all' && o.status !== orderStatusFilter)
+        return false;
       if (orderSearch.trim()) {
         const q = orderSearch.toLowerCase();
-        if (!o.id.toLowerCase().includes(q) && !(o.trackingReference || '').toLowerCase().includes(q)) {
+        if (
+          !o.id.toLowerCase().includes(q) &&
+          !(o.trackingReference || '').toLowerCase().includes(q)
+        ) {
           return false;
         }
       }
@@ -266,7 +302,8 @@ export function AdminUserDetailClient({
   // Filtered Service Orders
   const filteredServiceOrders = useMemo(() => {
     return serviceOrders.filter((so) => {
-      if (orderStatusFilter !== 'all' && so.status !== orderStatusFilter) return false;
+      if (orderStatusFilter !== 'all' && so.status !== orderStatusFilter)
+        return false;
       if (orderSearch.trim()) {
         const q = orderSearch.toLowerCase();
         if (
@@ -288,7 +325,8 @@ export function AdminUserDetailClient({
   // Filtered Sessions
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
-      if (sessionStatusFilter !== 'all' && s.status !== sessionStatusFilter) return false;
+      if (sessionStatusFilter !== 'all' && s.status !== sessionStatusFilter)
+        return false;
       if (sessionSearch.trim()) {
         const q = sessionSearch.toLowerCase();
         if (
@@ -313,46 +351,56 @@ export function AdminUserDetailClient({
   return (
     <div className="space-y-6">
       {/* ─── 1. ترويسة المستخدم المدمجة وإدارة الدخول السريعة ─── */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs sm:p-6">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white font-black text-xl shadow-xs">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xl font-black text-white shadow-xs">
               {user.fullName ? user.fullName[0] : 'م'}
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-black text-slate-900">{user.fullName}</h2>
-                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                <h2 className="text-xl font-black text-slate-900">
+                  {user.fullName}
+                </h2>
+                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
                   {currentRoleLabel}
                 </span>
                 {user.isGuardian && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-800 border border-violet-200">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-bold text-violet-800">
                     <Users className="h-3 w-3" />
                     ولي أمر ({childrenList.length} أبناء)
                   </span>
                 )}
               </div>
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-slate-500">
                 <div className="flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-slate-400" />
-                  <span className="font-mono text-slate-700">{accountEmail || user.email || 'لا يوجد بريد مسجل'}</span>
+                  <span className="font-mono text-slate-700">
+                    {accountEmail || user.email || 'لا يوجد بريد مسجل'}
+                  </span>
                 </div>
-                <span className="text-slate-300 hidden sm:inline">•</span>
+                <span className="hidden text-slate-300 sm:inline">•</span>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
                   <span>انضم في: {formatDate(user.createdAt)}</span>
                 </div>
-                <span className="text-slate-300 hidden sm:inline">•</span>
+                <span className="hidden text-slate-300 sm:inline">•</span>
                 <div className="flex items-center gap-1">
-                  <span className="text-slate-400 font-mono text-[11px]">ID: {user.id.slice(0, 8)}…</span>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    ID: {user.id.slice(0, 8)}…
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleCopy(user.id, 'id')}
-                    className="text-slate-400 hover:text-slate-700 p-0.5"
+                    className="p-0.5 text-slate-400 hover:text-slate-700"
                     title="نسخ المعرف الكامل"
                   >
-                    {copiedKey === 'id' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    {copiedKey === 'id' ? (
+                      <Check className="h-3 w-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -360,7 +408,7 @@ export function AdminUserDetailClient({
           </div>
 
           {/* أزرار الإجراءات السريعة (تغيير كلمة المرور وتعديل الدور) */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 lg:border-t-0 lg:pt-0">
             <button
               type="button"
               onClick={() => {
@@ -368,7 +416,7 @@ export function AdminUserDetailClient({
                 setPasswordError('');
                 setPasswordResult(null);
               }}
-              className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 px-3.5 py-2 text-xs font-bold text-indigo-900 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3.5 py-2 text-xs font-bold text-indigo-900 shadow-2xs transition-colors hover:bg-indigo-100"
             >
               <KeyRound className="h-3.5 w-3.5 text-indigo-700" />
               <span>بيانات الدخول وكلمة المرور</span>
@@ -381,7 +429,7 @@ export function AdminUserDetailClient({
                 setRoleFeedback(null);
                 setShowRoleModal(true);
               }}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:bg-slate-100"
             >
               <Shield className="h-3.5 w-3.5 text-slate-500" />
               <span>تعديل الدور</span>
@@ -390,7 +438,7 @@ export function AdminUserDetailClient({
             {user.isGuardian && (
               <Link
                 href={`/dashboard/admin/users/${user.id}/children`}
-                className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50/80 hover:bg-violet-100 px-3.5 py-2 text-xs font-bold text-violet-900 transition-colors shadow-2xs"
+                className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50/80 px-3.5 py-2 text-xs font-bold text-violet-900 shadow-2xs transition-colors hover:bg-violet-100"
               >
                 <Users className="h-3.5 w-3.5 text-violet-700" />
                 <span>إدارة الأبناء</span>
@@ -401,11 +449,11 @@ export function AdminUserDetailClient({
       </div>
 
       {/* ─── 2. شريط التبويبات الرئيسي (Tabs Navigation) ─── */}
-      <div className="flex border-b border-slate-200 overflow-x-auto gap-1 bg-white p-1.5 rounded-2xl shadow-2xs">
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border-b border-slate-200 bg-white p-1.5 shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all shrink-0 ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
             activeTab === 'overview'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -418,7 +466,7 @@ export function AdminUserDetailClient({
         <button
           type="button"
           onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all shrink-0 ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
             activeTab === 'orders'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -426,7 +474,7 @@ export function AdminUserDetailClient({
         >
           <Package className="h-4 w-4" />
           <span>الطلبات والمشتريات</span>
-          <span className="rounded-md bg-slate-100 text-slate-700 px-1.5 py-0.2 text-[10px]">
+          <span className="py-0.2 rounded-md bg-slate-100 px-1.5 text-[10px] text-slate-700">
             {totalOrdersCount}
           </span>
         </button>
@@ -434,7 +482,7 @@ export function AdminUserDetailClient({
         <button
           type="button"
           onClick={() => setActiveTab('sessions')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all shrink-0 ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
             activeTab === 'sessions'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -442,7 +490,7 @@ export function AdminUserDetailClient({
         >
           <Calendar className="h-4 w-4" />
           <span>المواعيد والجلسات</span>
-          <span className="rounded-md bg-slate-100 text-slate-700 px-1.5 py-0.2 text-[10px]">
+          <span className="py-0.2 rounded-md bg-slate-100 px-1.5 text-[10px] text-slate-700">
             {sessions.length}
           </span>
         </button>
@@ -451,7 +499,7 @@ export function AdminUserDetailClient({
           <button
             type="button"
             onClick={() => setActiveTab('children')}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all shrink-0 ${
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
               activeTab === 'children'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -459,7 +507,7 @@ export function AdminUserDetailClient({
           >
             <Users className="h-4 w-4" />
             <span>الأبناء والتابعون</span>
-            <span className="rounded-md bg-violet-100 text-violet-800 px-1.5 py-0.2 text-[10px]">
+            <span className="py-0.2 rounded-md bg-violet-100 px-1.5 text-[10px] text-violet-800">
               {childrenList.length}
             </span>
           </button>
@@ -468,7 +516,7 @@ export function AdminUserDetailClient({
         <button
           type="button"
           onClick={() => setActiveTab('tickets')}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all shrink-0 ${
+          className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
             activeTab === 'tickets'
               ? 'bg-slate-900 text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -476,7 +524,7 @@ export function AdminUserDetailClient({
         >
           <MessageSquare className="h-4 w-4" />
           <span>تذاكر الدعم</span>
-          <span className="rounded-md bg-slate-100 text-slate-700 px-1.5 py-0.2 text-[10px]">
+          <span className="py-0.2 rounded-md bg-slate-100 px-1.5 text-[10px] text-slate-700">
             {tickets.length}
           </span>
         </button>
@@ -484,37 +532,51 @@ export function AdminUserDetailClient({
 
       {/* ─── TAB 1: نظرة عامة والملف الشخصي ─── */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* كارت 1: بيانات الحساب والاتصال */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <div>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <User className="h-4 w-4 text-slate-600" />
-                <h3 className="font-black text-slate-800 text-sm">بيانات الملف الشخصي</h3>
+                <h3 className="text-sm font-black text-slate-800">
+                  بيانات الملف الشخصي
+                </h3>
               </div>
               <div className="space-y-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block mb-0.5">الاسم بالكامل:</span>
-                  <span className="font-bold text-slate-900">{user.fullName}</span>
+                  <span className="mb-0.5 block text-slate-400">
+                    الاسم بالكامل:
+                  </span>
+                  <span className="font-bold text-slate-900">
+                    {user.fullName}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">الدور الحالي:</span>
-                  <span className="font-bold text-indigo-700">{currentRoleLabel}</span>
+                  <span className="mb-0.5 block text-slate-400">
+                    الدور الحالي:
+                  </span>
+                  <span className="font-bold text-indigo-700">
+                    {currentRoleLabel}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">تاريخ التسجيل:</span>
-                  <span className="font-bold text-slate-800">{formatDate(user.createdAt)}</span>
+                  <span className="mb-0.5 block text-slate-400">
+                    تاريخ التسجيل:
+                  </span>
+                  <span className="font-bold text-slate-800">
+                    {formatDate(user.createdAt)}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="mt-4 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedNewRole(currentRole);
                   setShowRoleModal(true);
                 }}
-                className="w-full text-center text-xs font-bold text-indigo-600 hover:text-indigo-800 py-1"
+                className="w-full py-1 text-center text-xs font-bold text-indigo-600 hover:text-indigo-800"
               >
                 تغيير الدور والصلاحيات &larr;
               </button>
@@ -522,25 +584,30 @@ export function AdminUserDetailClient({
           </div>
 
           {/* كارت 2: بيانات الدخول وكلمة المرور للدعم الفني */}
-          <div className="rounded-3xl border border-indigo-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-3xl border border-indigo-200 bg-white p-5 shadow-xs">
             <div>
-              <div className="flex items-center gap-2 border-b border-indigo-100 pb-3 mb-4">
+              <div className="mb-4 flex items-center gap-2 border-b border-indigo-100 pb-3">
                 <KeyRound className="h-4 w-4 text-indigo-600" />
-                <h3 className="font-black text-slate-800 text-sm">بيانات الدخول والأمان</h3>
+                <h3 className="text-sm font-black text-slate-800">
+                  بيانات الدخول والأمان
+                </h3>
               </div>
               <div className="space-y-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block mb-0.5">البريد الإلكتروني للدخول:</span>
-                  <span className="font-bold text-slate-900 font-mono text-xs break-all block p-2 rounded-xl bg-slate-50 border border-slate-100">
+                  <span className="mb-0.5 block text-slate-400">
+                    البريد الإلكتروني للدخول:
+                  </span>
+                  <span className="block rounded-xl border border-slate-100 bg-slate-50 p-2 font-mono text-xs font-bold break-all text-slate-900">
                     {accountEmail || user.email || 'مرتبط بحساب المنصة'}
                   </span>
                 </div>
-                <div className="rounded-xl bg-indigo-50/70 border border-indigo-100 p-2.5 text-indigo-900 text-[11px] leading-relaxed font-medium">
-                  لو المستخدم متعثر في الدخول أو نسي كلمة المرور، يمكنك تزويده بكلمة مرور أو رمز مؤقت فوراً من هنا.
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-2.5 text-[11px] leading-relaxed font-medium text-indigo-900">
+                  لو المستخدم متعثر في الدخول أو نسي كلمة المرور، يمكنك تزويده
+                  بكلمة مرور أو رمز مؤقت فوراً من هنا.
                 </div>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="mt-4 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => {
@@ -548,7 +615,7 @@ export function AdminUserDetailClient({
                   setPasswordError('');
                   setPasswordResult(null);
                 }}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-3 text-xs shadow-2xs transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-bold text-white shadow-2xs transition-colors hover:bg-indigo-700"
               >
                 <KeyRound className="h-3.5 w-3.5" />
                 <span>إعادة تعيين / منح كلمة مرور</span>
@@ -557,41 +624,58 @@ export function AdminUserDetailClient({
           </div>
 
           {/* كارت 3: حالة العائلة والأبناء */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <div>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Users className="h-4 w-4 text-violet-600" />
-                <h3 className="font-black text-slate-800 text-sm">العائلة والأبناء</h3>
+                <h3 className="text-sm font-black text-slate-800">
+                  العائلة والأبناء
+                </h3>
               </div>
               <div className="space-y-3 text-xs">
                 <div>
-                  <span className="text-slate-400 block mb-0.5">حساب ولي أمر:</span>
-                  <span className="font-bold text-slate-800">{user.isGuardian ? 'نعم (حساب ولي أمر معتمد)' : 'لا (حساب فردي)'}</span>
+                  <span className="mb-0.5 block text-slate-400">
+                    حساب ولي أمر:
+                  </span>
+                  <span className="font-bold text-slate-800">
+                    {user.isGuardian
+                      ? 'نعم (حساب ولي أمر معتمد)'
+                      : 'لا (حساب فردي)'}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">عدد الأبناء المسجلين:</span>
-                  <span className="font-black text-violet-900 text-base">{childrenList.length}</span>
+                  <span className="mb-0.5 block text-slate-400">
+                    عدد الأبناء المسجلين:
+                  </span>
+                  <span className="text-base font-black text-violet-900">
+                    {childrenList.length}
+                  </span>
                 </div>
                 {childrenList.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="mt-1 flex flex-wrap gap-1">
                     {childrenList.slice(0, 3).map((ch) => (
-                      <span key={ch.id} className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                      <span
+                        key={ch.id}
+                        className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700"
+                      >
                         {ch.fullName}
                       </span>
                     ))}
                     {childrenList.length > 3 && (
-                      <span className="text-[11px] text-slate-400 font-bold">+{childrenList.length - 3}</span>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        +{childrenList.length - 3}
+                      </span>
                     )}
                   </div>
                 )}
               </div>
             </div>
             {user.isGuardian && (
-              <div className="mt-4 pt-3 border-t border-slate-100">
+              <div className="mt-4 border-t border-slate-100 pt-3">
                 <button
                   type="button"
                   onClick={() => setActiveTab('children')}
-                  className="w-full text-center text-xs font-bold text-violet-600 hover:text-violet-800 py-1"
+                  className="w-full py-1 text-center text-xs font-bold text-violet-600 hover:text-violet-800"
                 >
                   استعراض الأبناء وحساباتهم &larr;
                 </button>
@@ -600,11 +684,13 @@ export function AdminUserDetailClient({
           </div>
 
           {/* كارت 4: ملخص الأنشطة والمعاملات */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
             <div>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+              <div className="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Sparkles className="h-4 w-4 text-purple-600" />
-                <h3 className="font-black text-slate-800 text-sm">ملخص المعاملات</h3>
+                <h3 className="text-sm font-black text-slate-800">
+                  ملخص المعاملات
+                </h3>
               </div>
               <div className="space-y-2 text-xs">
                 <button
@@ -613,10 +699,14 @@ export function AdminUserDetailClient({
                     setActiveTab('orders');
                     setOrderSubTab('products');
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-right"
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-2 text-right transition-colors hover:bg-slate-100"
                 >
-                  <span className="font-bold text-slate-700">طلبات المتجر (إنها لك):</span>
-                  <span className="font-black text-slate-900">{orders.length} طلبات</span>
+                  <span className="font-bold text-slate-700">
+                    طلبات المتجر (إنها لك):
+                  </span>
+                  <span className="font-black text-slate-900">
+                    {orders.length} طلبات
+                  </span>
                 </button>
 
                 <button
@@ -625,32 +715,44 @@ export function AdminUserDetailClient({
                     setActiveTab('orders');
                     setOrderSubTab('services');
                   }}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-right"
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-2 text-right transition-colors hover:bg-slate-100"
                 >
-                  <span className="font-bold text-slate-700">طلبات الخدمات الإبداعية:</span>
-                  <span className="font-black text-slate-900">{serviceOrders.length} طلبات</span>
+                  <span className="font-bold text-slate-700">
+                    طلبات الخدمات الإبداعية:
+                  </span>
+                  <span className="font-black text-slate-900">
+                    {serviceOrders.length} طلبات
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveTab('sessions')}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-right"
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-2 text-right transition-colors hover:bg-slate-100"
                 >
-                  <span className="font-bold text-slate-700">الجلسات التدريبية:</span>
-                  <span className="font-black text-slate-900">{sessions.length} جلسة</span>
+                  <span className="font-bold text-slate-700">
+                    الجلسات التدريبية:
+                  </span>
+                  <span className="font-black text-slate-900">
+                    {sessions.length} جلسة
+                  </span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveTab('tickets')}
-                  className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-right"
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50 p-2 text-right transition-colors hover:bg-slate-100"
                 >
-                  <span className="font-bold text-slate-700">تذاكر الدعم الفني:</span>
-                  <span className="font-black text-slate-900">{tickets.length} تذكرة</span>
+                  <span className="font-bold text-slate-700">
+                    تذاكر الدعم الفني:
+                  </span>
+                  <span className="font-black text-slate-900">
+                    {tickets.length} تذكرة
+                  </span>
                 </button>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-400 font-medium">
+            <div className="mt-3 border-t border-slate-100 pt-2 text-[11px] font-medium text-slate-400">
               اضغط على أي بند للانتقال لتفاصيله مباشرة.
             </div>
           </div>
@@ -660,7 +762,7 @@ export function AdminUserDetailClient({
       {/* ─── TAB 2: الطلبات والمشتريات ─── */}
       {activeTab === 'orders' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="flex flex-col items-stretch justify-between gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -696,7 +798,7 @@ export function AdminUserDetailClient({
             {/* شريط البحث والفلترة */}
             <div className="flex items-center gap-2">
               <div className="relative w-48">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Search className="absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="search"
                   aria-label="بحث في الطلبات"
@@ -735,7 +837,7 @@ export function AdminUserDetailClient({
           {orderSubTab === 'products' ? (
             paginatedOrders.length > 0 ? (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
                   {/* ⚠️ الحالة كانت خامًا (`{o.status}`) — الإداري بيشوف
                       «awaiting_verification» إنجليزي. الأسماء من
                       `productOrderStatus`، نفس المصدر اللي صفحة الطلب
@@ -755,11 +857,17 @@ export function AdminUserDetailClient({
                     ]}
                     data={paginatedOrders.map((o) => ({
                       id: o.id,
-                      idDisplay: <span className="font-mono font-bold text-slate-900">{o.id}</span>,
+                      idDisplay: (
+                        <span className="font-mono font-bold text-slate-900">
+                          {o.id}
+                        </span>
+                      ),
                       date: formatDate(o.createdAt),
                       items: `${o.itemsCount} منتج`,
                       total: formatPrice(o.totalAmount),
-                      statusDisplay: <StatusBadge {...productOrderStatus(o.status)} />,
+                      statusDisplay: (
+                        <StatusBadge {...productOrderStatus(o.status)} />
+                      ),
                       tracking: o.trackingReference || '—',
                       action: (
                         <Link
@@ -775,9 +883,10 @@ export function AdminUserDetailClient({
                 </div>
 
                 {Math.ceil(filteredOrders.length / PAGE_SIZE) > 1 && (
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-4 px-2">
-                    <span className="text-xs text-slate-500 font-medium">
-                      عرض {paginatedOrders.length} من {filteredOrders.length} طلب
+                  <div className="flex items-center justify-between border-t border-slate-100 px-2 pt-4">
+                    <span className="text-xs font-medium text-slate-500">
+                      عرض {paginatedOrders.length} من {filteredOrders.length}{' '}
+                      طلب
                     </span>
                     <Pagination
                       page={orderPage}
@@ -788,68 +897,75 @@ export function AdminUserDetailClient({
                 )}
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
+              <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-xs text-slate-400">
                 لا توجد طلبات منتجات تطابق الفلاتر المحددة.
               </div>
             )
-          ) : (
-            paginatedServiceOrders.length > 0 ? (
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-                  {/* نفس العلاج: الحالة كانت خامًا، والأسماء من
+          ) : paginatedServiceOrders.length > 0 ? (
+            <div className="space-y-4">
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
+                {/* نفس العلاج: الحالة كانت خامًا، والأسماء من
                       `serviceOrderStatus`. */}
-                  <SimpleDataTable
-                    enableSearch={false}
-                    enablePagination={false}
-                    emptyMessage="لا توجد طلبات خدمات."
-                    columns={[
-                      { header: 'رقم الطلب', accessorKey: 'idDisplay' },
-                      { header: 'اسم الخدمة', accessorKey: 'serviceName' },
-                      { header: 'المدرب', accessorKey: 'instructorName' },
-                      { header: 'المبلغ', accessorKey: 'amount' },
-                      { header: 'الحالة', accessorKey: 'statusDisplay' },
-                      { header: 'التاريخ', accessorKey: 'date' },
-                      { header: 'إجراء', accessorKey: 'action' },
-                    ]}
-                    data={paginatedServiceOrders.map((so) => ({
-                      id: so.id,
-                      idDisplay: <span className="font-mono font-bold text-slate-900">{so.id}</span>,
-                      serviceName: so.serviceName,
-                      instructorName: so.instructorName || '—',
-                      amount: formatPrice(so.amount),
-                      statusDisplay: <StatusBadge {...serviceOrderStatus(so.status)} />,
-                      date: formatDate(so.createdAt),
-                      action: (
-                        <Link
-                          href={`/account/orders/creative-writing/${so.id}`}
-                          className="text-info inline-flex items-center gap-1 font-bold hover:underline"
-                        >
-                          <span>عرض</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </Link>
-                      ),
-                    }))}
+                <SimpleDataTable
+                  enableSearch={false}
+                  enablePagination={false}
+                  emptyMessage="لا توجد طلبات خدمات."
+                  columns={[
+                    { header: 'رقم الطلب', accessorKey: 'idDisplay' },
+                    { header: 'اسم الخدمة', accessorKey: 'serviceName' },
+                    { header: 'المدرب', accessorKey: 'instructorName' },
+                    { header: 'المبلغ', accessorKey: 'amount' },
+                    { header: 'الحالة', accessorKey: 'statusDisplay' },
+                    { header: 'التاريخ', accessorKey: 'date' },
+                    { header: 'إجراء', accessorKey: 'action' },
+                  ]}
+                  data={paginatedServiceOrders.map((so) => ({
+                    id: so.id,
+                    idDisplay: (
+                      <span className="font-mono font-bold text-slate-900">
+                        {so.id}
+                      </span>
+                    ),
+                    serviceName: so.serviceName,
+                    instructorName: so.instructorName || '—',
+                    amount: formatPrice(so.amount),
+                    statusDisplay: (
+                      <StatusBadge {...serviceOrderStatus(so.status)} />
+                    ),
+                    date: formatDate(so.createdAt),
+                    action: (
+                      <Link
+                        href={`/account/orders/creative-writing/${so.id}`}
+                        className="text-info inline-flex items-center gap-1 font-bold hover:underline"
+                      >
+                        <span>عرض</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    ),
+                  }))}
+                />
+              </div>
+
+              {Math.ceil(filteredServiceOrders.length / PAGE_SIZE) > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-100 px-2 pt-4">
+                  <span className="text-xs font-medium text-slate-500">
+                    عرض {paginatedServiceOrders.length} من{' '}
+                    {filteredServiceOrders.length} طلب
+                  </span>
+                  <Pagination
+                    page={orderPage}
+                    totalPages={Math.ceil(
+                      filteredServiceOrders.length / PAGE_SIZE
+                    )}
+                    onPageChange={(p) => setOrderPage(p)}
                   />
                 </div>
-
-                {Math.ceil(filteredServiceOrders.length / PAGE_SIZE) > 1 && (
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-4 px-2">
-                    <span className="text-xs text-slate-500 font-medium">
-                      عرض {paginatedServiceOrders.length} من {filteredServiceOrders.length} طلب
-                    </span>
-                    <Pagination
-                      page={orderPage}
-                      totalPages={Math.ceil(filteredServiceOrders.length / PAGE_SIZE)}
-                      onPageChange={(p) => setOrderPage(p)}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
-                لا توجد طلبات خدمات إبداعية تطابق الفلاتر.
-              </div>
-            )
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-xs text-slate-400">
+              لا توجد طلبات خدمات إبداعية تطابق الفلاتر.
+            </div>
           )}
         </div>
       )}
@@ -857,12 +973,14 @@ export function AdminUserDetailClient({
       {/* ─── TAB 3: المواعيد والجلسات ─── */}
       {activeTab === 'sessions' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-            <h3 className="text-sm font-black text-slate-900">سجل الجلسات التدريبية ({sessions.length})</h3>
+          <div className="flex flex-col items-stretch justify-between gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center">
+            <h3 className="text-sm font-black text-slate-900">
+              سجل الجلسات التدريبية ({sessions.length})
+            </h3>
 
             <div className="flex items-center gap-2">
               <div className="relative w-48">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Search className="absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="search"
                   aria-label="بحث بالباقة أو المدرب"
@@ -936,9 +1054,10 @@ export function AdminUserDetailClient({
               />
 
               {Math.ceil(filteredSessions.length / PAGE_SIZE) > 1 && (
-                <div className="flex items-center justify-between border-t border-slate-100 pt-4 px-2">
-                  <span className="text-xs text-slate-500 font-medium">
-                    عرض {paginatedSessions.length} من أصل {filteredSessions.length} جلسة
+                <div className="flex items-center justify-between border-t border-slate-100 px-2 pt-4">
+                  <span className="text-xs font-medium text-slate-500">
+                    عرض {paginatedSessions.length} من أصل{' '}
+                    {filteredSessions.length} جلسة
                   </span>
                   <Pagination
                     page={sessionPage}
@@ -949,7 +1068,7 @@ export function AdminUserDetailClient({
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
+            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-xs text-slate-400">
               لا توجد جلسات مسجلة تطابق الفلاتر.
             </div>
           )}
@@ -961,14 +1080,16 @@ export function AdminUserDetailClient({
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900">الأبناء المضافون تحت هذا الحساب ({childrenList.length})</h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <h3 className="text-sm font-black text-slate-900">
+                الأبناء المضافون تحت هذا الحساب ({childrenList.length})
+              </h3>
+              <p className="mt-0.5 text-xs font-medium text-slate-500">
                 يمكن لولي الأمر تسجيل أبنائه في باقات الكتابة والقصص المخصصة.
               </p>
             </div>
             <Link
               href={`/dashboard/admin/users/${user.id}/children`}
-              className="rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2 text-xs transition-colors shadow-2xs"
+              className="rounded-xl bg-violet-600 px-4 py-2 text-xs font-bold text-white shadow-2xs transition-colors hover:bg-violet-700"
             >
               صفحة إدارة الأبناء التفصيلية
             </Link>
@@ -977,22 +1098,31 @@ export function AdminUserDetailClient({
           {childrenList.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {childrenList.map((ch) => (
-                <div key={ch.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+                <div
+                  key={ch.id}
+                  className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 font-black text-sm">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-sm font-black text-violet-700">
                       {ch.fullName ? ch.fullName[0] : 'ط'}
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{ch.fullName}</h4>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        {ch.fullName}
+                      </h4>
                       <p className="text-xs text-slate-500">
-                        {ch.age !== null && ch.age !== undefined ? `${ch.age} سنوات` : 'العمر غير محدد'}
+                        {ch.age !== null && ch.age !== undefined
+                          ? `${ch.age} سنوات`
+                          : 'العمر غير محدد'}
                       </p>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-600 space-y-1 pt-2 border-t border-slate-100">
+                  <div className="space-y-1 border-t border-slate-100 pt-2 text-xs text-slate-600">
                     <div>
                       <span className="text-slate-400">تاريخ الميلاد: </span>
-                      <span>{ch.birthDate ? formatDate(ch.birthDate) : 'غير مسجل'}</span>
+                      <span>
+                        {ch.birthDate ? formatDate(ch.birthDate) : 'غير مسجل'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-400">تاريخ الإضافة: </span>
@@ -1003,7 +1133,7 @@ export function AdminUserDetailClient({
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
+            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-xs text-slate-400">
               لم يقم ولي الأمر بإضافة أي أبناء حتى الآن.
             </div>
           )}
@@ -1014,7 +1144,9 @@ export function AdminUserDetailClient({
       {activeTab === 'tickets' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-            <h3 className="text-sm font-black text-slate-900">تذاكر الدعم الفني ({tickets.length})</h3>
+            <h3 className="text-sm font-black text-slate-900">
+              تذاكر الدعم الفني ({tickets.length})
+            </h3>
           </div>
 
           {tickets.length > 0 ? (
@@ -1043,7 +1175,7 @@ export function AdminUserDetailClient({
               }))}
             />
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-400 text-xs">
+            <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center text-xs text-slate-400">
               لا توجد تذاكر دعم فني مقدمة من هذا المستخدم.
             </div>
           )}
@@ -1057,21 +1189,23 @@ export function AdminUserDetailClient({
             <button
               type="button"
               onClick={() => setShowPasswordModal(false)}
-              className="absolute top-5 left-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              className="absolute top-5 left-5 rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <div className="mb-4 flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-600">
                 <KeyRound className="h-5 w-5" />
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   إدارة دخول المستخدم: {user.fullName}
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  {accountEmail || user.email ? `البريد: ${accountEmail || user.email}` : 'حساب معتمد في المنصة'}
+                <p className="text-xs font-medium text-slate-500">
+                  {accountEmail || user.email
+                    ? `البريد: ${accountEmail || user.email}`
+                    : 'حساب معتمد في المنصة'}
                 </p>
               </div>
             </div>
@@ -1081,26 +1215,37 @@ export function AdminUserDetailClient({
             {passwordResult ? (
               <div className="space-y-4">
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm mb-1">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <div className="mb-1 flex items-center gap-2 text-sm font-bold text-emerald-800">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                     <span>تم إنشاء وتفعيل كلمة المرور بنجاح!</span>
                   </div>
-                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                    تم تحديث كلمة المرور في النظام، وسيُطلب من المستخدم تلقائياً تعيين كلمة مروره الخاصة فور أول تسجيل دخول لحماية حسابه.
+                  <p className="text-xs leading-relaxed font-medium text-emerald-700">
+                    تم تحديث كلمة المرور في النظام، وسيُطلب من المستخدم تلقائياً
+                    تعيين كلمة مروره الخاصة فور أول تسجيل دخول لحماية حسابه.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div>
-                    <span className="text-xs font-bold text-slate-500 block mb-1">البريد الإلكتروني للدخول:</span>
+                    <span className="mb-1 block text-xs font-bold text-slate-500">
+                      البريد الإلكتروني للدخول:
+                    </span>
                     <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 py-2">
                       <span className="font-mono text-xs font-bold text-slate-800">
                         {passwordResult.email || accountEmail || user.email}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleCopy(passwordResult.email || accountEmail || user.email || '', 'code')}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1"
+                        onClick={() =>
+                          handleCopy(
+                            passwordResult.email ||
+                              accountEmail ||
+                              user.email ||
+                              '',
+                            'code'
+                          )
+                        }
+                        className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-800"
                       >
                         <Copy className="h-3.5 w-3.5" />
                         <span>نسخ</span>
@@ -1109,18 +1254,31 @@ export function AdminUserDetailClient({
                   </div>
 
                   <div>
-                    <span className="text-xs font-bold text-slate-500 block mb-1">كلمة المرور المؤقتة / الرمز:</span>
+                    <span className="mb-1 block text-xs font-bold text-slate-500">
+                      كلمة المرور المؤقتة / الرمز:
+                    </span>
                     <div className="flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50/50 px-3.5 py-2.5">
-                      <span className="font-mono text-base font-black tracking-wider text-indigo-900" dir="ltr">
+                      <span
+                        className="font-mono text-base font-black tracking-wider text-indigo-900"
+                        dir="ltr"
+                      >
                         {passwordResult.tempCode}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleCopy(passwordResult.tempCode, 'code')}
+                        onClick={() =>
+                          handleCopy(passwordResult.tempCode, 'code')
+                        }
                         className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-indigo-700"
                       >
-                        {copiedKey === 'code' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        <span>{copiedKey === 'code' ? 'تم النسخ' : 'نسخ الكلمة'}</span>
+                        {copiedKey === 'code' ? (
+                          <Check className="h-3.5 w-3.5" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {copiedKey === 'code' ? 'تم النسخ' : 'نسخ الكلمة'}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -1130,10 +1288,18 @@ export function AdminUserDetailClient({
                   <button
                     type="button"
                     onClick={handleCopyWhatsapp}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-xs shadow-xs transition-colors"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-700"
                   >
-                    {copiedKey === 'whatsapp' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span>{copiedKey === 'whatsapp' ? 'تم نسخ رسالة الواتساب!' : 'نسخ رسالة واتساب جاهزة للمستخدم'}</span>
+                    {copiedKey === 'whatsapp' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    <span>
+                      {copiedKey === 'whatsapp'
+                        ? 'تم نسخ رسالة الواتساب!'
+                        : 'نسخ رسالة واتساب جاهزة للمستخدم'}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -1141,7 +1307,7 @@ export function AdminUserDetailClient({
                       setPasswordResult(null);
                       setShowPasswordModal(false);
                     }}
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
                   >
                     تم وإغلاق
                   </button>
@@ -1149,22 +1315,25 @@ export function AdminUserDetailClient({
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  اختر طريقة منح كلمة المرور للمستخدم لمساعدته على تسجيل الدخول فوراً:
+                <p className="text-xs leading-relaxed font-medium text-slate-600">
+                  اختر طريقة منح كلمة المرور للمستخدم لمساعدته على تسجيل الدخول
+                  فوراً:
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setPasswordMode('auto')}
-                    className={`flex flex-col items-start p-3 rounded-2xl border text-right transition-all ${
+                    className={`flex flex-col items-start rounded-2xl border p-3 text-right transition-all ${
                       passwordMode === 'auto'
                         ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
                         : 'border-slate-200 bg-slate-50/60 hover:bg-slate-100/70'
                     }`}
                   >
-                    <span className="text-xs font-black text-slate-900">رمز مؤقت تلقائي</span>
-                    <span className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    <span className="text-xs font-black text-slate-900">
+                      رمز مؤقت تلقائي
+                    </span>
+                    <span className="mt-0.5 text-[11px] font-medium text-slate-500">
                       رمز آمن من 12 خانة سهل القراءة على واتساب
                     </span>
                   </button>
@@ -1172,14 +1341,16 @@ export function AdminUserDetailClient({
                   <button
                     type="button"
                     onClick={() => setPasswordMode('custom')}
-                    className={`flex flex-col items-start p-3 rounded-2xl border text-right transition-all ${
+                    className={`flex flex-col items-start rounded-2xl border p-3 text-right transition-all ${
                       passwordMode === 'custom'
                         ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
                         : 'border-slate-200 bg-slate-50/60 hover:bg-slate-100/70'
                     }`}
                   >
-                    <span className="text-xs font-black text-slate-900">كلمة مرور مخصصة</span>
-                    <span className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    <span className="text-xs font-black text-slate-900">
+                      كلمة مرور مخصصة
+                    </span>
+                    <span className="mt-0.5 text-[11px] font-medium text-slate-500">
                       كتابة كلمة مرور تحددها الإدارة يدوياً
                     </span>
                   </button>
@@ -1203,11 +1374,13 @@ export function AdminUserDetailClient({
                   </Field>
                 )}
 
-                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] text-amber-900 font-medium leading-relaxed">
-                  💡 <strong>ملاحظة أمنية:</strong> في كلتا الحالتين، بمجرد أن يدخل المستخدم بهذه الكلمة سيطلب منه النظام فوراً تعيين كلمة مروره الدائمة والسرية قبل الدخول إلى حسابه.
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] leading-relaxed font-medium text-amber-900">
+                  💡 <strong>ملاحظة أمنية:</strong> في كلتا الحالتين، بمجرد أن
+                  يدخل المستخدم بهذه الكلمة سيطلب منه النظام فوراً تعيين كلمة
+                  مروره الدائمة والسرية قبل الدخول إلى حسابه.
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
                   <button
                     type="button"
                     onClick={() => setShowPasswordModal(false)}
@@ -1233,11 +1406,11 @@ export function AdminUserDetailClient({
       {/* ─── نافذة تعديل دور المستخدم ─── */}
       {showRoleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-md space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
             <button
               type="button"
               onClick={() => setShowRoleModal(false)}
-              className="absolute top-5 left-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+              className="absolute top-5 left-5 rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1247,15 +1420,21 @@ export function AdminUserDetailClient({
                 <Shield className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900">تعديل دور المستخدم</h3>
-                <p className="text-xs text-slate-500 font-medium">{user.fullName}</p>
+                <h3 className="text-base font-black text-slate-900">
+                  تعديل دور المستخدم
+                </h3>
+                <p className="text-xs font-medium text-slate-500">
+                  {user.fullName}
+                </p>
               </div>
             </div>
 
             {roleFeedback && (
               <div
-                className={`p-3 rounded-xl text-xs font-bold ${
-                  roleFeedback.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+                className={`rounded-xl p-3 text-xs font-bold ${
+                  roleFeedback.ok
+                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border border-red-200 bg-red-50 text-red-800'
                 }`}
               >
                 {roleFeedback.msg}
@@ -1269,9 +1448,18 @@ export function AdminUserDetailClient({
               error={roleFieldError || undefined}
               hint="* ملاحظة: دور المدرب يتم تعيينه عبر شاشة «المدربين» لضمان إنشاء ملف تدريبي متكامل."
             >
-              <Select value={selectedNewRole} onChange={(e) => setSelectedNewRole(e.target.value)}>
+              <Select
+                value={selectedNewRole}
+                onChange={(e) => setSelectedNewRole(e.target.value)}
+              >
                 {roleChoices(
-                  ['customer', 'service_provider', 'publisher', 'general_supervisor', 'super_admin'],
+                  [
+                    'customer',
+                    'service_provider',
+                    'publisher',
+                    'general_supervisor',
+                    'super_admin',
+                  ],
                   adminRoles,
                   ROLE_LABELS,
                   isSuperAdmin
@@ -1283,7 +1471,7 @@ export function AdminUserDetailClient({
               </Select>
             </Field>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setShowRoleModal(false)}
