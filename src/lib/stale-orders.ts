@@ -2,27 +2,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
 /**
- * إلغاء الطلبات اللي اتسجّلت ومااتدفعتش (قرار تامر: ٧ أيام، وخانة في
- * الإعدادات).
- *
- * ── ليه ─────────────────────────────────────────────────────
- *
- * الطلب بيتسجّل **قبل** الإيصال (عشان الرقم المرجعي). فكل عميل قفل
- * الصفحة بين الخطوتين بيسيب طلبًا «بانتظار الدفع» للأبد، وقايمة
- * الإدارة بتتملا طلبات ميتة.
- *
- * ── الشرط ───────────────────────────────────────────────────
- *
- *   `pending` **و** مفيش إيصال **و** أقدم من المدة.
- *   ⚠️ «مفيش إيصال» حارس زيادة: الحالة بتبقى `awaiting_verification`
- *      أول ما الإيصال يترفع، بس لو حصل عطل وفضلت `pending` بإيصال،
- *      مانلغيش طلبًا العميل دفعه.
+ * Orders are registered before the customer uploads a receipt. Expire only
+ * pending orders with no receipt, and record the notification in the same
+ * database transaction as the status change.
  */
 
 export const DEFAULT_PENDING_CANCEL_DAYS = 7;
 export const MAX_PENDING_CANCEL_DAYS = 60;
 
-/** فاضي/مش رقم = الافتراضي · صفر = مقفول · من ١ لـ٦٠. */
+/** Empty/invalid = default; zero disables cancellation; positive values cap at 60. */
 export function normalizeCancelDays(raw: unknown): number {
   if (raw === undefined || raw === null || raw === '') return DEFAULT_PENDING_CANCEL_DAYS;
   const n = Math.trunc(Number(raw));
@@ -30,58 +18,59 @@ export function normalizeCancelDays(raw: unknown): number {
   return Math.min(n, MAX_PENDING_CANCEL_DAYS);
 }
 
-/** الطلبات الأقدم من اللحظة دي بتتلغي. `null` = الإلغاء مقفول. */
+/** Orders older than this instant are eligible; null means cancellation is disabled. */
 export function staleCutoff(now: Date, days: number): Date | null {
   if (days <= 0) return null;
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-export type CancelledOrder = { id: string; userId: string; reference: string | null };
+export type StaleOrderCancellationResult =
+  | { ok: true; cancelled: number }
+  | { ok: false; error: string };
 
-/**
- * بيلغي ويرجّع اللي اتلغى (عشان الإشعارات). بيشتغل بمفتاح الخدمة (المهمة
- * اليومية) أو بجلسة إداري (صفحة الطلبات) — الاتنين بيعدّوا من حارس
- * `guard_order_fields`.
- */
+/** Atomically cancels eligible orders and inserts their durable notification intents. */
 export async function cancelStalePendingOrders(
   supabase: SupabaseClient<Database>,
   days: number,
   now = new Date(),
-): Promise<{ ok: true; cancelled: CancelledOrder[] } | { ok: false; error: string }> {
-  const cutoff = staleCutoff(now, days);
-  if (!cutoff) return { ok: true, cancelled: [] };
+): Promise<StaleOrderCancellationResult> {
+  if (days <= 0) return { ok: true, cancelled: 0 };
 
-  const { data, error } = await supabase
-    .from('orders')
-    .update({
-      status: 'cancelled',
-      admin_notes: `اتلغى تلقائيًا: مفيش إيصال دفع خلال ${days} أيام.`,
-      updated_at: now.toISOString(),
-    })
-    .eq('status', 'pending')
-    .is('payment_receipt_url', null)
-    .lt('created_at', cutoff.toISOString())
-    .select('id, user_id, payment_reference');
+  const { data, error } = await supabase.rpc('cancel_stale_pending_orders', {
+    p_days: days,
+    p_now: now.toISOString(),
+  });
 
   if (error) {
     console.error('Error cancelling stale orders', error);
     return { ok: false, error: error.message };
   }
-  return {
-    ok: true,
-    cancelled: (data ?? []).map((o) => ({
-      id: o.id,
-      userId: o.user_id,
-      reference: o.payment_reference ?? null,
-    })),
-  };
+  if (typeof data !== 'number') {
+    return { ok: false, error: 'Stale-order cancellation returned an invalid result.' };
+  }
+  return { ok: true, cancelled: data };
 }
 
-export function cancelledMessage(order: CancelledOrder, days: number): { title: string; message: string } {
+export type StaleOrderNotificationDelivery = {
+  delivered: number;
+  failed: number;
+  pending: number;
+};
+
+/** Deliver up to 1,000 durable cancellation notices; undelivered rows remain retryable. */
+export async function deliverStaleOrderNotifications(
+  supabase: SupabaseClient<Database>,
+): Promise<StaleOrderNotificationDelivery> {
+  const { data, error } = await supabase.rpc('deliver_stale_order_notifications', {
+    p_limit: 1000,
+  });
+  if (error) throw error;
+
+  const result = data?.[0];
+  if (!result) throw new Error('Stale-order notification delivery returned no result.');
   return {
-    title: 'طلبك اتلغى',
-    message:
-      `الطلب ${order.reference ?? ''} اتلغى لأنه مااتدفعش خلال ${days} أيام. `
-      + 'لو لسه عايزه، تقدر تطلبه تاني في أي وقت.',
+    delivered: result.delivered_count,
+    failed: result.failed_count,
+    pending: result.pending_count,
   };
 }

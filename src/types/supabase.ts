@@ -1063,6 +1063,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stale_order_notification_outbox: {
+        Row: {
+          order_id: string
+          recipient_profile_id: string
+          title: string
+          message: string
+          link: string
+          created_at: string
+          delivered_at: string | null
+          attempt_count: number
+          last_attempt_at: string | null
+          last_error: string | null
+        }
+        Insert: {
+          order_id: string
+          recipient_profile_id: string
+          title: string
+          message: string
+          link: string
+          created_at?: string
+          delivered_at?: string | null
+          attempt_count?: number
+          last_attempt_at?: string | null
+          last_error?: string | null
+        }
+        Update: {
+          order_id?: string
+          recipient_profile_id?: string
+          title?: string
+          message?: string
+          link?: string
+          created_at?: string
+          delivered_at?: string | null
+          attempt_count?: number
+          last_attempt_at?: string | null
+          last_error?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -2508,6 +2547,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_stale_pending_orders: {
+        Args: { p_days: number; p_now: string }
+        Returns: number
+      }
+      deliver_stale_order_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          delivered_count: number
+          failed_count: number
+          pending_count: number
+        }[]
+      }
       /** ملخص حركات الحساب (عدّ لكل نوع + total) — schema/10، للإدارة. */
       account_activity: {
         Args: { p_user: string }

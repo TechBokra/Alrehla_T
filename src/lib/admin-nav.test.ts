@@ -9,7 +9,7 @@ const hrefs = ADMIN_NAV.flatMap((g) => g.sections.flatMap((s) => s.tabs.map((t) 
 describe('قايمة لوحة الإدارة', () => {
   it('كل تبويب ليه صفحة فعلًا — مفيش رابط بيودّي على 404', () => {
     const missing = hrefs.filter(
-      (h) => !existsSync(join(process.cwd(), 'src/app', h, 'page.tsx')),
+      (h) => !existsSync(join(process.cwd(), 'src/app/(admin)', h.slice(1), 'page.tsx')),
     );
     expect(missing).toEqual([]);
   });

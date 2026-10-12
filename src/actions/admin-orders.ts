@@ -40,6 +40,24 @@ const FLOW: Record<string, string> = {
 
 const DENIED = 'غير مصرح لك بإدارة الطلبات';
 
+type FulfilmentStatus = 'preparing' | 'shipped' | 'delivered' | 'cancelled';
+type OrderStatus = Database['public']['Enums']['order_status_enum'];
+
+/** Keep server mutations aligned with the transition guard in schema 22. */
+const ALLOWED_PREVIOUS_STATUSES: Record<FulfilmentStatus, OrderStatus[]> = {
+  preparing: ['paid'],
+  shipped: ['paid', 'preparing'],
+  delivered: ['shipped'],
+  cancelled: ['pending', 'awaiting_verification', 'failed', 'paid', 'preparing', 'shipped'],
+};
+
+const FULFILMENT_STATUSES: FulfilmentStatus[] = [
+  'preparing',
+  'shipped',
+  'delivered',
+  'cancelled',
+];
+
 /** يفوّض للقاعدة الموحّدة في `@/lib/auth-guard` — التنفيذ واحد، والرسالة خاصة بهذا المجال. */
 async function requireOrdersAdmin() {
   // ⚠️ `requireAdmin` بترمي — فبتتلفّ هنا وترجع `null` (قاعدة «هـ»)،
@@ -57,7 +75,7 @@ async function requireOrdersAdmin() {
  */
 export async function setOrderFulfilmentStatus(params: {
   orderId: string;
-  status: 'preparing' | 'shipped' | 'delivered' | 'cancelled';
+  status: FulfilmentStatus;
   trackingReference?: string;
   note?: string;
 }): Promise<
@@ -65,9 +83,24 @@ export async function setOrderFulfilmentStatus(params: {
 > {
   const admin = await requireOrdersAdmin();
   if (!admin) return { ok: false, error: DENIED };
-  const { orderId, status, trackingReference, note } = params;
+  if (!params || typeof params !== 'object') {
+    return { ok: false, error: 'بيانات تحديث حالة الطلب غير صالحة' };
+  }
 
-  if (status === 'cancelled' && !note?.trim()) {
+  const { orderId, status, trackingReference, note } = params;
+  if (typeof orderId !== 'string' || !orderId.trim()) {
+    return { ok: false, error: 'رقم الطلب غير صالح' };
+  }
+  const normalizedOrderId = orderId.trim();
+  if (!FULFILMENT_STATUSES.includes(status)) {
+    return { ok: false, error: 'حالة الطلب المطلوبة غير صالحة' };
+  }
+
+  const normalizedTrackingReference =
+    typeof trackingReference === 'string' ? trackingReference.trim() : '';
+  const normalizedNote = typeof note === 'string' ? note.trim() : '';
+
+  if (status === 'cancelled' && !normalizedNote) {
     return { ok: false, error: 'اكتب سبب الإلغاء', field: 'note' };
   }
 
@@ -76,21 +109,28 @@ export async function setOrderFulfilmentStatus(params: {
   const update: Database['public']['Tables']['orders']['Update'] = { status };
   if (status === 'shipped') update.shipped_at = new Date().toISOString();
   if (status === 'delivered') update.delivered_at = new Date().toISOString();
-  if (trackingReference !== undefined) {
-    update.tracking_reference = trackingReference.trim() || null;
+  if (typeof trackingReference === 'string') {
+    update.tracking_reference = normalizedTrackingReference || null;
   }
-  if (note?.trim()) update.admin_notes = note.trim();
+  if (normalizedNote) update.admin_notes = normalizedNote;
 
   const { data, error } = await supabase
     .from('orders')
     .update(update)
-    .eq('id', orderId)
+    .eq('id', normalizedOrderId)
+    .in('status', ALLOWED_PREVIOUS_STATUSES[status])
     .select('user_id')
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
     console.error('Error updating order fulfilment', error);
     return { ok: false, error: 'تعذّر تحديث حالة الطلب' };
+  }
+  if (!data) {
+    return {
+      ok: false,
+      error: 'الطلب مش موجود أو انتقال الحالة غير مسموح — حدّث الصفحة وشوف الحالة الحالية.',
+    };
   }
 
   // ── مستحقات الناشرين عند التسليم ──────────────────────────
@@ -109,7 +149,7 @@ export async function setOrderFulfilmentStatus(params: {
   if (status === 'delivered') {
     const { data: result, error: payoutError } = await supabase.rpc(
       'record_order_publisher_earnings',
-      { p_order_id: orderId },
+      { p_order_id: normalizedOrderId },
     );
 
     if (payoutError) {
@@ -128,7 +168,7 @@ export async function setOrderFulfilmentStatus(params: {
         message:
           `الطلب اتسلّم، بس فيه ${payouts.missing_cost} ناشر منتجه بلا «نصيب الناشر» مسجَّل. `
           + 'اظبط النصيب من شاشة المنتجات وبعدين علّم الطلب «تم التسليم» تاني.',
-        link: `/dashboard/admin/orders/${orderId}`,
+        link: `/dashboard/admin/orders/${normalizedOrderId}`,
       });
     }
   }
@@ -138,9 +178,9 @@ export async function setOrderFulfilmentStatus(params: {
     recipientProfileId: data.user_id,
     title: `طلبك: ${FLOW[status]}`,
     message:
-      status === 'shipped' && trackingReference?.trim()
-        ? `رقم الشحنة: ${trackingReference.trim()}`
-        : note?.trim(),
+      status === 'shipped' && normalizedTrackingReference
+        ? `رقم الشحنة: ${normalizedTrackingReference}`
+        : normalizedNote,
     link: '/account/orders/enha-lak',
   });
 
@@ -149,11 +189,15 @@ export async function setOrderFulfilmentStatus(params: {
     actorName: admin.fullName,
     action: `order_marked_${status}`,
     entityType: 'Order',
-    entityId: orderId,
-    metadata: { status, trackingReference: trackingReference ?? null, note: note ?? null },
+    entityId: normalizedOrderId,
+    metadata: {
+      status,
+      trackingReference: normalizedTrackingReference || null,
+      note: normalizedNote || null,
+    },
   });
 
-  revalidatePath(`/dashboard/admin/orders/${orderId}`);
+  revalidatePath(`/dashboard/admin/orders/${normalizedOrderId}`);
   revalidatePath('/dashboard/admin/orders');
   revalidatePath('/account/orders/enha-lak');
   revalidatePath('/dashboard/publisher/payouts');
@@ -173,13 +217,19 @@ export async function markElectronicSent(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = await requireOrdersAdmin();
   if (!admin) return { ok: false, error: DENIED };
+  if (typeof orderId !== 'string' || !orderId.trim()) {
+    return { ok: false, error: 'رقم الطلب غير صالح' };
+  }
+  const normalizedOrderId = orderId.trim();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('orders')
     .update({ electronic_sent_at: new Date().toISOString() })
-    .eq('id', orderId)
+    .eq('id', normalizedOrderId)
+    .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
     .is('electronic_sent_at', null)
     .not('delivery_email', 'is', null)
+    .neq('delivery_email', '')
     .select('user_id, delivery_email');
 
   if (error) {
@@ -188,7 +238,10 @@ export async function markElectronicSent(
   }
   // قاعدة «و»: صفر صفوف بلا خطأ.
   if (!data || data.length === 0) {
-    return { ok: false, error: 'مااتسجّلش: الطلب مالوش نسخة إلكترونية، أو متسجّل إنها اتبعتت قبل كده.' };
+    return {
+      ok: false,
+      error: 'مااتسجّلش: لازم يكون الطلب مدفوعًا وفيه نسخة إلكترونية غير مُرسلة وإيميل استلام.',
+    };
   }
 
   await notifyUser({
@@ -204,10 +257,10 @@ export async function markElectronicSent(
     actorName: admin.fullName,
     action: 'order_electronic_sent',
     entityType: 'Order',
-    entityId: orderId,
+    entityId: normalizedOrderId,
   });
 
-  revalidatePath(`/dashboard/admin/orders/${orderId}`);
+  revalidatePath(`/dashboard/admin/orders/${normalizedOrderId}`);
   revalidatePath('/account/orders/enha-lak');
   return { ok: true };
 }

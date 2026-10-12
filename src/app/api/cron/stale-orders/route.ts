@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { getSiteSettings } from '@/data/domains/content';
-import { cancelStalePendingOrders, cancelledMessage } from '@/lib/stale-orders';
+import { cancelStalePendingOrders, deliverStaleOrderNotifications } from '@/lib/stale-orders';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -9,11 +9,9 @@ export const runtime = 'nodejs';
 /**
  * المهمة اليومية: إلغاء الطلبات اللي مااتدفعتش (`@/lib/stale-orders`).
  *
- * نفس حراسة `service-due`: من غير `CRON_SECRET` المهمة **بتقف** (مش
- * بتعدّي) — الحارس اللي بيفشل مفتوحًا هو اللي فتح المسار ده قبل كده.
- *
- * ⚠️ لو المفتاح مش متظبط، الإلغاء بيحصل برضه لما الإدارة تفتح صفحة
- *    الطلبات (`dashboard/admin/orders`) — فمابيقفش، بس بيتأخر.
+ * Cancels stale unpaid orders and retries pending cancellation notices.
+ * The cancellation and its notification intent are committed atomically by
+ * Postgres; notification delivery is retried independently on later runs.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -25,27 +23,42 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   if (!isAdminApiConfigured()) {
-    return NextResponse.json({ skipped: 'SUPABASE_SERVICE_ROLE_KEY غير موجود على الخادم' }, { status: 200 });
+    return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY غير موجود على الخادم' }, { status: 503 });
   }
 
-  const { pendingOrderCancelDays: days } = await getSiteSettings();
   const supabase = createAdminClient();
-  const result = await cancelStalePendingOrders(supabase, days);
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 500 });
+  let days = 0;
+  let cancelled = 0;
+  let cancellationError: string | null = null;
+
+  try {
+    ({ pendingOrderCancelDays: days } = await getSiteSettings());
+    const result = await cancelStalePendingOrders(supabase, days);
+    if (result.ok) cancelled = result.cancelled;
+    else cancellationError = result.error;
+  } catch (error) {
+    cancellationError = error instanceof Error ? error.message : 'Failed to cancel stale orders.';
   }
 
-  // الإشعارات مباشرة في الجدول — زي `service-due` (المهمة مالهاش مُرسِل،
-  // و`notify_user` بترفض الاستدعاء بلا مستخدم).
-  if (result.cancelled.length > 0) {
-    const rows = result.cancelled.map((o) => ({
-      recipient_profile_id: o.userId,
-      ...cancelledMessage(o, days),
-      link: '/account/orders/enha-lak',
-    }));
-    const { error } = await supabase.from('notifications').insert(rows);
-    if (error) console.error('stale-orders: notifications failed', error);
+  let delivery: { delivered: number; failed: number; pending: number } | null = null;
+  let deliveryError: string | null = null;
+  try {
+    delivery = await deliverStaleOrderNotifications(supabase);
+  } catch (error) {
+    deliveryError = error instanceof Error ? error.message : 'Failed to deliver stale-order notifications.';
   }
 
-  return NextResponse.json({ days, cancelled: result.cancelled.length });
+  const body = {
+    days,
+    cancelled,
+    delivered: delivery?.delivered ?? 0,
+    failed: delivery?.failed ?? 0,
+    pending: delivery?.pending ?? 0,
+    ...(cancellationError ? { cancellationError } : {}),
+    ...(deliveryError ? { deliveryError } : {}),
+  };
+  if (cancellationError || deliveryError || (delivery?.failed ?? 0) > 0) {
+    return NextResponse.json(body, { status: 500 });
+  }
+  return NextResponse.json(body);
 }

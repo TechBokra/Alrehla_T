@@ -54,7 +54,9 @@ src/
   lib/            أدوات: supabase، والتسعير، والتوقيت، والإشعارات، والسجل…
   types/          index.ts (أنواع التطبيق) + supabase.ts (أنواع القاعدة)
 supabase/
-  schema/         ملفات القاعدة المرقّمة (01، 02، …): مصدر الحقيقة
+  migrations/     تغييرات قاعدة البيانات المرقّمة زمنيًا: مصدر الحقيقة
+  seed.sql        بيانات البداية للتطوير المحلي
+  manual/         إعدادات يدوية منفصلة عن migrations
   tools/          استعلامات فحص (قراءة بس)
 .github/workflows/ci.yml   فحص الأنواع + الاختبارات + lint مع كل رفعة
 vercel.json                المهام اليومية (cron)
@@ -65,9 +67,8 @@ AI-BRIEF.md                قواعد لأي أداة ذكاء اصطناعي ب
 
 ## قاعدة البيانات
 
-- كل الشكل في **`supabase/schema/`**، بالترتيب. تفاصيل كل ملف في [`supabase/schema/README.md`](supabase/schema/README.md).
-- **أي تعديل = ملف جديد بالرقم اللي بعده**، يتشغّل في Supabase SQL Editor **بعد** ما الكود يتنشر.
-  مفيش تعديل يدوي من لوحة Supabase.
+- المصدر المعتمد لتغييرات القاعدة هو **`supabase/migrations/`**. أنشئ migration جديدة لكل تعديل، واختبرها على staging قبل production.
+- لا تعدّل production يدويًا من Supabase SQL Editor أو Table Editor؛ سجّل التغيير في migration وادفعه عبر Supabase CLI.
 - الحماية الحقيقية في قواعد RLS والمحفّزات جوه القاعدة، والفحص في الكود بيوضّح رسالة الخطأ بس.
 
 ---

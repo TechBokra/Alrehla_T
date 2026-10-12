@@ -1,5 +1,5 @@
 -- ============================================================
--- 18 — تنظيف بيانات التجربة قبل الإطلاق
+-- One-time cleanup of pre-launch test data
 -- ============================================================
 --
 -- ── ليه (قرار تامر، 10 أكتوبر) ───────────────────────────────
@@ -84,6 +84,7 @@ TRUNCATE TABLE
   public.publisher_payouts,
   public.withdrawal_requests,
   public.notifications,
+  public.stale_order_notification_outbox,
   public.work_tasks,
   public.support_ticket_messages,
   public.support_tickets,

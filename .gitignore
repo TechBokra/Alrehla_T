@@ -5,7 +5,7 @@ coverage/
 *.log
 .env*
 !.env.example
-
+reports/*
 # TypeScript incremental build cache — regenerated on every build,
 # should never have been tracked.
 tsconfig.tsbuildinfo
@@ -14,6 +14,10 @@ tsconfig.tsbuildinfo
 # bun.lock lets the two drift apart and produce different dependency
 # trees locally vs on Vercel.
 package-lock.json
+
+# Local Supabase CLI state; migration and seed sources remain tracked.
+supabase/.branches/
+supabase/.temp/
 
 # Working documents from Claude sessions; they live in the Claude
 # Project, not in the application repository.

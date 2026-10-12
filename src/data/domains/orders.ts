@@ -1,21 +1,15 @@
 import {
-  WritingPackage, Instructor, PersonalizedProduct, AddonProduct, SubscriptionTier, 
-  Testimonial, CreativeService, BlogPost, UserProfile, Booking, Order, 
-  Publisher, InstructorPayout, PublisherPayout, SessionMessage, SessionAttachment, 
-  StudyMaterial, InstructorStudent, BoxSubscription, SupportTicket, 
-  JoinRequest, SupportSessionRequest, AuditLog, ServiceOrder, CourseSubscription, 
-  SupportTicketMessage, FamilyMember, NotificationItem, UserRole,
-  PublisherOrder, OrderItem,
-  InstructorPricingOption, PricingFormulaSettings, InstructorCompensationProfile, InstructorCertification
+  Order,
+  OrderItem
 } from '@/types';
-import { cookies } from 'next/headers';
-
-// Import from auth if needed
 
 
-import { createClient } from '@/lib/supabase/server';
-import { isItemFormat } from '@/lib/item-format';
+
+
 import { fetchAllPages, fetchIn } from '@/lib/fetch-all';
+import { isItemFormat } from '@/lib/item-format';
+import { createClient } from '@/lib/supabase/server';
+import type { QueryReadOptions } from '@/data/query-result';
 
 export const getOrders = async (): Promise<Order[]> => {
   const supabase = await createClient();
@@ -142,7 +136,7 @@ export async function getAllShippingRates(): Promise<ShippingRateRow[]> {
  * generated types carry no relationship for it and a joined shape would have
  * to be cast away — which is how untyped data got into this codebase before.
  */
-export async function getAllOrders(): Promise<Order[]> {
+export async function getAllOrders(options: QueryReadOptions = {}): Promise<Order[]> {
   const supabase = await createClient();
   // ⚠️ على دفعات — Supabase بيقف عند ١٠٠٠ صف من غير رسالة (`lib/fetch-all`).
   const { data, error } = await fetchAllPages((from, to) =>
@@ -154,7 +148,10 @@ export async function getAllOrders(): Promise<Order[]> {
       .range(from, to),
   );
 
-  if (error) return [];
+  if (error) {
+    if (options.throwOnError) throw error;
+    return [];
+  }
 
   const items = await fetchIn(
     data.map((o) => o.id),
@@ -163,6 +160,8 @@ export async function getAllOrders(): Promise<Order[]> {
         .from('order_items')
         .select('order_id, product_id, quantity, unit_price, customization_data, format')
         .in('order_id', part),
+    undefined,
+    options,
   );
 
   const itemsByOrder = new Map<string, OrderItem[]>();

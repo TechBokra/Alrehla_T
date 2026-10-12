@@ -364,6 +364,12 @@ export async function confirmOrderPayment(orderId: string) {
     .update({ status: 'paid' })
     .eq('id', orderId)
     .eq('status', 'awaiting_verification')
+    // UI isn't a payment guard: only confirm when the order still has a
+    // submitted method and receipt. The database transition trigger validates
+    // the receipt reference itself as well.
+    .in('payment_method', ['instapay', 'vodafone_cash'])
+    .not('payment_receipt_url', 'is', null)
+    .neq('payment_receipt_url', '')
     .select('id')
     .maybeSingle();
 
@@ -382,7 +388,7 @@ export async function confirmOrderPayment(orderId: string) {
   if (!updated) {
     return {
       ok: false,
-      error: 'الطلب مش موجود أو حالته اتغيّرت — حدّث الصفحة وشوفها.',
+      error: 'الطلب مش موجود، أو حالته اتغيّرت، أو إيصال الدفع غير مكتمل — حدّث الصفحة وشوفه.',
     };
   }
 

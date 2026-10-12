@@ -39,4 +39,14 @@ describe('chunks / fetchIn', () => {
     expect(out).toHaveLength(250);
     expect(seen).toEqual([100, 100, 50]);
   });
+
+  it('يفشل القراءة المركبة بدل إرجاع بيانات ناقصة عند فشل دفعة', async () => {
+    const failure = { message: 'permission denied' };
+    await expect(
+      fetchIn([1, 2], (part) => Promise.resolve({
+        data: part[0] === 1 ? [{ id: 1 }] : null,
+        error: part[0] === 1 ? null : failure,
+      }), 1, { throwOnError: true }),
+    ).rejects.toEqual(failure);
+  });
 });

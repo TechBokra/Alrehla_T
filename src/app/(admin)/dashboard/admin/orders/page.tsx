@@ -1,16 +1,10 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/auth';
-import { getAllOrders } from '@/data/domains/orders';
-import { getManagedProducts } from '@/data/domains/products';
-import { getSiteSettings } from '@/data/domains/content';
-import { createClient } from '@/lib/supabase/server';
-import { cancelStalePendingOrders, cancelledMessage } from '@/lib/stale-orders';
-import { notifyUser } from '@/lib/notifications';
+import { getAdminOrdersPageData } from '@/data/domains/admin-orders-page';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { OrdersClient } from './OrdersClient';
-import { fetchIn } from '@/lib/fetch-all';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,40 +14,9 @@ export default async function Page() {
     return <Unauthorized />;
   }
 
-  // ⚠️ احتياط للمهمة اليومية (`api/cron/stale-orders`): لو `CRON_SECRET`
-  //    مش متظبط المهمة بتقف، فالإلغاء بيحصل هنا وقت ما الإدارة تفتح
-  //    القايمة — قبل القراية، فالقايمة بتطلع بحالتها الصح.
-  const { pendingOrderCancelDays: days } = await getSiteSettings();
-  const stale = await cancelStalePendingOrders(await createClient(), days);
-  if (stale.ok) {
-    for (const o of stale.cancelled) {
-      await notifyUser({
-        event: 'order_status',
-        recipientProfileId: o.userId,
-        ...cancelledMessage(o, days),
-        link: '/account/orders/enha-lak',
-      });
-    }
-  }
-
-  const [orders, products] = await Promise.all([getAllOrders(), getManagedProducts()]);
-  // اسم كل منتج — عشان القايمة تقول الطلب فيه إيه ومخصّص لمين (ملاحظة تامر:
-  // «طلبات التخصيص مرتبطة باسم المنتج»). كانت رقم طلب وتاريخ ومبلغ بس.
-  const productNames = Object.fromEntries(products.map((p) => [p.id, p.name]));
-  // والنوع — للفلترة بـ«أنت البطل» / المكتبة.
-  const productCategories = Object.fromEntries(products.map((p) => [p.id, p.category]));
-
-  // اسم العميل (صاحب الحساب) — الإدارة بتقرا `user_profiles` كلها.
-  const userIds = Array.from(new Set(orders.map((o) => o.userId)));
-  const customerNames: Record<string, string> = {};
-  if (userIds.length) {
-    const supabase = await createClient();
-    // على دفعات — القايمة بتتبعت في الرابط وبتطول مع عدد العملاء (`lib/fetch-all`).
-    const profiles = await fetchIn(userIds, (part) =>
-      supabase.from('user_profiles').select('id, full_name').in('id', part),
-    );
-    for (const p of profiles) if (p.full_name) customerNames[p.id] = p.full_name;
-  }
+  const result = await getAdminOrdersPageData();
+  if (!result.success) throw new Error(result.error.message);
+  const { orders, productNames, productCategories, customerNames } = result.data;
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">

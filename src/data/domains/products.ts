@@ -134,10 +134,6 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
     .eq('review_status', 'approved');
   const { data, error } = await query.order('created_at', { ascending: false });
 
-  // ⚠️ (مراجعة م. محمد) **عطل القاعدة مش «مفيش منتجات».** كانت بترجّع
-  //    قايمة فاضية — والصفحة المتخزّنة كانت بتتحفظ فاضية ساعة كاملة،
-  //    والعميل يشوف متجر فاضي. دلوقتي بترمي: الصفحة المتخزّنة القديمة
-  //    بتفضل ظاهرة لحد ما القاعدة ترجع، ولو مفيش نسخة صفحة الخطأ بتظهر.
   if (error) {
     console.error('Error fetching personalized products:', error);
     throw new Error('تعذّر تحميل المنتجات');

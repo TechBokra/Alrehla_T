@@ -43,12 +43,18 @@ export async function fetchIn<T, K>(
   ids: readonly K[],
   query: (part: K[]) => PromiseLike<{ data: T[] | null; error: unknown }>,
   size = IN_CHUNK,
+  options: { throwOnError?: boolean } = {},
 ): Promise<T[]> {
   const parts = await Promise.all(chunks(ids, size).map((part) => query(part)));
   const out: T[] = [];
+  let firstError: unknown;
   for (const { data, error } of parts) {
-    if (error) console.error('fetchIn', error);
+    if (error) {
+      console.error('fetchIn', error);
+      firstError ??= error;
+    }
     out.push(...(data ?? []));
   }
+  if (options.throwOnError && firstError) throw firstError;
   return out;
 }
