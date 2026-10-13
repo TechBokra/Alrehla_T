@@ -1,7 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSubscriptionTiers, getAddonProducts } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSubscriptionTiers } from '@/data/domains/(shared)/subscriptions/plans';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { BoxPlansClient } from './BoxPlansClient';

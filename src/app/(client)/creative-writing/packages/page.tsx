@@ -10,15 +10,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import Link from 'next/link';
-import { getWritingPackages } from '@/data/domains/writing';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { PackageCard } from '@/components/creative-writing/PackageCard';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { PageContainer } from '@/components/PageContainer';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 
 export default async function PackagesPage() {

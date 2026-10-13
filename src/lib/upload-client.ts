@@ -21,17 +21,17 @@ const ALLOWED = [
   'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/svg+xml',
 ];
 
+export function validateImageFile(file: File): void {
+  if (!ALLOWED.includes(file.type)) throw new Error('نوع الملف غير مدعوم — استخدم صورة JPG أو PNG');
+  if (file.size > MAX_BYTES) throw new Error('حجم الصورة كبير — الحد الأقصى 10 ميجابايت');
+}
+
 export async function uploadImage(
   file: File,
   folder: string,
   onProgress?: (percent: number) => void,
 ): Promise<UploadedImage> {
-  if (!ALLOWED.includes(file.type)) {
-    throw new Error('نوع الملف غير مدعوم — استخدم صورة JPG أو PNG');
-  }
-  if (file.size > MAX_BYTES) {
-    throw new Error('حجم الصورة كبير — الحد الأقصى 10 ميجابايت');
-  }
+  validateImageFile(file);
 
   const result = await getUploadTicket(folder);
   if (!result.ok) throw new Error(result.error);

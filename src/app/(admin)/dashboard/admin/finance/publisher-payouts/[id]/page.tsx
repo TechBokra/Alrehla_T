@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getPublisherPayouts } from '@/data/domains/admin';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getPublishers } from '@/data/domains/products';
+import { getPublisherPayouts } from '@/data/domains/(admin)/finance/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AdminPublisherPayoutClient } from './AdminPublisherPayoutClient';

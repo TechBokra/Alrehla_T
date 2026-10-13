@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser, ALL_ADMIN_PERMISSIONS } from '@/data/domains/auth';
+import { getCurrentUser, ALL_ADMIN_PERMISSIONS } from '@/data/domains/(shared)/auth/queries';
 import { logAuditAction } from '@/lib/audit';
 import { AdminPermission } from '@/types';
 

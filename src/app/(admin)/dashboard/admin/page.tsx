@@ -7,17 +7,21 @@ import {
   Calendar, Users, Zap, FileText, History, Clock,
 } from 'lucide-react';
 
-import { getCurrentUser } from '@/data/domains/auth';
-import { getReviewQueue } from '@/data/domains/review-queue';
-import { getAllOrders } from '@/data/domains/orders';
-import { getInstructors, getSessions, getWritingPackages } from '@/data/domains/writing';
-import { getBlogPosts, getTestimonials, getSiteSettings } from '@/data/domains/content';
-import { getAuditLogs } from '@/data/domains/admin';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getReviewQueue } from '@/data/domains/(admin)/reviews/queue';
+import { getAllOrders } from '@/data/domains/(admin)/orders/queries';
+import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
+import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getAuditLogs } from '@/data/domains/(admin)/audit/queries';
 import { createClient } from '@/lib/supabase/server';
 import { SITE_IMAGE_SLOTS } from '@/lib/site-images';
 import { hasAdminPermission, formatPrice, formatDate } from '@/lib/utils';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
-import { getAdminOverviewTiming } from '@/data/domains/dashboard-time';
+import { getAdminOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
 
 export const dynamic = 'force-dynamic';
 

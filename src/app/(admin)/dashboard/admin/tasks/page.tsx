@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getAdminPeople, getWorkTasks } from '@/data/domains/work-tasks';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getAdminPeople, getWorkTasks } from '@/data/domains/(admin)/tasks/queries';
 import { TasksClient } from './TasksClient';
 
 export const dynamic = 'force-dynamic';

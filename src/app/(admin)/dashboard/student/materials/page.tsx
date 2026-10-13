@@ -1,6 +1,6 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { getStudyMaterials } from '@/data/domains/writing';
+import { getStudyMaterials } from '@/data/domains/(shared)/writing/materials';
 
 export const dynamic = 'force-dynamic';
 

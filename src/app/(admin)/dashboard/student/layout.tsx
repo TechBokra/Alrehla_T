@@ -1,6 +1,6 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
 

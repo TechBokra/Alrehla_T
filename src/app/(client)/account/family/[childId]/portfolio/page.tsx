@@ -4,11 +4,11 @@ import { FileText } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { fetchFamilyMembers } from '@/app/actions/family';
-import { getStudentDocuments } from '@/data/domains/writing';
+import { getStudentDocuments } from '@/data/domains/(shared)/portfolio/queries';
 import { formatCairo } from '@/lib/timezone';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
 import { DeleteDocumentButton } from '@/components/writing/DeleteDocumentButton';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { canManageWriterContent } from '@/lib/document-control';
 
 export const dynamic = 'force-dynamic';

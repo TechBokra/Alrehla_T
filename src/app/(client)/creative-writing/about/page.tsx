@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import { Sparkles, PenTool, Heart } from 'lucide-react';
 
 import { PageContainer } from '@/components/PageContainer';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';

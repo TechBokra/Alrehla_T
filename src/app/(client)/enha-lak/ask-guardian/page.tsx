@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Users } from 'lucide-react';
 import { pageMetadata } from '@/lib/seo';
 import { PageContainer } from '@/components/PageContainer';
-import { getProductBySlug } from '@/data/domains/products';
+import { getProductBySlug } from '@/data/domains/(client)/products/queries';
 import { DependentRequestButton } from '@/components/services/DependentRequestButton';
 
 export async function generateMetadata(): Promise<Metadata> {

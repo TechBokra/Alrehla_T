@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getDiscountCodes } from '@/data/domains/discount-codes';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getDiscountCodes } from '@/data/domains/(admin)/finance/discount-codes';
 import { hasAdminPermission } from '@/lib/utils';
 import { DiscountCodesClient } from './DiscountCodesClient';
 

@@ -11,8 +11,9 @@
  */
 import Link from 'next/link';
 import Image from 'next/image';
-import { getSiteSettings, getSiteContent } from '@/data/domains/content';
-import { getCopyrightYear } from '@/data/domains/content-time';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getCopyrightYear } from '@/data/domains/(shared)/content/timing';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram } from 'lucide-react';
 

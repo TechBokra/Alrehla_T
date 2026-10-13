@@ -1,6 +1,6 @@
 import { getWatermarkLayer } from '@/lib/watermark';
 import React from 'react';
-import { getPublishers } from '@/data/domains/products';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Quote, BookOpen, PenTool, Search, Wand2, Gift } from 'lucide-react';
@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Section } from '@/components/ui/Section';
 import { addWatermark, optimizedImageUrl, slotImageUrl, slotImageUrlAt, blurPlaceholder } from '@/lib/cloudinary';
-import { getSiteSettings, getSiteContent, getTestimonials } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { RichText } from '@/components/ui/RichText';
 import { JsonLd } from '@/components/seo/JsonLd';

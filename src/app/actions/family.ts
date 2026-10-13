@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ChildProfile } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { requireNotDependent } from '@/lib/auth-guard';
-import { getFamilyMembers } from '@/data/domains/family';
+import { getFamilyMembers } from '@/data/domains/(client)/family/queries';
 
 /**
  * ⚠️ **ليه `requireNotDependent` في كل دالة بتكتب هنا؟**
@@ -187,7 +187,7 @@ export async function getWizardUserInfo(): Promise<{
   fullName?: string;
   isVisitor: boolean;
 }> {
-  const { getCurrentUser } = await import('@/data/domains/auth');
+  const { getCurrentUser } = await import("@/data/domains/(shared)/auth/queries");
   const user = await getCurrentUser();
   if (user.role === 'visitor') return { isVisitor: true };
   return { id: user.id, fullName: user.fullName, isVisitor: false };

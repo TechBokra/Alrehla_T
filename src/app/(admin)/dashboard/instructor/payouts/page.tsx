@@ -1,5 +1,5 @@
-import { getInstructorPayouts } from '@/data/domains/admin';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getInstructorPayouts } from '@/data/domains/(admin)/finance/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Wallet, ArrowRight } from 'lucide-react';

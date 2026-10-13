@@ -1,7 +1,7 @@
 import { formatDate, formatPrice } from '@/lib/utils';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { getPublisherOrders } from '@/data/domains/products';
+import { getPublisherOrders } from '@/data/domains/(admin)/publishers/orders';
 import { StatusBadge } from '@/components/StatusBadge';
 import { productOrderStatus } from '@/lib/order-status';
 import { salesTotals } from '@/lib/publisher-sales';

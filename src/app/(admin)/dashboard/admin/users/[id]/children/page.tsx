@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getAllUsers, getCurrentUser } from '@/data/domains/auth';
+import { getAllUsers, getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
-import { getChildrenAgeData } from '@/data/domains/dashboard-time';
+import { getChildrenAgeData } from '@/data/domains/(admin)/dashboard/timing';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { createClient } from '@/lib/supabase/server';

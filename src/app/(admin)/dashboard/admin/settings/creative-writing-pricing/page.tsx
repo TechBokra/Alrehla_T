@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getPricingFormulaSettings } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { PricingSettingsClient } from './PricingSettingsClient';

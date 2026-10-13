@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { syncUserProfile } from '@/data/domains/auth'
+import { syncUserProfile } from '@/data/domains/(shared)/auth/queries';
 import { authErrorMessage } from '@/lib/auth-errors'
 import { getSafeRedirectPath } from '@/lib/safe-redirect'
 import { SITE_URL } from '@/lib/seo'

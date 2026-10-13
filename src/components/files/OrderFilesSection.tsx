@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { getOrderFiles } from '@/data/domains/private-files';
-import { CLOSED_ORDER_STATUSES, normalizeKinds, normalizeMaxMb } from '@/lib/private-files';
+import { getOrderFiles } from '@/data/domains/(shared)/files/queries';
+import { normalizeKinds, normalizeMaxMb } from '@/lib/private-files';
 import { PrivateFilesPanel } from './PrivateFilesPanel';
-import type { ServiceOrderRow } from '@/data/domains/services';
+import type { ServiceOrderRow } from '@/data/domains/(shared)/service-orders/types';
 
 /**
  * قسم الملفات في صفحة طلب الخدمة (ملف 20) — للعميل ومقدّم الخدمة والإدارة.
@@ -18,7 +18,7 @@ export async function OrderFilesSection({
   viewer: 'customer' | 'instructor' | 'admin';
 }) {
   const supabase = await createClient();
-  const [{ data: service }, { files, retentionDays }] = await Promise.all([
+  const [{ data: service }, filesResult] = await Promise.all([
     order.serviceId
       ? supabase.from('standalone_services').select('*').eq('id', order.serviceId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -26,24 +26,24 @@ export async function OrderFilesSection({
   ]);
 
   const allows = service?.allows_files === true;
-  if (!allows && files.length === 0) return null;
-
-  const closed = (CLOSED_ORDER_STATUSES as readonly string[]).includes(order.status);
-  // قبل الدفع مفيش رفع — الطلب ممكن مايكملش.
-  const started = !['pending', 'awaiting_verification'].includes(order.status);
+  const files = filesResult.success ? filesResult.data.files : [];
+  const retentionDays = filesResult.success ? filesResult.data.retentionDays : 30;
+  if (!allows && files.length === 0 && filesResult.success) return null;
+  const uploadStatus = ['paid', 'in_progress', 'delivered'].includes(order.status);
 
   return (
     <PrivateFilesPanel
       owner={{ orderId: order.id }}
       files={files}
+      loadError={filesResult.success ? null : filesResult.error.message}
       rules={{ kinds: normalizeKinds(service?.file_kinds), maxMb: normalizeMaxMb(service?.file_max_mb) }}
-      canUpload={allows && !closed && started && viewer !== 'admin'}
+      canUpload={allows && uploadStatus && viewer !== 'admin' && filesResult.success}
       retentionDays={retentionDays}
       closedLabel="قفل الطلب"
       title="ملفات الطلب"
       otherSideLabel="من مقدّم الخدمة"
       emptyText={
-        started
+        uploadStatus
           ? viewer === 'customer'
             ? 'ابعت ملفك هنا (القصة، الواجب…)، ومقدّم الخدمة هيسلّمك ملفه هنا كمان.'
             : 'مفيش ملفات لسه.'

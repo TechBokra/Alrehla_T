@@ -1,14 +1,12 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import {
-  getSessionAttachments,
-  getSessionMessages,
-  getSessions,
-  getInstructorById,
-  getWritingPackages,
-  getSessionReport,
-} from '@/data/domains/writing';
-import { getParticipantName } from '@/data/domains/account';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getSessionAttachments } from '@/data/domains/(shared)/sessions/attachments';
+import { getSessionMessages } from '@/data/domains/(shared)/sessions/messages';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
+import { getInstructorById } from '@/data/domains/(admin)/instructors/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getSessionReport } from '@/data/domains/(shared)/sessions/reports';
+import { getParticipantName } from '@/data/domains/(shared)/participants/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { sessionStatusView } from '@/lib/session-status';

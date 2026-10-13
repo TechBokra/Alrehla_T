@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Cairo } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers/Providers';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { slotImageUrl } from '@/lib/cloudinary';
 import { SITE_URL } from '@/lib/seo';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';

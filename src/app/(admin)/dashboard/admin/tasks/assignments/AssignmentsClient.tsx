@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AdminPerson } from '@/data/domains/work-tasks';
+import type { AdminPerson } from '@/data/domains/(admin)/tasks/queries';
 import { saveAssignmentRule } from '@/actions/work-tasks';
 import {
   WORK_LINES,

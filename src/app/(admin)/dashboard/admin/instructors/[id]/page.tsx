@@ -1,17 +1,20 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getInstructors } from '@/data/domains/writing';
-import { getProfileUpdateRequestsByInstructor, getInstructorCertification, getPricingFormulaSettings } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
+import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
+import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
+import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AdminInstructorClient } from './AdminInstructorClient';
-import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/services';
-import { getWritingPackages, getPublicInstructorById } from '@/data/domains/writing';
+import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/(shared)/services/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getPublicInstructorById } from '@/data/domains/(shared)/instructors/public';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getInstructorMediaForAdmin } from '@/data/domains/instructor-media';
+import { getInstructorMediaForAdmin } from '@/data/domains/(admin)/instructors/media';
 import { StatusBadge } from '@/components/StatusBadge';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 

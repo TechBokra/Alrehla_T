@@ -9,7 +9,7 @@ import {
   Package,
   KeyRound,
 } from 'lucide-react';
-import { getAccountOverviewData } from '@/data/domains/account-overview';
+import { getAccountOverviewData } from '@/data/domains/(client)/account/overview';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';
 import { formatCairo } from '@/lib/timezone';

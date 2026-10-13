@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getPublisherPricingSettings } from '@/data/domains/admin';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getPublisherPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { PublisherPricingClient } from './PublisherPricingClient';

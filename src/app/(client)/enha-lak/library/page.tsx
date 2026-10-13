@@ -12,9 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
 import { BookOpen } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
-import { getPersonalizedProducts, getPublishers } from '@/data/domains/products';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { LibraryClient } from './LibraryClient';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 
 export default async function LibraryPage() {

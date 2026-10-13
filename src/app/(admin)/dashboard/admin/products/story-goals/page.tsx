@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getAllStoryGoals } from '@/data/domains/story-goals';
-import { getManagedProducts } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getAllStoryGoals } from '@/data/domains/(admin)/products/story-goals';
+import { getManagedProducts } from '@/data/domains/(shared)/products/queries';
 import { appliesToProducts } from '@/lib/applies-to';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';

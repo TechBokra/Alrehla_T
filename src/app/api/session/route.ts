@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getUnreadNotificationCount } from '@/data/domains/account';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getUnreadNotificationCount } from '@/data/domains/(client)/notifications/queries';
 
 /**
  * حالة المستخدم للهيدر.

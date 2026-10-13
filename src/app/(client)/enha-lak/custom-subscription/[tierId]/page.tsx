@@ -13,14 +13,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { notFound } from 'next/navigation';
-import { getSubscriptionTiers } from '@/data/domains/products';
+import { getSubscriptionTiers } from '@/data/domains/(shared)/subscriptions/plans';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { PersonalizedProduct } from '@/types';
 import { requireShopper } from '@/lib/require-shopper';
-import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
-import { getActiveStoryGoals } from '@/data/domains/story-goals';
+import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
+import { getActiveStoryGoals } from '@/data/domains/(shared)/products/story-goals';
 
 interface PageProps {
   params: Promise<{ tierId: string }>;

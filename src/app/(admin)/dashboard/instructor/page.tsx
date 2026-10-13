@@ -1,14 +1,12 @@
 import React from 'react';
-import { getCurrentUser } from '@/data/domains/auth';
-import {
-  getInstructorSessions,
-  getWritingPackages,
-  getPublicInstructorById,
-  getInstructorById,
-  getProfileUpdateRequestsByInstructor,
-} from '@/data/domains/writing';
-import { getMyInstructorId } from '@/data/domains/services';
-import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/reviews';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getInstructorSessions } from '@/data/domains/(admin)/sessions/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getPublicInstructorById } from '@/data/domains/(shared)/instructors/public';
+import { getInstructorById } from '@/data/domains/(admin)/instructors/queries';
+import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
+import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/(shared)/reviews/queries';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -32,7 +30,7 @@ import {
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
 import { onboardingState } from '@/lib/instructor-onboarding';
-import { getInstructorOverviewTiming } from '@/data/domains/dashboard-time';
+import { getInstructorOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
 
 export const dynamic = 'force-dynamic';
 

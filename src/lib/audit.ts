@@ -1,4 +1,4 @@
-import { logAuditAction as writeAuditLog } from '@/data/domains/admin';
+import { logAuditAction as writeAuditLog } from '@/data/domains/(admin)/audit/queries';
 
 /**
  * Record an action in the audit trail.

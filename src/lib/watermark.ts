@@ -1,5 +1,5 @@
 import 'server-only';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { watermarkLayer } from '@/lib/watermark-settings';
 
 /**

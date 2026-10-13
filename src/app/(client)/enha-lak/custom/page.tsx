@@ -9,9 +9,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getAddonProducts, getPersonalizedProducts } from '@/data/domains/products';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
 import { PenTool, Plus } from 'lucide-react';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 import { PageContainer } from '@/components/PageContainer';
 import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';

@@ -4,9 +4,9 @@ import { requireSuperAdmin as requireSuperAdminGuard, requireAdmin } from '@/lib
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getMyInstructorId } from '@/data/domains/services';
-import { getMyPublisher } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
+import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';
 
 /**
  * Money operations: marking a payout as paid, an instructor's withdrawal

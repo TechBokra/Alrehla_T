@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { cancelStalePendingOrders, deliverStaleOrderNotifications } from '@/lib/stale-orders';
 
 export const dynamic = 'force-dynamic';

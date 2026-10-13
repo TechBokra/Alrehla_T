@@ -6,7 +6,7 @@ import { ageAtTime } from '@/lib/time-values';
 import { useRouter } from 'next/navigation';
 import { Send, Package, CheckCircle2, Play, Truck, AlertCircle, Lock } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
-import type { ServiceOrderRow, ServiceOrderMessage } from '@/data/domains/services';
+import type { ServiceOrderRow, ServiceOrderMessage } from '@/data/domains/(shared)/service-orders/types';
 import {
   sendServiceOrderMessage,
   startServiceOrder,

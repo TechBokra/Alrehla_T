@@ -2,10 +2,10 @@ import React from 'react';
 import Image from 'next/image';
 import { AlertTriangle, HardDrive, ShieldCheck, Images } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getMediaScan, SCANNED_TABLES } from '@/data/domains/media';
+import { getMediaScan, SCANNED_TABLES } from '@/data/domains/(admin)/media/queries';
 import {
   FOLDER,
   isCloudinaryAdminConfigured,
@@ -13,8 +13,8 @@ import {
 } from '@/lib/cloudinary-admin';
 import { formatCairo } from '@/lib/timezone';
 import { OrphanGallery } from './OrphanGallery';
-import { getOrphanLedger } from '@/data/domains/media-cleanup';
-import { getSiteSettings } from '@/data/domains/content';
+import { getOrphanLedger } from '@/data/domains/(admin)/media/cleanup';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { autoDeleteDate } from '@/lib/media-cleanup';
 
 export const dynamic = 'force-dynamic';

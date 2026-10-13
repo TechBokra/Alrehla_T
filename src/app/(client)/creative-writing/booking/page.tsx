@@ -13,11 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
 import { Suspense } from 'react';
 import { PageContainer } from '@/components/PageContainer';
 import { BookingWizardClient } from '@/components/creative-writing/BookingWizardClient';
-import {
-  getPublicInstructors,
-  getWritingPackages,
-  getBookedSlotsByInstructor,
-} from '@/data/domains/writing';
+import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getBookedSlotsByInstructor } from '@/data/domains/(client)/bookings/queries';
 import { fetchFamilyMembers } from '@/app/actions/family';
 import { Section } from '@/components/ui/Section';
 

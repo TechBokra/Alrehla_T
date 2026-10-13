@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, CheckCircle2, Info } from 'lucide-react';
-import { getWritingPackages } from '@/data/domains/writing';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { formatPrice } from '@/lib/utils';
 import { pageMetadata } from '@/lib/seo';

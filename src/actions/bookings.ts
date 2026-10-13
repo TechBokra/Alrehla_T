@@ -8,10 +8,10 @@ import { notifyAdmins, notifyUser } from '@/lib/notifications';
 import { buildSessionSchedule } from '@/lib/session-schedule';
 import type { WeeklySlot } from '@/types';
 import { hasAdminPermission } from '@/lib/utils';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian, requireBuyer } from '@/lib/auth-guard';
 import { createSessionRoom, isDailyConfigured } from '@/lib/daily';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { isValidReceiptRef } from '@/lib/receipt-ref';
 
 export type BookingResult =
@@ -98,10 +98,10 @@ export async function createCourseBooking(params: {
 
   const { data, error } = await supabase.rpc('create_course_booking', {
     p_package_id: params.packageId,
-    p_instructor_id: params.instructorId || null,
+    p_instructor_id: params.instructorId || undefined,
     p_participant_type: params.participantType,
-    p_child_id: params.childId || null,
-    p_gift_message: params.giftMessage?.trim() || null,
+    p_child_id: params.childId || undefined,
+    p_gift_message: params.giftMessage?.trim() || undefined,
     // بيتبعت بس لو فيه كود — قبل ملف 13 الدالة مالهاش الخانة دي.
     ...(params.discountCode?.trim() ? { p_discount_code: params.discountCode.trim() } : {}),
   });

@@ -9,7 +9,7 @@ import {
   deleteAdminRole,
   assignAdminRole,
 } from '@/actions/admin-permissions';
-import type { AdminRoleRow } from '@/data/domains/auth';
+import type { AdminRoleRow } from '@/data/domains/(shared)/auth/queries';
 import { Field, TextInput, Select, Checkbox, BusyButton } from '@/components/forms/Form';
 
 // `field`: الخطأ على خانة بعينها (`name` أو `permissions`) — بيظهر تحتها.

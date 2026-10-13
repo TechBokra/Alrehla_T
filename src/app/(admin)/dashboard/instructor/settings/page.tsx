@@ -1,13 +1,11 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { InstructorSettingsClient } from './InstructorSettingsClient';
-import {
-  getInstructorById,
-  getPricingFormulaSettings,
-  getWritingPackages,
-  getPublicInstructorById,
-} from '@/data/domains/writing';
-import { getSiteSettings } from '@/data/domains/content';
-import { getMyInstructorId } from '@/data/domains/services';
+import { getInstructorById } from '@/data/domains/(admin)/instructors/queries';
+import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getPublicInstructorById } from '@/data/domains/(shared)/instructors/public';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,15 +15,16 @@ export default async function InstructorSettingsPage() {
   const instructorId = await getMyInstructorId();
   if (!instructorId) return null;
 
-  const [instructor, formulaSettings, settings, allPackages, publicRow] = await Promise.all([
-    getInstructorById(instructorId),
-    getPricingFormulaSettings(),
-    getSiteSettings(),
-    getWritingPackages(),
-    // ⚠️ نفس المصدر اللي معالج الحجز بيقرا منه — مصدرين لنفس الرقم
-    //    بيفترقوا يوم ما.
-    getPublicInstructorById(instructorId),
-  ]);
+  const [instructor, formulaSettings, settings, allPackages, publicRow] =
+    await Promise.all([
+      getInstructorById(instructorId),
+      getPricingFormulaSettings(),
+      getSiteSettings(),
+      getWritingPackages(),
+      // ⚠️ نفس المصدر اللي معالج الحجز بيقرا منه — مصدرين لنفس الرقم
+      //    بيفترقوا يوم ما.
+      getPublicInstructorById(instructorId),
+    ]);
 
   const packages = allPackages.filter((p) => p.isActive !== false);
 

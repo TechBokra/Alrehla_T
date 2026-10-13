@@ -1,7 +1,7 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getDueBoxShipments } from '@/data/domains/subscriptions';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getDueBoxShipments } from '@/data/domains/(admin)/subscriptions/shipments';
 import { hasAdminPermission } from '@/lib/utils';
 import { DueShipmentsClient } from './DueShipmentsClient';
 

@@ -6,11 +6,11 @@ import { Calendar, FileText, Video, ArrowLeft } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
-import { getDependentFollowUpData } from '@/data/domains/dependent-follow-up';
+import { getDependentFollowUpData } from '@/data/domains/(client)/family/follow-up';
 import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
 import { SessionReportCard } from '@/components/sessions/SessionReportCard';
-import { getSessionReportsFor } from '@/data/domains/writing';
+import { getSessionReportsFor } from '@/data/domains/(shared)/sessions/reports';
 
 export const dynamic = 'force-dynamic';
 

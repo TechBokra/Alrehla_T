@@ -4,7 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PageContainer } from '@/components/PageContainer';
 import { ArrowLeft, Calendar, User, BookOpen } from 'lucide-react';
-import { getBlogPosts, getBlogPostBySlug } from '@/data/domains/content';
+import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
+import { getBlogPostBySlug } from '@/data/domains/(client)/content/blog';
 import { notFound } from 'next/navigation';
 import { Section } from '@/components/ui/Section';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +14,7 @@ import { watermarkCloudinaryUrlsIn, addWatermark, optimizedImageUrl } from '@/li
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
 import { articleSchema, breadcrumbSchema } from '@/lib/structured-data';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { ShareSection } from '@/components/share/ShareSection';
 
 /**

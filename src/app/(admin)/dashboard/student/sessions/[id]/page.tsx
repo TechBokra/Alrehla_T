@@ -1,9 +1,9 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
 import { SessionReportCard } from '@/components/sessions/SessionReportCard';
-import { getStudentSessionPageData } from '@/data/domains/session-pages';
+import { getStudentSessionPageData } from '@/data/domains/(client)/sessions/page-data';
 import { FormError } from '@/components/ui/FormError';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Video, Clock, User, AlertCircle } from 'lucide-react';

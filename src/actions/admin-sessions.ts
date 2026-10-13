@@ -7,8 +7,8 @@ import { logAuditAction } from '@/lib/audit';
 import { notifyUser, getInstructorUserId } from '@/lib/notifications';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { checkScheduleTime, parseCairoInput } from '@/lib/session-plan';
-import { getSubscriptionSessionPlan } from '@/data/domains/session-admin';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSubscriptionSessionPlan } from '@/data/domains/(admin)/sessions/plan';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { createSessionRoom, isDailyConfigured, updateRoomTimes } from '@/lib/daily';
 
 /**

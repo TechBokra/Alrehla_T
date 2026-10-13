@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getParticipantName } from '@/data/domains/account';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getCourseSubscriptions } from '@/data/domains/writing';
+import { getParticipantName } from '@/data/domains/(shared)/participants/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getCourseSubscriptions } from '@/data/domains/(shared)/bookings/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';

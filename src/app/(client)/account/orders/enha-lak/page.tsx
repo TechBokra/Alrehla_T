@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
-import { getOrders } from '@/data/domains/orders';
-import { getPersonalizedProducts, getProductNamesFor } from '@/data/domains/products';
-import { getSiteSettings } from '@/data/domains/content';
+import { getOrders } from '@/data/domains/(client)/orders/queries';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
+import { getProductNamesFor } from '@/data/domains/(shared)/products/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { OrderLinesList } from '@/components/orders/OrderLinesList';
 import { orderLines } from '@/lib/order-lines';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';

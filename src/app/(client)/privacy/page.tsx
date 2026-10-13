@@ -5,7 +5,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { RichText } from '@/components/ui/RichText';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({

@@ -1,6 +1,6 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getMyPublisher } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';
 import { LogoutButton } from '@/components/LogoutButton';
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Upload, Trash2 } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { uploadImage } from '@/lib/upload-client';
+import { useImageSelection } from '@/lib/use-image-selection';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 /**
@@ -26,6 +27,7 @@ export function ImageField({
   name,
   label,
   folder,
+  onFileChange,
   value,
   onChange,
   hint,
@@ -37,6 +39,8 @@ export function ImageField({
   label: string;
   /** مجلد Cloudinary، مثال: alrehla/products */
   folder: string;
+  /** Select locally; the parent uploads only when submitting. */
+  onFileChange?: (file: File | null) => void;
   value?: string;
   onChange?: (url: string) => void;
   hint?: string;
@@ -48,6 +52,7 @@ export function ImageField({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
+  const { selection, select } = useImageSelection();
 
   const set = (next: string) => {
     setUrl(next);
@@ -56,6 +61,16 @@ export function ImageField({
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    if (onFileChange) {
+      try {
+        select(file);
+        setError('');
+        onFileChange(file);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'تعذّر اختيار الصورة');
+      }
+      return;
+    }
     setBusy(true);
     setProgress(0);
     setError('');
@@ -93,9 +108,10 @@ export function ImageField({
         <div
           className={`relative ${box} shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100`}
         >
-          {url ? (
+          {selection || url ? (
             <Image
-              src={optimizedImageUrl(url, 500)}
+              src={selection?.preview ?? optimizedImageUrl(url, 500)}
+              unoptimized={Boolean(selection)}
               alt={label}
               fill
               sizes="208px"
@@ -118,16 +134,16 @@ export function ImageField({
               accept="image/*"
               className="hidden"
               disabled={busy}
-              onChange={(e) => pick(e.target.files?.[0])}
+              onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }}
             />
           </label>
 
           {library && <LibraryPicker onPick={set} disabled={busy} />}
 
-          {url && (
+          {(selection || url) && (
             <button
               type="button"
-              onClick={() => set('')}
+              onClick={() => { select(null); onFileChange?.(null); set(''); }}
               className="rounded-xl border border-red-200 bg-white px-3 py-2 text-red-600 transition-colors hover:bg-red-50"
               aria-label="إزالة الصورة"
             >

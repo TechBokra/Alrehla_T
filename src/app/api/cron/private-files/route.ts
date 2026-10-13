@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { runPrivateFilesCleanup } from '@/data/domains/private-files-cleanup';
+import { runPrivateFilesCleanup } from '@/data/domains/(admin)/files/cleanup';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -24,7 +24,9 @@ export async function GET(request: Request) {
   const result = await runPrivateFilesCleanup();
   if (!result.ok) {
     console.error('private-files cron failed', result.error);
-    return NextResponse.json({ error: result.error }, { status: 500 });
+    return NextResponse.json({ error: result.error, queued: result.queued, attempted: result.attempted,
+      completed: result.completed, failed: result.failed, pending: result.pending }, { status: 500 });
   }
-  return NextResponse.json({ checked: result.checked, deleted: result.deleted });
+  return NextResponse.json({ queued: result.queued, attempted: result.attempted,
+    completed: result.completed, failed: result.failed, pending: result.pending });
 }

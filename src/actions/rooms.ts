@@ -12,7 +12,7 @@ import {
   getRoomsRecording,
   isDailyConfigured,
 } from '@/lib/daily';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 
 export type JoinResult = { ok: true; url: string } | { ok: false; error: string };
 

@@ -1,6 +1,6 @@
 import { PageContainer } from '@/components/PageContainer';
 import { AccountNav } from './AccountNav';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 
 /**
  * إطار صفحات حساب العميل.

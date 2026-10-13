@@ -1,5 +1,6 @@
-import { getCurrentUser } from '@/data/domains/auth';
-import { getDocumentById, getInstructorStudents } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getDocumentById } from '@/data/domains/(shared)/portfolio/queries';
+import { getInstructorStudents } from '@/data/domains/(admin)/instructors/students';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { InstructorDocumentClient } from './InstructorDocumentClient';

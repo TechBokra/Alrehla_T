@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, X, Banknote } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
-import type { WithdrawalRequestRow } from '@/data/domains/admin';
+import type { WithdrawalRequestRow } from '@/data/domains/(admin)/finance/types';
 import { setWithdrawalStatus } from '@/actions/withdrawals';
 import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';

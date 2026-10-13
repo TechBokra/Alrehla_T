@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { User, Upload } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { uploadImage } from '@/lib/upload-client';
+import { useImageSelection } from '@/lib/use-image-selection';
 
 /**
  * Choosing a profile or logo image.
@@ -18,6 +19,8 @@ export function AvatarPicker({
   onError,
   label,
   folder,
+  onFileChange,
+  disabled = false,
   rounded = 'full',
 }: {
   value: string;
@@ -25,12 +28,25 @@ export function AvatarPicker({
   onError: (message: string) => void;
   label: string;
   folder: string;
+  /** Select locally; the parent uploads only when submitting. */
+  onFileChange?: (file: File | null) => void;
   rounded?: 'full' | 'xl';
+  disabled?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
+  const { selection, select } = useImageSelection();
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    if (onFileChange) {
+      try {
+        select(file);
+        onFileChange(file);
+      } catch (err) {
+        onError(err instanceof Error ? err.message : 'تعذّر اختيار الصورة');
+      }
+      return;
+    }
     setUploading(true);
     try {
       const uploaded = await uploadImage(file, folder);
@@ -49,9 +65,10 @@ export function AvatarPicker({
           rounded === 'full' ? 'rounded-full' : 'rounded-2xl'
         }`}
       >
-        {value ? (
+        {selection || value ? (
           <Image
-            src={optimizedImageUrl(value, 200)}
+            src={selection?.preview ?? optimizedImageUrl(value, 200)}
+            unoptimized={Boolean(selection)}
             alt={label}
             fill sizes="96px"
             className="object-cover"
@@ -75,13 +92,15 @@ export function AvatarPicker({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => pick(e.target.files?.[0])}
+              disabled={disabled || uploading}
+              onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }}
             />
           </label>
-          {value && (
+          {(selection || value) && (
             <button
               type="button"
-              onClick={() => onChange('')}
+              disabled={disabled || uploading}
+              onClick={() => { select(null); onFileChange?.(null); onChange(''); }}
               className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-50"
             >
               حذف

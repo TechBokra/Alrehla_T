@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { uploadImage } from '@/lib/upload-client';
 import { useRouter } from 'next/navigation';
 import { Info, CheckCircle2, Sparkles } from 'lucide-react';
 import { Instructor } from '@/types';
@@ -38,6 +39,9 @@ export function InstructorProfileClient({
   const [yearsExperience, setYearsExperience] = useState(instructor.yearsExperience ?? 0);
 
   const [avatar, setAvatar] = useState(avatarUrl ?? '');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const uploadedAvatar = useRef<{ file: File; url: string } | null>(null);
+  const submitting = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -56,6 +60,7 @@ export function InstructorProfileClient({
       .filter(Boolean);
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
     setMessage('');
     setError('');
     setErrorField(undefined);
@@ -66,7 +71,7 @@ export function InstructorProfileClient({
         bio,
         specialties: parsedSpecialties(),
         yearsExperience: Number(yearsExperience),
-        avatarUrl: avatar,
+        avatarUrl: avatarFile ? 'selected-image' : avatar,
       });
       if (problem) {
         // الصورة مالهاش `Field` — رسالتها فوق زي ما كانت.
@@ -74,8 +79,17 @@ export function InstructorProfileClient({
         return;
       }
     }
+    submitting.current = true;
     setIsSaving(true);
     try {
+      let savedAvatar = avatar;
+      if (avatarFile) {
+        if (uploadedAvatar.current?.file !== avatarFile) {
+          const uploaded = await uploadImage(avatarFile, 'alrehla/avatars');
+          uploadedAvatar.current = { file: avatarFile, url: uploaded.url };
+        }
+        savedAvatar = uploadedAvatar.current.url;
+      }
       // ⚠️ **الصورة (ملف 15):** في الملف الأول بتتحفظ على طول (المدرب
       //    مش ظاهر للأهالي لسه، والإدارة بتشوفها وهي بتراجع ملفه). بعد
       //    التفعيل بتروح مع باقي التعديلات للمراجعة، والقديمة تفضل ظاهرة.
@@ -84,7 +98,7 @@ export function InstructorProfileClient({
       //    ولو الأول فشل، التاني مايتبعتش (زي ما كان الرمي بيوقفه).
       const profileResult = await updateMyProfile(
         firstProfile
-          ? { fullName: displayName.trim(), avatarUrl: avatar }
+          ? { fullName: displayName.trim(), avatarUrl: savedAvatar }
           : { fullName: displayName.trim() },
       );
       if (!profileResult.ok) {
@@ -100,12 +114,13 @@ export function InstructorProfileClient({
         bio: bio.trim(),
         specialties: parsedSpecialties(),
         yearsExperience: Number(yearsExperience) || 0,
-        ...(!firstProfile && avatar && avatar !== (avatarUrl ?? '') ? { avatarUrl: avatar } : {}),
+        ...(!firstProfile && savedAvatar && savedAvatar !== (avatarUrl ?? '') ? { avatarUrl: savedAvatar } : {}),
       });
       if (!result.ok) {
         showError(result.error, result.field === 'avatarUrl' ? undefined : result.field);
         return;
       }
+      setAvatar(savedAvatar);
       setMessage(
         firstProfile
           ? 'ملفك وصل للإدارة. أول ما يتعتمد وتخلّص التدريب، حسابك هيتفعّل.'
@@ -116,6 +131,7 @@ export function InstructorProfileClient({
       // للانقطاع وأي حاجة غير متوقعة — الأكشنين بيرجّعوا رسايلهم.
       setError('تعذّر إرسال التعديلات');
     } finally {
+      submitting.current = false;
       setIsSaving(false);
     }
   };
@@ -172,11 +188,13 @@ export function InstructorProfileClient({
       <AvatarPicker
         value={avatar}
         onChange={setAvatar}
+        onFileChange={setAvatarFile}
+        disabled={isSaving}
         onError={(message) => showError(message)}
         label={firstProfile ? 'الصورة الشخصية *' : 'الصورة الشخصية'}
         folder="alrehla/avatars"
       />
-      {!firstProfile && avatar !== (avatarUrl ?? '') && (
+      {!firstProfile && (avatarFile || avatar !== (avatarUrl ?? '')) && (
         <p className="-mt-2 text-sm font-medium text-amber-800">
           الصورة الجديدة هتظهر للأهالي بعد ما الإدارة تعتمدها — لحد كده صورتك الحالية هي اللي ظاهرة.
         </p>

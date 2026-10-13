@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getManagedProductById, getMyPublisher } from '@/data/domains/products';
+import { getManagedProductById } from '@/data/domains/(admin)/products/queries';
+import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';
 import { saveProduct } from '@/actions/products';
 import { ActionForm } from '@/components/dashboard/ActionForm';
-import { getPublisherPricingSettings } from '@/data/domains/admin';
+import { getPublisherPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { PublisherCostField } from '@/components/dashboard/PublisherCostField';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';

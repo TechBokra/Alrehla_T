@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PackageCheck, Building2 } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth-guard';
-import { getPendingProducts } from '@/data/domains/products';
+import { getPendingProducts } from '@/data/domains/(admin)/products/queries';
 import { reviewProduct } from '@/actions/products';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Card } from '@/components/ui/Card';

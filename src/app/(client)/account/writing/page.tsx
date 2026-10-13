@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getStudentDocuments } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getStudentDocuments } from '@/data/domains/(shared)/portfolio/queries';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { PortfolioListClient } from '@/app/(admin)/dashboard/student/portfolio/PortfolioListClient';
 

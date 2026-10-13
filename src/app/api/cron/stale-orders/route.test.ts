@@ -12,7 +12,7 @@ vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: mocks.createAdminClient,
   isAdminApiConfigured: mocks.isAdminApiConfigured,
 }));
-vi.mock('@/data/domains/content', () => ({ getSiteSettings: mocks.getSiteSettings }));
+vi.mock("@/data/domains/(shared)/settings/queries", () => ({ getSiteSettings: mocks.getSiteSettings }));
 vi.mock('@/lib/stale-orders', () => ({
   cancelStalePendingOrders: mocks.cancelStalePendingOrders,
   deliverStaleOrderNotifications: mocks.deliverStaleOrderNotifications,

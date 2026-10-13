@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, requireSuperAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import {
   SESSION_ROOM_PREFIX,
   deleteRecording,

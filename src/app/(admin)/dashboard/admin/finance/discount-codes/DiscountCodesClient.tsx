@@ -4,7 +4,7 @@ import { useNow } from '@/components/providers/ClientTimeProvider';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Ticket } from 'lucide-react';
-import type { DiscountCodeRow } from '@/data/domains/discount-codes';
+import type { DiscountCodeRow } from '@/data/domains/(admin)/finance/discount-codes';
 import { saveDiscountCode, setDiscountCodeActive, type DiscountCodeInput } from '@/actions/discount-codes';
 import { DISCOUNT_LINES, DISCOUNT_LINE_LABELS, linesSummary } from '@/lib/discount-codes';
 import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';

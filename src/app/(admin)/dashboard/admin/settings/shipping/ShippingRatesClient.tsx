@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Check, X, Search, TrendingUp } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
-import type { ShippingRateRow } from '@/data/domains/orders';
+import type { ShippingRateRow } from '@/data/domains/(shared)/shipping/types';
 import {
   upsertShippingRate,
   setShippingRateActive,

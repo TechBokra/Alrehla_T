@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { getDependentRequests } from '@/data/domains/dependent-requests';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getDependentRequests } from '@/data/domains/(client)/family/requests';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
-import { getMyServiceOrders } from '@/data/domains/services';
-import { getCourseSubscriptions, getWritingPackages } from '@/data/domains/writing';
-import { getOrders } from '@/data/domains/orders';
+import { getMyServiceOrders } from '@/data/domains/(client)/service-orders/queries';
+import { getCourseSubscriptions } from '@/data/domains/(shared)/bookings/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { formatCairo } from '@/lib/timezone';
 import { formatDate, formatPrice } from '@/lib/utils';

@@ -13,13 +13,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { notFound, permanentRedirect } from 'next/navigation';
-import { getProductBySlug, getAddonProducts, productRedirectPath } from '@/data/domains/products';
+import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
+import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
-import { getMyAddonDiscount } from '@/data/domains/subscriptions';
-import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
+import { getMyAddonDiscount } from '@/data/domains/(client)/subscriptions/box';
+import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
 
 interface PageProps {
   params: Promise<{ productSlug: string }>;

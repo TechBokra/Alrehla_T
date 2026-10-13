@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, X, Clock, MessageSquare } from 'lucide-react';
-import type { DependentRequestRow } from '@/data/domains/dependent-requests';
+import type { DependentRequestRow } from '@/data/domains/(client)/family/requests';
 import {
   approveDependentRequest,
   approveNameChange,

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { DueBoxShipment } from '@/data/domains/subscriptions';
+import type { DueBoxShipment } from '@/data/domains/(shared)/subscriptions/types';
 import { updateBoxShipment } from '@/actions/box-subscriptions';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';

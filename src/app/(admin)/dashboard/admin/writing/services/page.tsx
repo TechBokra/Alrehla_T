@@ -1,7 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getOrderableProviderCounts, getStandaloneServices } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getOrderableProviderCounts } from '@/data/domains/(shared)/services/queries';
+import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { ServicesManagerClient } from './ServicesManagerClient';

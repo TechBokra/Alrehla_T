@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { LogoutButton } from '@/components/LogoutButton';
 import { StudentProfileClient } from './StudentProfileClient';

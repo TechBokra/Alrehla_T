@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.116.0",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "2.11.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "lucide-react": "^0.553.0",

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { slotImageUrl, optimizedImageUrl } from '@/lib/cloudinary';
 
 /**

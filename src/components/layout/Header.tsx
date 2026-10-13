@@ -6,7 +6,7 @@ import { CartHeaderButton } from '@/components/cart/CartHeaderButton';
 import { HeaderAccount } from '@/components/layout/HeaderAccount';
 import { NavLinks, NavLinksMobile } from '@/components/layout/NavLinks';
 import { NavCollapseOnScroll } from '@/components/layout/NavCollapseOnScroll';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { slotImageUrl } from '@/lib/cloudinary';
 
 /**

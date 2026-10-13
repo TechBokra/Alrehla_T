@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { logAuditAction } from '@/lib/audit';
+import { cleanupReplacedImages } from '@/data/domains/(admin)/media/image-replacement';
 
 /**
  * A person editing their own profile.
@@ -37,6 +38,13 @@ export async function updateMyProfile(params: {
   } = await supabase.auth.getUser();
   if (!user) return fail('يجب تسجيل الدخول أولاً');
 
+  let oldAvatar: string | null = null;
+  if (params.avatarUrl !== undefined) {
+    const previous = await supabase.from('user_profiles').select('avatar_url').eq('id', user.id).maybeSingle();
+    if (previous.error) return fail('تعذّر قراءة الصورة الحالية');
+    oldAvatar = previous.data?.avatar_url ?? null;
+  }
+
   // ⚠️ الصورة بتتلمس بس لو اتبعتت: المدرب المفعّل بيبعت الاسم لوحده
   //    (صورته بتروح في طلب المراجعة — ملف 15)، وكانت `undefined` هنا
   //    بتمسح صورته.
@@ -62,6 +70,10 @@ export async function updateMyProfile(params: {
   // ومفيش حاجة وصلت للقاعدة، والمستخدم بيدوّر على صورته وما بيلاقيهاش.
   if (!saved || saved.length === 0) {
     return fail('لم يصل الحفظ إلى قاعدة البيانات. جرّب تاني.');
+  }
+
+  if (params.avatarUrl !== undefined && oldAvatar !== params.avatarUrl.trim()) {
+    await cleanupReplacedImages([oldAvatar]);
   }
 
   revalidatePath('/dashboard/student/profile');

@@ -1,8 +1,9 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { customizationAppliesToReady, getAllCustomizationFields } from '@/data/domains/customization-fields';
-import { getManagedProducts } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { customizationAppliesToReady } from '@/data/domains/(shared)/products/customization-fields';
+import { getAllCustomizationFields } from '@/data/domains/(admin)/products/customization-fields';
+import { getManagedProducts } from '@/data/domains/(shared)/products/queries';
 import { appliesToProducts } from '@/lib/applies-to';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';

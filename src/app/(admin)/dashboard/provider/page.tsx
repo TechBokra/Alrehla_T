@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
-import { getMyProvider, getServiceOrdersByProvider } from '@/data/domains/providers';
+import { getMyProvider, getServiceOrdersByProvider } from '@/data/domains/(admin)/providers/queries';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { dueLabel, isOverdue, OPEN_SERVICE_STATUSES } from '@/lib/service-delivery';
 

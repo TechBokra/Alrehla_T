@@ -1,4 +1,5 @@
-import { getPersonalizedProducts, getPublisherBySlug } from '@/data/domains/products';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
+import { getPublisherBySlug } from '@/data/domains/(client)/publishers/queries';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import Image from 'next/image';

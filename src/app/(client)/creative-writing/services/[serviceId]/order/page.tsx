@@ -12,14 +12,15 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
-import { getStandaloneServices, getProvidersForService } from '@/data/domains/services';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
+import { getProvidersForService } from '@/data/domains/(client)/services/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { OrderServiceClient } from './OrderServiceClient';
 
 import { kindsLabel } from '@/lib/private-files';

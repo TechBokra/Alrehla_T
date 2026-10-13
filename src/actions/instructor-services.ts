@@ -4,8 +4,8 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getMyInstructorId } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { notifyUser, getInstructorUserId } from '@/lib/notifications';
 
 /**

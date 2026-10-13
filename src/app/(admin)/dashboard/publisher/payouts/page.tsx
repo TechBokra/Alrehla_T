@@ -2,11 +2,11 @@ import { formatPrice } from '@/lib/utils';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
-import { getPublisherPayouts } from '@/data/domains/admin';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getPublisherPayouts } from '@/data/domains/(admin)/finance/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { redirect } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
-import { getMyOpenWithdrawalRequests } from '@/data/domains/admin';
+import { getMyOpenWithdrawalRequests } from '@/data/domains/(admin)/finance/queries';
 import { PublisherPayoutsClient } from './PublisherPayoutsClient';
 
 export const dynamic = 'force-dynamic';

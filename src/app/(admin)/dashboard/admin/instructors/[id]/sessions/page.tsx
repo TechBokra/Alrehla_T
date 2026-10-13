@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getInstructors, getSessions } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';

@@ -1,12 +1,10 @@
 import { formatDate , formatPrice } from '@/lib/utils';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getOrders } from '@/data/domains/orders';
-import {
-  getWritingPackages,
-  getCourseSubscriptions,
-  getSessions,
-  getSessionReport,
-} from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getOrders } from '@/data/domains/(client)/orders/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getCourseSubscriptions } from '@/data/domains/(shared)/bookings/queries';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
+import { getSessionReport } from '@/data/domains/(shared)/sessions/reports';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Book, ShoppingBag, ArrowLeft, FileText, User, FileBox } from 'lucide-react';

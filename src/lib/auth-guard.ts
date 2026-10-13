@@ -1,5 +1,5 @@
 import 'server-only';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import type { AdminPermission, UserProfile } from '@/types';
 

@@ -6,633 +6,747 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-/**
- * شكل قاعدة البيانات كما هي فعلًا (مشروع xxptugdbtzkjyydveprp).
- *
- * ⚠️ الملف ده المفروض يتولّد تلقائيًا:
- *
- *     npx supabase gen types typescript --project-id xxptugdbtzkjyydveprp
- *
- * لكنه اتعدّل بإيد أكتر من مرة لما اتضافت جداول جديدة. آخر مطابقة كاملة
- * مع قاعدة البيانات الحقيقية كانت في سبتمبر 2026، وطلعت **صفر فروق**:
- * 44 جدول، كل عمود بنوعه وحالة السماح بالفراغ.
- *
- * ليه ده مهم: نسخة قديمة من الملف ده هي اللي سمحت قبل كده بكتابة كود
- * على أعمدة مش موجودة (child_profiles.name و .age)، والكود ده وصل
- * للإنتاج مكسور.
- *
- * القاعدة: أي تعديل على قاعدة البيانات لازم يتبعه تحديث هنا، والأفضل
- * بالتوليد التلقائي مش بالإيد.
- */
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
+  }
   public: {
     Tables: {
       account_deletion_requests: {
         Row: {
-          id: string
-          user_id: string
-          reason: string | null
-          status: string
           admin_notes: string | null
           created_at: string
           handled_at: string | null
           handled_by: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          reason?: string | null
-          status?: string
-          admin_notes?: string | null
-          created_at?: string
-          handled_at?: string | null
-          handled_by?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          reason?: string | null
-          status?: string
-          admin_notes?: string | null
-          created_at?: string
-          handled_at?: string | null
-          handled_by?: string | null
-        }
-        Relationships: []
-      }
-      /** آراء العملاء لكل خط — schema/10. */
-      customer_feedback: {
-        Row: {
           id: string
+          reason: string | null
+          status: string
           user_id: string
-          line: 'enha_lak' | 'creative_writing'
-          rating: number
-          comment: string | null
-          status: 'new' | 'seen'
-          admin_note: string | null
-          created_at: string
-          handled_at: string | null
-          handled_by: string | null
         }
         Insert: {
-          id?: string
-          user_id: string
-          line: 'enha_lak' | 'creative_writing'
-          rating: number
-          comment?: string | null
-          status?: 'new' | 'seen'
-          admin_note?: string | null
+          admin_notes?: string | null
           created_at?: string
           handled_at?: string | null
           handled_by?: string | null
+          id?: string
+          reason?: string | null
+          status?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          line?: 'enha_lak' | 'creative_writing'
-          rating?: number
-          comment?: string | null
-          status?: 'new' | 'seen'
-          admin_note?: string | null
+          admin_notes?: string | null
           created_at?: string
           handled_at?: string | null
           handled_by?: string | null
+          id?: string
+          reason?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
       addon_products: {
         Row: {
-          id: string
-          slug: string
-          name: string
+          created_at: string
+          customization_price: number
           description: string | null
-          price: number
+          features: string[] | null
+          gallery_image_urls: string[] | null
+          id: string
+          image_url: string | null
           is_active: boolean
+          long_description: string | null
+          name: string
+          price: number
+          slug: string
           sort_order: number
           supports_customization: boolean
-          customization_price: number
-          /** ملف 12 — Cloudinary بس. */
-          image_url: string | null
-          created_at: string
           updated_at: string
-          gallery_image_urls: string[] | null
-          long_description: string | null
-          features: string[] | null
         }
         Insert: {
-          id?: string
-          slug: string
-          name: string
+          created_at?: string
+          customization_price?: number
           description?: string | null
-          price?: number
+          features?: string[] | null
+          gallery_image_urls?: string[] | null
+          id?: string
+          image_url?: string | null
           is_active?: boolean
+          long_description?: string | null
+          name: string
+          price?: number
+          slug: string
           sort_order?: number
           supports_customization?: boolean
-          customization_price?: number
-          image_url?: string | null
-          created_at?: string
           updated_at?: string
-          gallery_image_urls?: string[] | null
-          long_description?: string | null
-          features?: string[] | null
         }
         Update: {
-          id?: string
-          slug?: string
-          name?: string
+          created_at?: string
+          customization_price?: number
           description?: string | null
-          price?: number
+          features?: string[] | null
+          gallery_image_urls?: string[] | null
+          id?: string
+          image_url?: string | null
           is_active?: boolean
+          long_description?: string | null
+          name?: string
+          price?: number
+          slug?: string
           sort_order?: number
           supports_customization?: boolean
-          customization_price?: number
-          image_url?: string | null
-          created_at?: string
           updated_at?: string
-          gallery_image_urls?: string[] | null
-          long_description?: string | null
-          features?: string[] | null
         }
         Relationships: []
       }
-      audit_logs: {
+      admin_roles: {
         Row: {
-          id: string
-          actor_profile_id: string | null
-          action: string
-          entity_type: string | null
-          entity_id: string | null
-          metadata: Json | null
           created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          permissions: string[]
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          id?: string
-          actor_profile_id?: string | null
-          action: string
-          entity_type?: string | null
-          entity_id?: string | null
-          metadata?: Json | null
           created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          permissions?: string[]
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          id?: string
-          actor_profile_id?: string | null
-          action?: string
-          entity_type?: string | null
-          entity_id?: string | null
-          metadata?: Json | null
           created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          permissions?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_roles_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_rules: {
+        Row: {
+          created_at: string
+          line: string
+          profile_id: string
+          stage: string
+        }
+        Insert: {
+          created_at?: string
+          line: string
+          profile_id: string
+          stage: string
+        }
+        Update: {
+          created_at?: string
+          line?: string
+          profile_id?: string
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_rules_profile_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_profile_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_profile_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_profile_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
         }
         Relationships: []
       }
       blog_posts: {
         Row: {
-          id: string
-          slug: string
-          title: string
-          excerpt: string
+          author_name: string
           content: string
           cover_image_url: string | null
-          author_name: string
-          published_at: string
           created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
+          excerpt: string
+          id: string
+          published_at: string
           slug: string
           title: string
-          excerpt: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string
           content: string
           cover_image_url?: string | null
-          author_name?: string
-          published_at?: string
           created_at?: string
+          excerpt: string
+          id?: string
+          published_at?: string
+          slug: string
+          title: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          slug?: string
-          title?: string
-          excerpt?: string
+          author_name?: string
           content?: string
           cover_image_url?: string | null
-          author_name?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
           published_at?: string
-          created_at?: string
+          slug?: string
+          title?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      bookings: {
-        Row: {
-          id: string
-          dependent_participant_id: string | null
-          independent_participant_id: string | null
-          package_id: string
-          instructor_id: string | null
-          course_subscription_id: string | null
-          status: Database["public"]["Enums"]["booking_status_enum"]
-          scheduled_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          package_id: string
-          instructor_id?: string | null
-          course_subscription_id?: string | null
-          status?: Database["public"]["Enums"]["booking_status_enum"]
-          scheduled_at: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          package_id?: string
-          instructor_id?: string | null
-          course_subscription_id?: string | null
-          status?: Database["public"]["Enums"]["booking_status_enum"]
-          scheduled_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      box_subscription_plans: {
-        Row: {
-          id: string
-          name: string
-          price_total: number
-          price_monthly: number
-          duration_months: number
-          savings_note: string | null
-          image_url: string | null
-          description: string | null
-          features: string[]
-          is_highlighted: boolean
-          is_active: boolean
-          sort_order: number
-          updated_at: string
-          addon_discount_percent: number
-          free_addon_id: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          price_total: number
-          price_monthly: number
-          duration_months: number
-          savings_note?: string | null
-          image_url?: string | null
-          description?: string | null
-          features?: string[]
-          is_highlighted?: boolean
-          is_active?: boolean
-          sort_order?: number
-          updated_at?: string
-          addon_discount_percent?: number
-          free_addon_id?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          price_total?: number
-          price_monthly?: number
-          duration_months?: number
-          savings_note?: string | null
-          image_url?: string | null
-          description?: string | null
-          features?: string[]
-          is_highlighted?: boolean
-          is_active?: boolean
-          sort_order?: number
-          updated_at?: string
-          addon_discount_percent?: number
-          free_addon_id?: string | null
         }
         Relationships: []
       }
       box_shipments: {
         Row: {
-          id: string
-          subscription_id: string
-          month_number: number
-          goal: string | null
-          status: string
-          tracking_reference: string | null
-          shipped_at: string | null
-          delivered_at: string | null
           created_at: string
+          delivered_at: string | null
+          goal: string | null
+          id: string
+          month_number: number
+          shipped_at: string | null
+          status: string
+          subscription_id: string
+          tracking_reference: string | null
           updated_at: string
         }
         Insert: {
-          id?: string
-          subscription_id?: string
-          month_number?: number
-          goal?: string | null
-          status?: string
-          tracking_reference?: string | null
-          shipped_at?: string | null
-          delivered_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          goal?: string | null
+          id?: string
+          month_number: number
+          shipped_at?: string | null
+          status?: string
+          subscription_id: string
+          tracking_reference?: string | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          subscription_id?: string
-          month_number?: number
-          goal?: string | null
-          status?: string
-          tracking_reference?: string | null
-          shipped_at?: string | null
-          delivered_at?: string | null
           created_at?: string
+          delivered_at?: string | null
+          goal?: string | null
+          id?: string
+          month_number?: number
+          shipped_at?: string | null
+          status?: string
+          subscription_id?: string
+          tracking_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "box_shipments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "box_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      box_subscription_plans: {
+        Row: {
+          addon_discount_percent: number
+          description: string | null
+          duration_months: number
+          features: string[]
+          free_addon_id: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_highlighted: boolean
+          name: string
+          price_monthly: number
+          price_total: number
+          savings_note: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          addon_discount_percent?: number
+          description?: string | null
+          duration_months: number
+          features?: string[]
+          free_addon_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_highlighted?: boolean
+          name: string
+          price_monthly: number
+          price_total: number
+          savings_note?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          addon_discount_percent?: number
+          description?: string | null
+          duration_months?: number
+          features?: string[]
+          free_addon_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_highlighted?: boolean
+          name?: string
+          price_monthly?: number
+          price_total?: number
+          savings_note?: string | null
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
       }
       box_subscriptions: {
         Row: {
-          id: string
-          user_id: string | null
-          customer_name: string
-          plan_name: string
-          status: Database["public"]["Enums"]["sub_status_enum"]
-          next_shipment_date: string | null
+          addon_discount_percent: number
           created_at: string
-          updated_at: string
+          customer_name: string
+          details: Json | null
+          ends_at: string | null
+          free_addon_name: string | null
+          id: string
+          months: number | null
+          next_shipment_date: string | null
           order_id: string | null
           plan_id: string | null
-          months: number | null
+          plan_name: string
           starts_at: string | null
-          ends_at: string | null
-          addon_discount_percent: number
-          free_addon_name: string | null
-          details: Json | null
+          status: Database["public"]["Enums"]["sub_status_enum"]
+          updated_at: string
+          user_id: string | null
         }
         Insert: {
-          id?: string
-          user_id?: string | null
-          customer_name: string
-          plan_name: string
-          status?: Database["public"]["Enums"]["sub_status_enum"]
-          next_shipment_date?: string | null
+          addon_discount_percent?: number
           created_at?: string
-          updated_at?: string
+          customer_name: string
+          details?: Json | null
+          ends_at?: string | null
+          free_addon_name?: string | null
+          id?: string
+          months?: number | null
+          next_shipment_date?: string | null
           order_id?: string | null
           plan_id?: string | null
-          months?: number | null
+          plan_name: string
           starts_at?: string | null
-          ends_at?: string | null
-          addon_discount_percent?: number
-          free_addon_name?: string | null
-          details?: Json | null
+          status?: Database["public"]["Enums"]["sub_status_enum"]
+          updated_at?: string
+          user_id?: string | null
         }
         Update: {
-          id?: string
-          user_id?: string | null
-          customer_name?: string
-          plan_name?: string
-          status?: Database["public"]["Enums"]["sub_status_enum"]
-          next_shipment_date?: string | null
+          addon_discount_percent?: number
           created_at?: string
-          updated_at?: string
+          customer_name?: string
+          details?: Json | null
+          ends_at?: string | null
+          free_addon_name?: string | null
+          id?: string
+          months?: number | null
+          next_shipment_date?: string | null
           order_id?: string | null
           plan_id?: string | null
-          months?: number | null
+          plan_name?: string
           starts_at?: string | null
-          ends_at?: string | null
-          addon_discount_percent?: number
-          free_addon_name?: string | null
-          details?: Json | null
+          status?: Database["public"]["Enums"]["sub_status_enum"]
+          updated_at?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "box_subscriptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "box_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       child_profiles: {
         Row: {
+          account_profile_id: string | null
+          avatar_url: string | null
+          birth_date: string | null
+          created_at: string
+          full_name: string
+          gender: string | null
           id: string
           user_profile_id: string
-          full_name: string
-          birth_date: string | null
-          gender: string | null
-          avatar_url: string | null
-          created_at: string
-          account_profile_id: string | null
         }
         Insert: {
+          account_profile_id?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          full_name: string
+          gender?: string | null
           id?: string
           user_profile_id: string
-          full_name: string
-          birth_date?: string | null
-          gender?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          account_profile_id?: string | null
         }
         Update: {
+          account_profile_id?: string | null
+          avatar_url?: string | null
+          birth_date?: string | null
+          created_at?: string
+          full_name?: string
+          gender?: string | null
           id?: string
           user_profile_id?: string
-          full_name?: string
-          birth_date?: string | null
-          gender?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          account_profile_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "child_profiles_user_profile_id_fkey"
+            columns: ["user_profile_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_subscriptions: {
         Row: {
+          amount: number | null
+          child_id: string | null
+          created_at: string
+          discount_amount: number
+          discount_code: string | null
+          gift_message: string | null
           id: string
           package_id: string
-          user_id: string
           participant_type: string
-          child_id: string | null
-          status: string
-          started_at: string | null
-          created_at: string
-          amount: number | null
-          transaction_reference: string | null
-          preferred_instructor_id: string | null
-          payment_reference: string | null
           payment_method: string | null
           payment_receipt_url: string | null
+          payment_reference: string | null
+          preferred_instructor_id: string | null
           preferred_slot: Json | null
-          /** إهداء خاص — ملف SQL 86. */
-          gift_message: string | null
-          /** وقت موافقة ولي الأمر على تسجيل الجلسات — SQL 111.
-           *  فاضي = مفيش موافقة مسجّلة (حجز قبل تفعيل الميزة). */
           recording_consent_at: string | null
-          discount_code: string | null
-          discount_amount: number
+          started_at: string | null
+          status: string
+          transaction_reference: string | null
+          user_id: string
         }
         Insert: {
+          amount?: number | null
+          child_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          discount_code?: string | null
+          gift_message?: string | null
           id?: string
           package_id: string
-          user_id: string
           participant_type: string
-          child_id?: string | null
-          status?: string
-          started_at?: string | null
-          created_at?: string
-          amount?: number | null
-          transaction_reference?: string | null
-          preferred_instructor_id?: string | null
-          payment_reference?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          payment_reference?: string | null
+          preferred_instructor_id?: string | null
           preferred_slot?: Json | null
-          gift_message?: string | null
           recording_consent_at?: string | null
-          discount_code?: string | null
-          discount_amount?: number
+          started_at?: string | null
+          status?: string
+          transaction_reference?: string | null
+          user_id: string
         }
         Update: {
+          amount?: number | null
+          child_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          discount_code?: string | null
+          gift_message?: string | null
           id?: string
           package_id?: string
-          user_id?: string
           participant_type?: string
-          child_id?: string | null
-          status?: string
-          started_at?: string | null
-          created_at?: string
-          amount?: number | null
-          transaction_reference?: string | null
-          preferred_instructor_id?: string | null
-          payment_reference?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          payment_reference?: string | null
+          preferred_instructor_id?: string | null
           preferred_slot?: Json | null
-          gift_message?: string | null
           recording_consent_at?: string | null
-          discount_code?: string | null
-          discount_amount?: number
+          started_at?: string | null
+          status?: string
+          transaction_reference?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "course_subscriptions_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_subscriptions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creative_writing_packages: {
         Row: {
-          id: string
-          slug: string
-          name: string
           age_group: Database["public"]["Enums"]["age_group"]
-          price: number
+          created_at: string
           duration_text: string | null
-          sessions_count: number | null
-          session_duration: string | null
-          target_audience: string | null
+          full_description: string | null
+          id: string
+          is_active: boolean
+          name: string
           prerequisite_note: string | null
           prerequisite_package_id: string | null
+          price: number
+          session_duration: string | null
+          sessions_count: number | null
           short_description: string | null
-          full_description: string | null
+          slug: string
+          target_audience: string | null
           track: string | null
-          is_active: boolean
-          created_at: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          slug: string
-          name: string
           age_group: Database["public"]["Enums"]["age_group"]
-          price: number
+          created_at?: string
           duration_text?: string | null
-          sessions_count?: number | null
-          session_duration?: string | null
-          target_audience?: string | null
+          full_description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
           prerequisite_note?: string | null
           prerequisite_package_id?: string | null
+          price: number
+          session_duration?: string | null
+          sessions_count?: number | null
           short_description?: string | null
-          full_description?: string | null
+          slug: string
+          target_audience?: string | null
           track?: string | null
-          is_active?: boolean
-          created_at?: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          slug?: string
-          name?: string
           age_group?: Database["public"]["Enums"]["age_group"]
-          price?: number
+          created_at?: string
           duration_text?: string | null
-          sessions_count?: number | null
-          session_duration?: string | null
-          target_audience?: string | null
+          full_description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
           prerequisite_note?: string | null
           prerequisite_package_id?: string | null
+          price?: number
+          session_duration?: string | null
+          sessions_count?: number | null
           short_description?: string | null
-          full_description?: string | null
+          slug?: string
+          target_audience?: string | null
           track?: string | null
-          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_writing_packages_prerequisite_package_id_fkey"
+            columns: ["prerequisite_package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_feedback: {
+        Row: {
+          admin_note: string | null
+          comment: string | null
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          line: string
+          rating: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          comment?: string | null
           created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          line: string
+          rating: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          comment?: string | null
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          line?: string
+          rating?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customization_fields: {
+        Row: {
+          applies_to: string[] | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          label: string
+          placeholder: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label: string
+          placeholder?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label?: string
+          placeholder?: string | null
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
       }
       dependent_requests: {
         Row: {
-          id: string
           child_profile_id: string
-          guardian_profile_id: string
-          requester_profile_id: string | null
-          kind: string
-          service_id: string | null
-          provider_id: string | null
-          package_id: string | null
-          product_id: string | null
-          instructor_id: string | null
-          preferred_slot: Json | null
-          note: string | null
-          /** الاسم المطلوب — لطلبات name_change (ملف SQL 93). */
-          requested_name: string | null
-          status: string
-          guardian_note: string | null
-          decided_at: string | null
           created_at: string
+          decided_at: string | null
+          guardian_note: string | null
+          guardian_profile_id: string
+          id: string
+          instructor_id: string | null
+          kind: string
+          note: string | null
+          package_id: string | null
+          preferred_slot: Json | null
+          product_id: string | null
+          provider_id: string | null
+          requested_name: string | null
+          requester_profile_id: string | null
+          service_id: string | null
+          status: string
         }
         Insert: {
-          id?: string
           child_profile_id: string
-          guardian_profile_id: string
-          requester_profile_id?: string | null
-          kind: string
-          service_id?: string | null
-          provider_id?: string | null
-          package_id?: string | null
-          product_id?: string | null
-          instructor_id?: string | null
-          preferred_slot?: Json | null
-          note?: string | null
-          requested_name?: string | null
-          status?: string
-          guardian_note?: string | null
-          decided_at?: string | null
           created_at?: string
+          decided_at?: string | null
+          guardian_note?: string | null
+          guardian_profile_id: string
+          id?: string
+          instructor_id?: string | null
+          kind: string
+          note?: string | null
+          package_id?: string | null
+          preferred_slot?: Json | null
+          product_id?: string | null
+          provider_id?: string | null
+          requested_name?: string | null
+          requester_profile_id?: string | null
+          service_id?: string | null
+          status?: string
         }
         Update: {
-          id?: string
           child_profile_id?: string
-          guardian_profile_id?: string
-          requester_profile_id?: string | null
-          kind?: string
-          service_id?: string | null
-          provider_id?: string | null
-          package_id?: string | null
-          product_id?: string | null
-          instructor_id?: string | null
-          preferred_slot?: Json | null
-          note?: string | null
-          requested_name?: string | null
-          status?: string
-          guardian_note?: string | null
-          decided_at?: string | null
           created_at?: string
+          decided_at?: string | null
+          guardian_note?: string | null
+          guardian_profile_id?: string
+          id?: string
+          instructor_id?: string | null
+          kind?: string
+          note?: string | null
+          package_id?: string | null
+          preferred_slot?: Json | null
+          product_id?: string | null
+          provider_id?: string | null
+          requested_name?: string | null
+          requester_profile_id?: string | null
+          service_id?: string | null
+          status?: string
         }
         Relationships: [
           {
@@ -641,1261 +755,1450 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "child_profiles"
             referencedColumns: ["id"]
-          }
+          },
+          {
+            foreignKeyName: "dependent_requests_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dependent_requests_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dependent_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "personalized_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dependent_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dependent_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_services"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      discount_code_uses: {
+        Row: {
+          code_id: string
+          created_at: string
+          discount_amount: number
+          id: string
+          line: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          created_at?: string
+          discount_amount: number
+          id?: string
+          line: string
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          line?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_code_uses_code_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discount_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          lines: string[] | null
+          max_uses: number | null
+          note: string | null
+          percent: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          lines?: string[] | null
+          max_uses?: number | null
+          note?: string | null
+          percent: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          lines?: string[] | null
+          max_uses?: number | null
+          note?: string | null
+          percent?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       instructor_certifications: {
         Row: {
+          certified_at: string | null
+          exam_passed: boolean
+          exam_score: number | null
           id: string
           instructor_id: string
           training_completed_at: string | null
           training_meeting_link: string | null
-          exam_passed: boolean
-          exam_score: number | null
-          certified_at: string | null
         }
         Insert: {
+          certified_at?: string | null
+          exam_passed?: boolean
+          exam_score?: number | null
           id?: string
           instructor_id: string
           training_completed_at?: string | null
           training_meeting_link?: string | null
-          exam_passed?: boolean
-          exam_score?: number | null
-          certified_at?: string | null
         }
         Update: {
+          certified_at?: string | null
+          exam_passed?: boolean
+          exam_score?: number | null
           id?: string
           instructor_id?: string
           training_completed_at?: string | null
           training_meeting_link?: string | null
-          exam_passed?: boolean
-          exam_score?: number | null
-          certified_at?: string | null
         }
         Relationships: []
       }
-      instructor_compensation_profiles: {
+      instructor_media: {
         Row: {
-          id: string
-          instructor_id: string
-          billing_model: Database["public"]["Enums"]["compensation_billing_model"]
-          selected_pricing_option_id: string | null
-          monthly_minimum_hours: number | null
-          overtime_rate_per_hour: number | null
-          approval_status: Database["public"]["Enums"]["compensation_approval_status"]
-          admin_notes: string | null
-          reviewed_by_profile_id: string | null
+          admin_feedback: string | null
+          contribution: string | null
           created_at: string
+          id: string
+          image_url: string
+          instructor_id: string
+          kind: string
+          sort_order: number
+          status: string
+          title: string | null
           updated_at: string
         }
         Insert: {
-          id?: string
-          instructor_id: string
-          billing_model: Database["public"]["Enums"]["compensation_billing_model"]
-          selected_pricing_option_id?: string | null
-          monthly_minimum_hours?: number | null
-          overtime_rate_per_hour?: number | null
-          approval_status?: Database["public"]["Enums"]["compensation_approval_status"]
-          admin_notes?: string | null
-          reviewed_by_profile_id?: string | null
+          admin_feedback?: string | null
+          contribution?: string | null
           created_at?: string
+          id?: string
+          image_url: string
+          instructor_id: string
+          kind: string
+          sort_order?: number
+          status?: string
+          title?: string | null
           updated_at?: string
         }
         Update: {
-          id?: string
-          instructor_id?: string
-          billing_model?: Database["public"]["Enums"]["compensation_billing_model"]
-          selected_pricing_option_id?: string | null
-          monthly_minimum_hours?: number | null
-          overtime_rate_per_hour?: number | null
-          approval_status?: Database["public"]["Enums"]["compensation_approval_status"]
-          admin_notes?: string | null
-          reviewed_by_profile_id?: string | null
+          admin_feedback?: string | null
+          contribution?: string | null
           created_at?: string
+          id?: string
+          image_url?: string
+          instructor_id?: string
+          kind?: string
+          sort_order?: number
+          status?: string
+          title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructor_media_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instructor_packages: {
+        Row: {
+          created_at: string
+          instructor_id: string
+          package_id: string
+        }
+        Insert: {
+          created_at?: string
+          instructor_id: string
+          package_id: string
+        }
+        Update: {
+          created_at?: string
+          instructor_id?: string
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_packages_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       instructor_payouts: {
         Row: {
+          amount: number
+          created_at: string
+          description: string | null
           id: string
           instructor_id: string
           period: string
-          amount: number
-          status: Database["public"]["Enums"]["payout_status_enum"]
-          created_at: string
-          updated_at: string
-          source_type: string | null
           source_id: string | null
-          description: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at: string
         }
         Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
           id?: string
           instructor_id: string
           period: string
-          amount: number
-          status?: Database["public"]["Enums"]["payout_status_enum"]
-          created_at?: string
-          updated_at?: string
-          source_type?: string | null
           source_id?: string | null
-          description?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at?: string
         }
         Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
           id?: string
           instructor_id?: string
           period?: string
-          amount?: number
-          status?: Database["public"]["Enums"]["payout_status_enum"]
-          created_at?: string
-          updated_at?: string
-          source_type?: string | null
           source_id?: string | null
-          description?: string | null
-        }
-        Relationships: []
-      }
-      instructor_pricing_options: {
-        Row: {
-          id: string
-          label: string
-          base_price_per_session: number
-          is_active: boolean
-        }
-        Insert: {
-          id?: string
-          label: string
-          base_price_per_session: number
-          is_active?: boolean
-        }
-        Update: {
-          id?: string
-          label?: string
-          base_price_per_session?: number
-          is_active?: boolean
-        }
-        Relationships: []
-      }
-      instructor_services: {
-        Row: {
-          id: string
-          instructor_id: string
-          service_id: string
-          requested_price: number | null
-          approved_price: number | null
-          status: string
-          is_active: boolean
-          admin_notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          instructor_id: string
-          service_id: string
-          requested_price?: number | null
-          approved_price?: number | null
-          status?: string
-          is_active?: boolean
-          admin_notes?: string | null
-          created_at?: string
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
           updated_at?: string
         }
-        Update: {
-          id?: string
-          instructor_id?: string
-          service_id?: string
-          requested_price?: number | null
-          approved_price?: number | null
-          status?: string
-          is_active?: boolean
-          admin_notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      instructor_weekly_slots: {
-        Row: {
-          id: string
-          instructor_id: string
-          day_of_week: Database["public"]["Enums"]["day_of_week"]
-          time: string
-          is_booked: boolean
-          commitment_type: Database["public"]["Enums"]["commitment_type"] | null
-          commitment_months: number | null
-          commitment_ends_at: string | null
-          is_pending_change: boolean
-        }
-        Insert: {
-          id?: string
-          instructor_id: string
-          day_of_week: Database["public"]["Enums"]["day_of_week"]
-          time: string
-          is_booked?: boolean
-          commitment_type?: Database["public"]["Enums"]["commitment_type"] | null
-          commitment_months?: number | null
-          commitment_ends_at?: string | null
-          is_pending_change?: boolean
-        }
-        Update: {
-          id?: string
-          instructor_id?: string
-          day_of_week?: Database["public"]["Enums"]["day_of_week"]
-          time?: string
-          is_booked?: boolean
-          commitment_type?: Database["public"]["Enums"]["commitment_type"] | null
-          commitment_months?: number | null
-          commitment_ends_at?: string | null
-          is_pending_change?: boolean
-        }
-        Relationships: []
-      }
-      /**
-       * تسعير المدرب الداخلي — **جدول منفصل، SQL 122**.
-       *
-       * ⚠️ كان أعمدة في `instructors`، وسياسة القراءة هناك
-       *    `USING (true)` لكل مسجَّل — والصلاحيات بتحمي الصفوف لا
-       *    الأعمدة (قاعدة «ب»). فالأعمدة اتنقلت لصفّ تقدر السياسة
-       *    تحميه: الإدارة والمدرب نفسه وبس.
-       */
-      instructor_media: {
-        /**
-         * صور بروفايل المدرب (غلاف وأعمال) بموافقة الإدارة — ملف 127.
-         *
-         * ⚠️ `status` نصّ بـ`CHECK` لا نوع enum: إضافة قيمة لنوع enum
-         *    في Postgres عملية مزعجة، والـ`CHECK` بيتعدّل بسطر.
-         */
-        Row: {
-          id: string
-          instructor_id: string
-          kind: string
-          image_url: string
-          title: string | null
-          contribution: string | null
-          sort_order: number
-          status: string
-          admin_feedback: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          instructor_id: string
-          kind: string
-          image_url: string
-          title?: string | null
-          contribution?: string | null
-          sort_order?: number
-          status?: string
-          admin_feedback?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          instructor_id?: string
-          kind?: string
-          image_url?: string
-          title?: string | null
-          contribution?: string | null
-          sort_order?: number
-          status?: string
-          admin_feedback?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructor_payouts_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       instructor_pricing: {
         Row: {
-          instructor_id: string
           approved_price: number | null
-          requested_price: number | null
+          instructor_id: string
           monthly_hours_committed: number | null
+          requested_price: number | null
           updated_at: string
         }
         Insert: {
-          instructor_id: string
           approved_price?: number | null
-          requested_price?: number | null
+          instructor_id: string
           monthly_hours_committed?: number | null
+          requested_price?: number | null
           updated_at?: string
         }
         Update: {
-          instructor_id?: string
           approved_price?: number | null
-          requested_price?: number | null
+          instructor_id?: string
           monthly_hours_committed?: number | null
+          requested_price?: number | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_pricing_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: true
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instructor_pricing_options: {
+        Row: {
+          base_price_per_session: number
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          base_price_per_session: number
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          base_price_per_session?: number
+          id?: string
+          is_active?: boolean
+          label?: string
         }
         Relationships: []
       }
       instructors: {
         Row: {
-          id: string
-          user_id: string
-          display_name: string
           bio: string
-          specialties: string[]
-          years_experience: number
+          created_at: string
+          display_name: string
+          id: string
           is_sample: boolean | null
+          pending_schedule: Json | null
+          selected_pricing_option_id: string | null
+          specialties: string[]
           status: Database["public"]["Enums"]["instructor_status_enum"]
           training_passed: boolean | null
-          work_model: Database["public"]["Enums"]["work_model_enum"]
-          requested_price: number | null
-          selected_pricing_option_id: string | null
-          approved_price: number | null
-          weekly_schedule: Json | null
-          pending_schedule: Json | null
-          monthly_hours_committed: number | null
-          created_at: string
           updated_at: string
+          user_id: string
+          weekly_schedule: Json | null
+          work_model: Database["public"]["Enums"]["work_model_enum"]
+          years_experience: number
         }
         Insert: {
-          id?: string
-          user_id: string
-          display_name: string
           bio: string
-          specialties: string[]
-          years_experience: number
+          created_at?: string
+          display_name: string
+          id?: string
           is_sample?: boolean | null
+          pending_schedule?: Json | null
+          selected_pricing_option_id?: string | null
+          specialties: string[]
           status?: Database["public"]["Enums"]["instructor_status_enum"]
           training_passed?: boolean | null
-          work_model?: Database["public"]["Enums"]["work_model_enum"]
-          requested_price?: number | null
-          selected_pricing_option_id?: string | null
-          approved_price?: number | null
-          weekly_schedule?: Json | null
-          pending_schedule?: Json | null
-          monthly_hours_committed?: number | null
-          created_at?: string
           updated_at?: string
+          user_id: string
+          weekly_schedule?: Json | null
+          work_model?: Database["public"]["Enums"]["work_model_enum"]
+          years_experience: number
         }
         Update: {
-          id?: string
-          user_id?: string
-          display_name?: string
           bio?: string
-          specialties?: string[]
-          years_experience?: number
+          created_at?: string
+          display_name?: string
+          id?: string
           is_sample?: boolean | null
+          pending_schedule?: Json | null
+          selected_pricing_option_id?: string | null
+          specialties?: string[]
           status?: Database["public"]["Enums"]["instructor_status_enum"]
           training_passed?: boolean | null
-          work_model?: Database["public"]["Enums"]["work_model_enum"]
-          requested_price?: number | null
-          selected_pricing_option_id?: string | null
-          approved_price?: number | null
-          weekly_schedule?: Json | null
-          pending_schedule?: Json | null
-          monthly_hours_committed?: number | null
-          created_at?: string
           updated_at?: string
+          user_id?: string
+          weekly_schedule?: Json | null
+          work_model?: Database["public"]["Enums"]["work_model_enum"]
+          years_experience?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       join_requests: {
         Row: {
-          id: string
           applicant_name: string
-          requested_role: string
-          status: Database["public"]["Enums"]["join_request_status_enum"]
           created_at: string
-          updated_at: string
           email: string | null
+          id: string
+          message: string | null
           phone: string | null
           portfolio_url: string | null
-          message: string | null
+          requested_role: string
+          status: Database["public"]["Enums"]["join_request_status_enum"]
+          updated_at: string
         }
         Insert: {
-          id?: string
           applicant_name: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
           requested_role: string
           status?: Database["public"]["Enums"]["join_request_status_enum"]
-          created_at?: string
           updated_at?: string
-          email?: string | null
-          phone?: string | null
-          portfolio_url?: string | null
-          message?: string | null
         }
         Update: {
-          id?: string
           applicant_name?: string
-          requested_role?: string
-          status?: Database["public"]["Enums"]["join_request_status_enum"]
           created_at?: string
-          updated_at?: string
           email?: string | null
+          id?: string
+          message?: string | null
           phone?: string | null
           portfolio_url?: string | null
-          message?: string | null
+          requested_role?: string
+          status?: Database["public"]["Enums"]["join_request_status_enum"]
+          updated_at?: string
         }
         Relationships: []
       }
       notifications: {
         Row: {
+          created_at: string
           id: string
-          recipient_profile_id: string
-          title: string
-          message: string | null
           is_read: boolean
-          created_at: string
           link: string | null
+          message: string | null
+          recipient_profile_id: string
+          title: string
         }
         Insert: {
+          created_at?: string
           id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
           recipient_profile_id: string
           title: string
-          message?: string | null
-          is_read?: boolean
-          created_at?: string
-          link?: string | null
         }
         Update: {
+          created_at?: string
           id?: string
-          recipient_profile_id?: string
-          title?: string
-          message?: string | null
           is_read?: boolean
-          created_at?: string
           link?: string | null
-        }
-        Relationships: []
-      }
-      stale_order_notification_outbox: {
-        Row: {
-          order_id: string
-          recipient_profile_id: string
-          title: string
-          message: string
-          link: string
-          created_at: string
-          delivered_at: string | null
-          attempt_count: number
-          last_attempt_at: string | null
-          last_error: string | null
-        }
-        Insert: {
-          order_id: string
-          recipient_profile_id: string
-          title: string
-          message: string
-          link: string
-          created_at?: string
-          delivered_at?: string | null
-          attempt_count?: number
-          last_attempt_at?: string | null
-          last_error?: string | null
-        }
-        Update: {
-          order_id?: string
+          message?: string | null
           recipient_profile_id?: string
           title?: string
-          message?: string
-          link?: string
-          created_at?: string
-          delivered_at?: string | null
-          attempt_count?: number
-          last_attempt_at?: string | null
-          last_error?: string | null
         }
         Relationships: []
       }
       order_items: {
         Row: {
+          created_at: string
+          customization_data: Json | null
+          format: string
           id: string
           order_id: string
           product_id: string
+          publisher_cost_snapshot: number | null
+          publisher_id_snapshot: string | null
           quantity: number
           unit_price: number
-          customization_data: Json | null
-          created_at: string
-          /** الناشر لحظة الشراء — بيكتبه محفّز (ملف 134). */
-          publisher_id_snapshot: string | null
-          /** نصيب الناشر لحظة الشراء — المستحق بيتحسب منه (ملف 134). */
-          publisher_cost_snapshot: number | null
-          format: string
         }
         Insert: {
+          created_at?: string
+          customization_data?: Json | null
+          format?: string
           id?: string
           order_id: string
           product_id: string
+          publisher_cost_snapshot?: number | null
+          publisher_id_snapshot?: string | null
           quantity: number
           unit_price: number
-          customization_data?: Json | null
-          created_at?: string
-          /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
-          publisher_id_snapshot?: string | null
-          publisher_cost_snapshot?: number | null
-          format?: string
         }
         Update: {
+          created_at?: string
+          customization_data?: Json | null
+          format?: string
           id?: string
           order_id?: string
           product_id?: string
+          publisher_cost_snapshot?: number | null
+          publisher_id_snapshot?: string | null
           quantity?: number
           unit_price?: number
-          customization_data?: Json | null
-          created_at?: string
-          /** ⚠️ بيتكتب من المحفّز ويتجاهل أي قيمة جاية مع الإدراج. */
-          publisher_id_snapshot?: string | null
-          publisher_cost_snapshot?: number | null
-          format?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
-          id: string
-          user_id: string
-          dependent_participant_id: string | null
-          independent_participant_id: string | null
-          total_amount: number
-          status: Database["public"]["Enums"]["order_status_enum"]
-          transaction_reference: string | null
-          created_at: string
-          updated_at: string
-          recipient_name: string | null
-          recipient_phone: string | null
           address_line: string | null
-          city: string | null
-          governorate: string | null
-          shipping_notes: string | null
-          shipping_fee: number
-          shipped_at: string | null
-          delivered_at: string | null
-          tracking_reference: string | null
           admin_notes: string | null
-          payment_reference: string | null
+          box_details: Json | null
+          box_plan_id: string | null
+          city: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_email: string | null
+          dependent_participant_id: string | null
+          discount_amount: number
+          discount_code: string | null
+          electronic_sent_at: string | null
+          governorate: string | null
+          id: string
+          independent_participant_id: string | null
           payment_method: string | null
           payment_receipt_url: string | null
-          delivery_email: string | null
-          electronic_sent_at: string | null
-          box_plan_id: string | null
-          box_details: Json | null
-          discount_code: string | null
-          discount_amount: number
+          payment_reference: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          shipped_at: string | null
+          shipping_fee: number
+          shipping_notes: string | null
+          status: Database["public"]["Enums"]["order_status_enum"]
+          total_amount: number
+          tracking_reference: string | null
+          transaction_reference: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          total_amount: number
-          status?: Database["public"]["Enums"]["order_status_enum"]
-          transaction_reference?: string | null
-          created_at?: string
-          updated_at?: string
-          recipient_name?: string | null
-          recipient_phone?: string | null
           address_line?: string | null
-          city?: string | null
-          governorate?: string | null
-          shipping_notes?: string | null
-          shipping_fee?: number
-          shipped_at?: string | null
-          delivered_at?: string | null
-          tracking_reference?: string | null
           admin_notes?: string | null
-          payment_reference?: string | null
+          box_details?: Json | null
+          box_plan_id?: string | null
+          city?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_email?: string | null
+          dependent_participant_id?: string | null
+          discount_amount?: number
+          discount_code?: string | null
+          electronic_sent_at?: string | null
+          governorate?: string | null
+          id?: string
+          independent_participant_id?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
-          delivery_email?: string | null
-          electronic_sent_at?: string | null
-          box_plan_id?: string | null
-          box_details?: Json | null
-          discount_code?: string | null
-          discount_amount?: number
+          payment_reference?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          shipped_at?: string | null
+          shipping_fee?: number
+          shipping_notes?: string | null
+          status?: Database["public"]["Enums"]["order_status_enum"]
+          total_amount: number
+          tracking_reference?: string | null
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          total_amount?: number
-          status?: Database["public"]["Enums"]["order_status_enum"]
-          transaction_reference?: string | null
-          created_at?: string
-          updated_at?: string
-          recipient_name?: string | null
-          recipient_phone?: string | null
           address_line?: string | null
-          city?: string | null
-          governorate?: string | null
-          shipping_notes?: string | null
-          shipping_fee?: number
-          shipped_at?: string | null
-          delivered_at?: string | null
-          tracking_reference?: string | null
           admin_notes?: string | null
-          payment_reference?: string | null
+          box_details?: Json | null
+          box_plan_id?: string | null
+          city?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_email?: string | null
+          dependent_participant_id?: string | null
+          discount_amount?: number
+          discount_code?: string | null
+          electronic_sent_at?: string | null
+          governorate?: string | null
+          id?: string
+          independent_participant_id?: string | null
           payment_method?: string | null
           payment_receipt_url?: string | null
-          delivery_email?: string | null
-          electronic_sent_at?: string | null
-          box_plan_id?: string | null
-          box_details?: Json | null
-          discount_code?: string | null
-          discount_amount?: number
+          payment_reference?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          shipped_at?: string | null
+          shipping_fee?: number
+          shipping_notes?: string | null
+          status?: Database["public"]["Enums"]["order_status_enum"]
+          total_amount?: number
+          tracking_reference?: string | null
+          transaction_reference?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
       page_content: {
         Row: {
           key: string
-          value: string
           updated_at: string
           updated_by: string | null
+          value: string
         }
         Insert: {
           key: string
-          value: string
           updated_at?: string
           updated_by?: string | null
+          value: string
         }
         Update: {
           key?: string
-          value?: string
           updated_at?: string
           updated_by?: string | null
+          value?: string
         }
         Relationships: []
       }
       personalized_products: {
         Row: {
-          id: string
-          slug: string
-          name: string
           category: Database["public"]["Enums"]["product_category"]
-          price: number
-          electronic_price: number | null
-          short_description: string | null
           cover_image_url: string | null
-          publisher_id: string | null
-          owner_type: Database["public"]["Enums"]["owner_type"]
-          features: string[] | null
-          /** نصيب الناشر من النسخة الواحدة — ملف SQL 97. */
-          publisher_cost: number | null
-          /** معروض للبيع — SQL 121. الموقوف بيترفض في الطلبات بمحفّز. */
-          is_active: boolean
           created_at: string
-          updated_at: string
-          /** حالة مراجعة الإدارة — ملف 130. منفصل عن is_active. */
-          review_status: string
-          review_note: string | null
-          reviewed_at: string | null
+          electronic_price: number | null
+          features: string[] | null
           gallery_image_urls: string[] | null
+          id: string
+          is_active: boolean
           long_description: string | null
-          /** أصغر سنّ مناسب — ملف 132. فاضي = مفيش سنّ مكتوب. */
-          min_age: number | null
-          /** أكبر سنّ مناسب — ملف 132. فاضي مع min_age = «فأكبر». */
           max_age: number | null
-          /** روابط قديمة بتحوّل للحالي — ملف 136. */
+          min_age: number | null
+          name: string
+          owner_type: Database["public"]["Enums"]["owner_type"]
           pending_changes: Json | null
           previous_slugs: string[]
+          price: number
+          publisher_cost: number | null
+          publisher_id: string | null
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          short_description: string | null
+          slug: string
           sort_order: number
+          updated_at: string
         }
         Insert: {
-          id?: string
-          slug: string
-          name: string
-          is_active?: boolean
           category: Database["public"]["Enums"]["product_category"]
-          price: number
-          electronic_price?: number | null
-          short_description?: string | null
           cover_image_url?: string | null
-          publisher_id?: string | null
-          owner_type?: Database["public"]["Enums"]["owner_type"]
-          features?: string[] | null
-          publisher_cost?: number | null
           created_at?: string
-          updated_at?: string
-          review_status?: string
-          review_note?: string | null
-          reviewed_at?: string | null
+          electronic_price?: number | null
+          features?: string[] | null
           gallery_image_urls?: string[] | null
+          id?: string
+          is_active?: boolean
           long_description?: string | null
-          min_age?: number | null
           max_age?: number | null
+          min_age?: number | null
+          name: string
+          owner_type?: Database["public"]["Enums"]["owner_type"]
           pending_changes?: Json | null
           previous_slugs?: string[]
+          price: number
+          publisher_cost?: number | null
+          publisher_id?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          short_description?: string | null
+          slug: string
           sort_order?: number
+          updated_at?: string
         }
         Update: {
-          id?: string
-          slug?: string
-          name?: string
           category?: Database["public"]["Enums"]["product_category"]
-          price?: number
-          electronic_price?: number | null
-          short_description?: string | null
           cover_image_url?: string | null
-          publisher_id?: string | null
-          owner_type?: Database["public"]["Enums"]["owner_type"]
-          features?: string[] | null
-          publisher_cost?: number | null
-          is_active?: boolean
           created_at?: string
-          updated_at?: string
-          review_status?: string
-          review_note?: string | null
-          reviewed_at?: string | null
+          electronic_price?: number | null
+          features?: string[] | null
           gallery_image_urls?: string[] | null
+          id?: string
+          is_active?: boolean
           long_description?: string | null
-          min_age?: number | null
           max_age?: number | null
+          min_age?: number | null
+          name?: string
+          owner_type?: Database["public"]["Enums"]["owner_type"]
           pending_changes?: Json | null
           previous_slugs?: string[]
+          price?: number
+          publisher_cost?: number | null
+          publisher_id?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          short_description?: string | null
+          slug?: string
           sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
       portfolio_documents: {
         Row: {
+          content: string
+          created_at: string
           id: string
+          instructor_feedback: string | null
+          status: Database["public"]["Enums"]["document_status_enum"]
           student_id: string
           title: string
-          content: string
-          status: Database["public"]["Enums"]["document_status_enum"]
-          instructor_feedback: string | null
-          created_at: string
           updated_at: string
         }
         Insert: {
+          content: string
+          created_at?: string
           id?: string
+          instructor_feedback?: string | null
+          status?: Database["public"]["Enums"]["document_status_enum"]
           student_id: string
           title: string
-          content: string
-          status?: Database["public"]["Enums"]["document_status_enum"]
-          instructor_feedback?: string | null
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          content?: string
+          created_at?: string
           id?: string
+          instructor_feedback?: string | null
+          status?: Database["public"]["Enums"]["document_status_enum"]
           student_id?: string
           title?: string
-          content?: string
-          status?: Database["public"]["Enums"]["document_status_enum"]
-          instructor_feedback?: string | null
-          created_at?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_documents_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_formula_settings: {
+        Row: {
+          fixed_admin_fee: number
+          id: string
+          platform_multiplier: number
+          updated_at: string
+        }
+        Insert: {
+          fixed_admin_fee?: number
+          id?: string
+          platform_multiplier?: number
+          updated_at?: string
+        }
+        Update: {
+          fixed_admin_fee?: number
+          id?: string
+          platform_multiplier?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      private_file_cleanup_jobs: {
+        Row: {
+          attempt_count: number
+          available_at: string
+          completed_at: string | null
+          created_at: string
+          deletion_reason: string
+          file_id: string | null
+          id: string
+          intent_id: string | null
+          last_attempt_at: string | null
+          last_error: string | null
+          lease_token: string | null
+          lease_until: string | null
+          provider: string
+          provider_locator: Json
+          state: string
+        }
+        Insert: {
+          attempt_count?: number
+          available_at?: string
+          completed_at?: string | null
+          created_at?: string
+          deletion_reason: string
+          file_id?: string | null
+          id?: string
+          intent_id?: string | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          provider?: string
+          provider_locator: Json
+          state?: string
+        }
+        Update: {
+          attempt_count?: number
+          available_at?: string
+          completed_at?: string | null
+          created_at?: string
+          deletion_reason?: string
+          file_id?: string | null
+          id?: string
+          intent_id?: string | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          provider?: string
+          provider_locator?: Json
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_file_cleanup_jobs_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "private_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_file_cleanup_jobs_intent_id_fkey"
+            columns: ["intent_id"]
+            isOneToOne: false
+            referencedRelation: "private_file_upload_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_file_upload_intents: {
+        Row: {
+          created_at: string
+          expected_bytes: number
+          expires_at: string
+          file_ext: string
+          file_name: string
+          finalized_at: string | null
+          id: string
+          last_error: string | null
+          lifecycle_state: string
+          max_bytes: number
+          owner_id: string
+          owner_kind: string
+          provider: string
+          provider_locator: Json
+          reconciled_at: string | null
+          resource_type: string
+          signing_expires_at: string
+          uploader_profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_bytes: number
+          expires_at: string
+          file_ext: string
+          file_name: string
+          finalized_at?: string | null
+          id?: string
+          last_error?: string | null
+          lifecycle_state?: string
+          max_bytes: number
+          owner_id: string
+          owner_kind: string
+          provider?: string
+          provider_locator: Json
+          reconciled_at?: string | null
+          resource_type: string
+          signing_expires_at: string
+          uploader_profile_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_bytes?: number
+          expires_at?: string
+          file_ext?: string
+          file_name?: string
+          finalized_at?: string | null
+          id?: string
+          last_error?: string | null
+          lifecycle_state?: string
+          max_bytes?: number
+          owner_id?: string
+          owner_kind?: string
+          provider?: string
+          provider_locator?: Json
+          reconciled_at?: string | null
+          resource_type?: string
+          signing_expires_at?: string
+          uploader_profile_id?: string
         }
         Relationships: []
       }
       private_files: {
         Row: {
-          id: string
-          order_id: string | null
-          document_id: string | null
-          uploader_profile_id: string
-          file_name: string
-          public_id: string
-          resource_type: string
-          format: string | null
           bytes: number
-          is_delivery: boolean
           created_at: string
           deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          order_id?: string | null
-          document_id?: string | null
-          uploader_profile_id: string
+          deletion_reason: string | null
+          document_id: string | null
           file_name: string
+          format: string | null
+          id: string
+          is_delivery: boolean
+          lifecycle_state: string
+          order_id: string | null
           public_id: string
           resource_type: string
-          format?: string | null
-          bytes: number
-          is_delivery?: boolean
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          order_id?: string | null
-          document_id?: string | null
-          uploader_profile_id?: string
-          file_name?: string
-          public_id?: string
-          resource_type?: string
-          format?: string | null
-          bytes?: number
-          is_delivery?: boolean
-          created_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: []
-      }
-      pricing_formula_settings: {
-        Row: {
-          id: string
-          platform_multiplier: number
-          fixed_admin_fee: number
-          updated_at: string
+          upload_intent_id: string | null
+          uploader_profile_id: string
         }
         Insert: {
+          bytes: number
+          created_at?: string
+          deleted_at?: string | null
+          deletion_reason?: string | null
+          document_id?: string | null
+          file_name: string
+          format?: string | null
           id?: string
-          platform_multiplier?: number
-          fixed_admin_fee?: number
-          updated_at?: string
+          is_delivery?: boolean
+          lifecycle_state?: string
+          order_id?: string | null
+          public_id: string
+          resource_type: string
+          upload_intent_id?: string | null
+          uploader_profile_id: string
         }
         Update: {
+          bytes?: number
+          created_at?: string
+          deleted_at?: string | null
+          deletion_reason?: string | null
+          document_id?: string | null
+          file_name?: string
+          format?: string | null
           id?: string
-          platform_multiplier?: number
-          fixed_admin_fee?: number
-          updated_at?: string
+          is_delivery?: boolean
+          lifecycle_state?: string
+          order_id?: string | null
+          public_id?: string
+          resource_type?: string
+          upload_intent_id?: string | null
+          uploader_profile_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "private_files_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_files_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_files_upload_intent_fk"
+            columns: ["upload_intent_id"]
+            isOneToOne: false
+            referencedRelation: "private_file_upload_intents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profile_update_requests: {
         Row: {
+          admin_feedback: string | null
+          created_at: string
           id: string
           instructor_id: string
           requested_changes: Json
           status: Database["public"]["Enums"]["update_request_status"]
-          admin_feedback: string | null
-          created_at: string
         }
         Insert: {
+          admin_feedback?: string | null
+          created_at?: string
           id?: string
           instructor_id: string
           requested_changes: Json
           status?: Database["public"]["Enums"]["update_request_status"]
-          admin_feedback?: string | null
-          created_at?: string
         }
         Update: {
+          admin_feedback?: string | null
+          created_at?: string
           id?: string
           instructor_id?: string
           requested_changes?: Json
           status?: Database["public"]["Enums"]["update_request_status"]
-          admin_feedback?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      publisher_payouts: {
-        Row: {
-          id: string
-          publisher_id: string
-          period: string
-          amount: number
-          status: Database["public"]["Enums"]["payout_status_enum"]
-          /** مصدر المستحق ورقمه — ملف SQL 97، وعليهم الفهرس الفريد. */
-          source_type: string | null
-          source_id: string | null
-          description: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          publisher_id: string
-          period: string
-          amount: number
-          status?: Database["public"]["Enums"]["payout_status_enum"]
-          source_type?: string | null
-          source_id?: string | null
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          publisher_id?: string
-          period?: string
-          amount?: number
-          status?: Database["public"]["Enums"]["payout_status_enum"]
-          source_type?: string | null
-          source_id?: string | null
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      publishers: {
-        Row: {
-          id: string
-          user_id: string | null
-          slug: string
-          name: string
-          logo_url: string | null
-          bio: string
-          is_sample: boolean | null
-          status: Database["public"]["Enums"]["publisher_status_enum"]
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          slug: string
-          name: string
-          logo_url?: string | null
-          bio: string
-          is_sample?: boolean | null
-          status?: Database["public"]["Enums"]["publisher_status_enum"]
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          slug?: string
-          name?: string
-          logo_url?: string | null
-          bio?: string
-          is_sample?: boolean | null
-          status?: Database["public"]["Enums"]["publisher_status_enum"]
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      reviews: {
-        Row: {
-          id: string
-          dependent_participant_id: string | null
-          independent_participant_id: string | null
-          instructor_id: string
-          rating: number
-          comment: string | null
-          booking_id: string | null
-          created_at: string
-          reviewer_profile_id: string | null
-          service_order_id: string | null
-          standalone_service_id: string | null
-          service_rating: number | null
-          is_hidden: boolean
-          hidden_reason: string | null
-        }
-        Insert: {
-          id?: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          instructor_id: string
-          rating: number
-          comment?: string | null
-          booking_id?: string | null
-          created_at?: string
-          reviewer_profile_id?: string | null
-          service_order_id?: string | null
-          standalone_service_id?: string | null
-          service_rating?: number | null
-          is_hidden?: boolean
-          hidden_reason?: string | null
-        }
-        Update: {
-          id?: string
-          dependent_participant_id?: string | null
-          independent_participant_id?: string | null
-          instructor_id?: string
-          rating?: number
-          comment?: string | null
-          booking_id?: string | null
-          created_at?: string
-          reviewer_profile_id?: string | null
-          service_order_id?: string | null
-          standalone_service_id?: string | null
-          service_rating?: number | null
-          is_hidden?: boolean
-          hidden_reason?: string | null
-        }
-        Relationships: []
-      }
-      service_providers: {
-        Row: {
-          id: string
-          kind: Database["public"]["Enums"]["provider_kind"]
-          user_id: string | null
-          instructor_id: string | null
-          display_name: string
-          bio: string
-          avatar_url: string | null
-          status: Database["public"]["Enums"]["provider_status"]
-          is_public: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          kind: Database["public"]["Enums"]["provider_kind"]
-          user_id?: string | null
-          instructor_id?: string | null
-          display_name: string
-          bio?: string
-          avatar_url?: string | null
-          status?: Database["public"]["Enums"]["provider_status"]
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          kind?: Database["public"]["Enums"]["provider_kind"]
-          user_id?: string | null
-          instructor_id?: string | null
-          display_name?: string
-          bio?: string
-          avatar_url?: string | null
-          status?: Database["public"]["Enums"]["provider_status"]
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
       provider_services: {
         Row: {
-          id: string
-          provider_id: string
-          service_id: string
-          requested_price: number | null
-          approved_price: number | null
-          status: string
-          is_active: boolean
           admin_notes: string | null
+          approved_price: number | null
           created_at: string
+          id: string
+          is_active: boolean
+          provider_id: string
+          requested_price: number | null
+          service_id: string
+          status: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          provider_id: string
-          service_id: string
-          requested_price?: number | null
-          approved_price?: number | null
-          status?: string
-          is_active?: boolean
           admin_notes?: string | null
+          approved_price?: number | null
           created_at?: string
+          id?: string
+          is_active?: boolean
+          provider_id: string
+          requested_price?: number | null
+          service_id: string
+          status?: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          provider_id?: string
-          service_id?: string
-          requested_price?: number | null
-          approved_price?: number | null
-          status?: string
-          is_active?: boolean
           admin_notes?: string | null
+          approved_price?: number | null
           created_at?: string
+          id?: string
+          is_active?: boolean
+          provider_id?: string
+          requested_price?: number | null
+          service_id?: string
+          status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provider_services_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publisher_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          period: string
+          publisher_id: string
+          source_id: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          period: string
+          publisher_id: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          period?: string
+          publisher_id?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publisher_payouts_publisher_id_fkey"
+            columns: ["publisher_id"]
+            isOneToOne: false
+            referencedRelation: "publishers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publishers: {
+        Row: {
+          bio: string
+          created_at: string
+          id: string
+          is_sample: boolean | null
+          logo_url: string | null
+          name: string
+          slug: string
+          status: Database["public"]["Enums"]["publisher_status_enum"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bio: string
+          created_at?: string
+          id?: string
+          is_sample?: boolean | null
+          logo_url?: string | null
+          name: string
+          slug: string
+          status?: Database["public"]["Enums"]["publisher_status_enum"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bio?: string
+          created_at?: string
+          id?: string
+          is_sample?: boolean | null
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["publisher_status_enum"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publishers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          booking_id: string | null
+          comment: string | null
+          created_at: string
+          dependent_participant_id: string | null
+          hidden_reason: string | null
+          id: string
+          independent_participant_id: string | null
+          instructor_id: string
+          is_hidden: boolean
+          rating: number
+          reviewer_profile_id: string | null
+          service_order_id: string | null
+          service_rating: number | null
+          standalone_service_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string
+          dependent_participant_id?: string | null
+          hidden_reason?: string | null
+          id?: string
+          independent_participant_id?: string | null
+          instructor_id: string
+          is_hidden?: boolean
+          rating: number
+          reviewer_profile_id?: string | null
+          service_order_id?: string | null
+          service_rating?: number | null
+          standalone_service_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          comment?: string | null
+          created_at?: string
+          dependent_participant_id?: string | null
+          hidden_reason?: string | null
+          id?: string
+          independent_participant_id?: string | null
+          instructor_id?: string
+          is_hidden?: boolean
+          rating?: number
+          reviewer_profile_id?: string | null
+          service_order_id?: string | null
+          service_rating?: number | null
+          standalone_service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_dependent_participant_id_fkey"
+            columns: ["dependent_participant_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_order_messages: {
         Row: {
+          body: string
+          created_at: string
           id: string
+          is_delivery: boolean
           order_id: string
           sender_profile_id: string
-          body: string
-          is_delivery: boolean
-          created_at: string
         }
         Insert: {
+          body: string
+          created_at?: string
           id?: string
+          is_delivery?: boolean
           order_id: string
           sender_profile_id: string
-          body: string
-          is_delivery?: boolean
-          created_at?: string
         }
         Update: {
+          body?: string
+          created_at?: string
           id?: string
+          is_delivery?: boolean
           order_id?: string
           sender_profile_id?: string
-          body?: string
-          is_delivery?: boolean
-          created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_orders: {
         Row: {
-          id: string
-          buyer_profile_id: string
-          package_id: string | null
-          standalone_service_id: string | null
-          status: Database["public"]["Enums"]["service_order_status"]
           amount: number
-          transaction_reference: string | null
-          created_at: string
-          instructor_id: string | null
-          delivered_at: string | null
+          buyer_profile_id: string
+          child_id: string | null
           completed_at: string | null
-          instructor_earning: number | null
-          provider_id: string | null
+          created_at: string
+          delivered_at: string | null
+          discount_amount: number
+          discount_code: string | null
           due_at: string | null
           due_note: string | null
-          due_warned_at: string | null
           due_overdue_notified_at: string | null
-          payment_reference: string | null
+          due_warned_at: string | null
+          id: string
+          instructor_earning: number | null
+          instructor_id: string | null
+          package_id: string | null
+          participant_type: string
           payment_method: string | null
           payment_receipt_url: string | null
-          participant_type: string
-          child_id: string | null
-          discount_code: string | null
-          discount_amount: number
+          payment_reference: string | null
+          provider_id: string | null
+          standalone_service_id: string | null
+          status: Database["public"]["Enums"]["service_order_status"]
+          transaction_reference: string | null
         }
         Insert: {
-          id?: string
-          buyer_profile_id: string
-          package_id?: string | null
-          standalone_service_id?: string | null
-          status?: Database["public"]["Enums"]["service_order_status"]
           amount: number
-          transaction_reference?: string | null
-          created_at?: string
-          instructor_id?: string | null
-          delivered_at?: string | null
+          buyer_profile_id: string
+          child_id?: string | null
           completed_at?: string | null
-          instructor_earning?: number | null
-          provider_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           due_at?: string | null
           due_note?: string | null
-          due_warned_at?: string | null
           due_overdue_notified_at?: string | null
-          payment_reference?: string | null
+          due_warned_at?: string | null
+          id?: string
+          instructor_earning?: number | null
+          instructor_id?: string | null
+          package_id?: string | null
+          participant_type?: string
           payment_method?: string | null
           payment_receipt_url?: string | null
-          participant_type?: string
-          child_id?: string | null
-          discount_code?: string | null
-          discount_amount?: number
+          payment_reference?: string | null
+          provider_id?: string | null
+          standalone_service_id?: string | null
+          status?: Database["public"]["Enums"]["service_order_status"]
+          transaction_reference?: string | null
         }
         Update: {
-          id?: string
-          buyer_profile_id?: string
-          package_id?: string | null
-          standalone_service_id?: string | null
-          status?: Database["public"]["Enums"]["service_order_status"]
           amount?: number
-          transaction_reference?: string | null
-          created_at?: string
-          instructor_id?: string | null
-          delivered_at?: string | null
+          buyer_profile_id?: string
+          child_id?: string | null
           completed_at?: string | null
-          instructor_earning?: number | null
-          provider_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          discount_amount?: number
+          discount_code?: string | null
           due_at?: string | null
           due_note?: string | null
-          due_warned_at?: string | null
           due_overdue_notified_at?: string | null
-          payment_reference?: string | null
+          due_warned_at?: string | null
+          id?: string
+          instructor_earning?: number | null
+          instructor_id?: string | null
+          package_id?: string | null
+          participant_type?: string
           payment_method?: string | null
           payment_receipt_url?: string | null
-          participant_type?: string
-          child_id?: string | null
-          discount_code?: string | null
-          discount_amount?: number
+          payment_reference?: string | null
+          provider_id?: string | null
+          standalone_service_id?: string | null
+          status?: Database["public"]["Enums"]["service_order_status"]
+          transaction_reference?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_standalone_service_id_fkey"
+            columns: ["standalone_service_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          avatar_url: string | null
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          instructor_id: string | null
+          is_public: boolean
+          kind: Database["public"]["Enums"]["provider_kind"]
+          status: Database["public"]["Enums"]["provider_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          display_name: string
+          id?: string
+          instructor_id?: string | null
+          is_public?: boolean
+          kind: Database["public"]["Enums"]["provider_kind"]
+          status?: Database["public"]["Enums"]["provider_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          instructor_id?: string | null
+          is_public?: boolean
+          kind?: Database["public"]["Enums"]["provider_kind"]
+          status?: Database["public"]["Enums"]["provider_status"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_providers_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_providers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_attachments: {
         Row: {
-          id: string
           booking_id: string
           file_name: string
           file_url: string
+          id: string
         }
         Insert: {
-          id?: string
           booking_id: string
           file_name: string
           file_url: string
+          id?: string
         }
         Update: {
-          id?: string
           booking_id?: string
           file_name?: string
           file_url?: string
-        }
-        Relationships: []
-      }
-      session_messages: {
-        Row: {
-          id: string
-          booking_id: string
-          sender_profile_id: string
-          message: string
-          created_at: string
-        }
-        Insert: {
           id?: string
-          booking_id: string
-          sender_profile_id: string
-          message: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          booking_id?: string
-          sender_profile_id?: string
-          message?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      session_reports: {
-        Row: {
-          id: string
-          session_id: string
-          instructor_id: string
-          attendance: string
-          report: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          session_id: string
-          instructor_id: string
-          attendance: string
-          report?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          session_id?: string
-          instructor_id?: string
-          attendance?: string
-          report?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      shipping_rates: {
-        Row: {
-          id: string
-          governorate: string
-          fee: number
-          is_active: boolean
-          updated_at: string
-          city: string | null
-        }
-        Insert: {
-          id?: string
-          governorate: string
-          fee: number
-          is_active?: boolean
-          updated_at?: string
-          city?: string | null
-        }
-        Update: {
-          id?: string
-          governorate?: string
-          fee?: number
-          is_active?: boolean
-          updated_at?: string
-          city?: string | null
         }
         Relationships: []
       }
@@ -1939,285 +2242,175 @@ export type Database = {
           session_id?: string
           status?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "session_change_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_messages: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_profile_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_profile_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_profile_id?: string
+        }
         Relationships: []
+      }
+      session_reports: {
+        Row: {
+          attendance: string
+          created_at: string
+          id: string
+          instructor_id: string
+          report: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          attendance: string
+          created_at?: string
+          id?: string
+          instructor_id: string
+          report?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          attendance?: string
+          created_at?: string
+          id?: string
+          instructor_id?: string
+          report?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_reports_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
-          id: string
           course_subscription_id: string
-          instructor_id: string | null
-          session_number: number
-          scheduled_at: string
-          status: string
           created_at: string
-          updated_at: string | null
+          id: string
+          instructor_id: string | null
           meeting_url: string | null
-          /** اسم الغرفة عند Daily — SQL 111. */
-          room_name: string | null
-          room_url: string | null
+          recording_expires_at: string | null
           recording_id: string | null
           recording_status: string | null
-          /** بيتحسب وقت الجلسة لا وقت الحذف — SQL 111. */
-          recording_expires_at: string | null
-        }
-        Insert: {
-          id?: string
-          course_subscription_id: string
-          instructor_id?: string | null
-          session_number: number
+          room_name: string | null
+          room_url: string | null
           scheduled_at: string
-          status?: string
-          created_at?: string
-          updated_at?: string | null
-          meeting_url?: string | null
-          room_name?: string | null
-          room_url?: string | null
-          recording_id?: string | null
-          recording_status?: string | null
-          recording_expires_at?: string | null
-        }
-        Update: {
-          id?: string
-          course_subscription_id?: string
-          instructor_id?: string | null
-          session_number?: number
-          scheduled_at?: string
-          status?: string
-          created_at?: string
-          updated_at?: string | null
-          meeting_url?: string | null
-          room_name?: string | null
-          room_url?: string | null
-          recording_id?: string | null
-          recording_status?: string | null
-          recording_expires_at?: string | null
-        }
-        Relationships: []
-      }
-      /** الأدوار الإدارية بأسماء — ملف schema/05. مدير النظام مالوش صف (الكل دايمًا). */
-      customization_fields: {
-        Row: {
-          id: string
-          label: string
-          placeholder: string | null
-          /** ملف 12 — NULL = كل المنتجات والصندوق. */
-          applies_to: string[] | null
-          is_required: boolean
-          is_active: boolean
-          sort_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          label: string
-          placeholder?: string | null
-          applies_to?: string[] | null
-          is_required?: boolean
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          label?: string
-          placeholder?: string | null
-          applies_to?: string[] | null
-          is_required?: boolean
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      assignment_rules: {
-        Row: { line: string; stage: string; profile_id: string; created_at: string }
-        Insert: { line: string; stage: string; profile_id: string; created_at?: string }
-        Update: { line?: string; stage?: string; profile_id?: string; created_at?: string }
-        Relationships: []
-      }
-      /** مهام المتابعة — بتتعمل من محفّزات حالة الطلب (ملف 14). */
-      work_tasks: {
-        Row: {
-          id: string
-          line: string
-          stage: string
-          source_id: string
-          reference: string | null
-          title: string
-          link: string
-          assignee_ids: string[]
+          session_number: number
           status: string
-          created_at: string
-          done_at: string | null
-          done_by: string | null
+          updated_at: string | null
         }
         Insert: {
+          course_subscription_id: string
+          created_at?: string
           id?: string
-          line: string
-          stage: string
-          source_id: string
-          reference?: string | null
-          title: string
-          link: string
-          assignee_ids?: string[]
+          instructor_id?: string | null
+          meeting_url?: string | null
+          recording_expires_at?: string | null
+          recording_id?: string | null
+          recording_status?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at: string
+          session_number: number
           status?: string
-          created_at?: string
-          done_at?: string | null
-          done_by?: string | null
+          updated_at?: string | null
         }
         Update: {
+          course_subscription_id?: string
+          created_at?: string
           id?: string
-          line?: string
-          stage?: string
-          source_id?: string
-          reference?: string | null
-          title?: string
-          link?: string
-          assignee_ids?: string[]
+          instructor_id?: string | null
+          meeting_url?: string | null
+          recording_expires_at?: string | null
+          recording_id?: string | null
+          recording_status?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at?: string
+          session_number?: number
           status?: string
-          created_at?: string
-          done_at?: string | null
-          done_by?: string | null
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sessions_course_subscription_id_fkey"
+            columns: ["course_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "course_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      discount_codes: {
+      shipping_rates: {
         Row: {
+          city: string | null
+          fee: number
+          governorate: string
           id: string
-          code: string
-          percent: number
-          /** NULL = كل المنصة؛ وإلا enha_lak · box · courses · services (ملف 13). */
-          lines: string[] | null
-          starts_at: string | null
-          ends_at: string | null
-          max_uses: number | null
           is_active: boolean
-          note: string | null
-          created_by: string | null
-          created_at: string
           updated_at: string
         }
         Insert: {
+          city?: string | null
+          fee: number
+          governorate: string
           id?: string
-          code: string
-          percent: number
-          lines?: string[] | null
-          starts_at?: string | null
-          ends_at?: string | null
-          max_uses?: number | null
           is_active?: boolean
-          note?: string | null
-          created_by?: string | null
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          city?: string | null
+          fee?: number
+          governorate?: string
           id?: string
-          code?: string
-          percent?: number
-          lines?: string[] | null
-          starts_at?: string | null
-          ends_at?: string | null
-          max_uses?: number | null
           is_active?: boolean
-          note?: string | null
-          created_by?: string | null
-          created_at?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      discount_code_uses: {
-        Row: {
-          id: string
-          code_id: string
-          user_id: string
-          line: string
-          source_id: string
-          discount_amount: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          code_id: string
-          user_id: string
-          line: string
-          source_id: string
-          discount_amount: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          code_id?: string
-          user_id?: string
-          line?: string
-          source_id?: string
-          discount_amount?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      story_goals: {
-        Row: {
-          id: string
-          label: string
-          /** NULL = كل المنتجات والصندوق؛ وإلا أرقام منتجات و/أو 'box'. */
-          applies_to: string[] | null
-          is_active: boolean
-          sort_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          label: string
-          applies_to?: string[] | null
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          label?: string
-          applies_to?: string[] | null
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      admin_roles: {
-        Row: {
-          id: string
-          name: string
-          permissions: string[]
-          is_default: boolean
-          created_at: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          permissions?: string[]
-          is_default?: boolean
-          created_at?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          permissions?: string[]
-          is_default?: boolean
-          created_at?: string
-          updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -2239,306 +2432,461 @@ export type Database = {
         }
         Relationships: []
       }
-      standalone_services: {
+      stale_order_notification_outbox: {
         Row: {
-          id: string
-          name: string
-          price: number
-          description: string | null
-          category: string | null
-          sort_order: number | null
-          price_type: string
-          is_active: boolean
-          cover_image_url: string | null
-          gallery_image_urls: string[] | null
-          long_description: string | null
-          deliverables: string[] | null
-          requirements: string | null
-          delivery_days: number | null
-          allows_files: boolean
-          file_max_mb: number
-          file_kinds: string[]
+          attempt_count: number
+          created_at: string
+          delivered_at: string | null
+          last_attempt_at: string | null
+          last_error: string | null
+          link: string
+          message: string
+          order_id: string
+          recipient_profile_id: string
+          title: string
         }
         Insert: {
-          id?: string
-          name: string
-          price: number
-          description?: string | null
-          category?: string | null
-          sort_order?: number | null
-          price_type?: string
-          is_active?: boolean
-          cover_image_url?: string | null
-          gallery_image_urls?: string[] | null
-          long_description?: string | null
-          deliverables?: string[] | null
-          requirements?: string | null
-          delivery_days?: number | null
-          allows_files?: boolean
-          file_max_mb?: number
-          file_kinds?: string[]
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          link: string
+          message: string
+          order_id: string
+          recipient_profile_id: string
+          title: string
         }
         Update: {
+          attempt_count?: number
+          created_at?: string
+          delivered_at?: string | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          link?: string
+          message?: string
+          order_id?: string
+          recipient_profile_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      standalone_services: {
+        Row: {
+          allows_files: boolean
+          category: string | null
+          cover_image_url: string | null
+          deliverables: string[] | null
+          delivery_days: number | null
+          description: string | null
+          file_kinds: string[]
+          file_max_mb: number
+          gallery_image_urls: string[] | null
+          id: string
+          is_active: boolean
+          long_description: string | null
+          name: string
+          price: number
+          price_type: string
+          requirements: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          allows_files?: boolean
+          category?: string | null
+          cover_image_url?: string | null
+          deliverables?: string[] | null
+          delivery_days?: number | null
+          description?: string | null
+          file_kinds?: string[]
+          file_max_mb?: number
+          gallery_image_urls?: string[] | null
           id?: string
+          is_active?: boolean
+          long_description?: string | null
+          name: string
+          price: number
+          price_type?: string
+          requirements?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          allows_files?: boolean
+          category?: string | null
+          cover_image_url?: string | null
+          deliverables?: string[] | null
+          delivery_days?: number | null
+          description?: string | null
+          file_kinds?: string[]
+          file_max_mb?: number
+          gallery_image_urls?: string[] | null
+          id?: string
+          is_active?: boolean
+          long_description?: string | null
           name?: string
           price?: number
-          description?: string | null
-          category?: string | null
-          sort_order?: number | null
           price_type?: string
-          is_active?: boolean
-          cover_image_url?: string | null
-          gallery_image_urls?: string[] | null
-          long_description?: string | null
-          deliverables?: string[] | null
           requirements?: string | null
-          delivery_days?: number | null
-          allows_files?: boolean
-          file_max_mb?: number
-          file_kinds?: string[]
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      story_goals: {
+        Row: {
+          applies_to: string[] | null
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[] | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }
       study_materials: {
         Row: {
-          id: string
-          title: string
           description: string | null
+          id: string
           package_id: string | null
+          title: string
         }
         Insert: {
-          id?: string
-          title: string
           description?: string | null
+          id?: string
           package_id?: string | null
+          title: string
         }
         Update: {
-          id?: string
-          title?: string
           description?: string | null
+          id?: string
           package_id?: string | null
+          title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_materials_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "creative_writing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_session_requests: {
         Row: {
-          id: string
-          user_id: string | null
           contact_name: string
           contact_phone: string
+          created_at: string
+          id: string
           message: string
           status: Database["public"]["Enums"]["support_session_status_enum"]
-          created_at: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
-          id?: string
-          user_id?: string | null
           contact_name: string
           contact_phone: string
+          created_at?: string
+          id?: string
           message: string
           status?: Database["public"]["Enums"]["support_session_status_enum"]
-          created_at?: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
-          id?: string
-          user_id?: string | null
           contact_name?: string
           contact_phone?: string
+          created_at?: string
+          id?: string
           message?: string
           status?: Database["public"]["Enums"]["support_session_status_enum"]
-          created_at?: string
           updated_at?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "support_session_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_ticket_messages: {
         Row: {
-          id: string
-          ticket_id: string
-          sender_profile_id: string
-          message: string
           created_at: string
+          id: string
+          message: string
+          sender_profile_id: string
+          ticket_id: string
         }
         Insert: {
-          id?: string
-          ticket_id: string
-          sender_profile_id: string
-          message: string
           created_at?: string
+          id?: string
+          message: string
+          sender_profile_id: string
+          ticket_id: string
         }
         Update: {
-          id?: string
-          ticket_id?: string
-          sender_profile_id?: string
-          message?: string
           created_at?: string
+          id?: string
+          message?: string
+          sender_profile_id?: string
+          ticket_id?: string
         }
         Relationships: []
       }
       support_tickets: {
         Row: {
-          id: string
-          user_id: string | null
-          requester_name: string
-          subject: string
           category: string
-          status: Database["public"]["Enums"]["ticket_status_enum"]
           created_at: string
+          id: string
+          requester_name: string
+          status: Database["public"]["Enums"]["ticket_status_enum"]
+          subject: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
-          id?: string
-          user_id?: string | null
-          requester_name: string
-          subject: string
           category: string
-          status?: Database["public"]["Enums"]["ticket_status_enum"]
           created_at?: string
+          id?: string
+          requester_name: string
+          status?: Database["public"]["Enums"]["ticket_status_enum"]
+          subject: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
-          id?: string
-          user_id?: string | null
-          requester_name?: string
-          subject?: string
           category?: string
-          status?: Database["public"]["Enums"]["ticket_status_enum"]
           created_at?: string
+          id?: string
+          requester_name?: string
+          status?: Database["public"]["Enums"]["ticket_status_enum"]
+          subject?: string
           updated_at?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       testimonials: {
         Row: {
-          id: string
           author_name: string
           author_role: string
           content: string
           created_at: string
+          id: string
         }
         Insert: {
-          id?: string
           author_name: string
           author_role: string
           content: string
           created_at?: string
+          id?: string
         }
         Update: {
-          id?: string
           author_name?: string
           author_role?: string
           content?: string
           created_at?: string
+          id?: string
         }
         Relationships: []
       }
       user_emails: {
         Row: {
-          user_id: string
           email: string
           updated_at: string
+          user_id: string
         }
         Insert: {
-          user_id: string
           email: string
           updated_at?: string
+          user_id: string
         }
         Update: {
-          user_id?: string
           email?: string
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
       user_profiles: {
         Row: {
-          id: string
-          full_name: string
-          role: Database["public"]["Enums"]["user_role_enum"]
-          is_guardian: boolean | null
-          avatar_url: string | null
-          /** الدور الإداري — schema/05. فاضي = الافتراضي. */
           admin_role_id: string | null
-          created_at: string
-          updated_at: string
-          /** موقوف عن الشراء من التاريخ ده — SQL 118. الدخول مابيتمنعش. */
-          suspended_at: string | null
-          suspension_reason: string | null
-          /** اتحذف وعليه حركات فاتأرشف — schema/10. */
           archived_at: string | null
           archived_by: string | null
+          avatar_url: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_guardian: boolean | null
+          role: Database["public"]["Enums"]["user_role_enum"]
+          suspended_at: string | null
+          suspension_reason: string | null
+          updated_at: string
         }
         Insert: {
-          id: string
-          full_name: string
-          role?: Database["public"]["Enums"]["user_role_enum"]
-          is_guardian?: boolean | null
-          avatar_url?: string | null
           admin_role_id?: string | null
-          created_at?: string
-          updated_at?: string
-          suspended_at?: string | null
-          suspension_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name: string
+          id: string
+          is_guardian?: boolean | null
+          role?: Database["public"]["Enums"]["user_role_enum"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
         }
         Update: {
-          id?: string
-          full_name?: string
-          role?: Database["public"]["Enums"]["user_role_enum"]
-          is_guardian?: boolean | null
-          avatar_url?: string | null
           admin_role_id?: string | null
-          created_at?: string
-          updated_at?: string
-          suspended_at?: string | null
-          suspension_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_guardian?: boolean | null
+          role?: Database["public"]["Enums"]["user_role_enum"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_admin_role_id_fkey"
+            columns: ["admin_role_id"]
+            isOneToOne: false
+            referencedRelation: "admin_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdrawal_requests: {
         Row: {
-          id: string
-          /** واحد بس من دول متملّي — قيد في القاعدة، ملف SQL 100. */
-          instructor_id: string | null
-          publisher_id: string | null
-          /** بيتكتب في محفّز `guard_withdrawal_request` من الرصيد الحقيقي (ملف 100). */
-          amount: number
-          method: string
-          status: string
-          /** بيانات التحويل اللي صاحب الطلب كتبها — ملف SQL 92. */
-          payout_details: string | null
           admin_notes: string | null
+          amount: number
           created_at: string
+          id: string
+          instructor_id: string | null
+          method: string
+          payout_details: string | null
+          publisher_id: string | null
+          status: string
           updated_at: string
         }
         Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
           id?: string
           instructor_id?: string | null
-          publisher_id?: string | null
-          amount: number
           method: string
-          status?: string
           payout_details?: string | null
-          admin_notes?: string | null
-          created_at?: string
+          publisher_id?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
           id?: string
           instructor_id?: string | null
-          publisher_id?: string | null
-          amount?: number
           method?: string
-          status?: string
           payout_details?: string | null
-          admin_notes?: string | null
-          created_at?: string
+          publisher_id?: string | null
+          status?: string
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_publisher_id_fkey"
+            columns: ["publisher_id"]
+            isOneToOne: false
+            referencedRelation: "publishers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_tasks: {
+        Row: {
+          assignee_ids: string[]
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          id: string
+          line: string
+          link: string
+          reference: string | null
+          source_id: string
+          stage: string
+          status: string
+          title: string
+        }
+        Insert: {
+          assignee_ids?: string[]
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          line: string
+          link: string
+          reference?: string | null
+          source_id: string
+          stage: string
+          status?: string
+          title: string
+        }
+        Update: {
+          assignee_ids?: string[]
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          line?: string
+          link?: string
+          reference?: string | null
+          source_id?: string
+          stage?: string
+          status?: string
+          title?: string
         }
         Relationships: []
       }
@@ -2547,9 +2895,81 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_activity: { Args: { p_user: string }; Returns: Json }
+      admin_purge_account: { Args: { p_user: string }; Returns: string[] }
+      all_cloudinary_urls: { Args: { p_urls: string[] }; Returns: boolean }
+      apply_dependent_name_change: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      can_access_service_order: {
+        Args: { p_order_id: string }
+        Returns: boolean
+      }
+      can_see_dependent_request: {
+        Args: { p_child_profile_id: string }
+        Returns: boolean
+      }
+      can_see_profile: { Args: { p_id: string }; Returns: boolean }
+      cancel_private_file_upload_intent: {
+        Args: { p_actor_id: string; p_intent_id: string }
+        Returns: boolean
+      }
       cancel_stale_pending_orders: {
         Args: { p_days: number; p_now: string }
         Returns: number
+      }
+      claim_private_file_cleanup_jobs: {
+        Args: { p_limit?: number; p_now?: string; p_retention_days?: number }
+        Returns: Json
+      }
+      complete_private_file_cleanup_job: {
+        Args: {
+          p_claim_token: string
+          p_error?: string
+          p_job_id: string
+          p_now?: string
+          p_success: boolean
+        }
+        Returns: boolean
+      }
+      create_box_subscription_order: {
+        Args: {
+          p_details: Json
+          p_discount_code?: string
+          p_plan_id: string
+          p_shipping: Json
+        }
+        Returns: string
+      }
+      create_course_booking: {
+        Args: {
+          p_child_id?: string
+          p_discount_code?: string
+          p_gift_message?: string
+          p_instructor_id?: string
+          p_package_id: string
+          p_participant_type?: string
+        }
+        Returns: string
+      }
+      create_customer_order: {
+        Args: { p_discount_code?: string; p_items: Json; p_shipping?: Json }
+        Returns: string
+      }
+      create_private_file_upload_intent: {
+        Args: {
+          p_actor_id: string
+          p_expected_bytes: number
+          p_file_ext: string
+          p_file_name: string
+          p_max_bytes: number
+          p_now?: string
+          p_owner_id: string
+          p_owner_kind: string
+          p_resource_type: string
+        }
+        Returns: Json
       }
       deliver_stale_order_notifications: {
         Args: { p_limit?: number }
@@ -2559,231 +2979,267 @@ export type Database = {
           pending_count: number
         }[]
       }
-      /** ملخص حركات الحساب (عدّ لكل نوع + total) — schema/10، للإدارة. */
-      account_activity: {
-        Args: { p_user: string }
-        Returns: Json
-      }
-      /** حذف حساب مالوش حركات — بمفتاح الخادم بس. بيرجّع أرقام الدخول اللي تتمسح. */
-      admin_purge_account: {
-        Args: { p_user: string }
-        Returns: string[]
-      }
-      used_line: {
-        Args: { p_user: string; p_line: string }
-        Returns: boolean
-      }
-      create_box_subscription_order: {
-        Args: { p_plan_id: string; p_details: Json; p_shipping: Json; p_discount_code?: string | null }
-        Returns: string
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_instructor: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_super_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      notify_user: {
-        Args: {
-          p_recipient: string
-          p_title: string
-          p_message?: string | null
-          p_link?: string | null
-        }
-        Returns: undefined
-      }
-      notify_broadcast: {
-        Args: {
-          p_title: string
-          p_message?: string | null
-          p_link?: string | null
-          p_role?: string | null
-        }
-        Returns: number
-      }
-      notify_admins: {
-        Args: {
-          p_title: string
-          p_message?: string | null
-          p_link?: string | null
-        }
-        Returns: number
-      }
-      create_course_booking: {
-        Args: {
-          p_package_id: string
-          p_instructor_id?: string | null
-          p_participant_type?: string | null
-          p_child_id?: string | null
-          /** إهداء خاص — اتضاف في ملف SQL 86، والقاعدة بتقصّه على 500 حرف. */
-          p_gift_message?: string | null
-          /** ملف 13. */
-          p_discount_code?: string | null
-        }
-        Returns: string
-      }
-      /** كود الخصم ينفع؟ للعرض بس — الخصم الحقيقي وقت الطلب (ملف 13). */
       discount_code_check: {
         Args: { p_code: string; p_line: string }
         Returns: Json
       }
-      create_customer_order: {
+      discount_code_record: {
         Args: {
-          p_items: Json
-          p_shipping?: Json | null
-          /** ملف 13. */
-          p_discount_code?: string | null
+          p_amount: number
+          p_code_id: string
+          p_line: string
+          p_source_id: string
+          p_user: string
         }
-        Returns: string
+        Returns: undefined
       }
-      /**
-       * بيانات المدربين العامة — الأعمدة الآمنة وحدها (ملف SQL 83).
-       *
-       * ⚠️ الملف ده بيتولّد بـ`supabase gen types`، والمدخلتين دول
-       *    اتكتبوا بالإيد لأن التوليد مبيتعملش من هنا. لو اتعمل توليد
-       *    يومًا، اتأكد إنهم لسه موجودين.
-       */
-      /**
-       * تسجيل مستحق المدرب لطلب خدمة مكتمل — ملف SQL 91.
-       *
-       * ⚠️ اتكتبت بالإيد زي `public_instructors` تحت.
-       */
-      record_service_order_earning: {
-        Args: { p_order_id: string }
-        Returns: Json
-      }
-      /** مستحقات ناشري طلب مسلَّم — ملف SQL 97. */
-      record_order_publisher_earnings: {
-        Args: { p_order_id: string }
-        Returns: Json
-      }
-      /** باقات المدرب — استبدال دفعة واحدة، ملف SQL 102. */
-      set_instructor_packages: {
-        Args: { p_instructor_id: string; p_package_ids: string[] }
-        Returns: Json
-      }
-      /** موافقة ولي الأمر على تغيير اسم ابنه — ملف SQL 93. */
-      apply_dependent_name_change: {
-        Args: { p_request_id: string }
-        Returns: Json
-      }
-      public_instructors: {
-        Args: Record<string, never>
+      discount_code_take: {
+        Args: {
+          p_code: string
+          p_line: string
+          p_lock: boolean
+          p_user: string
+        }
         Returns: {
+          code: string
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
           id: string
-          user_id: string
-          display_name: string
-          bio: string | null
-          specialties: string[] | null
-          years_experience: number | null
-          is_sample: boolean | null
+          is_active: boolean
+          lines: string[] | null
+          max_uses: number | null
+          note: string | null
+          percent: number
+          starts_at: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "discount_codes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      finalize_private_file_upload: {
+        Args: {
+          p_actor_id: string
+          p_intent_id: string
+          p_is_delivery?: boolean
+          p_metadata: Json
+          p_now?: string
+        }
+        Returns: Json
+      }
+      guardian_of_student: { Args: { p_student: string }; Returns: boolean }
+      instructor_sessions: {
+        Args: never
+        Returns: {
+          child_ref: string
+          meeting_url: string
+          package_id: string
+          package_name: string
+          participant_name: string
+          scheduled_at: string
+          session_id: string
+          session_number: number
           status: string
-          weekly_schedule: Json | null
-          avatar_url: string | null
+          subscription_id: string
+          user_ref: string
         }[]
+      }
+      instructor_students: {
+        Args: never
+        Returns: {
+          child_ref: string
+          documents_ref: string
+          package_name: string
+          participant_name: string
+          sessions_completed: number
+          sessions_total: number
+          subscription_id: string
+          subscription_status: string
+          user_ref: string
+        }[]
+      }
+      instructor_teaches: { Args: { p_student: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      is_instructor: { Args: never; Returns: boolean }
+      is_my_child_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: boolean
+      }
+      is_super_admin: { Args: never; Returns: boolean }
+      my_dependent_link: {
+        Args: never
+        Returns: {
+          child_profile_id: string
+          full_name: string
+          guardian_profile_id: string
+        }[]
+      }
+      next_payment_reference: { Args: never; Returns: string }
+      notify_admins: {
+        Args: { p_link?: string; p_message?: string; p_title: string }
+        Returns: number
+      }
+      notify_broadcast: {
+        Args: {
+          p_link?: string
+          p_message?: string
+          p_role?: string
+          p_title: string
+        }
+        Returns: number
+      }
+      notify_user: {
+        Args: {
+          p_link?: string
+          p_message?: string
+          p_recipient: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      owns_instructor: { Args: { p_instructor_id: string }; Returns: boolean }
+      private_file_can_upload: {
+        Args: { p_actor_id: string; p_owner_id: string; p_owner_kind: string }
+        Returns: boolean
+      }
+      private_file_can_manage_document: {
+        Args: { p_actor_id: string; p_student_id: string }
+        Returns: boolean
+      }
+      delete_private_file_document: {
+        Args: { p_actor_id: string; p_document_id: string }
+        Returns: boolean
       }
       public_instructor: {
         Args: { p_id: string }
         Returns: {
-          id: string
-          user_id: string
+          avatar_url: string
+          bio: string
           display_name: string
-          bio: string | null
-          specialties: string[] | null
-          years_experience: number | null
-          is_sample: boolean | null
+          id: string
+          is_sample: boolean
+          package_ids: string[]
+          specialties: string[]
           status: string
-          weekly_schedule: Json | null
-          avatar_url: string | null
+          user_id: string
+          weekly_schedule: Json
+          years_experience: number
         }[]
       }
-      instructor_sessions: {
-        Args: Record<string, never>
+      public_instructors: {
+        Args: never
         Returns: {
-          session_id: string
-          session_number: number
-          scheduled_at: string
+          avatar_url: string
+          bio: string
+          display_name: string
+          id: string
+          is_sample: boolean
+          package_ids: string[]
+          specialties: string[]
           status: string
-          meeting_url: string | null
-          subscription_id: string
-          participant_name: string
-          package_name: string
-          package_id: string
-          user_ref: string
-          child_ref: string | null
+          user_id: string
+          weekly_schedule: Json
+          years_experience: number
         }[]
       }
-      my_dependent_link: {
-        Args: Record<string, never>
-        Returns: {
-          child_profile_id: string
-          guardian_profile_id: string
-          full_name: string
-        }[]
+      record_order_publisher_earnings: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      record_service_order_earning: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      request_private_file_deletion: {
+        Args: { p_actor_id: string; p_file_id: string; p_now?: string }
+        Returns: Json
+      }
+      set_instructor_packages: {
+        Args: { p_instructor_id: string; p_package_ids: string[] }
+        Returns: Json
       }
       student_sessions: {
-        Args: Record<string, never>
+        Args: never
         Returns: {
+          instructor_name: string
+          meeting_url: string
+          package_name: string
+          scheduled_at: string
           session_id: string
           session_number: number
-          scheduled_at: string
           status: string
-          meeting_url: string | null
-          package_name: string
-          instructor_name: string | null
         }[]
       }
-      instructor_students: {
-        Args: Record<string, never>
-        Returns: {
-          subscription_id: string
-          user_ref: string
-          child_ref: string | null
-          /**
-           * صاحب مستندات المعرض — ملف SQL 89.
-           *
-           * ⚠️ **مش** `user_ref`. حساب دخول الطفل لو موجود، وإلا
-           *    المشتري. الفرق ده كان بيخلّي المدرب يسأل عن مستندات
-           *    ولي الأمر بدل الطفل فيلاقيها فاضية.
-           */
-          documents_ref: string
-          participant_name: string
-          package_name: string
-          sessions_total: number
-          sessions_completed: number
-          subscription_status: string
-        }[]
+      used_line: { Args: { p_line: string; p_user: string }; Returns: boolean }
+      valid_applies_to: { Args: { p: string[] }; Returns: boolean }
+      work_task_close: {
+        Args: { p_line: string; p_source: string; p_stage: string }
+        Returns: undefined
+      }
+      work_task_open: {
+        Args: {
+          p_line: string
+          p_link: string
+          p_notify: boolean
+          p_reference: string
+          p_source: string
+          p_stage: string
+          p_title: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
       age_group: "under_12" | "12_plus"
-      booking_status_enum: "pending" | "confirmed" | "completed" | "cancelled" | "rescheduled"
-      commitment_type: "ongoing" | "fixed_term"
-      compensation_approval_status: "proposed" | "under_discussion" | "approved" | "rejected"
-      compensation_billing_model: "monthly" | "per_session"
-      day_of_week: "saturday" | "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday"
       document_status_enum: "draft" | "submitted" | "reviewed"
-      instructor_status_enum: "pending_training" | "pending_approval" | "active" | "suspended"
+      instructor_status_enum:
+        | "pending_training"
+        | "pending_approval"
+        | "active"
+        | "suspended"
       join_request_status_enum: "pending" | "approved" | "rejected"
-      order_status_enum: "pending" | "awaiting_verification" | "paid" | "failed" | "refunded" | "preparing" | "shipped" | "delivered" | "cancelled"
+      order_status_enum:
+        | "pending"
+        | "awaiting_verification"
+        | "paid"
+        | "failed"
+        | "refunded"
+        | "preparing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
       owner_type: "platform" | "publisher"
       payout_status_enum: "pending" | "paid"
       product_category: "library" | "custom" | "subscription"
       provider_kind: "platform" | "instructor" | "individual"
       provider_status: "pending" | "active" | "suspended"
       publisher_status_enum: "pending" | "active" | "suspended"
-      service_order_status: "pending" | "awaiting_verification" | "paid" | "refunded" | "in_progress" | "delivered" | "completed" | "cancelled"
+      service_order_status:
+        | "pending"
+        | "awaiting_verification"
+        | "paid"
+        | "refunded"
+        | "in_progress"
+        | "delivered"
+        | "completed"
+        | "cancelled"
       sub_status_enum: "active" | "cancelled" | "paused"
       support_session_status_enum: "pending" | "contacted" | "resolved"
       ticket_status_enum: "open" | "answered" | "closed"
       update_request_status: "pending" | "approved" | "rejected"
-      user_role_enum: "visitor" | "customer" | "student" | "instructor" | "service_provider" | "publisher" | "general_supervisor" | "super_admin"
+      user_role_enum:
+        | "visitor"
+        | "customer"
+        | "student"
+        | "instructor"
+        | "publisher"
+        | "general_supervisor"
+        | "super_admin"
+        | "service_provider"
       work_model_enum: "per_session" | "monthly"
     }
     CompositeTypes: {
@@ -2791,3 +3247,178 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      age_group: ["under_12", "12_plus"],
+      document_status_enum: ["draft", "submitted", "reviewed"],
+      instructor_status_enum: [
+        "pending_training",
+        "pending_approval",
+        "active",
+        "suspended",
+      ],
+      join_request_status_enum: ["pending", "approved", "rejected"],
+      order_status_enum: [
+        "pending",
+        "awaiting_verification",
+        "paid",
+        "failed",
+        "refunded",
+        "preparing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      owner_type: ["platform", "publisher"],
+      payout_status_enum: ["pending", "paid"],
+      product_category: ["library", "custom", "subscription"],
+      provider_kind: ["platform", "instructor", "individual"],
+      provider_status: ["pending", "active", "suspended"],
+      publisher_status_enum: ["pending", "active", "suspended"],
+      service_order_status: [
+        "pending",
+        "awaiting_verification",
+        "paid",
+        "refunded",
+        "in_progress",
+        "delivered",
+        "completed",
+        "cancelled",
+      ],
+      sub_status_enum: ["active", "cancelled", "paused"],
+      support_session_status_enum: ["pending", "contacted", "resolved"],
+      ticket_status_enum: ["open", "answered", "closed"],
+      update_request_status: ["pending", "approved", "rejected"],
+      user_role_enum: [
+        "visitor",
+        "customer",
+        "student",
+        "instructor",
+        "publisher",
+        "general_supervisor",
+        "super_admin",
+        "service_provider",
+      ],
+      work_model_enum: ["per_session", "monthly"],
+    },
+  },
+} as const

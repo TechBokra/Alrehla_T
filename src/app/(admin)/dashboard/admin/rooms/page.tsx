@@ -1,9 +1,9 @@
 import React from 'react';
 import { AlertTriangle, Radio, Gauge, CalendarClock, Clapperboard } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSessionsForAdmin } from '@/data/domains/writing';
-import { getSiteSettings } from '@/data/domains/content';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSessionsForAdmin } from '@/data/domains/(admin)/sessions/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { formatCairo } from '@/lib/timezone';
 import { sessionStatusView } from '@/lib/session-status';
 import { retentionLabel } from '@/lib/session-recording';
-import { getRoomsTiming } from '@/data/domains/dashboard-time';
+import { getRoomsTiming } from '@/data/domains/(admin)/dashboard/timing';
 import {
   DAILY_FREE_MINUTES,
   SESSION_ROOM_PREFIX,

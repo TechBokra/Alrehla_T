@@ -1,5 +1,5 @@
-import { getCurrentUser } from '@/data/domains/auth';
-import { getInstructorSessionPageData } from '@/data/domains/session-pages';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getInstructorSessionPageData } from '@/data/domains/(admin)/sessions/page-data';
 import { FormError } from '@/components/ui/FormError';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';

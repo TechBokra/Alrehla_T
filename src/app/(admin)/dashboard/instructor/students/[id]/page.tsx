@@ -3,7 +3,9 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { getInstructorStudents, getInstructorSessions, getStudentDocuments } from '@/data/domains/writing';
+import { getInstructorStudents } from '@/data/domains/(admin)/instructors/students';
+import { getInstructorSessions } from '@/data/domains/(admin)/sessions/queries';
+import { getStudentDocuments } from '@/data/domains/(shared)/portfolio/queries';
 import { User, Calendar, FileText } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 

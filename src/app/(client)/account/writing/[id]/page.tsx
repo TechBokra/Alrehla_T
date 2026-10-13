@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getDocumentById, getStudentSessions } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getDocumentById } from '@/data/domains/(shared)/portfolio/queries';
+import { getStudentSessions } from '@/data/domains/(client)/sessions/queries';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DocumentEditorClient } from '@/app/(admin)/dashboard/student/portfolio/[id]/DocumentEditorClient';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';

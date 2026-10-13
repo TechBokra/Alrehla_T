@@ -16,7 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import Link from 'next/link';
 
-import { getTestimonials, getSiteContent, getSiteSettings } from '@/data/domains/content';
+import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { addWatermark, slotImageUrl } from '@/lib/cloudinary';
 
 import { PageContainer } from '@/components/PageContainer';

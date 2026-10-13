@@ -1,5 +1,7 @@
 import { formatPrice } from '@/lib/utils';
-import { getProductBySlug, getPublishers, productRedirectPath } from '@/data/domains/products';
+import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
+import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { permanentRedirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
@@ -15,7 +17,7 @@ import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
 import { productSchema, breadcrumbSchema } from '@/lib/structured-data';
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { ShareSection } from '@/components/share/ShareSection';
 import { ShareButton } from '@/components/share/ShareButton';
 import { ArrowLeft, Building2, Palette } from 'lucide-react';

@@ -1,8 +1,8 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getBlogPostById } from '@/data/domains/content';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getBlogPostById } from '@/data/domains/(admin)/content/blog';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { BlogEditor } from '../BlogEditor';

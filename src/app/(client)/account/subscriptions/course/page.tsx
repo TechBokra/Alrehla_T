@@ -1,11 +1,9 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { getCurrentUser } from '@/data/domains/auth';
-import {
-  getCourseSubscriptions,
-  getWritingPackages,
-  getSessions,
-} from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getCourseSubscriptions } from '@/data/domains/(shared)/bookings/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getDependentRequests } from '@/data/domains/dependent-requests';
+import { getDependentRequests } from '@/data/domains/(client)/family/requests';
 import { RequestsClient } from './RequestsClient';
 
 export const dynamic = 'force-dynamic';

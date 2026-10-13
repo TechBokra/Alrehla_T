@@ -1,8 +1,9 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import SupportClient from './SupportClient';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSiteContent, getSiteSettings } from '@/data/domains/content';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { parseFaqText } from '@/lib/support-faqs';
 import { CONTENT_DEFAULTS } from '@/lib/site-content';
 

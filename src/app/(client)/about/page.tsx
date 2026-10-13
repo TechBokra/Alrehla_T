@@ -14,7 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { PageContainer } from '@/components/PageContainer';
-import { getSiteSettings, getSiteContent } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { addWatermark, slotImageUrl, blurPlaceholder } from '@/lib/cloudinary';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import {

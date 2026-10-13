@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
-import { getMediaScan } from '@/data/domains/media';
+import { getMediaScan } from '@/data/domains/(admin)/media/queries';
 import {
   deleteAssets,
   FOLDER,

@@ -1,4 +1,4 @@
-import { getSiteSettings } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { FloatingActionsClient } from './FloatingActionsClient';
 
 /**

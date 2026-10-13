@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getBoxSubscription } from '@/data/domains/subscriptions';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getBoxSubscription } from '@/data/domains/(shared)/subscriptions/box';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { OrderItemCustomization } from '@/app/(admin)/dashboard/admin/orders/[id]/OrderItemCustomization';
 import { ShipmentsClient, SubscriptionStatusControls } from './ShipmentsClient';
-import { getActiveStoryGoals } from '@/data/domains/story-goals';
+import { getActiveStoryGoals } from '@/data/domains/(shared)/products/story-goals';
 import { DEFAULT_GOALS } from '@/lib/story-goals';
 
 export const dynamic = 'force-dynamic';

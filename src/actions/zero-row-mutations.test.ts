@@ -23,7 +23,7 @@ vi.mock('@/lib/auth-guard', () => ({
 }));
 
 const mockGetCurrentUser = vi.fn();
-vi.mock('@/data/domains/auth', () => ({
+vi.mock("@/data/domains/(shared)/auth/queries", () => ({
   getCurrentUser: () => mockGetCurrentUser(),
   ALL_ADMIN_PERMISSIONS: [
     'canManageUsers',

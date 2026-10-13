@@ -12,15 +12,17 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getProductBySlug, getAddonProducts, productRedirectPath } from '@/data/domains/products';
+import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
+import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { permanentRedirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import Link from 'next/link';
 import { PersonalizationWizard } from '@/components/enha-lak/PersonalizationWizard';
 import { requireShopper } from '@/lib/require-shopper';
-import { getMyAddonDiscount } from '@/data/domains/subscriptions';
-import { getActiveCustomizationFields } from '@/data/domains/customization-fields';
-import { getActiveStoryGoals } from '@/data/domains/story-goals';
+import { getMyAddonDiscount } from '@/data/domains/(client)/subscriptions/box';
+import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
+import { getActiveStoryGoals } from '@/data/domains/(shared)/products/story-goals';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;

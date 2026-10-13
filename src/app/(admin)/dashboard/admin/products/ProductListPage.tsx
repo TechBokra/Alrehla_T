@@ -1,8 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getManagedProducts, getPublishers } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getManagedProducts } from '@/data/domains/(shared)/products/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { hasAdminPermission, formatPrice } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';

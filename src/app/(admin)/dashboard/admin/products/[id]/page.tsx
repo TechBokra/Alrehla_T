@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getManagedProductById, getPublishers } from '@/data/domains/products';
-import { getPublisherPricingSettings } from '@/data/domains/admin';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getManagedProductById } from '@/data/domains/(admin)/products/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
+import { getPublisherPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { ProductEditFormClient } from '../ProductEditFormClient';
 import { ProductStateToggle } from '../ProductStateToggle';
 import { hasAdminPermission } from '@/lib/utils';

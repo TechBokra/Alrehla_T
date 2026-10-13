@@ -2,9 +2,10 @@ import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { ServiceOrderDetail } from '@/components/services/ServiceOrderDetail';
 import { OrderFilesSection } from '@/components/files/OrderFilesSection';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getMyProvider } from '@/data/domains/providers';
-import { getServiceOrderDetail, getServiceOrderMessages } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getMyProvider } from '@/data/domains/(admin)/providers/queries';
+import { getServiceOrderDetail } from '@/data/domains/(shared)/service-orders/queries';
+import { getServiceOrderMessages } from '@/data/domains/(shared)/service-orders/messages';
 
 export const dynamic = 'force-dynamic';
 

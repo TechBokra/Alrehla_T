@@ -3,11 +3,7 @@ import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import {
-  getCurrentUser,
-  getAdminRoles,
-  ALL_ADMIN_PERMISSIONS,
-} from '@/data/domains/auth';
+import { getCurrentUser, getAdminRoles, ALL_ADMIN_PERMISSIONS } from '@/data/domains/(shared)/auth/queries';
 import { createClient } from '@/lib/supabase/server';
 import { PERMISSION_LABELS } from '@/lib/permissions';
 import {

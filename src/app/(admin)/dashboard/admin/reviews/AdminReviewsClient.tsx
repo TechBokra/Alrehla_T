@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, EyeOff, Eye } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
-import type { ReviewItem } from '@/data/domains/reviews';
+import type { ReviewItem } from '@/data/domains/(shared)/reviews/types';
 import { setReviewHidden } from '@/actions/reviews';
 import { Field, TextInput, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';

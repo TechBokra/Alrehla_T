@@ -1,9 +1,12 @@
 import { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/seo';
-import { getBlogPosts } from '@/data/domains/content';
-import { getAddonProducts, getPersonalizedProducts, getPublishers } from '@/data/domains/products';
-import { getPublicInstructors, getWritingPackages } from '@/data/domains/writing';
-import { getStandaloneServices } from '@/data/domains/services';
+import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
+import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
+import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;

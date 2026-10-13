@@ -19,7 +19,7 @@ import {
   BusyButton,
   fieldClass,
 } from '@/components/forms/Form';
-import type { InstructorAdminRow } from '@/data/domains/writing';
+import type { InstructorAdminRow } from '@/data/domains/(admin)/instructors/types';
 
 /** كل فلتر قيمته '' معناها «الكل» — عشان الشاشة تفتح بكل الصفوف. */
 const EMPTY_FILTERS = {

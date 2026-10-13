@@ -3,17 +3,14 @@ import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { MyServiceOffersClient } from './MyServiceOffersClient';
-import { getPricingFormulaSettings } from '@/data/domains/writing';
+import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSiteSettings } from '@/data/domains/content';
-import {
-  getMyInstructorId,
-  getStandaloneServices,
-  getInstructorServiceOffers,
-  getServiceOrdersForInstructor,
-} from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
+import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/(shared)/services/queries';
+import { getServiceOrdersForInstructor } from '@/data/domains/(admin)/service-orders/queries';
 
 export const dynamic = 'force-dynamic';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/LogoutButton';

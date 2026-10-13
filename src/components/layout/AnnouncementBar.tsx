@@ -1,4 +1,4 @@
-import { getAnnouncementData } from '@/data/domains/content-time';
+import { getAnnouncementData } from '@/data/domains/(client)/content/page-data';
 import { AnnouncementBarClient } from './AnnouncementBarClient';
 
 /**

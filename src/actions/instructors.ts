@@ -11,6 +11,7 @@ import { notifyUser, getInstructorUserId, notifyAdmins } from '@/lib/notificatio
 import { summarizeInstructorChangesText } from '@/lib/request-summary';
 import { isProfileComplete, firstProfileProblem } from '@/lib/instructor-onboarding';
 import { isUploadedImageUrl } from '@/lib/cloudinary';
+import { cleanupReplacedImages } from '@/data/domains/(admin)/media/image-replacement';
 
 /**
  * Instructor profile changes, certification and pricing settings.
@@ -316,8 +317,14 @@ export async function approveProfileUpdateRequest(
   //
   // في حساب المدرب (`user_profiles`) مش في `instructors`. الإداري بيعدّي
   // حارس ملف 15. وبـ`select()` لأن الكتابة على صفر صفوف بتنجح في صمت.
+  let replacedAvatar: string | null = null;
   if (isUploadedImageUrl(changes.avatarUrl)) {
     const instructorUserId = await getInstructorUserId(request.instructor_id);
+    if (instructorUserId) {
+      const previous = await supabase.from('user_profiles').select('avatar_url').eq('id', instructorUserId).maybeSingle();
+      if (previous.error) return fail('تعذّر قراءة الصورة الحالية — الطلب لسه معلّق.');
+      replacedAvatar = previous.data?.avatar_url ?? null;
+    }
     const { data: savedAvatar, error: avatarError } = instructorUserId
       ? await supabase
           .from('user_profiles')
@@ -361,6 +368,8 @@ export async function approveProfileUpdateRequest(
   if (!statusRows) {
     return fail('الطلب مش موجود أو اتقفل قبل كده.');
   }
+
+  await cleanupReplacedImages([replacedAvatar]);
 
   await logAuditAction({
     actorProfileId: currentUser.id,

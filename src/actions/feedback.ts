@@ -82,6 +82,6 @@ export async function setFeedbackSeen(id: string, seen: boolean): Promise<Result
     .select('line')
     .maybeSingle();
   if (error || !data) return { ok: false, error: 'تعذّر الحفظ — جرّب تاني' };
-  revalidatePath(FEEDBACK_ADMIN_HREF[data.line]);
+  if (isFeedbackLine(data.line)) revalidatePath(FEEDBACK_ADMIN_HREF[data.line]);
   return { ok: true };
 }

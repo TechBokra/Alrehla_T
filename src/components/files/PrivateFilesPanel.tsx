@@ -21,7 +21,7 @@ import {
   retentionNotice,
   type FileRules,
 } from '@/lib/private-files';
-import type { PrivateFileView } from '@/data/domains/private-files';
+import type { PrivateFileView } from '@/data/domains/(shared)/files/queries';
 import { FormError } from '@/components/ui/FormError';
 
 /**
@@ -34,6 +34,7 @@ import { FormError } from '@/components/ui/FormError';
 export function PrivateFilesPanel({
   owner,
   files,
+  loadError,
   rules,
   canUpload,
   retentionDays,
@@ -44,6 +45,7 @@ export function PrivateFilesPanel({
 }: {
   owner: { orderId: string } | { documentId: string };
   files: PrivateFileView[];
+  loadError?: string | null;
   rules: FileRules;
   canUpload: boolean;
   retentionDays: number;
@@ -59,6 +61,8 @@ export function PrivateFilesPanel({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [registrationIntentId, setRegistrationIntentId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   // المسح على خطوتين: «مسح» ← «متأكد؟ امسح» (مالوش رجوع).
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -73,6 +77,9 @@ export function PrivateFilesPanel({
         setError(result.error);
         return;
       }
+      setNotice(result.deletionState === 'pending'
+        ? 'تم تسجيل طلب الحذف. هنعيد المحاولة تلقائيًا لو مساحة التخزين مش متاحة.'
+        : 'تم حذف الملف.');
       setConfirming(null);
       router.refresh();
     } catch {
@@ -82,8 +89,34 @@ export function PrivateFilesPanel({
     }
   };
 
+  const finishRegistration = async (intentId: string) => {
+    const saved = 'orderId' in owner
+      ? await registerOrderFile(owner.orderId, intentId)
+      : await registerDocumentFile(owner.documentId, intentId);
+    if (!saved.ok) {
+      setError(saved.error);
+      return;
+    }
+    setRegistrationIntentId(null);
+    router.refresh();
+  };
+
+  const retryRegistration = async () => {
+    if (!registrationIntentId || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await finishRegistration(registrationIntentId);
+    } catch {
+      setError('تعذّر حفظ الملف — جرّب تاني بنفس الرفع.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const upload = async (file: File) => {
     setError('');
+    setNotice('');
     const problem = fileProblem(file, rules);
     if (problem) {
       setError(problem);
@@ -94,8 +127,8 @@ export function PrivateFilesPanel({
     try {
       const ticket: FileTicketResult =
         'orderId' in owner
-          ? await getOrderFileTicket(owner.orderId, file.name)
-          : await getDocumentFileTicket(owner.documentId, file.name);
+          ? await getOrderFileTicket(owner.orderId, { fileName: file.name, bytes: file.size })
+          : await getDocumentFileTicket(owner.documentId, { fileName: file.name, bytes: file.size });
       if (!ticket.ok) {
         setError(ticket.error);
         return;
@@ -103,31 +136,14 @@ export function PrivateFilesPanel({
       const t = ticket.ticket;
       const body = new FormData();
       body.append('file', file);
-      body.append('api_key', t.apiKey);
-      body.append('timestamp', String(t.timestamp));
-      body.append('signature', t.signature);
-      body.append('folder', t.folder);
-      body.append('type', t.type);
-      body.append('allowed_formats', t.allowedFormats);
-      const data = (await cloudinaryPost(
-        `https://api.cloudinary.com/v1_1/${t.cloudName}/${t.resourceType}/upload`,
+      for (const [key, value] of Object.entries(t.fields)) body.append(key, value);
+      await cloudinaryPost(
+        t.uploadUrl,
         body,
         setProgress,
-      )) as { public_id?: string };
-      if (!data.public_id) {
-        setError('تعذّر رفع الملف — جرّب تاني');
-        return;
-      }
-      const uploaded = { publicId: data.public_id, resourceType: t.resourceType, fileName: file.name };
-      const saved =
-        'orderId' in owner
-          ? await registerOrderFile(owner.orderId, uploaded)
-          : await registerDocumentFile(owner.documentId, uploaded);
-      if (!saved.ok) {
-        setError(saved.error);
-        return;
-      }
-      router.refresh();
+      );
+      setRegistrationIntentId(t.intentId);
+      await finishRegistration(t.intentId);
     } catch (err) {
       setError(err instanceof Error ? err.message.replace('الصورة', 'الملف') : 'تعذّر رفع الملف');
     } finally {
@@ -161,7 +177,9 @@ export function PrivateFilesPanel({
         {title}
       </h3>
 
-      {files.length === 0 ? (
+      {loadError ? (
+        <FormError message={loadError} />
+      ) : files.length === 0 ? (
         <p className="text-sm font-medium text-slate-500">{emptyText}</p>
       ) : (
         <ul className="space-y-2">
@@ -177,14 +195,18 @@ export function PrivateFilesPanel({
                   {formatBytes(f.bytes)}
                   {' · '}
                   {f.uploadedByMe ? 'رفعته إنت' : f.fromProvider ? otherSideLabel : 'من العميل'}
-                  {f.expiresAt && !f.deleted && (
+                  {f.expiresAt && f.state === 'active' && (
                     <> · بيتمسح {new Date(f.expiresAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' })}</>
                   )}
                 </p>
               </div>
-              {f.deleted ? (
+              {f.state === 'deleted' ? (
                 <span className="rounded-md bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
-                  اتمسح بعد انتهاء المدة
+                  {f.deletionReason === 'retention' ? 'اتمسح بعد انتهاء مدة الحفظ' : 'اتمسح'}
+                </span>
+              ) : f.state === 'delete_pending' ? (
+                <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
+                  الحذف قيد التنفيذ
                 </span>
               ) : (
                 <button
@@ -197,7 +219,7 @@ export function PrivateFilesPanel({
                   {downloading === f.id ? 'جارٍ…' : 'تحميل'}
                 </button>
               )}
-              {f.canDelete &&
+              {f.state === 'active' && f.canDelete &&
                 (confirming === f.id ? (
                   <span className="inline-flex items-center gap-1">
                     <button
@@ -245,11 +267,11 @@ export function PrivateFilesPanel({
               const file = e.target.files?.[0];
               if (file) void upload(file);
             }}
-            disabled={busy}
+            disabled={busy || registrationIntentId !== null}
           />
           <label
             htmlFor={`files-${'orderId' in owner ? owner.orderId : owner.documentId}`}
-            className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 ${busy ? 'pointer-events-none opacity-60' : ''}`}
+            className={`inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white hover:bg-slate-800 ${busy || registrationIntentId ? 'pointer-events-none opacity-60' : ''}`}
           >
             <Upload className="h-4 w-4" aria-hidden="true" />
             {busy ? `جارٍ الرفع${progress !== null ? ` ${progress}٪` : '…'}` : 'ارفع ملف'}
@@ -264,6 +286,20 @@ export function PrivateFilesPanel({
       )}
 
       <FormError message={error} className="mt-3" />
+      {registrationIntentId && (
+        <div className="mt-3 flex gap-2">
+          <button type="button" disabled={busy} onClick={() => void retryRegistration()}
+            className="min-h-[44px] rounded-xl bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-50">
+            {busy ? 'جارٍ حفظ الملف…' : 'إعادة محاولة حفظ الملف'}
+          </button>
+          <button type="button" disabled={busy}
+            onClick={() => { setRegistrationIntentId(null); setError(''); }}
+            className="min-h-[44px] rounded-xl px-4 text-sm font-bold text-slate-700 disabled:opacity-50">
+            اختيار ملف آخر
+          </button>
+        </div>
+      )}
+      {notice && <p role="status" className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">{notice}</p>}
     </section>
   );
 }

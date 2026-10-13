@@ -5,7 +5,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Check, Inbox } from 'lucide-react';
-import type { AdminPerson, WorkTask } from '@/data/domains/work-tasks';
+import type { AdminPerson, WorkTask } from '@/data/domains/(admin)/tasks/queries';
 import { completeWorkTask, reassignWorkTask } from '@/actions/work-tasks';
 import { WORK_LINES, WORK_LINE_LABELS, WORK_STAGE_LABELS, type WorkLine, type WorkStage } from '@/lib/work-tasks';
 import { Field, Select, BusyButton } from '@/components/forms/Form';

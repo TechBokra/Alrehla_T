@@ -1,8 +1,9 @@
-import { getSessions } from '@/data/domains/writing';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { formatCairo } from '@/lib/timezone';
 import { sessionStatusView } from '@/lib/session-status';
-import { getSiteSettings, getSiteContent } from '@/data/domains/content';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { AccountBookingsClient, type BookingRow } from './AccountBookingsClient';
 

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { getInstructorStudents } from '@/data/domains/writing';
+import { getInstructorStudents } from '@/data/domains/(admin)/instructors/students';
 
 export const dynamic = 'force-dynamic';
 

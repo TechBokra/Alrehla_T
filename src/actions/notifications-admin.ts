@@ -38,9 +38,9 @@ export async function sendBroadcast(params: {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('notify_broadcast', {
     p_title: title,
-    p_message: params.message?.trim() || null,
-    p_link: params.link?.trim() || null,
-    p_role: params.target === 'all' ? null : params.target,
+    p_message: params.message?.trim() || undefined,
+    p_link: params.link?.trim() || undefined,
+    p_role: params.target === 'all' ? undefined : params.target,
   });
 
   if (error) {

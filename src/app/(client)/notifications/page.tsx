@@ -13,8 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
 import { redirect } from 'next/navigation';
 import { PageContainer } from '@/components/PageContainer';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getNotifications } from '@/data/domains/account';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getNotifications } from '@/data/domains/(client)/notifications/queries';
 import { NotificationsClient } from './NotificationsClient';
 
 export const dynamic = 'force-dynamic';

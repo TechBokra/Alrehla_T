@@ -3,8 +3,8 @@ import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { getSessions } from '@/data/domains/writing';
-import { getMyServiceOrders } from '@/data/domains/services';
+import { getSessions } from '@/data/domains/(shared)/sessions/queries';
+import { getMyServiceOrders } from '@/data/domains/(client)/service-orders/queries';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';

@@ -16,7 +16,7 @@ import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Package, ArrowLeft, Clock } from 'lucide-react';
-import { getOrders } from '@/data/domains/orders';
+import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 

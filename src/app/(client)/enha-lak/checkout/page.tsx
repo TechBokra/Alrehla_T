@@ -10,9 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getSiteSettings } from '@/data/domains/content';
-import { getShippingRates } from '@/data/domains/orders';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getShippingRates } from '@/data/domains/(client)/shipping/queries';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { CheckoutClient } from './CheckoutClient';
 import { requireShopper } from '@/lib/require-shopper';
 

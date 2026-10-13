@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getOrders } from '@/data/domains/orders';
-import { getSiteSettings } from '@/data/domains/content';
+import { getOrders } from '@/data/domains/(client)/orders/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { PayExistingOrder } from './PayExistingOrder';
 
 export const dynamic = 'force-dynamic';

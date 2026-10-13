@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
-import type { RatingSummary } from '@/data/domains/reviews';
+import type { RatingSummary } from '@/data/domains/(shared)/reviews/types';
 
 /**
  * An instructor's rating.

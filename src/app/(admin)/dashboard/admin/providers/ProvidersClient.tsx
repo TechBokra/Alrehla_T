@@ -10,7 +10,7 @@ import {
   removeProviderOffering,
   createIndividualProvider,
 } from '@/actions/providers';
-import type { ProviderWithOfferings, ProviderCandidate } from '@/data/domains/providers';
+import type { ProviderWithOfferings, ProviderCandidate } from '@/data/domains/(admin)/providers/queries';
 import type { ActionResult } from '@/actions/providers';
 import { Field, TextInput, TextArea, Select, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';

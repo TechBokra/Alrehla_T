@@ -10,12 +10,11 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getSiteSettings, getSiteContent } from '@/data/domains/content';
-import {
-  getWritingPackages,
-  getPublicInstructors,
-  getBookedSlotsByInstructor,
-} from '@/data/domains/writing';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
+import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getBookedSlotsByInstructor } from '@/data/domains/(client)/bookings/queries';
 import Link from 'next/link';
 
 import { PageContainer } from '@/components/PageContainer';

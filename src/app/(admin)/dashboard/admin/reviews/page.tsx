@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getAllReviews } from '@/data/domains/reviews';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getAllReviews } from '@/data/domains/(admin)/reviews/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { AdminReviewsClient } from './AdminReviewsClient';
 

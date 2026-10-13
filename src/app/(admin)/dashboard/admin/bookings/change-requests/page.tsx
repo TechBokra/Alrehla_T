@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSessionChangesForAdmin } from '@/data/domains/session-change-requests';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSessionChangesForAdmin } from '@/data/domains/(admin)/sessions/changes';
 import { hasAdminPermission } from '@/lib/utils';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { StatusBadge } from '@/components/StatusBadge';

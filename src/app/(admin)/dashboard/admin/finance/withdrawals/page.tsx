@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getWithdrawalRequests } from '@/data/domains/admin';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getWithdrawalRequests } from '@/data/domains/(admin)/finance/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { WithdrawalsClient } from './WithdrawalsClient';
 

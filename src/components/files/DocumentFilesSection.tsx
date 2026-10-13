@@ -1,7 +1,7 @@
-import { getDocumentFiles } from '@/data/domains/private-files';
+import { getDocumentFiles } from '@/data/domains/(shared)/files/queries';
 import { FILE_KINDS, WORKSPACE_FILE_MAX_MB } from '@/lib/private-files';
 import { PrivateFilesPanel } from './PrivateFilesPanel';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { canManageWriterContent } from '@/lib/document-control';
 
 /**
@@ -24,15 +24,18 @@ export async function DocumentFilesSection({
     const user = await getCurrentUser();
     manageAll = await canManageWriterContent(user.id, document.studentId);
   }
-  const { files, retentionDays } = await getDocumentFiles(document, { manageAll });
-  if (viewer === 'guardian' && files.length === 0) return null;
+  const result = await getDocumentFiles(document, { manageAll });
+  const files = result.success ? result.data.files : [];
+  const retentionDays = result.success ? result.data.retentionDays : 30;
+  if (viewer === 'guardian' && files.length === 0 && result.success) return null;
 
   return (
     <PrivateFilesPanel
       owner={{ documentId: document.id }}
       files={files}
+      loadError={result.success ? null : result.error.message}
       rules={{ kinds: FILE_KINDS.map((k) => k.kind), maxMb: WORKSPACE_FILE_MAX_MB }}
-      canUpload={viewer !== 'guardian'}
+      canUpload={viewer !== 'guardian' && ['draft', 'submitted'].includes(document.status) && result.success}
       retentionDays={retentionDays}
       closedLabel="مراجعة المدرب للنص"
       title="ملفات مرفقة"

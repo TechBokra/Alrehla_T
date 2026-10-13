@@ -57,8 +57,8 @@ export async function notifyUser(params: {
     const { error } = await supabase.rpc('notify_user', {
       p_recipient: recipientProfileId,
       p_title: title,
-      p_message: message ?? null,
-      p_link: link ?? null,
+      p_message: message ?? undefined,
+      p_link: link ?? undefined,
     });
     if (error) console.error('Error sending notification', error);
   } catch (err) {
@@ -124,8 +124,8 @@ export async function notifyAdmins(params: {
 
     const { error } = await supabase.rpc('notify_admins', {
       p_title: params.title,
-      p_message: params.message ?? null,
-      p_link: params.link ?? null,
+      p_message: params.message ?? undefined,
+      p_link: params.link ?? undefined,
     });
     if (error) console.error('Error notifying admins', error);
   } catch (err) {

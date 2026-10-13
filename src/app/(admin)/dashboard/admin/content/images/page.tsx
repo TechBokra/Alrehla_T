@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getSiteSettings } from '@/data/domains/content';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { SiteImagesClient } from './SiteImagesClient';
 

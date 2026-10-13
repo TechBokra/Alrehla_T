@@ -3,7 +3,7 @@ import { requestPasswordReset } from './auth';
 const mocks = vi.hoisted(() => ({ resetPasswordForEmail: vi.fn() }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ auth: mocks }) }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ origin: 'https://www.alrehla.org' }) }));
-vi.mock('@/data/domains/auth', () => ({ syncUserProfile: vi.fn() }));
+vi.mock("@/data/domains/(shared)/auth/queries", () => ({ syncUserProfile: vi.fn() }));
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.resetPasswordForEmail.mockResolvedValue({ error: null });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getAdminBlogPublicationData } from '@/data/domains/content-time';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getAdminBlogPublicationData } from '@/data/domains/(admin)/content/page-data';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';

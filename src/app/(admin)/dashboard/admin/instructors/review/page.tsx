@@ -3,12 +3,9 @@ import Link from 'next/link';
 import { CheckCircle2, ImageIcon, User } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth-guard';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import {
-  getInstructorMediaForAdmin,
-  getInstructorReviewGroups,
-  type InstructorReviewGroup,
-} from '@/data/domains/instructor-media';
-import { getWritingPackages } from '@/data/domains/writing';
+import { getInstructorMediaForAdmin, getInstructorReviewGroups } from '@/data/domains/(admin)/instructors/media';
+import type { InstructorReviewGroup } from '@/data/domains/(shared)/instructors/media-types';
+import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { reviewInstructorMedia, revokeInstructorMedia } from '@/actions/instructor-media';
 import { reviewProfileRequest, approveAllForInstructor } from '@/actions/instructor-review';
 import { getInstructorChangeItems } from '@/lib/request-summary';

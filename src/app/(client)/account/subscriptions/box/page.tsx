@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
-import { getMyBoxSubscriptions, getMyPendingBoxOrders } from '@/data/domains/subscriptions';
+import { getMyBoxSubscriptions, getMyPendingBoxOrders } from '@/data/domains/(client)/subscriptions/box';
 
 export const dynamic = 'force-dynamic';
 

@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { DeleteAccountClient } from './DeleteAccountClient';
 import { ProfileForm } from './ProfileForm';
 import { PasswordChangeForm } from './PasswordChangeForm';

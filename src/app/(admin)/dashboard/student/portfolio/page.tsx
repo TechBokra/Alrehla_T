@@ -1,5 +1,5 @@
-import { getCurrentUser } from '@/data/domains/auth';
-import { getStudentDocuments } from '@/data/domains/writing';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getStudentDocuments } from '@/data/domains/(shared)/portfolio/queries';
 import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { PortfolioListClient } from './PortfolioListClient';

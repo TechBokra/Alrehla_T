@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getMyPublisher } from '@/data/domains/products';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { requireAdmin } from '@/lib/auth-guard';
 import {

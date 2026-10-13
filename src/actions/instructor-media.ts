@@ -6,6 +6,7 @@ import { requireInstructor, requireAdmin } from '@/lib/auth-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins } from '@/lib/notifications';
+import { cleanupReplacedImages } from '@/data/domains/(admin)/media/image-replacement';
 import { MAX_WORKS, parseMediaInput } from '@/lib/instructor-media-input';
 
 /**
@@ -56,29 +57,41 @@ export async function submitInstructorMedia(formData: FormData): Promise<MediaRe
   // ⚠️ **سقف على عدد الأعمال.** من غيره المعرض بيبقى شريطًا لا
   //    ينتهي في صفحة عامة، والمراجعة بتبقى عبئًا على الإدارة.
   //    والعدّ بيشمل المعلَّق: اللي رفع ١٢ مستنيين مايرفعش تلتاشر.
+  const mediaId = String(formData.get('id') ?? '');
+  let previous: { image_url: string } | null = null;
+  if (mediaId) {
+    const owned = await supabase.from('instructor_media').select('image_url')
+      .eq('id', mediaId).eq('instructor_id', instructorId).eq('kind', kind).maybeSingle();
+    if (owned.error || !owned.data) return { ok: false, error: 'الصورة مش موجودة أو مش بتاعتك' };
+    previous = owned.data;
+  }
   if (kind === 'work') {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from('instructor_media')
       .select('id', { count: 'exact', head: true })
       .eq('instructor_id', instructorId)
       .eq('kind', 'work')
       .neq('status', 'rejected');
 
-    if ((count ?? 0) >= MAX_WORKS) {
+    if (countError) return { ok: false, error: 'تعذّر قراءة عدد الأعمال' };
+    // A replacement occupies its existing slot. Rejected works re-enter the limit.
+    const existing = mediaId ? await supabase.from('instructor_media').select('status').eq('id', mediaId).eq('instructor_id', instructorId).maybeSingle() : null;
+    if (existing?.error) return { ok: false, error: 'تعذّر قراءة حالة العمل' };
+    if ((!existing?.data || existing.data.status === 'rejected') && (count ?? 0) >= MAX_WORKS) {
       return { ok: false, error: `الحد ${MAX_WORKS} أعمال — امسح واحدًا قبل ما تضيف` };
     }
   }
 
-  const { data, error } = await supabase
-    .from('instructor_media')
-    .insert({
-      instructor_id: instructorId,
-      kind,
-      image_url: parsed.data.imageUrl,
-      title: parsed.data.title || null,
-      contribution: parsed.data.contribution || null,
-      status: 'pending',
-    })
+  const values = {
+    image_url: parsed.data.imageUrl,
+    title: parsed.data.title || null,
+    contribution: parsed.data.contribution || null,
+    status: 'pending' as const,
+  };
+  const write = mediaId
+    ? supabase.from('instructor_media').update(values).eq('id', mediaId).eq('instructor_id', instructorId).eq('kind', kind).eq('image_url', previous!.image_url)
+    : supabase.from('instructor_media').insert({ ...values, instructor_id: instructorId, kind });
+  const { data, error } = await write
     // ⚠️ `.select()` عشان **نتأكد إن الصفّ اتكتب فعلًا**. الإدراج
     //    اللي بترفضه الصلاحيات بيرجع بلا خطأ وبصفر صفوف (قاعدة
     //    «ك»)، والشاشة كانت هتقول «اتبعت للمراجعة» ومفيش حاجة
@@ -91,12 +104,14 @@ export async function submitInstructorMedia(formData: FormData): Promise<MediaRe
     return { ok: false, error: 'تعذّر حفظ الصورة — جرّب تاني' };
   }
 
+  if (previous?.image_url !== parsed.data.imageUrl) await cleanupReplacedImages([previous?.image_url]);
+
   await notifyAdmins({
     event: 'instructor_profile',
     title: `صورة جديدة للمراجعة: ${instructorName}`,
     message: kind === 'cover' ? 'غلاف بروفايل جديد' : 'صورة عمل جديدة',
     link: '/dashboard/admin/instructors/review',
-  });
+  }).catch((error) => console.error('Instructor image saved; notification failed', error));
 
   // الصور بقت في «ملفي» (كانت في «الإعدادات»).
   revalidatePath('/dashboard/instructor/profile');
@@ -125,7 +140,7 @@ export async function removeInstructorMedia(formData: FormData): Promise<MediaRe
     //    يعتمد على طبقة واحدة.
     .eq('id', id)
     .eq('instructor_id', instructorId)
-    .select('id')
+    .select('id, image_url')
     .maybeSingle();
 
   if (error) {
@@ -134,9 +149,7 @@ export async function removeInstructorMedia(formData: FormData): Promise<MediaRe
   }
   if (!data) return { ok: false, error: 'الصورة مش موجودة أو مش بتاعتك' };
 
-  // ⚠️ **الصورة بتفضل على Cloudinary.** مافيش حذف تلقائي من هنا
-  //    لأن نفس الرابط ممكن يكون مستعملًا في مكان تاني — التنظيف
-  //    من شاشة الصور في الإدارة زي باقي الصور اليتيمة.
+  await cleanupReplacedImages([data.image_url]);
   // الصور بقت في «ملفي» (كانت في «الإعدادات»).
   revalidatePath('/dashboard/instructor/profile');
   revalidatePath('/dashboard/admin/instructors/review');

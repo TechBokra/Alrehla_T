@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getReviewsForInstructor, getInstructorRatingSummary } from '@/data/domains/reviews';
-import { getMyInstructorId } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getReviewsForInstructor, getInstructorRatingSummary } from '@/data/domains/(shared)/reviews/queries';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { Star } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';

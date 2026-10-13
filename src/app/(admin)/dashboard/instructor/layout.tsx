@@ -1,10 +1,11 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/data/domains/auth';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import Link from 'next/link';
 import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
-import { getMyInstructorId } from '@/data/domains/services';
-import { getInstructorById, getProfileUpdateRequestsByInstructor } from '@/data/domains/writing';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
+import { getInstructorById } from '@/data/domains/(admin)/instructors/queries';
+import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
 import { onboardingState } from '@/lib/instructor-onboarding';
 
 /**

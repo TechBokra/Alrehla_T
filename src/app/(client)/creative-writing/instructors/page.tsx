@@ -11,8 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getPublicInstructors } from '@/data/domains/writing';
-import { getInstructorRatingSummaries } from '@/data/domains/reviews';
+import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getInstructorRatingSummaries } from '@/data/domains/(shared)/reviews/queries';
 import { RatingStars } from '@/components/services/RatingStars';
 import { User, Award, CheckCircle } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
@@ -22,7 +22,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Reveal } from '@/components/ui/Reveal';
-import { getSiteContent } from '@/data/domains/content';
+import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 
 export default async function InstructorsPage() {

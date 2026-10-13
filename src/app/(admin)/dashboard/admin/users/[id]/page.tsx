@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/auth';
+import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { createClient } from '@/lib/supabase/server';
-import { getAdminUserAuthData } from '@/data/domains/admin-user-auth';
-import { getChildrenAgeData } from '@/data/domains/dashboard-time';
+import { getAdminUserAuthData } from '@/data/domains/(admin)/users/auth';
+import { getChildrenAgeData } from '@/data/domains/(admin)/dashboard/timing';
 import {
   AdminUserDetailClient,
   type UserOrderRow,

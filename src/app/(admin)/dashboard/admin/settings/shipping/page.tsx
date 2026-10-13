@@ -1,8 +1,8 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getAllShippingRates } from '@/data/domains/orders';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getAllShippingRates } from '@/data/domains/(admin)/shipping/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { ShippingRatesClient } from './ShippingRatesClient';
 

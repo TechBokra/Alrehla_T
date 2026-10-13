@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getMyFeedbackContext } from '@/data/domains/feedback';
+import { getMyFeedbackContext } from '@/data/domains/(client)/feedback/queries';
 import { FEEDBACK_LINE_LABELS } from '@/lib/feedback-lines';
 import { formatDate } from '@/lib/utils';
 import { FeedbackForm } from './FeedbackForm';

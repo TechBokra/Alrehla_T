@@ -22,7 +22,7 @@ import type { UserProfile } from '@/types';
 const getCurrentUser = vi.fn();
 const createClient = vi.fn();
 
-vi.mock('@/data/domains/auth', () => ({
+vi.mock("@/data/domains/(shared)/auth/queries", () => ({
   getCurrentUser: () => getCurrentUser(),
 }));
 

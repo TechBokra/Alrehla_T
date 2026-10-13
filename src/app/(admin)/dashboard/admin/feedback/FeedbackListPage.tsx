@@ -1,8 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser, getAllUsers } from '@/data/domains/auth';
-import { getFeedbackForLine } from '@/data/domains/feedback';
+import { getCurrentUser, getAllUsers } from '@/data/domains/(shared)/auth/queries';
+import { getFeedbackForLine } from '@/data/domains/(admin)/feedback/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { FEEDBACK_LINE_LABELS, type FeedbackLine } from '@/lib/feedback-lines';

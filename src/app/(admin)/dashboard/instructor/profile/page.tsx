@@ -1,13 +1,11 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getCurrentUser } from '@/data/domains/auth';
-import {
-  getInstructorById,
-  getProfileUpdateRequestsByInstructor,
-} from '@/data/domains/writing';
-import { getMyInstructorId } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getInstructorById } from '@/data/domains/(admin)/instructors/queries';
+import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
+import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { LogoutButton } from '@/components/LogoutButton';
 import { InstructorProfileClient } from './InstructorProfileClient';
-import { getOwnInstructorMedia } from '@/data/domains/instructor-media';
+import { getOwnInstructorMedia } from '@/data/domains/(admin)/instructors/media';
 import { InstructorMediaPanel } from '@/components/dashboard/InstructorMediaPanel';
 import { onboardingState } from '@/lib/instructor-onboarding';
 

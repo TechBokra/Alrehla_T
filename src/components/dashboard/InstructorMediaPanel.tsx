@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { uploadImage } from '@/lib/upload-client';
+import { parseMediaInput } from '@/lib/instructor-media-input';
 import Image from 'next/image';
 import { Trash2, Plus } from 'lucide-react';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
@@ -11,7 +13,7 @@ import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Field, TextInput, SubmitButton } from '@/components/forms/Form';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { submitInstructorMedia, removeInstructorMedia } from '@/actions/instructor-media';
-import type { InstructorMedia } from '@/data/domains/instructor-media';
+import type { InstructorMedia } from '@/data/domains/(shared)/instructors/media-types';
 
 /**
  * لوحة المدرب: غلاف البروفايل وصور الأعمال.
@@ -52,7 +54,7 @@ const MEDIA_STATUS: Record<
   rejected: { label: 'مرفوضة', type: 'danger' },
 };
 
-function MediaTile({ item }: { item: InstructorMedia }) {
+function MediaTile({ item, onEdit }: { item: InstructorMedia; onEdit: () => void }) {
   return (
     <Card className="flex flex-col overflow-hidden p-0">
       {/* نسبة ثابتة و`contain`: الغلاف والأعمال أشكالها مختلفة،
@@ -87,6 +89,9 @@ function MediaTile({ item }: { item: InstructorMedia }) {
           </p>
         )}
 
+        <button type="button" onClick={onEdit} className="min-h-[44px] text-sm font-bold text-blue-700">
+          تعديل الصورة
+        </button>
         <ActionForm action={removeInstructorMedia} className="mt-auto pt-2">
           <input type="hidden" name="id" value={item.id} />
           <button
@@ -104,6 +109,32 @@ function MediaTile({ item }: { item: InstructorMedia }) {
 
 export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
   const [adding, setAdding] = useState<'cover' | 'work' | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [editing, setEditing] = useState<InstructorMedia | null>(null);
+  const uploaded = useRef<{ file: File; url: string } | null>(null);
+  const openForm = (kind: 'cover' | 'work' | null, item: InstructorMedia | null = null) => {
+    setEditing(item);
+    setFile(null);
+    uploaded.current = null;
+    setAdding(kind);
+  };
+  const submitMedia = async (data: FormData) => {
+    if (!file && (!editing || !data.get('imageUrl'))) return { ok: false as const, error: 'اختار صورة أولًا' };
+    // Validate text before creating an upload. The server validates again.
+    data.set('imageUrl', 'https://res.cloudinary.com/validation/image/upload/selected.jpg');
+    const parsed = parseMediaInput(data);
+    if (!parsed.ok) return { ok: false as const, error: parsed.error };
+    try {
+      if (file && uploaded.current?.file !== file) {
+        const result = await uploadImage(file, `alrehla/instructors/${adding === 'cover' ? 'covers' : 'works'}`);
+        uploaded.current = { file, url: result.url };
+      }
+      data.set('imageUrl', file ? uploaded.current!.url : editing!.imageUrl);
+      return await submitInstructorMedia(data);
+    } catch (error) {
+      return { ok: false as const, error: error instanceof Error ? error.message : 'تعذّر رفع الصورة' };
+    }
+  };
 
   const cover = media.filter((m) => m.kind === 'cover');
   const works = media.filter((m) => m.kind === 'work');
@@ -123,7 +154,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
             <Button
               variant="secondary"
               accentColor="journey"
-              onClick={() => setAdding('cover')}
+              onClick={() => openForm('cover')}
             >
               <Plus className="h-4 w-4" />
               {cover.length > 0 ? 'غلاف جديد' : 'ارفع غلافًا'}
@@ -134,13 +165,17 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
         {adding === 'cover' && (
           <Card className="p-5">
             <ActionForm
-              action={submitInstructorMedia}
-              onDone={() => setAdding(null)}
+              key={editing?.id ?? adding}
+              action={submitMedia}
+              onDone={() => openForm(null)}
               className="space-y-4"
             >
+              <input type="hidden" name="id" value={editing?.id ?? ''} />
               <input type="hidden" name="kind" value="cover" />
               <ImageField
                 name="imageUrl"
+                onFileChange={setFile}
+                value={editing?.imageUrl}
                 label="صورة الغلاف"
                 folder="alrehla/instructors/covers"
                 aspect="wide"
@@ -152,7 +187,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
                   type="button"
                   variant="secondary"
                   accentColor="journey"
-                  onClick={() => setAdding(null)}
+                  onClick={() => openForm(null)}
                 >
                   إلغاء
                 </Button>
@@ -164,7 +199,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
         {cover.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cover.map((m) => (
-              <MediaTile key={m.id} item={m} />
+              <MediaTile key={m.id} item={m} onEdit={() => openForm(m.kind, m)} />
             ))}
           </div>
         ) : (
@@ -189,7 +224,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
             <Button
               variant="secondary"
               accentColor="journey"
-              onClick={() => setAdding('work')}
+              onClick={() => openForm('work')}
             >
               <Plus className="h-4 w-4" />
               أضف عملًا
@@ -200,13 +235,17 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
         {adding === 'work' && (
           <Card className="p-5">
             <ActionForm
-              action={submitInstructorMedia}
-              onDone={() => setAdding(null)}
+              key={editing?.id ?? adding}
+              action={submitMedia}
+              onDone={() => openForm(null)}
               className="space-y-4"
             >
+              <input type="hidden" name="id" value={editing?.id ?? ''} />
               <input type="hidden" name="kind" value="work" />
               <ImageField
                 name="imageUrl"
+                onFileChange={setFile}
+                value={editing?.imageUrl}
                 label="صورة العمل"
                 folder="alrehla/instructors/works"
                 aspect="cover"
@@ -214,7 +253,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="اسم العمل" name="title">
-                  <TextInput maxLength={120} placeholder="مثال: رحلة إلى أعماق البحار" />
+                  <TextInput defaultValue={editing?.title ?? ''} maxLength={120} placeholder="مثال: رحلة إلى أعماق البحار" />
                 </Field>
                 <Field
                   label={
@@ -225,7 +264,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
                   }
                   name="contribution"
                 >
-                  <TextInput maxLength={80} placeholder="تأليف · رسم · مشاركة" />
+                  <TextInput defaultValue={editing?.contribution ?? ''} maxLength={80} placeholder="تأليف · رسم · مشاركة" />
                 </Field>
               </div>
               <div className="flex gap-2">
@@ -234,7 +273,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
                   type="button"
                   variant="secondary"
                   accentColor="journey"
-                  onClick={() => setAdding(null)}
+                  onClick={() => openForm(null)}
                 >
                   إلغاء
                 </Button>
@@ -246,7 +285,7 @@ export function InstructorMediaPanel({ media }: { media: InstructorMedia[] }) {
         {works.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {works.map((m) => (
-              <MediaTile key={m.id} item={m} />
+              <MediaTile key={m.id} item={m} onEdit={() => openForm(m.kind, m)} />
             ))}
           </div>
         ) : (

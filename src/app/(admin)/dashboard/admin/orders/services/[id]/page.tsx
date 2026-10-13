@@ -4,8 +4,9 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { ServiceOrderDetail } from '@/components/services/ServiceOrderDetail';
 import { OrderFilesSection } from '@/components/files/OrderFilesSection';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { getCurrentUser } from '@/data/domains/auth';
-import { getServiceOrderDetail, getServiceOrderMessages } from '@/data/domains/services';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getServiceOrderDetail } from '@/data/domains/(shared)/service-orders/queries';
+import { getServiceOrderMessages } from '@/data/domains/(shared)/service-orders/messages';
 import { hasAdminPermission } from '@/lib/utils';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 // الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
