@@ -19,6 +19,38 @@ afterEach(() => {
 });
 
 describe('Cloudinary private attachment provider', () => {
+  it('issues fresh signed upload timestamps after hours of server uptime', () => {
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = 'test-cloud';
+    process.env.CLOUDINARY_API_KEY = 'test-key';
+    process.env.CLOUDINARY_API_SECRET = 'test-secret';
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_800_000_000_123);
+    const sign = vi.spyOn(cloudinary.utils, 'api_sign_request').mockReturnValue('signature');
+    const target = {
+      intentId: 'intent-1', publicId: 'intent-1.pdf',
+      folder: 'alrehla/private/orders/order-1', tag: 'intent-tag',
+      resourceType: 'raw' as const, extensions: ['pdf'],
+    };
+    expect(cloudinaryAttachmentProvider.createUploadTicket(target)?.timestamp).toBe('1800000000');
+    now.mockReturnValue(1_800_007_200_999);
+    const ticket = cloudinaryAttachmentProvider.createUploadTicket(target);
+    expect(ticket?.timestamp).toBe('1800007200');
+    expect(sign).toHaveBeenLastCalledWith(expect.objectContaining({ timestamp: 1_800_007_200 }), 'test-secret');
+  });
+
+  it('gives each download link ten minutes from the current request time', () => {
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = 'test-cloud';
+    process.env.CLOUDINARY_API_KEY = 'test-key';
+    process.env.CLOUDINARY_API_SECRET = 'test-secret';
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_800_000_000_123);
+    const download = vi.spyOn(cloudinary.utils, 'private_download_url').mockReturnValue('signed-url');
+    const locator = { public_id: 'private/file.pdf', resource_type: 'raw' as const, type: 'authenticated' as const };
+    cloudinaryAttachmentProvider.createDownloadUrl(locator, 'pdf');
+    expect(download).toHaveBeenLastCalledWith(locator.public_id, 'pdf', expect.objectContaining({ expires_at: 1_800_000_600 }));
+    now.mockReturnValue(1_800_007_200_999);
+    cloudinaryAttachmentProvider.createDownloadUrl(locator, 'pdf');
+    expect(download).toHaveBeenLastCalledWith(locator.public_id, 'pdf', expect.objectContaining({ expires_at: 1_800_007_800 }));
+  });
+
   it('signs the exact reserved destination and private upload fields', () => {
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = 'test-cloud';
     process.env.CLOUDINARY_API_KEY = 'test-key';

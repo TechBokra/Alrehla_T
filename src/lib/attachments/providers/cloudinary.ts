@@ -10,7 +10,7 @@ import type {
   StoredAttachmentAsset,
   UploadTarget,
 } from '../types';
-const TIME_TO_EXP = Math.floor(Date.now() / 1000);
+
 function credentials() {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -38,13 +38,14 @@ export const cloudinaryAttachmentProvider: AttachmentStorageProvider = {
   createUploadTicket(target: UploadTarget) {
     const config = credentials();
     if (!config) return null;
+    const timestamp = Math.floor(Date.now() / 1000);
     const params = {
       allowed_formats: target.extensions.join(','),
       folder: target.folder,
       overwrite: false,
       public_id: target.publicId,
       tags: target.tag,
-      timestamp:TIME_TO_EXP,
+      timestamp,
       type: 'authenticated',
     };
     const signature = cloudinary.utils.api_sign_request(params, config.apiSecret);
@@ -56,7 +57,7 @@ export const cloudinaryAttachmentProvider: AttachmentStorageProvider = {
       public_id: params.public_id,
       signature,
       tags: params.tags,
-      timestamp: String(TIME_TO_EXP),
+      timestamp: String(timestamp),
       type: params.type,
     };
   },
@@ -101,7 +102,7 @@ export const cloudinaryAttachmentProvider: AttachmentStorageProvider = {
     return cloudinary.utils.private_download_url(locator.public_id, format ?? '', {
       resource_type: locator.resource_type,
       type: locator.type,
-      expires_at: TIME_TO_EXP + 10 * 60,
+      expires_at: Math.floor(Date.now() / 1000) + 10 * 60,
       attachment: true,
     });
   },
