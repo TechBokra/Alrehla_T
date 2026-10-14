@@ -46,15 +46,16 @@ export default async function AdminDashboard() {
   // ⚠️ فشل قراءة الطلبات **ما يتسكتش**: كانت `getAllOrders()` بترجّع قايمة
   //    فاضية عند الخطأ، فاللوحة كانت بتقول «مفيش طلبات» وهي بس ماقدرتش تقرا.
   //    دلوقتي بترمي، ونمسكها هنا عشان باقي اللوحة تفضل شغّالة مع تحذير ظاهر.
-  let ordersLoadFailed = false;
-  const [packages, orders, bookings, instructors, queueAll, posts, testimonials, settings] =
+  const [packages, ordersResult, bookings, instructors, queueAll, posts, testimonials, settings] =
     await Promise.all([
       getWritingPackages(),
-      getAllOrders({ throwOnError: true }).catch((error: unknown) => {
-        console.error('تعذّر تحميل الطلبات للوحة الإدارة', error);
-        ordersLoadFailed = true;
-        return [] as Order[];
-      }),
+      getAllOrders({ throwOnError: true }).then(
+        (list) => ({ orders: list, failed: false }),
+        (error: unknown) => {
+          console.error('تعذّر تحميل الطلبات للوحة الإدارة', error);
+          return { orders: [] as Order[], failed: true };
+        },
+      ),
       getSessions(),
       getInstructors(),
       getReviewQueue(),
@@ -62,6 +63,7 @@ export default async function AdminDashboard() {
       getTestimonials(),
       getSiteSettings(),
     ]);
+  const { orders, failed: ordersLoadFailed } = ordersResult;
 
   const reviewQueue = queueAll.filter((item) => hasAdminPermission(user, item.permission));
   const logs = hasAdminPermission(user, 'canViewAuditLogs') ? await getAuditLogs() : [];
