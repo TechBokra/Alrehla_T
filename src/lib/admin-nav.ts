@@ -107,7 +107,9 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'ترتيب «أنت البطل هنا»', href: `${A}/products/hero-order`, permission: 'canManageCatalog' },
           { label: 'خانات التخصيص', href: `${A}/products/customization-fields`, permission: 'canManageCatalog' },
           { label: 'أهداف التخصيص', href: `${A}/products/story-goals`, permission: 'canManageCatalog' },
+          { label: 'لهجات الكتابة', href: `${A}/products/writing-dialects`, permission: 'canManageCatalog' },
           { label: 'الإضافات', href: `${A}/addons`, permission: 'canManageCatalog' },
+          { label: 'العروض والخصومات', href: `${A}/promotions`, permission: 'canManageCatalog' },
         ],
       },
       {

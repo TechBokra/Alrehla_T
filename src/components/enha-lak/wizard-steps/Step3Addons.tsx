@@ -111,7 +111,14 @@ export function Step3Addons({
                     مخصصة بالاسم والصورة
                   </p>
                 </div>
-                <div className="shrink-0 font-black text-emerald-700">+{formatPrice(shownPrice)}</div>
+                <div className="shrink-0 font-black text-emerald-700">
+                  +{formatPrice(shownPrice)}
+                  {addon.listPrice !== undefined && addon.listPrice > addon.price && (
+                    <del className="mr-2 text-xs font-medium text-slate-500">
+                      {formatPrice(addon.listPrice + (addon.customizationPrice ?? 0))}
+                    </del>
+                  )}
+                </div>
               </div>
               {/* صفحة الإضافة (ملف 19) في تاب جديد — عشان التخصيص اللي اتكتب
                   مايضيعش. وبرّه خانة الاختيار عشان الضغطة ماتختارهاش. */}

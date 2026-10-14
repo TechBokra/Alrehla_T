@@ -191,4 +191,57 @@ describe('private-file server actions', () => {
     await expect(getPrivateFileLink('file-1')).resolves.toMatchObject({ ok: false });
     expect(getAttachmentStorageProvider).not.toHaveBeenCalled();
   });
+
+  // ── روابط التحميل: من غير صلاحية = من غير رابط ─────────────────────────
+  // الصلاحية بتتفرض بسياسة RLS على `private_files`: اللي مش مسموح له الصف
+  // مابيرجعلوش (data=null)، فالدالة لازم ترفض ومتولّدش رابطًا موقّعًا.
+
+  it('refuses a download link when RLS hides the file from the caller', async () => {
+    requireUser.mockResolvedValue({ id: 'stranger-1', role: 'customer' });
+    createClient.mockResolvedValue(userClient({})); // الصف مش ظاهر للمستخدم ده
+    const createDownloadUrl = vi.fn();
+    getAttachmentStorageProvider.mockReturnValue({ createDownloadUrl });
+
+    const result = await getPrivateFileLink('someone-elses-file');
+
+    expect(result).toMatchObject({ ok: false });
+    expect(createDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it('refuses a download link when the lookup itself errors', async () => {
+    requireUser.mockResolvedValue({ id: 'buyer-1', role: 'customer' });
+    const query: Record<string, unknown> = {};
+    query.select = vi.fn(() => query);
+    query.eq = vi.fn(() => query);
+    query.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: { message: 'db down' } });
+    createClient.mockResolvedValue({ from: vi.fn(() => query) });
+    const createDownloadUrl = vi.fn();
+    getAttachmentStorageProvider.mockReturnValue({ createDownloadUrl });
+
+    await expect(getPrivateFileLink('file-1')).resolves.toMatchObject({ ok: false });
+    expect(createDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it('refuses a download link to a signed-out caller without touching the database', async () => {
+    requireUser.mockRejectedValue(new Error('unauthenticated'));
+
+    await expect(getPrivateFileLink('file-1')).resolves.toMatchObject({ ok: false });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(getAttachmentStorageProvider).not.toHaveBeenCalled();
+  });
+
+  it('returns a signed URL for an active file the caller can read', async () => {
+    requireUser.mockResolvedValue({ id: 'buyer-1', role: 'customer' });
+    createClient.mockResolvedValue(userClient({
+      private_files: { public_id: 'alrehla/private/f1', resource_type: 'image', format: 'jpg', lifecycle_state: 'active' },
+    }));
+    const createDownloadUrl = vi.fn().mockReturnValue('https://signed.example/f1');
+    getAttachmentStorageProvider.mockReturnValue({ createDownloadUrl });
+
+    await expect(getPrivateFileLink('file-1')).resolves.toEqual({ ok: true, url: 'https://signed.example/f1' });
+    expect(createDownloadUrl).toHaveBeenCalledWith(
+      { public_id: 'alrehla/private/f1', resource_type: 'image', type: 'authenticated' },
+      'jpg',
+    );
+  });
 });

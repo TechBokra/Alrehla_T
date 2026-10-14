@@ -14,6 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
+      countries: {
+        Row: {
+          code: string
+          dial_code: string | null
+          electronic_enabled: boolean
+          is_default: boolean
+          is_listed: boolean
+          name_ar: string
+          physical_enabled: boolean
+          sort_order: number
+          unavailable_message: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          dial_code?: string | null
+          electronic_enabled?: boolean
+          is_default?: boolean
+          is_listed?: boolean
+          name_ar: string
+          physical_enabled?: boolean
+          sort_order?: number
+          unavailable_message?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          dial_code?: string | null
+          electronic_enabled?: boolean
+          is_default?: boolean
+          is_listed?: boolean
+          name_ar?: string
+          physical_enabled?: boolean
+          sort_order?: number
+          unavailable_message?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      governorates: {
+        Row: {
+          country_code: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          physical_enabled: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          physical_enabled?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          physical_enabled?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "governorates_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      price_promotions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          label: string | null
+          starts_at: string
+          target_id: string
+          target_type: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          label?: string | null
+          starts_at: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label?: string | null
+          starts_at?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      writing_dialects: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_ar: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_ar: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_ar?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       account_deletion_requests: {
         Row: {
           admin_notes: string | null
@@ -1226,6 +1369,7 @@ export type Database = {
           customization_data: Json | null
           format: string
           id: string
+          list_price_snapshot: number | null
           order_id: string
           product_id: string
           publisher_cost_snapshot: number | null
@@ -1238,6 +1382,7 @@ export type Database = {
           customization_data?: Json | null
           format?: string
           id?: string
+          list_price_snapshot?: number | null
           order_id: string
           product_id: string
           publisher_cost_snapshot?: number | null
@@ -1250,6 +1395,7 @@ export type Database = {
           customization_data?: Json | null
           format?: string
           id?: string
+          list_price_snapshot?: number | null
           order_id?: string
           product_id?: string
           publisher_cost_snapshot?: number | null
@@ -1274,6 +1420,7 @@ export type Database = {
           box_details: Json | null
           box_plan_id: string | null
           city: string | null
+          country_code: string
           created_at: string
           delivered_at: string | null
           delivery_email: string | null
@@ -1305,6 +1452,7 @@ export type Database = {
           box_details?: Json | null
           box_plan_id?: string | null
           city?: string | null
+          country_code?: string
           created_at?: string
           delivered_at?: string | null
           delivery_email?: string | null
@@ -1336,6 +1484,7 @@ export type Database = {
           box_details?: Json | null
           box_plan_id?: string | null
           city?: string | null
+          country_code?: string
           created_at?: string
           delivered_at?: string | null
           delivery_email?: string | null
@@ -1361,7 +1510,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       page_content: {
         Row: {
@@ -1411,6 +1568,7 @@ export type Database = {
           slug: string
           sort_order: number
           updated_at: string
+          writing_styles: string[] | null
         }
         Insert: {
           category: Database["public"]["Enums"]["product_category"]
@@ -1438,6 +1596,7 @@ export type Database = {
           slug: string
           sort_order?: number
           updated_at?: string
+          writing_styles?: string[] | null
         }
         Update: {
           category?: Database["public"]["Enums"]["product_category"]
@@ -1465,6 +1624,7 @@ export type Database = {
           slug?: string
           sort_order?: number
           updated_at?: string
+          writing_styles?: string[] | null
         }
         Relationships: []
       }
@@ -2390,29 +2550,56 @@ export type Database = {
       shipping_rates: {
         Row: {
           city: string | null
+          country_code: string
+          eta_days_max: number | null
+          eta_days_min: number | null
           fee: number
           governorate: string
           id: string
           is_active: boolean
+          is_estimate: boolean
           updated_at: string
         }
         Insert: {
           city?: string | null
+          country_code?: string
+          eta_days_max?: number | null
+          eta_days_min?: number | null
           fee: number
           governorate: string
           id?: string
           is_active?: boolean
+          is_estimate?: boolean
           updated_at?: string
         }
         Update: {
           city?: string | null
+          country_code?: string
+          eta_days_max?: number | null
+          eta_days_min?: number | null
           fee?: number
           governorate?: string
           id?: string
           is_active?: boolean
+          is_estimate?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shipping_rates_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "shipping_rates_governorate_fk"
+            columns: ["country_code", "governorate"]
+            isOneToOne: false
+            referencedRelation: "governorates"
+            referencedColumns: ["country_code", "name_ar"]
+          },
+        ]
       }
       site_settings: {
         Row: {
@@ -2895,6 +3082,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      effective_price: {
+        Args: { p_at?: string; p_base: number; p_id: string; p_type: string }
+        Returns: number
+      }
+      shipping_quote: {
+        Args: { p_city: string; p_country: string; p_governorate: string }
+        Returns: {
+          available: boolean
+          fee: number
+          message: string
+          reason: string
+        }[]
+      }
       account_activity: { Args: { p_user: string }; Returns: Json }
       admin_purge_account: { Args: { p_user: string }; Returns: string[] }
       all_cloudinary_urls: { Args: { p_urls: string[] }; Returns: boolean }

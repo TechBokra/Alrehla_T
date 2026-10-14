@@ -2,6 +2,7 @@
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
+import { WritingStylesField } from '@/components/dashboard/WritingStylesField';
 import { MoneyInput } from '@/components/dashboard/PublisherCostField';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import {
@@ -130,6 +131,7 @@ export function ProductEditFormClient({ product, publishers, pricingSettings }: 
             </div>
           )}
           <ElectronicPriceField category={category} defaultValue={product.electronicPrice} />
+          <WritingStylesField category={category} defaultValue={product.writingStyles} />
         </div>
       </div>
 

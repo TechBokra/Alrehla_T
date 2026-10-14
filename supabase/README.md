@@ -7,7 +7,7 @@
 - [`seed.sql`](seed.sql): بيانات البداية المحلية. تُشغّل بعد الـ migrations عند `supabase db reset`.
 - [`schema.sql`](schema.sql): نسخة مرجعية من لوحة Supabase فقط. لا تشغّلها؛ فهي لا تحتوي كل الدوال والسياسات والمحفّزات.
 - [`manual/first_admin.sql`](manual/first_admin.sql): ترقية حساب موجود إلى مدير أول بعد التسجيل.
-- [`maintenance/cleanup_test_data.sql`](maintenance/cleanup_test_data.sql): تنظيف نهائي لبيانات ما قبل الإطلاق. لا تشغّله على production.
+- [`maintenance/cleanup_test_data.sql`](maintenance/cleanup_test_data.sql): تنظيف نهائي لبيانات ما قبل الإطلاق (مسح نهائي). يرفض التشغيل من 1 نوفمبر 2026، ويرفض لو فيه صفوف في `private_files`/`private_file_cleanup_jobs`. تشغيله على production قرار صريح من صاحب المشروع قبل الإطلاق فقط — لا يُشغَّل تلقائيًا.
 
 ## المشاريع
 
@@ -88,4 +88,4 @@ supabase db push
 - `seed.sql` مفعّل في `config.toml` لبيئات التطوير المحلية. اختُبر على staging مرتين داخل معاملة تم التراجع عنها، لذلك لم يغيّر بيانات staging.
 - لا تشغّل seed على production. `db push` لا ينشر seed تلقائيًا.
 - `manual/first_admin.sql` يحتاج تعديل البريد التجريبي داخله إلى بريد الحساب المقصود قبل التشغيل.
-- `maintenance/cleanup_test_data.sql` يحذف بيانات تشغيلية كثيرة ويعيد تسلسل أرقام الطلبات. هو إجراء يدوي منفصل، وليس migration أو جزءًا من إعادة البناء.
+- `maintenance/cleanup_test_data.sql` يحذف بيانات تشغيلية كثيرة ويعيد تسلسل أرقام الطلبات. هو إجراء يدوي منفصل، وليس migration أو جزءًا من إعادة البناء. ويرفض التشغيل من 1 نوفمبر 2026، أو إذا كانت `private_files`/`private_file_cleanup_jobs` فيها صفوف (حتى لا يمسح سجلات صور Cloudinary الخاصة قبل مسح الصور نفسها).

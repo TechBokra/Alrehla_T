@@ -22,6 +22,8 @@ import { SITE_IMAGE_SLOTS } from '@/lib/site-images';
 import { hasAdminPermission, formatPrice, formatDate } from '@/lib/utils';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { getAdminOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
+import { FormError } from '@/components/ui/FormError';
+import type { Order } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,10 +43,19 @@ export default async function AdminDashboard() {
     redirect('/dashboard');
   }
 
-  const [packages, orders, bookings, instructors, queueAll, posts, testimonials, settings] =
+  // ⚠️ فشل قراءة الطلبات **ما يتسكتش**: كانت `getAllOrders()` بترجّع قايمة
+  //    فاضية عند الخطأ، فاللوحة كانت بتقول «مفيش طلبات» وهي بس ماقدرتش تقرا.
+  //    دلوقتي بترمي، ونمسكها هنا عشان باقي اللوحة تفضل شغّالة مع تحذير ظاهر.
+  const [packages, ordersResult, bookings, instructors, queueAll, posts, testimonials, settings] =
     await Promise.all([
       getWritingPackages(),
-      getAllOrders(),
+      getAllOrders({ throwOnError: true }).then(
+        (list) => ({ orders: list, failed: false }),
+        (error: unknown) => {
+          console.error('تعذّر تحميل الطلبات للوحة الإدارة', error);
+          return { orders: [] as Order[], failed: true };
+        },
+      ),
       getSessions(),
       getInstructors(),
       getReviewQueue(),
@@ -52,6 +63,7 @@ export default async function AdminDashboard() {
       getTestimonials(),
       getSiteSettings(),
     ]);
+  const { orders, failed: ordersLoadFailed } = ordersResult;
 
   const reviewQueue = queueAll.filter((item) => hasAdminPermission(user, item.permission));
   const logs = hasAdminPermission(user, 'canViewAuditLogs') ? await getAuditLogs() : [];
@@ -86,6 +98,15 @@ export default async function AdminDashboard() {
         <Activity className="h-8 w-8 text-amber-500" />
         لوحة تحكم الإدارة
       </h1>
+
+      <FormError
+        message={
+          ordersLoadFailed
+            ? 'تعذّر تحميل الطلبات — أرقام الطلبات والإيرادات في هذه الصفحة ناقصة وليست صفرًا حقيقيًا. حدّث الصفحة، ولو استمرت المشكلة افتح «الطلبات» مباشرة.'
+            : null
+        }
+        className="mb-6"
+      />
 
       {/* ============ ١) مركز المهام العاجلة ============ */}
       <Block title="مركز المهام العاجلة" icon={AlertCircle}>

@@ -93,7 +93,12 @@ export function OrderSummarySidebar({
         </div>
         <div>
           <h4 className="font-bold text-slate-800">{product.name}</h4>
-          <p className="text-sm text-slate-600 mt-1">{formatPrice(base)}</p>
+          <p className="text-sm text-slate-600 mt-1">
+            {formatPrice(base)}
+            {format === 'printed' && product.listPrice !== undefined && product.listPrice > product.price && (
+              <del className="mr-2 text-xs text-slate-500">{formatPrice(product.listPrice)}</del>
+            )}
+          </p>
           {format !== 'printed' && (
             <p className="mt-1 text-xs font-bold text-emerald-800">{FORMAT_LABELS[format]}</p>
           )}

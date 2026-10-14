@@ -5,6 +5,8 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { mapProductRow } from '@/data/domains/(shared)/products/products-internal';
 import { byDisplayOrder } from '@/data/domains/(shared)/products/queries';
 import { decodeSlug } from '@/lib/utils';
+import { applyProductPromotions } from '@/lib/promotions';
+import { getLivePromotions } from '@/data/domains/(shared)/promotions/live';
 
 /**
  * صور المنتج **بالعلامة المائية** للصفحات العامة (قرار تامر، 1 أكتوبر).
@@ -59,7 +61,14 @@ export const getPersonalizedProducts = async (): Promise<PersonalizedProduct[]> 
   }
   if (!data || data.length === 0) return [];
 
-  return Promise.all(data.map(mapProductRow).sort(byDisplayOrder).map(withWatermark));
+  const promotions = await getLivePromotions();
+  const now = new Date();
+  return Promise.all(
+    data
+      .map(mapProductRow)
+      .sort(byDisplayOrder)
+      .map((p) => withWatermark(applyProductPromotions(p, promotions, now))),
+  );
 };
 
 /**
@@ -121,5 +130,6 @@ export const getProductBySlug = async (rawSlug: string): Promise<PersonalizedPro
   //
   // **ومالوش أي مبرّر**: كل الأعمدة اللي بتتقري موجودة في
   // النوعين، والصفحات اللي بتستعملها بتفلتر بالتصنيف لا بالملكية.
-  return withWatermark(mapProductRow(data));
+  // السعر بعد العرض الساري — للعرض فقط، والقاعدة بتحسب الحقيقي عند الطلب.
+  return withWatermark(applyProductPromotions(mapProductRow(data), await getLivePromotions(), new Date()));
 };

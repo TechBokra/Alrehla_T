@@ -23,6 +23,7 @@ import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/(client)/subscriptions/box';
 import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
 import { getActiveStoryGoals } from '@/data/domains/(shared)/products/story-goals';
+import { getActiveWritingDialects } from '@/data/domains/(shared)/products/writing-dialects';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
   const { productSlug } = await params;
@@ -59,10 +60,11 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
 
   // الخانات والأهداف بتتفلتر بالمنتج (ملف 12) — فلازم رقمه الأول.
   const target = { productId: product.id };
-  const [extraFields, goals, addonDiscountPercent] = await Promise.all([
+  const [extraFields, goals, addonDiscountPercent, writingDialects] = await Promise.all([
     getActiveCustomizationFields(target),
     getActiveStoryGoals(target),
     getMyAddonDiscount(),
+    getActiveWritingDialects(),
   ]);
 
   return (
@@ -73,6 +75,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         addonDiscountPercent={addonDiscountPercent}
         extraFields={extraFields}
         goals={goals}
+        writingDialects={writingDialects}
       />
     </div>
   );

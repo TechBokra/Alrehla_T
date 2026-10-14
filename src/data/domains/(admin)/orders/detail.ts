@@ -19,7 +19,11 @@ export type AdminOrderDetailResult = QueryResult<
 
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 
-type OrderItemRow = Database['public']['Tables']['order_items']['Row'];
+// الأعمدة المختارة في الاستعلام تحت — بدون `list_price_snapshot` (مش بتتعرض هنا).
+type OrderItemRow = Omit<
+  Database['public']['Tables']['order_items']['Row'],
+  'list_price_snapshot'
+>;
 
 function mapOrderItem(row: OrderItemRow): OrderItem {
   return {
@@ -55,6 +59,7 @@ function mapOrder(row: OrderRow, items: OrderItem[]): Order {
     addressLine: row.address_line || undefined,
     city: row.city || undefined,
     governorate: row.governorate || undefined,
+    countryCode: row.country_code || undefined,
     shippingNotes: row.shipping_notes || undefined,
     deliveryEmail: row.delivery_email || undefined,
     electronicSentAt: row.electronic_sent_at || undefined,

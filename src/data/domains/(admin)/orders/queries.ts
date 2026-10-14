@@ -78,6 +78,7 @@ export async function getAllOrders(options: QueryReadOptions = {}): Promise<Orde
     addressLine: order.address_line || undefined,
     city: order.city || undefined,
     governorate: order.governorate || undefined,
+    countryCode: order.country_code || undefined,
     shippingNotes: order.shipping_notes || undefined,
     deliveryEmail: order.delivery_email || undefined,
     electronicSentAt: order.electronic_sent_at || undefined,

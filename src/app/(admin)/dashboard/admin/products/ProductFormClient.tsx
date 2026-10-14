@@ -7,6 +7,7 @@ import { saveProduct } from '@/actions/products';
 import { ProductContentFields } from '@/components/dashboard/ProductContentFields';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { ElectronicPriceField } from '@/components/dashboard/ElectronicPriceField';
+import { WritingStylesField } from '@/components/dashboard/WritingStylesField';
 import { MoneyInput } from '@/components/dashboard/PublisherCostField';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import {
@@ -147,6 +148,7 @@ export function ProductFormClient({ publishers, pricingSettings, owner, listHref
             </div>
           )}
           <ElectronicPriceField category={category} />
+          <WritingStylesField category={category} />
         </div>
       </div>
 
