@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Checkbox } from '@/components/forms/Form';
 import {
   availableStyles,
   WRITING_STYLES,
@@ -29,21 +30,16 @@ export function WritingStylesField({
     <fieldset className="space-y-2 rounded-xl border border-slate-200 p-4">
       <legend className="px-2 text-sm font-bold text-slate-700">أساليب الكتابة المتاحة للعميل</legend>
       <input type="hidden" name="writingStylesPresent" value="1" />
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {WRITING_STYLES.map((s) => (
-          <label key={s} className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="writingStyles"
-              value={s}
-              defaultChecked={selected.includes(s)}
-              className="mt-1"
-            />
-            <span>
-              <span className="font-bold text-slate-800">{WRITING_STYLE_LABELS[s]}</span>
-              <span className="block text-xs text-slate-600">{WRITING_STYLE_HINTS[s]}</span>
-            </span>
-          </label>
+          <Checkbox
+            key={s}
+            name="writingStyles"
+            value={s}
+            defaultChecked={selected.includes(s)}
+            label={WRITING_STYLE_LABELS[s]}
+            hint={WRITING_STYLE_HINTS[s]}
+          />
         ))}
       </div>
       <p className="text-xs text-slate-500">
