@@ -18,6 +18,11 @@ export type ShippingDetails = {
   addressLine: string;
   city: string;
   governorate: string;
+  /**
+   * رمز الدولة (EG، SA…). الغائب = مصر. القاعدة بتتحقق: الدولة مفتوحة للتوصيل
+   * أو للنسخة الإلكترونية، والمحافظة والمنطقة مسجّلتين ومفتوحتين (`shipping_quote`).
+   */
+  country?: string;
   notes?: string;
   /** إيميل استلام النسخة الإلكترونية — إلزامي لو فيه إلكتروني (ملف 138). */
   deliveryEmail?: string;
@@ -111,6 +116,7 @@ export async function createOrder(
           addressLine: shipping.addressLine?.trim() ?? '',
           city: shipping.city?.trim() ?? '',
           governorate: shipping.governorate?.trim() ?? '',
+          country: shipping.country?.trim().toUpperCase() ?? '',
           notes: shipping.notes?.trim() ?? '',
           deliveryEmail: shipping.deliveryEmail?.trim() ?? '',
         }
@@ -206,6 +212,7 @@ export async function createBoxSubscriptionOrder(
       addressLine: shipping.addressLine?.trim() ?? '',
       city: shipping.city?.trim() ?? '',
       governorate: shipping.governorate?.trim() ?? '',
+      country: shipping.country?.trim().toUpperCase() ?? '',
       notes: shipping.notes?.trim() ?? '',
     },
     ...(discountCode?.trim() ? { p_discount_code: discountCode.trim() } : {}),

@@ -46,6 +46,13 @@ export const wizardSchema = z.object({
   storyGoal: z.string().optional(),
   /** لما العميل يختار «هدف آخر» بيكتب هدفه بكلامه هنا. */
   customStoryGoal: z.string().optional(),
+  /**
+   * أسلوب كتابة القصة (فصحى / عربية مبسطة / لهجة) + كود اللهجة لو لهجة.
+   * الإلزام بيتفحص في المعالج (`writingStyleProblem`) لأنه بيعتمد على المنتج
+   * وعلى قايمة اللهجات اللي من القاعدة.
+   */
+  writingStyle: z.enum(['fusha', 'simple', 'dialect']).optional(),
+  writingDialect: z.string().optional(),
   /** إهداء يتكتب في أول الكتاب — نفس فكرة معالج المكتبة. */
   dedicationText: z.string().optional(),
   facePhotoFile: z.any().refine((file) => file !== null && file !== undefined, 'الصورة الشخصية مطلوبة'),

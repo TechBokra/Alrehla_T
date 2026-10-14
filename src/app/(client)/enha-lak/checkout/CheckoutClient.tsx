@@ -26,18 +26,28 @@ import {
   cartNeedsShipping,
   isValidDeliveryEmail,
 } from '@/lib/item-format';
+import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
+import {
+  areasOf,
+  COUNTRY_CLOSED_MESSAGE,
+  defaultCountryCode,
+  electronicVerdict,
+  governoratesOf,
+  physicalClosedForCountry,
+  physicalVerdict,
+} from '@/lib/delivery';
 
 interface Props {
   /** Read from site settings — it used to be a placeholder number in the code. */
   paymentWalletNumber: string;
   /** InstaPay QR from site settings, when one has been uploaded. */
   paymentQrUrl?: string;
-  /** Shipping fee per area, set by the admin. Empty until configured. */
-  shippingRates: { governorate: string; city: string; fee: number }[];
+  /** الدول والمحافظات والمناطق وأسعارها وإيقاف التوصيل — من الأدمن. للعرض فقط: القاعدة هي الحارس. */
+  delivery: DeliveryCatalog;
   user: UserType;
 }
 
-export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippingRates }: Props) {
+export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery }: Props) {
   const { items, cartTotal, clearCart, removeItem, addItem } = useCart();
   const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment
   // Card, wallet and Fawry options used to be offered here with forms that
@@ -64,6 +74,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
     email: user.email || '',
   });
   const [emailError, setEmailError] = useState('');
+  // الدولة (مصر افتراضيًا) — بتتحدد قبل المحافظة والمنطقة.
+  const [country, setCountry] = useState(() => defaultCountryCode(delivery.countries));
   // ⚠️ اختبار «إنها لك» (HS0L): غلط الرقم كان بيظهر في خطوة الدفع، بعد
   //    ما العميل يعدّي صفحة البيانات. دلوقتي بيتفحص هنا وتحت الخانة نفسها.
   const [phoneError, setPhoneError] = useState('');
@@ -87,25 +99,32 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
   const mixedBox = Boolean(boxItem) && items.length > 1;
   // The rate is per area, not per governorate: Cairo and Shorouk are both in
   // Cairo and are not the same trip.
-  const matchedRate = shippingRates.find(
-    (r) => r.governorate === shippingInfo.gov && r.city === shippingInfo.city
-  );
-  const areasByGovernorate = shippingRates.reduce<Record<string, typeof shippingRates>>(
-    (acc, rate) => {
-      (acc[rate.governorate] ??= []).push(rate);
-      return acc;
-    },
-    {}
-  );
-  const shippingKnown = !needsShipping || Boolean(matchedRate);
+  //
+  // ⚠️ كل ده للعرض: القاعدة (`shipping_quote`) بتفرض الدولة المفتوحة والمحافظة
+  //    والمنطقة وقت تسجيل الطلب، حتى لو الشاشة اتجاوزت.
+  const countryClosed = needsShipping
+    ? physicalClosedForCountry(delivery, country)
+    : ({ closed: false } as const);
+  const verdict = needsShipping
+    ? physicalVerdict(delivery, { country, governorate: shippingInfo.gov, city: shippingInfo.city })
+    : null;
+  const matchedFee = verdict?.available ? verdict.fee : undefined;
+  const electronicCheck = hasElectronic ? electronicVerdict(delivery, country) : null;
+  const electronicBlocked = electronicCheck !== null && !electronicCheck.allowed;
+  const shippingKnown = !needsShipping || Boolean(verdict?.available);
+  // رسالة سبب المنع تحت المنطقة (محافظة مقفولة، إلخ) غير إغلاق الدولة الكامل.
+  const areaBlockedMessage =
+    verdict && !verdict.available && !countryClosed.closed && shippingInfo.gov ? verdict.message : '';
+  const canContinue = shippingKnown && !electronicBlocked;
   // الصندوق: سعر المنطقة × عدد الشهور (قرار تامر) — نفس حساب القاعدة.
-  const shipping = needsShipping ? (matchedRate?.fee ?? 0) * boxMonths : 0;
+  const shipping = needsShipping ? (matchedFee ?? 0) * boxMonths : 0;
   // الخصم على المنتجات بس، مش الشحن — نفس حساب القاعدة (ملف 13).
   const discountOff = discount ? discountAmount(subtotal, discount.percent) : 0;
   const grandTotal = subtotal - discountOff + shipping;
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canContinue) return;
     if (!isValidPhone(shippingInfo.phone)) {
       setPhoneError(PHONE_ERROR);
       document.getElementById('shipping-phone')?.focus();
@@ -140,6 +159,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
         addressLine: shippingInfo.address,
         city: shippingInfo.city,
         governorate: shippingInfo.gov,
+        country,
         notes: shippingInfo.notes,
       };
       // الواجهة بتبعت إيه اتطلب وبس. الأسعار والشحن بيتحسبوا في القاعدة،
@@ -170,6 +190,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
           addressLine: shippingInfo.address,
           city: shippingInfo.city,
           governorate: shippingInfo.gov,
+          country,
           notes: shippingInfo.notes,
           deliveryEmail: hasElectronic ? shippingInfo.email : undefined,
         },
@@ -291,6 +312,45 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 </div>
               </div>
 
+              <div>
+                <label htmlFor="delivery-country" className="mb-2 block text-sm font-bold text-slate-700">
+                  الدولة
+                </label>
+                <select
+                  id="delivery-country"
+                  required
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value);
+                    setShippingInfo({ ...shippingInfo, gov: '', city: '' });
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white"
+                >
+                  {delivery.countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.nameAr}
+                      {needsShipping && physicalClosedForCountry(delivery, c.code).closed ? ' — غير متاح الآن' : ''}
+                    </option>
+                  ))}
+                </select>
+                {delivery.countries.length === 0 && (
+                  <p className="mt-2 text-xs font-bold text-amber-700">
+                    تعذّر تحميل الدول المتاحة — حدّث الصفحة أو تواصل مع الإدارة.
+                  </p>
+                )}
+                {countryClosed.closed && (
+                  <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+                    {countryClosed.message || COUNTRY_CLOSED_MESSAGE}
+                    {hasElectronic && ' — لو عايز النسخة الإلكترونية بس، عدّل السلة وسيب المطبوع والإضافات.'}
+                  </p>
+                )}
+                {electronicBlocked && electronicCheck && !electronicCheck.allowed && (
+                  <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+                    {electronicCheck.message}
+                  </p>
+                )}
+              </div>
+
               {hasElectronic && (
                 <div>
                   <label htmlFor="delivery-email" className="mb-2 block text-sm font-bold text-slate-700">
@@ -315,40 +375,63 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 <input type="text" required value={shippingInfo.address} onChange={e => setShippingInfo({...shippingInfo, address: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
               </div>
 
+              {!countryClosed.closed && (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                <div>
+                  <label htmlFor="delivery-governorate" className="mb-2 block text-sm font-bold text-slate-700">
+                    المحافظة
+                  </label>
+                  <select
+                    id="delivery-governorate"
+                    required
+                    value={shippingInfo.gov}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, gov: e.target.value, city: '' })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white"
+                  >
+                    <option value="">اختر المحافظة...</option>
+                    {governoratesOf(delivery, country).map((g) => (
+                      <option key={g.id} value={g.nameAr} disabled={!g.physicalEnabled}>
+                        {g.nameAr}
+                        {g.physicalEnabled ? '' : ' — غير متاح الآن'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="delivery-area" className="mb-2 block text-sm font-bold text-slate-700">
                     المنطقة / المدينة
                   </label>
                   <select
+                    id="delivery-area"
                     required
-                    value={shippingInfo.gov && shippingInfo.city ? `${shippingInfo.gov}|${shippingInfo.city}` : ''}
-                    onChange={(e) => {
-                      const [gov, city] = e.target.value.split('|');
-                      setShippingInfo({ ...shippingInfo, gov: gov ?? '', city: city ?? '' });
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white"
+                    disabled={!shippingInfo.gov}
+                    value={shippingInfo.city}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white disabled:opacity-60"
                   >
                     <option value="">اختر المنطقة...</option>
-                    {/* Three hard-coded governorates used to be the only choices,
-                        and the fee was a flat 50 EGP whichever you picked. */}
-                    {Object.entries(areasByGovernorate).map(([gov, areas]) => (
-                      <optgroup key={gov} label={gov}>
-                        {areas.map((area) => (
-                          <option key={`${gov}|${area.city}`} value={`${gov}|${area.city}`}>
-                            {area.city} — {formatPrice(area.fee)}
-                          </option>
-                        ))}
-                      </optgroup>
+                    {areasOf(delivery, country, shippingInfo.gov).map((area) => (
+                      <option key={area.city} value={area.city}>
+                        {area.city} — {formatPrice(area.fee)}
+                      </option>
                     ))}
                   </select>
-                  {shippingRates.length === 0 && (
-                    <p className="mt-2 text-xs font-bold text-amber-700">
-                      لم تُضبط مناطق الشحن بعد — تواصل مع الإدارة.
-                    </p>
-                  )}
                 </div>
+                {areaBlockedMessage && (
+                  <p role="status" className="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">
+                    {areaBlockedMessage}
+                  </p>
+                )}
+                {delivery.rates.length === 0 && (
+                  <p className="md:col-span-2 text-xs font-bold text-amber-700">
+                    لم تُضبط مناطق الشحن بعد — تواصل مع الإدارة.
+                  </p>
+                )}
+              </div>
+              )}
 
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-bold text-slate-700">
                     ملاحظات للتوصيل (اختياري)
@@ -365,7 +448,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
               </>)}
 
               <div className="pt-4 flex justify-end">
-                <button type="submit" className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 transition-colors">
+                <button type="submit" disabled={!canContinue} className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 transition-colors disabled:opacity-60">
                   المتابعة للدفع <ChevronRight className="h-5 w-5 rotate-180" />
                 </button>
               </div>
@@ -378,7 +461,12 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                 <div>
                   <p className="font-bold text-slate-800">{shippingInfo.name}</p>
                   {needsShipping && (
-                    <p className="text-sm text-slate-600">{shippingInfo.address}، {shippingInfo.city}</p>
+                    <p className="text-sm text-slate-600">
+                      {shippingInfo.address}، {shippingInfo.city}، {shippingInfo.gov}
+                      {delivery.countries.find((c) => c.code === country)?.nameAr
+                        ? `، ${delivery.countries.find((c) => c.code === country)?.nameAr}`
+                        : ''}
+                    </p>
                   )}
                   {hasElectronic && (
                     <p className="text-sm text-slate-600" dir="ltr">{shippingInfo.email}</p>
@@ -465,7 +553,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isProcessing || !shippingKnown || mixedBox}
+                  disabled={isProcessing || !canContinue || mixedBox}
                   className="w-full flex justify-center items-center gap-2 rounded-xl bg-rose-600 px-8 py-4 font-black text-white hover:bg-rose-700 transition-colors shadow-lg disabled:opacity-70"
                 >
                   {isPending || isProcessing ? 'جارٍ تسجيل الطلب…' : 'سجّل الطلب واعرض بيانات التحويل'}
@@ -537,7 +625,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, shippi
                     ? shipping === 0
                       ? 'مجاناً'
                       : boxItem
-                        ? `${formatPrice(matchedRate?.fee ?? 0)} × ${boxMonths.toLocaleString('ar-EG')} = ${formatPrice(shipping)}`
+                        ? `${formatPrice(matchedFee ?? 0)} × ${boxMonths.toLocaleString('ar-EG')} = ${formatPrice(shipping)}`
                         : formatPrice(shipping)
                     : 'يُحدَّد حسب المنطقة'}
               </span>

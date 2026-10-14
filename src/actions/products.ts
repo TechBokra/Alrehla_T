@@ -19,6 +19,7 @@ import {
   onlySentFields,
 } from '@/lib/product-input';
 import { parseAgeInput } from '@/lib/age-bands';
+import { parseWritingStylesInput } from '@/lib/writing-style';
 import {
   customerPriceFromCost,
   NEUTRAL_FORMULA,
@@ -176,6 +177,17 @@ export async function saveProduct(formData: FormData) {
       error: age.error,
       field: ageErrorField(formData.get('minAge')),
     };
+  }
+
+  // ── أساليب الكتابة (إنها لك) ──────────────────────────────
+  //
+  // بتتعرض لمنتجات «مخصص» بس، وبتتبعت معاها `writingStylesPresent`.
+  // غير كده مابنلمسش العمود (`onlySentFields` تحت).
+  const writingStyleInput = formData.has('writingStylesPresent')
+    ? parseWritingStylesInput(formData.getAll('writingStyles'))
+    : ({ ok: true, styles: null } as const);
+  if (!writingStyleInput.ok) {
+    return { ok: false as const, error: writingStyleInput.error, field: 'writingStyles' };
   }
 
   const coverImageUrl = formData.get('coverImageUrl') as string || null;
@@ -337,6 +349,8 @@ export async function saveProduct(formData: FormData) {
     //    حفظ من الإدارة كان بيمسح سعر النسخة الإلكترونية. الخانة دلوقتي
     //    في الإدارة لـ«مخصص» بس (`ElectronicPriceField`).
     electronicPrice: { electronic_price: electronicPrice },
+    // `NULL` = بدون تقييد (الثلاثة).
+    writingStylesPresent: { writing_styles: writingStyleInput.styles },
   });
 
   const dbPayload = {

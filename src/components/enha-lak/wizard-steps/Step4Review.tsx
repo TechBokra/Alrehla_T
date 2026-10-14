@@ -7,6 +7,7 @@ import { FormatChooser } from './FormatChooser';
 import { cartNeedsShipping } from '@/lib/item-format';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { ExtraFieldsReview } from './ExtraFieldsSection';
+import { describeWritingStyle, type WritingDialect } from '@/lib/writing-style';
 
 export function Step4Review({
   onPrev,
@@ -14,7 +15,13 @@ export function Step4Review({
   pending = false,
   subscriptionMonths,
   extraFields = [],
+  writingDialects = [],
+  showWritingStyle = false,
 }: {
+  /** اللهجات — لعرض اسم اللهجة المختارة. */
+  writingDialects?: WritingDialect[];
+  /** خيار أسلوب الكتابة ظاهر في الخطوة ٢ (قصة مخصّصة واحدة). */
+  showWritingStyle?: boolean;
   onPrev: () => void;
   /** خانات الإدارة (ملف 06). */
   extraFields?: CustomizationField[];
@@ -100,6 +107,17 @@ export function Step4Review({
               <span className="text-slate-500 block mb-1">وصف البطل:</span>
               <span className="font-bold text-slate-800">{values.heroDescription}</span>
             </div>
+            {showWritingStyle && (
+              <div>
+                <span className="text-slate-500 block mb-1">أسلوب الكتابة:</span>
+                <span className="font-bold text-slate-800">
+                  {describeWritingStyle(
+                    { style: values.writingStyle, dialect: values.writingDialect },
+                    writingDialects,
+                  ) ?? 'لم يتم الاختيار'}
+                </span>
+              </div>
+            )}
             <ExtraFieldsReview fields={extraFields} answers={values.extraFields} />
             <div>
               <span className="text-slate-500 block mb-1">الصور المرفقة:</span>

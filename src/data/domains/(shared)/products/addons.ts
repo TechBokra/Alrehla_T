@@ -2,6 +2,8 @@ import { AddonProduct } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { mapAddonRow, addonWithWatermark } from '@/data/domains/(shared)/products/products-internal';
+import { applyAddonPromotions } from '@/lib/promotions';
+import { getLivePromotions } from '@/data/domains/(shared)/promotions/live';
 
 export const getAddonProducts = async (
   options: { includeInactive?: boolean } = {},
@@ -26,5 +28,9 @@ export const getAddonProducts = async (
 
   const addons = data.map(mapAddonRow);
   // ⚠️ الإدارة محتاجة الصورة الأصلية (تراجعها وتبدّلها) — العلامة للعام بس.
-  return options.includeInactive ? addons : Promise.all(addons.map(addonWithWatermark));
+  if (options.includeInactive) return addons;
+  // السعر بعد العرض الساري (للعرض فقط) — الإدارة فوق بتشوف الأصل.
+  const promotions = await getLivePromotions();
+  const now = new Date();
+  return Promise.all(addons.map((a) => addonWithWatermark(applyAddonPromotions(a, promotions, now))));
 };

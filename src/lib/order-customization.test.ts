@@ -104,3 +104,21 @@ describe('describeBoxDetails (ملف 140)', () => {
     expect(describeBoxDetails('x')).toBeNull();
   });
 });
+
+describe('أسلوب الكتابة في تفاصيل الطلب', () => {
+  it('بيظهر بعنوان عربي ومش تحت «بيانات أخرى»', () => {
+    const v = describeCustomization({ childName: 'ليلى', writingStyle: { style: 'dialect', dialect: 'gulf' } });
+    expect(v.fields).toEqual([
+      { label: 'اسم الطفل', value: 'ليلى' },
+      { label: 'أسلوب الكتابة', value: 'اللهجة الخليجية' },
+    ]);
+  });
+  it('الأسلوب الفصيح', () => {
+    expect(describeCustomization({ writingStyle: { style: 'fusha' } }).fields).toEqual([
+      { label: 'أسلوب الكتابة', value: 'فصحى' },
+    ]);
+  });
+  it('قيمة تالفة تتجاهل ومابتكسرش الصفحة', () => {
+    expect(describeCustomization({ writingStyle: 'x' }).fields).toEqual([]);
+  });
+});

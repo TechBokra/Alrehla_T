@@ -1,6 +1,8 @@
 import { SubscriptionTier } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
+import { applyBoxPlanPromotions } from '@/lib/promotions';
+import { getLivePromotions } from '@/data/domains/(shared)/promotions/live';
 
 export const getSubscriptionTiers = async (
   options: { includeInactive?: boolean } = {},
@@ -25,7 +27,7 @@ export const getSubscriptionTiers = async (
     return [];
   }
 
-  return data.map((plan) => ({
+  const tiers: SubscriptionTier[] = data.map((plan) => ({
     id: plan.id,
     name: plan.name,
     priceTotal: plan.price_total,
@@ -41,4 +43,10 @@ export const getSubscriptionTiers = async (
     addonDiscountPercent: plan.addon_discount_percent ?? 0,
     freeAddonId: plan.free_addon_id ?? undefined,
   }));
+
+  // الإدارة (includeInactive) بتشوف الأسعار الأصلية؛ الزائر بيشوف بعد العرض.
+  if (options.includeInactive) return tiers;
+  const promotions = await getLivePromotions();
+  const now = new Date();
+  return tiers.map((t) => applyBoxPlanPromotions(t, promotions, now));
 };

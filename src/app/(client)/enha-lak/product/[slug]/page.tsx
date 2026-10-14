@@ -1,4 +1,4 @@
-import { formatPrice } from '@/lib/utils';
+import { PriceTag } from '@/components/ui/PriceTag';
 import { getProductBySlug } from '@/data/domains/(client)/products/queries';
 import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
@@ -228,12 +228,18 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             
             <Card accentColor="rose" className="p-6">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-enha-lak-strong text-3xl font-black">{formatPrice(product.price)}</span>
+                <PriceTag
+                  price={product.price}
+                  listPrice={product.listPrice}
+                  endsAt={product.saleEndsAt}
+                  label={product.saleLabel}
+                  className="text-enha-lak-strong text-3xl font-black"
+                />
               </div>
               {/* ملف 138: العميل يعرف قبل المعالج إن فيه اختيار أرخص من غير شحن. */}
               {electronicAvailable(product) && (
                 <p className="mt-2 text-sm font-bold text-slate-700">
-                  أو نسخة إلكترونية بـ{formatPrice(product.electronicPrice ?? 0)} — بتوصلك على الإيميل من غير شحن
+                  أو نسخة إلكترونية بـ<PriceTag price={product.electronicPrice ?? 0} listPrice={product.electronicListPrice} endsAt={product.electronicSaleEndsAt} showBadge={false} showEnds={false} className="font-bold" /> — بتوصلك على الإيميل من غير شحن
                 </p>
               )}
               

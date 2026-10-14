@@ -338,6 +338,20 @@ export type PersonalizedProduct = {
   minAge?: number;
   maxAge?: number;
   /**
+   * أساليب الكتابة المتاحة للقصة المخصّصة (`fusha`/`simple`/`dialect`).
+   * فاضي/غير موجود = الثلاثة. بيتحدد من شاشة المنتج في الإدارة.
+   */
+  writingStyles?: string[];
+  /**
+   * عرض سعري ساري (يظهر في الصفحات العامة فقط): `price`/`electronicPrice`
+   * هنا **بعد العرض**، وده الأصل. الحساب الحقيقي في القاعدة (`effective_price`).
+   */
+  listPrice?: number;
+  saleEndsAt?: string;
+  saleLabel?: string;
+  electronicListPrice?: number;
+  electronicSaleEndsAt?: string;
+  /**
    * حالة مراجعة الإدارة — ملف 130.
    *
    * ⚠️ **منفصلة عن `isActive` عن قصد**: `isActive` قرار إداري
@@ -438,6 +452,8 @@ export type Order = {
   addressLine?: string;
   city?: string;
   governorate?: string;
+  /** رمز الدولة (EG، SA…) — لقطة وقت الطلب. */
+  countryCode?: string;
   shippingNotes?: string;
   /** إيميل استلام النسخة الإلكترونية (ملف 138). */
   deliveryEmail?: string;
@@ -496,6 +512,10 @@ export type AddonProduct = {
   longDescription?: string;
   /** نقاط التفاصيل (ملف 19). */
   features?: string[];
+  /** عرض سعري ساري: `price` بعد العرض و`listPrice` الأصل. */
+  listPrice?: number;
+  saleEndsAt?: string;
+  saleLabel?: string;
 };
 
 // خطة اشتراك
@@ -519,6 +539,11 @@ export type SubscriptionTier = {
   /** إضافة بتتحط مجانًا في كل صندوق (ملف 140). */
   freeAddonId?: string;
   sortOrder: number;
+  /** عرض سعري ساري: `priceTotal`/`priceMonthly` بعد العرض، وده الأصل. */
+  listPrice?: number;
+  listPriceMonthly?: number;
+  saleEndsAt?: string;
+  saleLabel?: string;
 };
 
 // أفراد العائلة المرتبطين بحساب

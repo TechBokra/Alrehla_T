@@ -6,6 +6,12 @@ import type { CustomizationField } from '@/lib/customization-fields';
 import { DEFAULT_GOALS, type StoryGoal } from '@/lib/story-goals';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
 import { photoFileProblem } from '@/lib/private-upload-client';
+import {
+  availableStyles,
+  WRITING_STYLE_HINTS,
+  WRITING_STYLE_LABELS,
+  type WritingDialect,
+} from '@/lib/writing-style';
 
 export function Step2Details({
   onNext,
@@ -13,6 +19,8 @@ export function Step2Details({
   monthlyGoals,
   extraFields = [],
   goals = [],
+  writingStyles,
+  writingDialects = [],
 }: {
   onNext: () => void;
   onPrev: () => void;
@@ -28,12 +36,24 @@ export function Step2Details({
   goals?: StoryGoal[];
   /** اشتراك صندوق الرحلة (ملف 140): عدد الشهور — هدف لكل شهر بدل هدف واحد. */
   monthlyGoals?: number;
+  /**
+   * أساليب الكتابة المتاحة (القصة المخصّصة بس). `undefined` = الخيار مخفي
+   * (الاشتراك والمنتجات التانية)، و`[]`/`null` ممنوعين: المعالج بيبعت قايمة.
+   */
+  writingStyles?: string[] | null;
+  /** اللهجات الفعّالة من القاعدة. */
+  writingDialects?: WritingDialect[];
 }) {
   const { register, watch, setValue, setError, formState: { errors } } = useFormContext();
   // فاضية = الإدارة أوقفت كله أو حددته لمنتجات تانية — الهدف إلزامي، فنرجع
   // للأربعة الأساسيين بدل ما العميل يضطر يكتب «هدف آخر».
   const goalOptions = goals.length > 0 ? goals : DEFAULT_GOALS;
   
+  const styleOptions = writingStyles === undefined
+    ? []
+    : availableStyles(writingStyles).filter((s) => s !== 'dialect' || writingDialects.length > 0);
+  const selectedStyle = watch('writingStyle');
+
   const facePhotoFile = watch('facePhotoFile');
   const secondPhotoFile = watch('secondPhotoFile');
   const facePhotoPreviewUrl = useObjectUrl(facePhotoFile);
@@ -116,6 +136,47 @@ export function Step2Details({
         </div>
       )}
       </>)}
+
+      {styleOptions.length > 0 && (
+        <fieldset className="space-y-3 rounded-2xl border border-slate-200 p-4">
+          <legend className="px-2 text-sm font-bold text-slate-700">أسلوب كتابة القصة (إلزامي)</legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {styleOptions.map((s) => (
+              <label
+                key={s}
+                className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-3 transition-colors ${
+                  selectedStyle === s ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <span className="flex items-center gap-2 font-bold text-slate-800">
+                  <input type="radio" value={s} {...register('writingStyle')} />
+                  {WRITING_STYLE_LABELS[s]}
+                </span>
+                <span className="text-xs text-slate-600">{WRITING_STYLE_HINTS[s]}</span>
+              </label>
+            ))}
+          </div>
+          {selectedStyle === 'dialect' && (
+            <div className="space-y-2">
+              <label htmlFor="writing-dialect" className="text-sm font-bold text-slate-700">
+                اختار اللهجة
+              </label>
+              <select
+                id="writing-dialect"
+                {...register('writingDialect')}
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">اختر اللهجة...</option>
+                {writingDialects.map((d) => (
+                  <option key={d.code} value={d.code}>
+                    {d.nameAr}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </fieldset>
+      )}
 
       <div className="space-y-2">
         <label className="text-sm font-bold text-slate-700">إهداء أو رسالة في أول الكتاب (اختياري)</label>

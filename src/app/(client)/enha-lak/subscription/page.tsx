@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import Image from 'next/image';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
+import { PriceTag } from '@/components/ui/PriceTag';
 import Link from 'next/link';
 import { getSubscriptionTiers } from '@/data/domains/(shared)/subscriptions/plans';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
@@ -111,9 +112,13 @@ export default async function SubscriptionPage() {
 
                 <div className="my-6">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black text-slate-900">
-                      {formatPrice(tier.priceMonthly)}
-                    </span>
+                    <PriceTag
+                      price={tier.priceMonthly}
+                      listPrice={tier.listPriceMonthly}
+                      endsAt={tier.saleEndsAt}
+                      label={tier.saleLabel}
+                      className="text-4xl font-black text-slate-900"
+                    />
                     <span className="font-medium text-slate-500">
                       / شهر
                     </span>

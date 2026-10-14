@@ -15,6 +15,7 @@
  */
 
 import { readExtraAnswers } from './customization-fields';
+import { describeWritingStyle, type WritingDialect } from './writing-style';
 
 export type CustomizationPhoto =
   | { label: string; kind: 'private'; publicId: string; format: string }
@@ -71,6 +72,8 @@ const INTERNAL = new Set([
   'monthlyGoals', 'plan',
   // خانات الإدارة (ملف 06) — بتتعرض بأسمائها تحت.
   'extraFields',
+  // أسلوب الكتابة — بيتعرض باسم عربي تحت.
+  'writingStyle',
 ]);
 
 function text(v: unknown): string | null {
@@ -95,7 +98,10 @@ function publicUrl(v: unknown): string | null {
   return s && /^https:\/\/res\.cloudinary\.com\//.test(s) ? s : null;
 }
 
-export function describeCustomization(raw: unknown): CustomizationView {
+export function describeCustomization(
+  raw: unknown,
+  dialects: readonly WritingDialect[] = [],
+): CustomizationView {
   const view: CustomizationView = { fields: [], photos: [], addons: [] };
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return view;
   const data = raw as Record<string, unknown>;
@@ -114,6 +120,9 @@ export function describeCustomization(raw: unknown): CustomizationView {
       value: key === 'storyGoal' ? (STORY_GOALS[value] ?? value) : value,
     });
   }
+
+  const writing = describeWritingStyle(data.writingStyle, dialects);
+  if (writing) view.fields.push({ label: 'أسلوب الكتابة', value: writing });
 
   // ⭐ ملف 06: خانات الإدارة — بالاسم اللي العميل جاوب عليه وقت الطلب.
   for (const a of readExtraAnswers(data.extraFields)) {

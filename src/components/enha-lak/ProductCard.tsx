@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { optimizedImageUrl } from '@/lib/cloudinary';
-import { formatPrice } from '@/lib/utils';
+import { PriceTag } from '@/components/ui/PriceTag';
 import type { PersonalizedProduct } from '@/types';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { primaryAgeBand } from '@/lib/age-bands';
@@ -226,9 +226,14 @@ export function ProductCard({
           <span className="block text-[11px] font-bold tracking-wide text-slate-500">
             نسخة مطبوعة
           </span>
-          <span className="text-enha-lak-strong text-2xl font-black">
-            {formatPrice(product.price)}
-          </span>
+          <PriceTag
+            price={product.price}
+            listPrice={product.listPrice}
+            endsAt={product.saleEndsAt}
+            label={product.saleLabel}
+            className="text-enha-lak-strong text-2xl font-black"
+            showEnds={false}
+          />
         </div>
 
         <Button

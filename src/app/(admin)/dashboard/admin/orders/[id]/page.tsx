@@ -5,6 +5,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getAdminOrderDetail } from '@/data/domains/(admin)/orders/detail';
 import { hasAdminPermission, formatDate, formatPrice } from '@/lib/utils';
+import { countryNameAr } from '@/lib/delivery';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { OrderLinesList } from '@/components/orders/OrderLinesList';
 import { OrderTotals } from '@/components/orders/OrderTotals';
@@ -139,6 +140,7 @@ export default async function Page({
                 {target.addressLine}
                 {target.city && `، ${target.city}`}
                 {target.governorate && `، ${target.governorate}`}
+                {target.countryCode && `، ${countryNameAr(target.countryCode)}`}
               </p>
               {target.shippingNotes && (
                 <p className="text-slate-500">

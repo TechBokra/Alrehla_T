@@ -55,6 +55,7 @@ function mapOrder(row: OrderRow, items: OrderItem[]): Order {
     addressLine: row.address_line || undefined,
     city: row.city || undefined,
     governorate: row.governorate || undefined,
+    countryCode: row.country_code || undefined,
     shippingNotes: row.shipping_notes || undefined,
     deliveryEmail: row.delivery_email || undefined,
     electronicSentAt: row.electronic_sent_at || undefined,

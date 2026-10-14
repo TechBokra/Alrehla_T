@@ -10,6 +10,14 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { AddonProduct, PersonalizedProduct } from '@/types';
 import type { StoryGoal } from '@/lib/story-goals';
 
+import {
+  availableStyles,
+  buildWritingStyleValue,
+  DEFAULT_WRITING_STYLE,
+  writingStyleProblem,
+  type WritingDialect,
+} from '@/lib/writing-style';
+
 import { WizardStepper } from './wizard-steps/WizardStepper';
 import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
@@ -49,6 +57,8 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   heroDescription: { step: 2, label: 'وصف البطل' },
   familyMemberNames: { step: 2, label: 'أسماء أفراد العائلة' },
   storyGoal: { step: 2, label: 'الهدف الأساسي' },
+  writingStyle: { step: 2, label: 'أسلوب الكتابة' },
+  writingDialect: { step: 2, label: 'اللهجة' },
   customStoryGoal: { step: 2, label: 'الهدف اللي في بالك' },
   facePhotoFile: { step: 2, label: 'الصورة الشخصية' },
   secondPhotoFile: { step: 2, label: 'الصورة الإضافية' },
@@ -66,8 +76,11 @@ export function PersonalizationWizard({
   addonDiscountPercent = 0,
   extraFields = [],
   goals = [],
+  writingDialects = [],
 }: {
   product: PersonalizedProduct;
+  /** اللهجات الفعّالة لخيار أسلوب الكتابة (القصة المخصّصة بس). */
+  writingDialects?: WritingDialect[];
   /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
   extraFields?: CustomizationField[];
   /** أهداف التخصيص للمنتج ده (ملف 12) — فاضية = الأربعة الأساسيين. */
@@ -90,12 +103,24 @@ export function PersonalizationWizard({
   const currentStep = parseInt(searchParams?.get('step') || '1', 10);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // أسلوب الكتابة: للقصة المخصّصة الواحدة بس (القاعدة بتقبله لـ`custom` وبس).
+  // لو مفيش خيار متاح (منتج «لهجة بس» ومفيش لهجات فعّالة) الخيار بيتخفي ومبنوقّفش العميل.
+  const styleChoices = availableStyles(product.writingStyles).filter(
+    (s) => s !== 'dialect' || writingDialects.length > 0,
+  );
+  const showWritingStyle = !subscription && product.category === 'custom' && styleChoices.length > 0;
+  const defaultStyle = styleChoices.includes(DEFAULT_WRITING_STYLE)
+    ? DEFAULT_WRITING_STYLE
+    : styleChoices[0];
+
   const methods = useForm<WizardFormValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
       selectedAddonIds: [],
       customizedAddonIds: [],
       storyGoal: '',
+      writingStyle: showWritingStyle ? defaultStyle : undefined,
+      writingDialect: '',
       format: 'printed',
       mode: subscription ? 'subscription' : 'single',
       monthlyGoals: subscription ? Array.from({ length: subscription.months }, () => '') : undefined,
@@ -144,6 +169,18 @@ export function PersonalizationWizard({
       if (problem) {
         setUploadError(problem);
         return;
+      }
+      if (showWritingStyle) {
+        const styleProblem = writingStyleProblem(
+          getValues('writingStyle'),
+          getValues('writingDialect'),
+          writingDialects,
+          styleChoices,
+        );
+        if (styleProblem) {
+          setUploadError(styleProblem);
+          return;
+        }
       }
     }
     const values = getValues();
@@ -199,6 +236,23 @@ export function PersonalizationWizard({
       if (currentStep !== 2) router.push(`${pathname}?step=2`);
       return;
     }
+    // أسلوب الكتابة — جلسة قديمة ممكن تعدّي الخطوة ٢ من غير اختيار.
+    let writingStyle: ReturnType<typeof buildWritingStyleValue> = null;
+    if (showWritingStyle) {
+      const styleProblem = writingStyleProblem(
+        data.writingStyle,
+        data.writingDialect,
+        writingDialects,
+        styleChoices,
+      );
+      if (styleProblem) {
+        setUploadError(styleProblem);
+        if (currentStep !== 2) router.push(`${pathname}?step=2`);
+        return;
+      }
+      writingStyle = buildWritingStyleValue(data.writingStyle, data.writingDialect, writingDialects);
+    }
+
     // إجابات خانات الإدارة **ومعاها اسم الخانة** — الطلب يفضل مقروء لو
     // الخانة اتغيّرت أو اتمسحت بعدين.
     const extraAnswers = snapshotAnswers(extraFields, data.extraFields);
@@ -316,6 +370,7 @@ export function PersonalizationWizard({
             : data.storyGoal ?? '',
         dedicationText: data.dedicationText?.trim() || undefined,
         familyMemberNames: data.familyMemberNames,
+        ...(writingStyle ? { writingStyle } : {}),
         ...(extraAnswers.length > 0 ? { extraFields: extraAnswers } : {}),
         selectedAddonIds: data.selectedAddonIds,
         customizedAddonIds,
@@ -361,7 +416,9 @@ export function PersonalizationWizard({
                   monthlyGoals={subscription?.months}
                   extraFields={extraFields}
                   goals={goals}
-                  onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile', 'monthlyGoals'])}
+                  writingStyles={showWritingStyle ? styleChoices : undefined}
+                  writingDialects={writingDialects}
+                  onNext={() => handleNext(['heroDescription', 'familyMemberNames', 'storyGoal', 'customStoryGoal', 'facePhotoFile', 'monthlyGoals', 'writingStyle', 'writingDialect'])}
                   onPrev={handlePrev}
                 />
               )}
@@ -373,6 +430,8 @@ export function PersonalizationWizard({
                   pending={isSubmitting}
                   subscriptionMonths={subscription?.months}
                   extraFields={extraFields}
+                  writingDialects={writingDialects}
+                  showWritingStyle={showWritingStyle}
                 />
               )}
             </div>

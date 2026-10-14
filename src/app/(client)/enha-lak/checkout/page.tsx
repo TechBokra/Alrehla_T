@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
-import { getShippingRates } from '@/data/domains/(client)/shipping/queries';
+import { getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { CheckoutClient } from './CheckoutClient';
 import { requireShopper } from '@/lib/require-shopper';
@@ -23,7 +23,7 @@ export default async function CheckoutPage() {
   await requireShopper('/enha-lak/checkout');
   const user = await getCurrentUser();
   const settings = await getSiteSettings();
-  const shippingRates = await getShippingRates();
+  const delivery = await getDeliveryCatalog();
 
   // We pass the user to the client component to pre-fill info
   return (
@@ -37,7 +37,7 @@ export default async function CheckoutPage() {
         user={user}
         paymentWalletNumber={settings.paymentWalletNumber}
         paymentQrUrl={settings.paymentQrUrl}
-        shippingRates={shippingRates}
+        delivery={delivery}
       />
     </div>
   );
