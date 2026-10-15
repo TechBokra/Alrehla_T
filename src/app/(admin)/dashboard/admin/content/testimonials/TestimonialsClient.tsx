@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { Testimonial } from '@/types';
 import { saveTestimonial, deleteTestimonial } from '@/actions/content';
 import { Field, TextInput, TextArea, Select, BusyButton } from '@/components/forms/Form';
+import { FormError } from '@/components/ui/FormError';
 
 /** الأقسام اللي الرأي ممكن يظهر فيها. */
 const LINES = [
@@ -13,7 +14,6 @@ const LINES = [
   { value: 'enha_lak', label: 'إنها لك' },
   { value: 'creative_writing', label: 'بداية الرحلة' },
 ] as const;
-import { FormError } from '@/components/ui/FormError';
 
 /**
  * أكشنز الآراء بقت **بترجّع** `{ ok:false, error }` بدل ما ترمي — فرسالة
@@ -77,9 +77,8 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-medium text-blue-900">
-        الآراء دي بتظهر في ثلاث أماكن: الصفحة الرئيسية، وصفحة «إنها لك»،
-        وصفحة «بداية الرحلة». صفحة «بداية الرحلة» بتعرض الآراء اللي صفة صاحبها
-        فيها كلمة «ولي» فقط.
+        كل رأي بيظهر في قسم واحد بس — اللي تختاره من «يظهر في». والقسم بيختفي
+        من الموقع خالص لو مفيش فيه ولا رأي، فمش هتلاقي عنوانًا فاضيًا.
       </div>
 
       <FormError message={error} />
@@ -178,7 +177,17 @@ function TestimonialRow({
   onDelete: () => void;
 }) {
   const router = useRouter();
-  const [value, setValue] = useState({
+  // ⚠️ **`line: string` مكتوب بإيدينا عن قصد.** لو سيبنا الاستنتاج،
+  //    `testimonial.line ?? 'general'` بيطلع نوعًا ضيّقًا
+  //    (`'general' | 'enha_lak' | 'creative_writing'`)، و`e.target.value`
+  //    من `<Select>` بيجي `string` فالبناء بيفشل. الأكشن هو اللي بيصفّي
+  //    القيمة للقايمة المسموحة.
+  const [value, setValue] = useState<{
+    authorName: string;
+    authorRole: string;
+    line: string;
+    content: string;
+  }>({
     authorName: testimonial.authorName,
     authorRole: testimonial.authorRole,
     line: testimonial.line ?? 'general',
