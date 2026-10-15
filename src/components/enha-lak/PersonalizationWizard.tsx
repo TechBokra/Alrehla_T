@@ -1,6 +1,10 @@
 'use client';
 
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
+import { isSavedPhoto } from '@/lib/saved-photo';
+import { PAUSED_MESSAGE } from '@/lib/delivery';
+import Link from 'next/link';
+import { Truck } from 'lucide-react';
 import { addonsDisplayTotal, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -77,7 +81,12 @@ export function PersonalizationWizard({
   extraFields = [],
   goals = [],
   writingDialects = [],
+  deliveryPaused = false,
+  pauseMessage = '',
 }: {
+  /** التوصيل متوقف من اللوحة — النسخة المطبوعة مش متاحة للطلب. */
+  deliveryPaused?: boolean;
+  pauseMessage?: string;
   product: PersonalizedProduct;
   /** اللهجات الفعّالة لخيار أسلوب الكتابة (القصة المخصّصة بس). */
   writingDialects?: WritingDialect[];
@@ -105,6 +114,16 @@ export function PersonalizationWizard({
   //    حرف في اسم الطفل.
   const editId = searchParams?.get('edit') ?? null;
   const editing = editId ? items.find((i) => i.id === editId) ?? null : null;
+
+  /**
+   * رابط خطوة في المعالج.
+   *
+   * ⚠️ كان `?step=N` بس، فأول ما العميل يضغط «التالي» وهو بيعدّل بند،
+   *    الـ`edit` بيختفي من الرابط، والمعالج ينسى إنه في وضع تعديل —
+   *    فيضيف بند جديد بدل ما يستبدل، وتبقى القصة مرتين في السلة.
+   */
+  const stepHref = (step: number) =>
+    editId ? `${pathname}?step=${step}&edit=${encodeURIComponent(editId)}` : `${pathname}?step=${step}`;
   
   const currentStep = parseInt(searchParams?.get('step') || '1', 10);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -115,6 +134,16 @@ export function PersonalizationWizard({
     (s) => s !== 'dialect' || writingDialects.length > 0,
   );
   const showWritingStyle = !subscription && product.category === 'custom' && styleChoices.length > 0;
+
+  /**
+   * التوصيل متوقف: القصة المطبوعة مش ممكن تتطلب.
+   *
+   * ⚠️ لو المنتج ماعندوش نسخة إلكترونية خالص، الطلب كله متوقف — بنقول
+   *    كده **قبل** ما العميل يبدأ يملا بيانات طفله، مش بعد ما يخلّص.
+   *    (القاعدة بترفض الطلب أصلًا، ودي الرسالة اللي توفّر عليه الوقت.)
+   */
+  const blockedByPause = deliveryPaused && !electronicAvailable(product) && !subscription;
+  const pauseText = pauseMessage.trim() || PAUSED_MESSAGE;
   const defaultStyle = styleChoices.includes(DEFAULT_WRITING_STYLE)
     ? DEFAULT_WRITING_STYLE
     : styleChoices[0];
@@ -127,7 +156,9 @@ export function PersonalizationWizard({
       storyGoal: '',
       writingStyle: showWritingStyle ? defaultStyle : undefined,
       writingDialect: '',
-      format: 'printed',
+      // ⚠️ التوصيل متوقف والمنتج ليه نسخة إلكترونية: نبدأ بيها بدل
+      //    المطبوعة اللي مش هتعدّي أصلًا.
+      format: deliveryPaused && electronicAvailable(product) ? 'electronic' : 'printed',
       mode: subscription ? 'subscription' : 'single',
       monthlyGoals: subscription ? Array.from({ length: subscription.months }, () => '') : undefined,
       extraFields: {},
@@ -165,6 +196,11 @@ export function PersonalizationWizard({
         writingDialect: typeof data.writingStyle === 'string' && data.writingStyle.includes(':')
           ? data.writingStyle.split(':')[1]
           : '',
+        // الصور المرفوعة قبل كده بتتحط زي ما هي — التحقق بيعدّيها
+        // والرفع بيتخطّاها.
+        facePhotoFile: (editing.customizationData as Record<string, unknown> | undefined)?.childPhoto,
+        secondPhotoFile: (editing.customizationData as Record<string, unknown> | undefined)?.secondPhoto,
+        newChildName: typeof data.childName === 'string' ? data.childName : '',
         format: editing.format ?? 'printed',
         selectedAddonIds: editing.addonIds ?? [],
         customizedAddonIds: editing.customizedAddonIds ?? [],
@@ -223,7 +259,7 @@ export function PersonalizationWizard({
     sessionStorage.setItem(`wizard_state_${product.id}`, JSON.stringify(rest));
     // الاشتراك مالوش خطوة إضافات: من ٢ على ٤ على طول.
     const next = subscription && currentStep === 2 ? 4 : currentStep + 1;
-    router.push(`${pathname}?step=${next}`);
+    router.push(stepHref(next));
   };
 
   /** بيحوّل أخطاء التحقق لرسالة عربية فيها أسماء الحقول. */
@@ -251,14 +287,14 @@ export function PersonalizationWizard({
     setUploadError(describeErrors(names));
     const target = steps.length ? Math.min(...steps) : null;
     if (target && target !== currentStep) {
-      router.push(`${pathname}?step=${target}`);
+      router.push(stepHref(target));
     }
   };
 
   const handlePrev = () => {
     if (currentStep > 1) {
       const prev = subscription && currentStep === 4 ? 2 : currentStep - 1;
-      router.push(`${pathname}?step=${prev}`);
+      router.push(stepHref(prev));
     }
   };
 
@@ -268,7 +304,7 @@ export function PersonalizationWizard({
     const extraProblem = checkExtraAnswers(extraFields, data.extraFields);
     if (extraProblem) {
       setUploadError(extraProblem);
-      if (currentStep !== 2) router.push(`${pathname}?step=2`);
+      if (currentStep !== 2) router.push(stepHref(2));
       return;
     }
     // أسلوب الكتابة — جلسة قديمة ممكن تعدّي الخطوة ٢ من غير اختيار.
@@ -282,7 +318,7 @@ export function PersonalizationWizard({
       );
       if (styleProblem) {
         setUploadError(styleProblem);
-        if (currentStep !== 2) router.push(`${pathname}?step=2`);
+        if (currentStep !== 2) router.push(stepHref(2));
         return;
       }
       writingStyle = buildWritingStyleValue(data.writingStyle, data.writingDialect, writingDialects);
@@ -303,16 +339,22 @@ export function PersonalizationWizard({
     let childPhoto: PrivatePhoto | undefined;
     let secondPhoto: PrivatePhoto | undefined;
     try {
-      if (data.facePhotoFile) {
+      // ⚠️ الصورة المحفوظة (وضع التعديل) مرفوعة خلاص — إعادة رفعها
+      //    بتعمل نسخة تانية على Cloudinary وتضيّع الأصلية.
+      if (isSavedPhoto(data.facePhotoFile)) {
+        childPhoto = data.facePhotoFile;
+      } else if (data.facePhotoFile) {
         childPhoto = await uploadPrivatePhoto(data.facePhotoFile, 'children');
       }
-      if (data.secondPhotoFile) {
+      if (isSavedPhoto(data.secondPhotoFile)) {
+        secondPhoto = data.secondPhotoFile;
+      } else if (data.secondPhotoFile) {
         secondPhoto = await uploadPrivatePhoto(data.secondPhotoFile, 'children');
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'تعذّر رفع الصورة');
       // الصورة اتختارت في خطوة ٢ — نرجّعه هناك يغيّرها (اختبار HS0L).
-      if (currentStep !== 2) router.push(`${pathname}?step=2`);
+      if (currentStep !== 2) router.push(stepHref(2));
       return;
     }
 
@@ -377,6 +419,14 @@ export function PersonalizationWizard({
     // اختيار في النموذج (جلسة قديمة كان ممكن يكون فيها «بدون تخصيص»).
     const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
 
+    // ⚠️ حارس أخير: لو التوصيل اتوقف والعميل لسه فاتح الصفحة من قبلها،
+    //    الاختيار المطبوع مايعدّيش. (القاعدة بترفضه كمان وقت الطلب.)
+    if (deliveryPaused && format !== 'electronic') {
+      setUploadError(`${pauseText} — اختر النسخة الإلكترونية للمتابعة.`);
+      router.push(stepHref(4));
+      return;
+    }
+
     // 2. Add to cart — أو استبدال البند اللي جاي يتعدّل.
     // ⚠️ النوع مثبّت هنا: الكائن كان جوّه `addItem(...)` وبياخد نوعه من
     //    المعامل، ولما اتنقل لمتغير اتوسّع `type` لـ`string` والبناء وقع.
@@ -430,6 +480,29 @@ export function PersonalizationWizard({
 
   if (!isLoaded) return null;
 
+  // ⚠️ الحاجز هنا مش في السلة: العميل ماينفعش يبدأ تخصيص قصة مابتتطلبش.
+  if (blockedByPause) {
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 py-16">
+        <div className="rounded-3xl border border-amber-300 bg-amber-50 p-8 text-center">
+          <Truck className="mx-auto mb-4 h-10 w-10 text-amber-700" aria-hidden="true" />
+          <h1 className="text-2xl font-black text-amber-900">التوصيل متوقف مؤقتًا</h1>
+          <p className="mt-3 text-base font-medium leading-relaxed text-amber-900">{pauseText}</p>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-amber-800">
+            القصة دي بتتطبع وبتتشحن، فمش هينفع تتطلب دلوقتي. تقدر تتصفّح القصص اللي ليها
+            نسخة إلكترونية، أو ترجع لما التوصيل يرجع.
+          </p>
+          <Link
+            href="/enha-lak"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-6 py-3 font-bold text-white transition-colors hover:bg-amber-800"
+          >
+            تصفّح باقي القصص
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <FormProvider {...methods}>
       {/* ⚠️ **كان `flex` والملخص `w-96 shrink-0` جنب الفورم في كل المقاسات.**
@@ -473,6 +546,7 @@ export function PersonalizationWizard({
                   extraFields={extraFields}
                   writingDialects={writingDialects}
                   showWritingStyle={showWritingStyle}
+                  deliveryPaused={deliveryPaused}
                 />
               )}
             </div>

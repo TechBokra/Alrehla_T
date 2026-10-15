@@ -46,7 +46,12 @@ export type CheckoutSessionInput = {
 
 export type CheckoutSessionResult =
   | { ok: true; sessionId: string; url: string }
-  | { ok: false; error: string };
+  /**
+   * `detail` نصّ تشخيصي **للإدارة بس** (حالة HTTP وردّ البوابة). العميل
+   * بيشوف `error` وبس. بيتسجّل في `payment_events` عشان نعرف سبب الرفض
+   * من غير ما نحتاج سجلات الخادم.
+   */
+  | { ok: false; error: string; detail?: string };
 
 const GENERIC_ERROR = 'تعذّر فتح صفحة الدفع. جرّب تاني، أو ادفع بالتحويل.';
 
@@ -58,7 +63,7 @@ export async function createCheckoutSession(
 
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     console.error('xpay: مبلغ غير صالح', input.amount);
-    return { ok: false, error: GENERIC_ERROR };
+    return { ok: false, error: GENERIC_ERROR, detail: `bad amount ${input.amount}` };
   }
 
   const body = {
@@ -104,13 +109,21 @@ export async function createCheckoutSession(
   } catch (error) {
     // ⚠️ مابنطبعش `body` ولا الترويسات: فيهم المفتاح السري.
     console.error('xpay: تعذّر الاتصال بالبوابة', error);
-    return { ok: false, error: GENERIC_ERROR };
+    return {
+      ok: false,
+      error: GENERIC_ERROR,
+      detail: `network — ${error instanceof Error ? error.message : 'unknown'}`,
+    };
   }
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('xpay: البوابة رفضت إنشاء الجلسة', response.status, detail.slice(0, 500));
-    return { ok: false, error: GENERIC_ERROR };
+    const body = await response.text().catch(() => '');
+    console.error('xpay: البوابة رفضت إنشاء الجلسة', response.status, body.slice(0, 500));
+    return {
+      ok: false,
+      error: GENERIC_ERROR,
+      detail: `HTTP ${response.status} — ${body.slice(0, 900)}`,
+    };
   }
 
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
@@ -119,7 +132,11 @@ export async function createCheckoutSession(
 
   if (!sessionId || !url.startsWith('https://')) {
     console.error('xpay: رد غير متوقع من البوابة', { hasId: !!sessionId, hasUrl: !!url });
-    return { ok: false, error: GENERIC_ERROR };
+    return {
+      ok: false,
+      error: GENERIC_ERROR,
+      detail: `unexpected response — ${JSON.stringify(payload).slice(0, 900)}`,
+    };
   }
 
   return { ok: true, sessionId, url };

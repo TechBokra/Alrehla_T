@@ -23,6 +23,7 @@ import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/(client)/subscriptions/box';
 import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
 import { getActiveStoryGoals } from '@/data/domains/(shared)/products/story-goals';
+import { getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 import { getActiveWritingDialects } from '@/data/domains/(shared)/products/writing-dialects';
 
 export default async function CustomProductPage({ params }: { params: Promise<{ productSlug: string }> }) {
@@ -60,11 +61,14 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
 
   // الخانات والأهداف بتتفلتر بالمنتج (ملف 12) — فلازم رقمه الأول.
   const target = { productId: product.id };
-  const [extraFields, goals, addonDiscountPercent, writingDialects] = await Promise.all([
+  const [extraFields, goals, addonDiscountPercent, writingDialects, delivery] = await Promise.all([
     getActiveCustomizationFields(target),
     getActiveStoryGoals(target),
     getMyAddonDiscount(),
     getActiveWritingDialects(),
+    // ⚠️ إيقاف التوصيل لازم يتعرف **هنا**، قبل ما العميل يبدأ التخصيص —
+    //    مش في السلة ولا في آخر خطوة دفع.
+    getDeliveryCatalog(),
   ]);
 
   return (
@@ -76,6 +80,8 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         extraFields={extraFields}
         goals={goals}
         writingDialects={writingDialects}
+        deliveryPaused={delivery.pause.paused}
+        pauseMessage={delivery.pause.message}
       />
     </div>
   );

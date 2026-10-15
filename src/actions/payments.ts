@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { createCheckoutSession, isXpayConfigured } from '@/lib/payments/xpay-client';
@@ -78,7 +79,13 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
     },
   });
 
-  if (!session.ok) return { ok: false, error: session.error };
+  if (!session.ok) {
+    // ⚠️ سبب الرفض الحقيقي بيتسجّل في `payment_events` (يقراه الأدمن بس).
+    //    من غير كده الوحيد اللي بيعرف السبب هو سجل الخادم، واللي مش
+    //    متاح لكل خطة — فالعطل بيفضل مجهول.
+    await recordSessionFailure(order.id, session.detail ?? 'unknown');
+    return { ok: false, error: session.error };
+  }
 
   // ربط الجلسة بالطلب — الدالة بتتأكد إن الطلب بتاع العميل ده.
   const { data: attached, error: attachError } = await supabase.rpc('attach_payment_session', {
@@ -92,6 +99,29 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
   }
 
   return { ok: true, url: session.url };
+}
+
+/**
+ * يسجّل فشل إنشاء جلسة دفع عشان الإدارة تشوف السبب.
+ *
+ * بيستخدم مفتاح الخدمة لأن الكتابة في `payment_events` مقفولة على
+ * الجميع عن قصد. فشل التسجيل نفسه مابيوقّفش حاجة — العميل شاف رسالته
+ * خلاص، ومفيش داعي نوقعه مرتين.
+ */
+async function recordSessionFailure(orderId: string, detail: string): Promise<void> {
+  if (!isAdminApiConfigured()) return;
+  try {
+    const admin = createAdminClient();
+    await admin.from('payment_events').insert({
+      id: `local_fail_${orderId}_${Date.now()}`,
+      event_type: 'checkout.session.create_failed',
+      order_id: orderId,
+      outcome: 'session_create_failed',
+      payload: { detail: detail.slice(0, 1000) } as never,
+    });
+  } catch (error) {
+    console.error('تعذّر تسجيل فشل جلسة الدفع', error);
+  }
 }
 
 /* ───────────────────────── إعدادات اللوحة ───────────────────────── */

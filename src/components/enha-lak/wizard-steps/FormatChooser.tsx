@@ -22,7 +22,14 @@ const HINTS: Record<ItemFormat, string> = {
  * اختيار النسخة (ملف 138) — بيظهر بس لو المنتج ليه سعر إلكتروني.
  * ⚠️ الأسعار هنا للعرض؛ القاعدة بتسعّر من الجدول.
  */
-export function FormatChooser({ product }: { product: PersonalizedProduct }) {
+export function FormatChooser({
+  product,
+  deliveryPaused = false,
+}: {
+  product: PersonalizedProduct;
+  /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة. */
+  deliveryPaused?: boolean;
+}) {
   const { watch, setValue } = useFormContext();
   if (!electronicAvailable(product)) return null;
   const current: ItemFormat = watch('format') ?? 'printed';
@@ -34,11 +41,17 @@ export function FormatChooser({ product }: { product: PersonalizedProduct }) {
         {ITEM_FORMATS.map((f) => {
           const Icon = ICONS[f];
           const selected = current === f;
+          // ⚠️ «مطبوعة» و«الاتنين» بيتشحنوا، فبيتقفلوا وقت إيقاف التوصيل.
+          const blocked = deliveryPaused && f !== 'electronic';
           return (
             <label
               key={f}
-              className={`flex cursor-pointer flex-col gap-1 rounded-xl border-2 p-4 transition-colors ${
-                selected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'
+              className={`flex flex-col gap-1 rounded-xl border-2 p-4 transition-colors ${
+                blocked
+                  ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
+                  : selected
+                    ? 'cursor-pointer border-emerald-600 bg-emerald-50'
+                    : 'cursor-pointer border-slate-200 hover:border-slate-300'
               }`}
             >
               <input
@@ -46,13 +59,16 @@ export function FormatChooser({ product }: { product: PersonalizedProduct }) {
                 name="format-choice"
                 value={f}
                 checked={selected}
+                disabled={blocked}
                 onChange={() => setValue('format', f, { shouldDirty: true })}
                 className="sr-only"
               />
               <span className="flex items-center gap-2 font-bold text-slate-900">
                 <Icon className="h-4 w-4" aria-hidden /> {FORMAT_LABELS[f]}
               </span>
-              <span className="text-xs text-slate-600">{HINTS[f]}</span>
+              <span className="text-xs text-slate-600">
+                {blocked ? 'غير متاح — التوصيل متوقف مؤقتًا' : HINTS[f]}
+              </span>
               <span className="mt-1 font-black text-emerald-800">
                 {formatPrice(basePriceForFormat(product, f))}
               </span>

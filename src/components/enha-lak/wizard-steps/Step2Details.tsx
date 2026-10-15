@@ -2,6 +2,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useObjectUrl } from '@/lib/use-object-url';
+import { isSavedPhoto } from '@/lib/saved-photo';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { DEFAULT_GOALS, type StoryGoal } from '@/lib/story-goals';
 import { ExtraFieldsSection } from './ExtraFieldsSection';
@@ -56,6 +57,9 @@ export function Step2Details({
 
   const facePhotoFile = watch('facePhotoFile');
   const secondPhotoFile = watch('secondPhotoFile');
+  // ⚠️ في وضع التعديل الخانة بتحمل صورة **مرفوعة قبل كده** مش ملف
+  //    جديد، فمفيش معاينة محلية ليها — بنقول للعميل إنها محفوظة.
+  const savedPhoto = (v: unknown) => isSavedPhoto(v);
   const facePhotoPreviewUrl = useObjectUrl(facePhotoFile);
   const secondPhotoPreviewUrl = useObjectUrl(secondPhotoFile);
 
@@ -218,24 +222,33 @@ export function Step2Details({
             onChange={(e) => handleFileChange(e, 'facePhotoFile')}
             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {facePhotoPreviewUrl && (
+          {facePhotoPreviewUrl ? (
              <Image src={facePhotoPreviewUrl} alt="معاينة الصورة الشخصية المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
-          )}
+          ) : savedPhoto(facePhotoFile) ? (
+            /* وضع التعديل: الصورة مرفوعة قبل كده ومحفوظة — مش هنطلبها تاني. */
+            <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+              الصورة اللي رفعتها قبل كده محفوظة. ارفع صورة جديدة بس لو عايز تغيّرها.
+            </p>
+          ) : null}
           {errors.facePhotoFile && <span className="text-sm text-red-500">{errors.facePhotoFile.message as string}</span>}
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700">صورة إضافية (اختياري)</label>
-          <p className="text-xs text-slate-500 mb-2">للحيوان الأليف، لعبة مفضلة، أو زاوية أخرى.</p>
+          <p className="text-xs text-slate-500 mb-2">أي صورة أخرى تحب تظهر في القصة.</p>
           <input 
             type="file" 
             accept="image/*"
             onChange={(e) => handleFileChange(e, 'secondPhotoFile')}
             className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {secondPhotoPreviewUrl && (
+          {secondPhotoPreviewUrl ? (
              <Image src={secondPhotoPreviewUrl} alt="معاينة الصورة الإضافية المختارة" width={128} height={128} unoptimized className="mt-4 h-32 w-32 object-cover rounded-xl border border-slate-200" />
-          )}
+          ) : savedPhoto(secondPhotoFile) ? (
+            <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+              الصورة الإضافية اللي رفعتها قبل كده محفوظة.
+            </p>
+          ) : null}
           {errors.secondPhotoFile && <span className="text-sm text-red-500">{errors.secondPhotoFile.message as string}</span>}
         </div>
       </div>

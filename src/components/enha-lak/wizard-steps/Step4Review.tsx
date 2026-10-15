@@ -17,7 +17,10 @@ export function Step4Review({
   extraFields = [],
   writingDialects = [],
   showWritingStyle = false,
+  deliveryPaused = false,
 }: {
+  /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة في اختيار النسخة. */
+  deliveryPaused?: boolean;
   /** اللهجات — لعرض اسم اللهجة المختارة. */
   writingDialects?: WritingDialect[];
   /** خيار أسلوب الكتابة ظاهر في الخطوة ٢ (قصة مخصّصة واحدة). */
@@ -144,7 +147,7 @@ export function Step4Review({
           </div>
         )}
 
-        <FormatChooser product={product} />
+        <FormatChooser product={product} deliveryPaused={deliveryPaused} />
 
         {/* إلكتروني من غير إضافات = مفيش شحن (ملف 138). */}
         <div className="rounded-2xl border border-blue-200 p-4 bg-blue-50 text-blue-800 text-sm font-bold text-center">
