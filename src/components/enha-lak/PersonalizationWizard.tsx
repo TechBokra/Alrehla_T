@@ -24,7 +24,7 @@ import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
 import { Step2Details } from './wizard-steps/Step2Details';
 import { Step3Addons } from './wizard-steps/Step3Addons';
 import { Step4Review } from './wizard-steps/Step4Review';
-import { useCart } from '@/context/CartContext';
+import { useCart, type CartItem } from '@/context/CartContext';
 import { resolveWizardChild } from '@/app/actions/family';
 import {
   checkExtraAnswers,
@@ -378,7 +378,9 @@ export function PersonalizationWizard({
     const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
 
     // 2. Add to cart — أو استبدال البند اللي جاي يتعدّل.
-    const line = {
+    // ⚠️ النوع مثبّت هنا: الكائن كان جوّه `addItem(...)` وبياخد نوعه من
+    //    المعامل، ولما اتنقل لمتغير اتوسّع `type` لـ`string` والبناء وقع.
+    const line: CartItem = {
       id: editing ? editing.id : `${product.id}-${crypto.randomUUID()}`,
       productId: product.id,
       productSlug: product.slug,
