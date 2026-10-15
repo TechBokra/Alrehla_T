@@ -78,6 +78,11 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
     },
   });
 
+  // الجلسة اتفتحت لكن فيه إعداد غلط — بيتسجّل للإدارة والعميل بيكمّل دفع.
+  if (session.ok && session.note) {
+    await recordSessionFailure(order.id, session.note);
+  }
+
   if (!session.ok) {
     // ⚠️ سبب الرفض الحقيقي بيتسجّل في `payment_events` (يقراه الأدمن بس).
     //    من غير كده الوحيد اللي بيعرف السبب هو سجل الخادم، واللي مش

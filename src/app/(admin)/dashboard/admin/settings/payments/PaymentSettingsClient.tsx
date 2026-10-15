@@ -180,9 +180,10 @@ export function PaymentSettingsClient({
             <legend className="mb-2 block text-sm font-bold text-slate-700">
               وسائل الدفع المعروضة في البوابة
             </legend>
-            <p className="mb-3 text-xs font-medium text-slate-500">
-              اختر اللي مفعّل فعلًا في حساب XPay بتاعك. وسيلة مش مفعّلة عندهم مش هتظهر
-              للعميل حتى لو اخترتها هنا.
+            <p className="mb-3 text-xs font-medium leading-relaxed text-slate-500">
+              علّم بس على اللي <strong>مفعّل فعلًا</strong> في حساب XPay (الإعدادات ← طرق
+              الدفع). لو علّمت على وسيلة مش مفعّلة عندهم، الموقع بيتجاهل اختيارك ويعرض
+              الوسائل المفعّلة في حسابك بدل ما يوقف الدفع على العميل.
             </p>
             <div className="grid gap-3 md:grid-cols-2">
               {PAYMENT_METHODS.map((m) => (

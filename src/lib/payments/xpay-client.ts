@@ -44,7 +44,8 @@ export type CheckoutSessionInput = {
 };
 
 export type CheckoutSessionResult =
-  | { ok: true; sessionId: string; url: string }
+  /** `note` تحذير إداري: الجلسة اتفتحت لكن فيه إعداد محتاج تصحيح. */
+  | { ok: true; sessionId: string; url: string; note?: string }
   /**
    * `detail` نصّ تشخيصي **للإدارة بس** (حالة HTTP وردّ البوابة). العميل
    * بيشوف `error` وبس. بيتسجّل في `payment_events` عشان نعرف سبب الرفض
@@ -102,18 +103,21 @@ export async function createCheckoutSession(
       : undefined,
   };
 
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE}/checkout/sessions`, {
+  const send = async (payload: Record<string, unknown>) =>
+    fetch(`${API_BASE}/checkout/sessions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${config.secretKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: 'no-store',
     });
+
+  let response: Response;
+  try {
+    response = await send(body);
   } catch (error) {
     // ⚠️ مابنطبعش `body` ولا الترويسات: فيهم المفتاح السري.
     console.error('xpay: تعذّر الاتصال بالبوابة', error);
@@ -124,14 +128,42 @@ export async function createCheckoutSession(
     };
   }
 
+  let fallbackNote = '';
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    console.error('xpay: البوابة رفضت إنشاء الجلسة', response.status, body.slice(0, 500));
-    return {
-      ok: false,
-      error: GENERIC_ERROR,
-      detail: `HTTP ${response.status} — ${body.slice(0, 900)}`,
-    };
+    const firstError = await response.text().catch(() => '');
+
+    /**
+     * ⚠️ **وسيلة دفع مختارة عندنا ومش مفعّلة في حساب XPay.**
+     *
+     * ده خطأ إعداد، مش عطل — ومش من حق خطأ إعداد إنه يمنع عميل من
+     * الدفع. بنعيد المحاولة من غير ما نحدّد الوسائل، فالبوابة بتعرض
+     * الوسائل المفعّلة في الحساب فعلًا. السبب بيتسجّل عشان الإدارة
+     * تصلّح الاختيار.
+     */
+    if (response.status === 400 && firstError.includes('not enabled for this merchant')) {
+      console.warn('xpay: وسيلة دفع مش مفعّلة في الحساب — إعادة المحاولة بالإعداد الافتراضي');
+      const { paymentMethodTypes: _unused, ...withoutMethods } = body;
+      try {
+        response = await send(withoutMethods);
+      } catch (error) {
+        return {
+          ok: false,
+          error: GENERIC_ERROR,
+          detail: `network on retry — ${error instanceof Error ? error.message : 'unknown'}`,
+        };
+      }
+      fallbackNote = `تم تجاهل وسائل الدفع المختارة لأنها غير مفعّلة في حساب XPay. ${firstError.slice(0, 400)}`;
+    }
+
+    if (!response.ok) {
+      const body2 = await response.text().catch(() => '');
+      console.error('xpay: البوابة رفضت إنشاء الجلسة', response.status, body2.slice(0, 500));
+      return {
+        ok: false,
+        error: GENERIC_ERROR,
+        detail: `HTTP ${response.status} — ${(body2 || firstError).slice(0, 900)}`,
+      };
+    }
   }
 
   const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
@@ -147,5 +179,5 @@ export async function createCheckoutSession(
     };
   }
 
-  return { ok: true, sessionId, url };
+  return { ok: true, sessionId, url, note: fallbackNote || undefined };
 }
