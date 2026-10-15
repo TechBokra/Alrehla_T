@@ -386,6 +386,8 @@ BEGIN
   EXECUTE 'RESET ROLE';
 
   -- إيقاف نوع «aqlam» من شاشة الإشعارات = مفيش إشعار جديد
+  -- في قاعدة حقيقية الصف موجود أصلًا؛ كل ده جوّه ROLLBACK فبيرجع زي ما كان.
+  DELETE FROM public.site_settings WHERE key = 'notifications';
   INSERT INTO public.site_settings(key, value) VALUES ('notifications', jsonb_build_object('disabled', jsonb_build_array('aqlam')));
   SELECT count(*) INTO n FROM public.notifications;
   PERFORM public.aqlam_notify(v_guard::text, 'تجربة', 'x', '/aqlam');
