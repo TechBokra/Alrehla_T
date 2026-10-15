@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { readXpayConfig } from '@/lib/payments/xpay-client';
 import { verifyXpaySignature } from '@/lib/payments/xpay-signature';
-import { isHandledEvent, parseXpayEvent } from '@/lib/payments/xpay-event';
+import { isHandledEvent, parseXpayEvent, type PaymentKind } from '@/lib/payments/xpay-event';
 import {
   afterCourseBookingPaid,
   afterServiceOrderPaid,
@@ -34,6 +34,41 @@ export const runtime = 'nodejs';
  *    بيخلّي XPay تفضل تعيد المحاولة للأبد على حاجة مش هتتصلّح.
  *    بنرد بخطأ بس لو العيب **عندنا** (القاعدة مش متاحة) عشان تعيد.
  */
+/**
+ * النوع من القاعدة لما البوابة ماترجّعوش.
+ *
+ * ⚠️ **الويبهوك مايعتمدش على `metadata` وحدها.** إحنا بنحط `kind` وقت
+ *    فتح الجلسة، بس مفيش ضمان إنها ترجع: جلسة اتفتحت قبل ما الخانة
+ *    تتعرّف مالهاش، والبوابة ممكن تهمل مفتاحًا ماتعرفهوش. والبديل هنا
+ *    مضمون لأن الأرقام UUID — الرقم موجود في جدول واحد لا غير.
+ *
+ * القراءة بمفتاح الخدمة (الويبهوك مالوش جلسة مستخدم)، فالـRLS
+ * مابتحجبش الصف.
+ */
+async function resolveKind(
+  admin: ReturnType<typeof createAdminClient>,
+  id: string,
+  fromMetadata: PaymentKind,
+): Promise<PaymentKind | null> {
+  // جه صريح من البوابة؟ نثق فيه — هو اللي إحنا بعتناه.
+  if (fromMetadata !== 'order') return fromMetadata;
+
+  const inOrders = await admin.from('orders').select('id').eq('id', id).maybeSingle();
+  if (inOrders.data) return 'order';
+
+  const inServices = await admin.from('service_orders').select('id').eq('id', id).maybeSingle();
+  if (inServices.data) return 'service_order';
+
+  const inCourses = await admin
+    .from('course_subscriptions')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (inCourses.data) return 'course_subscription';
+
+  return null;
+}
+
 export async function POST(request: Request) {
   const config = readXpayConfig();
   if (!config) {
@@ -85,6 +120,14 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient();
 
+  // النوع من البوابة لو بعتته، وإلا من القاعدة — الجلسات القديمة
+  // مافيهاش `kind`، ومفيش ضمان إن البوابة ترجّع مفتاحًا ماتعرفهوش.
+  const kind = await resolveKind(supabase, event.orderId, event.kind);
+  if (!kind) {
+    console.error('xpay webhook: رقم مش موجود في أي جدول', event.id, event.orderId);
+    return NextResponse.json({ received: true, outcome: 'unknown_source' });
+  }
+
   // ── خدمة كتابة أو حجز باقة ────────────────────────────────
   //
   // ⚠️ **مش مجرد دالة تانية.** الدالة بتسجّل الدفعة وبس؛ اللي بعدها
@@ -92,11 +135,11 @@ export async function POST(request: Request) {
   //    ويحجز غرفها، و(`afterServiceOrderPaid`) بيحسب مهلة مقدّم
   //    الخدمة. من غيرهم العميل بيدفع بالبطاقة ويلاقي حجزًا «نشطًا»
   //    بلا ولا جلسة — نفس اللي تأكيد الدفع اليدوي بيعمله من اللوحة.
-  if (event.kind !== 'order') {
+  if (kind !== 'order') {
     const { data, error } = await supabase.rpc('record_gateway_payment_cw', {
       p_event_id: event.id,
       p_event_type: event.type,
-      p_kind: event.kind,
+      p_kind: kind,
       p_id: event.orderId,
       p_session_id: event.sessionId,
       p_intent_id: event.intentId,
@@ -119,7 +162,7 @@ export async function POST(request: Request) {
     }
 
     const after =
-      event.kind === 'course_subscription'
+      kind === 'course_subscription'
         ? await afterCourseBookingPaid(supabase, event.orderId)
         : await afterServiceOrderPaid(supabase, event.orderId);
 
