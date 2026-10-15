@@ -194,6 +194,8 @@ type Draft = {
   fee: string;
   isActive: boolean;
   isEstimate: boolean;
+  /** السعر المحفوظ قبل التعديل — بنقارن بيه عشان نشيل «تقديري» لوحدها. */
+  savedFee?: number;
 };
 
 function AreasSection({ config }: { config: AdminDeliveryConfig }) {
@@ -519,6 +521,7 @@ function GovernorateCard(props: {
                       fee: String(rate.fee),
                       isActive: rate.isActive,
                       isEstimate: rate.isEstimate,
+                      savedFee: rate.fee,
                     });
                     props.clearError();
                   }}
@@ -589,12 +592,27 @@ function RateForm({
         <Field label="المنطقة / المدينة" help="الاسم اللي العميل بيختاره من القايمة في صفحة الدفع. أي منطقة مش مضافة هنا مش هتظهر له." required>
           <TextInput value={value.city} onChange={(e) => onChange({ ...value, city: e.target.value })} />
         </Field>
-        <Field label="السعر (ج.م)" required>
+        <Field
+          label="السعر (ج.م)"
+          required
+          hint={
+            value.savedFee !== undefined && value.isEstimate
+              ? 'تغيير السعر بيشيل علامة «تقديري» تلقائيًا.'
+              : undefined
+          }
+        >
           <TextInput
             type="number"
             min={0}
             value={value.fee}
-            onChange={(e) => onChange({ ...value, fee: e.target.value })}
+            onChange={(e) => {
+              const fee = e.target.value;
+              // ⚠️ السعر اللي الأدمن كتبه بإيده = سعر مراجَع، فعلامة «تقديري»
+              //    بتتشال لوحدها. كانت بتفضل متعلّمة بعد التعديل، فالقايمة
+              //    تقول «محتاج مراجعة» على أسعار اتراجعت فعلًا.
+              const changed = value.savedFee !== undefined && Number(fee) !== value.savedFee;
+              onChange({ ...value, fee, ...(changed ? { isEstimate: false } : {}) });
+            }}
           />
         </Field>
       </div>
@@ -608,7 +626,7 @@ function RateForm({
         />
         <Checkbox
           label="سعر تقديري"
-          hint="أزل العلامة بعد مراجعة السعر مع شركة الشحن."
+          hint="علامة «محتاج مراجعة مع شركة الشحن». بتتشال لوحدها أول ما تغيّر السعر."
           checked={value.isEstimate}
           onChange={(e) => onChange({ ...value, isEstimate: e.target.checked })}
         />
