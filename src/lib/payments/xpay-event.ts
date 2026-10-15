@@ -56,6 +56,9 @@ function normalizeMethod(v: unknown): string | null {
   if (!raw) return null;
   if (raw.includes('fawry')) return 'fawry';
   if (raw.includes('valu')) return 'valu';
+  if (raw.includes('apple')) return 'apple_pay';
+  // محافظ إلكترونية: البوابة بتسمّيها بأسماء مختلفة، وكلها بتتسجّل 'wallet'
+  // في الطلب (القاعدة بتقبلها) حتى لو مش من وسائل الاختيار عندهم.
   if (raw.includes('wallet') || raw.includes('vodafone') || raw.includes('orange')) return 'wallet';
   if (raw.includes('card') || raw === 'visa' || raw === 'mastercard') return 'card';
   return null;

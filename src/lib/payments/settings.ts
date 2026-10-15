@@ -17,14 +17,20 @@
 
 export type PaymentProvider = 'manual' | 'xpay';
 
-export const PAYMENT_METHODS = ['card', 'fawry', 'valu', 'wallet'] as const;
+/**
+ * ⚠️ القيم دي **مش اختيارنا** — البوابة بترفض أي قيمة غيرها برسالة
+ *    `Invalid option: expected one of "card"|"fawry"|"valu"|"apple_pay"`.
+ *    كانت فيها `wallet` (محفظة إلكترونية) وهي مش موجودة عندهم أصلًا،
+ *    فكل محاولة دفع كانت بتترفض.
+ */
+export const PAYMENT_METHODS = ['card', 'fawry', 'valu', 'apple_pay'] as const;
 export type GatewayMethod = (typeof PAYMENT_METHODS)[number];
 
 export const METHOD_LABELS: Record<GatewayMethod, string> = {
   card: 'فيزا وماستركارد',
   fawry: 'فوري',
   valu: 'فاليو (تقسيط)',
-  wallet: 'محفظة إلكترونية',
+  apple_pay: 'Apple Pay',
 };
 
 export const PROVIDER_LABELS: Record<PaymentProvider, string> = {
