@@ -43,7 +43,7 @@ const ALL_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
   'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
   'canManageContent', 'canManageFinance', 'canManagePayments', 'canAssignWork',
-  'canViewAuditLogs',
+  'canViewAuditLogs', 'canManageStudio', 'canWorkStudio',
 ];
 
 export const ADMIN_NAV: AdminGroup[] = [
@@ -135,6 +135,10 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'إعدادات الدفع', href: `${A}/settings/payments`, permission: 'canManagePayments' },
           // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
           { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
+          // استوديو القصص: مسار إنتاج الطلبات المخصّصة بعد الدفع. تبويب في «طلبات
+          // المنتجات» مش قسم لوحده (قاعدة القايمة فوق: الأقسام ≤ ١٦).
+          { label: 'استوديو القصص', href: `${A}/studio`, permission: 'canWorkStudio' },
+          { label: 'إعدادات الاستوديو', href: `${A}/studio/settings`, permission: 'canManageStudio' },
         ],
       },
       {

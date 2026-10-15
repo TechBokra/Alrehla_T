@@ -15,6 +15,7 @@ import { FulfilmentPanel } from './FulfilmentPanel';
 import { OrderItemCustomization } from './OrderItemCustomization';
 import { ElectronicDeliveryPanel } from './ElectronicDeliveryPanel';
 import { BoxOrderPanel } from './BoxOrderPanel';
+import { StudioOrderPanel } from './StudioOrderPanel';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 // الإيصال الخاص برابط بينتهي بعد ساعة (`lib/receipt-ref`).
 import { receiptViewUrl } from '@/lib/cloudinary-private';
@@ -214,6 +215,15 @@ export default async function Page({
             />
           ))}
         </div>
+
+        {/* مشروع القصة: بيظهر بس لو فيه مشروع، أو الاستوديو شغّال وفيه بند ينفع يتبدأ. */}
+        {hasAdminPermission(user, 'canWorkStudio') && (
+          <StudioOrderPanel
+            orderId={target.id}
+            paid={paid}
+            canManage={hasAdminPermission(user, 'canManageStudio')}
+          />
+        )}
 
         <div className="mt-6 flex border-t border-slate-100 pt-6">
           <OrderTotals

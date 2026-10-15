@@ -3235,6 +3235,54 @@ export type Database = {
         }
         Relationships: []
       }
+      story_cost_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          minutes: number | null
+          note: string | null
+          project_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          minutes?: number | null
+          note?: string | null
+          project_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          minutes?: number | null
+          note?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_cost_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_cost_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "story_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       story_goals: {
         Row: {
           applies_to: string[] | null
@@ -3264,6 +3312,266 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      story_pages: {
+        Row: {
+          attempts: number
+          id: string
+          image_url: string | null
+          page_no: number
+          page_text: string
+          project_id: string
+          reviewer_note: string | null
+          scene_description: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          id?: string
+          image_url?: string | null
+          page_no: number
+          page_text?: string
+          project_id: string
+          reviewer_note?: string | null
+          scene_description?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          id?: string
+          image_url?: string | null
+          page_no?: number
+          page_text?: string
+          project_id?: string
+          reviewer_note?: string | null
+          scene_description?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "story_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_projects: {
+        Row: {
+          age_band: string | null
+          art_lead_id: string | null
+          brief: Json
+          character_approved_at: string | null
+          character_approved_by: string | null
+          character_notes: string | null
+          character_ref_url: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_note: string | null
+          due_at: string | null
+          editor_id: string | null
+          face_mode: string
+          held_from: string | null
+          id: string
+          order_id: string
+          order_item_id: string
+          page_target: number | null
+          photo_consent_at: string | null
+          photo_consent_by: string | null
+          photo_consent_note: string | null
+          product_id: string
+          qa_checklist: Json
+          qa_passed_at: string | null
+          qa_passed_by: string | null
+          sensitive_topic: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          age_band?: string | null
+          art_lead_id?: string | null
+          brief?: Json
+          character_approved_at?: string | null
+          character_approved_by?: string | null
+          character_notes?: string | null
+          character_ref_url?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_note?: string | null
+          due_at?: string | null
+          editor_id?: string | null
+          face_mode?: string
+          held_from?: string | null
+          id?: string
+          order_id: string
+          order_item_id: string
+          page_target?: number | null
+          photo_consent_at?: string | null
+          photo_consent_by?: string | null
+          photo_consent_note?: string | null
+          product_id: string
+          qa_checklist?: Json
+          qa_passed_at?: string | null
+          qa_passed_by?: string | null
+          sensitive_topic?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          age_band?: string | null
+          art_lead_id?: string | null
+          brief?: Json
+          character_approved_at?: string | null
+          character_approved_by?: string | null
+          character_notes?: string | null
+          character_ref_url?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_note?: string | null
+          due_at?: string | null
+          editor_id?: string | null
+          face_mode?: string
+          held_from?: string | null
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          page_target?: number | null
+          photo_consent_at?: string | null
+          photo_consent_by?: string | null
+          photo_consent_note?: string | null
+          product_id?: string
+          qa_checklist?: Json
+          qa_passed_at?: string | null
+          qa_passed_by?: string | null
+          sensitive_topic?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_projects_art_lead_id_fkey"
+            columns: ["art_lead_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_character_approved_by_fkey"
+            columns: ["character_approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_editor_id_fkey"
+            columns: ["editor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_photo_consent_by_fkey"
+            columns: ["photo_consent_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_projects_qa_passed_by_fkey"
+            columns: ["qa_passed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_versions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          client_decision_at: string | null
+          client_decision_note: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          project_id: string
+          source: string
+          status: string
+          version_no: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body: string
+          client_decision_at?: string | null
+          client_decision_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          project_id: string
+          source?: string
+          status?: string
+          version_no: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          client_decision_at?: string | null
+          client_decision_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          project_id?: string
+          source?: string
+          status?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_versions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "story_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_materials: {
         Row: {
@@ -3633,6 +3941,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
       aqlam_add_comment: {
         Args: { p_body: string; p_post: string }
         Returns: Json
@@ -4024,6 +4333,9 @@ export type Database = {
         Args: { p_instructor_id: string; p_package_ids: string[] }
         Returns: Json
       }
+      story_mode: { Args: never; Returns: string }
+      story_start_project: { Args: { p_order_item: string }; Returns: string }
+      story_studio_access: { Args: never; Returns: boolean }
       student_sessions: {
         Args: never
         Returns: {

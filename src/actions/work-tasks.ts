@@ -29,6 +29,7 @@ const ALL: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
   'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
   'canManageContent', 'canManageFinance', 'canAssignWork', 'canViewAuditLogs',
+  'canManageStudio', 'canWorkStudio',
 ];
 
 async function anyAdmin() {

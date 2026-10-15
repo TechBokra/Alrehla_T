@@ -20,4 +20,6 @@ export const PERMISSION_LABELS: Record<AdminPermission, string> = {
   canManagePayments: 'إعدادات الدفع (خطِرة)',
   canAssignWork: 'توزيع المهام والطلبات',
   canViewAuditLogs: 'السجلات والتدقيق',
+  canManageStudio: 'استوديو القصص — إدارة الإنتاج',
+  canWorkStudio: 'استوديو القصص — العمل في المشاريع',
 };
