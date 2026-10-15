@@ -446,7 +446,7 @@ export async function cancelMyOrder(
     return { ok: false, error: 'تعذّر إلغاء الطلب. جرّب تاني.' };
   }
 
-  const result = data as { ok?: boolean; error?: string } | null;
+  const result = data as unknown as { ok?: boolean; error?: string } | null;
   if (!result?.ok) {
     const reason = result?.error ?? 'unknown';
     const messages: Record<string, string> = {
