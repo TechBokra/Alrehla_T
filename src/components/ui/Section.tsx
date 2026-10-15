@@ -31,8 +31,14 @@ type SectionProps = {
  */
 export function Section({ children, className = '', containerClassName = '', id }: SectionProps) {
   return (
-    <section id={id} className={`py-12 md:py-16 px-4 ${className}`}>
-      <div className={`max-w-6xl mx-auto ${containerClassName}`}>
+    // ⚠️ **`w-full` مش زيادة.** `PageContainer` عمود مرن بـ`items-center`،
+    //    ومعاها عنصر البلوك **مابيتمدّش**: بياخد عرض محتواه. فأي محتوى
+    //    عريض (صورة غلاف بنسبة ثابتة، سطر طويل من غير مسافات) بيوسّع
+    //    القسم أعرض من الشاشة، والصفحة كلها بتتزحزح والكلام بيتقطع من
+    //    ناحية اليمين على الموبايل. و`min-w-0` بتخلي الأبناء يتكسروا
+    //    بدل ما يفرضوا عرضهم.
+    <section id={id} className={`w-full py-12 md:py-16 px-4 ${className}`}>
+      <div className={`mx-auto w-full min-w-0 max-w-6xl ${containerClassName}`}>
         {children}
       </div>
     </section>

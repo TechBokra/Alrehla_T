@@ -351,6 +351,7 @@ export type Database = {
           id: string
           is_draft: boolean
           published_at: string
+          seo_description: string | null
           slug: string
           title: string
           updated_at: string
@@ -364,6 +365,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           published_at?: string
+          seo_description?: string | null
           slug: string
           title: string
           updated_at?: string
@@ -377,6 +379,7 @@ export type Database = {
           id?: string
           is_draft?: boolean
           published_at?: string
+          seo_description?: string | null
           slug?: string
           title?: string
           updated_at?: string
@@ -2933,6 +2936,7 @@ export type Database = {
           author_name: string
           author_role: string
           content: string
+          line: string
           created_at: string
           id: string
         }
@@ -2940,6 +2944,7 @@ export type Database = {
           author_name: string
           author_role: string
           content: string
+          line?: string
           created_at?: string
           id?: string
         }
@@ -2947,6 +2952,7 @@ export type Database = {
           author_name?: string
           author_role?: string
           content?: string
+          line?: string
           created_at?: string
           id?: string
         }

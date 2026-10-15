@@ -35,11 +35,10 @@ import {
 } from 'lucide-react';
 
 export default async function CreativeWritingPage() {
-  const allTestimonials = await getTestimonials();
-  // Filter for specific testimonials if possible, or just use them
-  const testimonials = allTestimonials.filter((t) =>
-    t.authorRole.includes('ولي')
-  );
+  // ⚠️ كان بيفلتر بالبحث عن كلمة «ولي» في صفة صاحب الرأي: رأي ولي أمر
+  //    عن قصة مخصّصة كان بيظهر هنا، وتغيير الصفة لـ«أب» كان بيخفيه.
+  //    القسم بقى بيتحدد صراحةً من لوحة الإدارة.
+  const testimonials = await getTestimonials('creative_writing');
 
   const content = await getSiteContent();
   const settings = await getSiteSettings();
@@ -243,7 +242,8 @@ export default async function CreativeWritingPage() {
         </div>
       </Section>
 
-      {/* Testimonials */}
+      {/* Testimonials — بيختفي خالص لو مفيش آراء للقسم ده. */}
+      {testimonials.length > 0 && (
       <Section containerClassName="mx-auto w-full max-w-5xl">
         <div className="grid gap-8 md:grid-cols-2">
           {testimonials.slice(0, 2).map((testimonial) => (
@@ -270,6 +270,7 @@ export default async function CreativeWritingPage() {
           ))}
         </div>
       </Section>
+      )}
 
       {/* Final CTA */}
       <Section containerClassName="mx-auto w-full max-w-4xl pb-20 text-center">

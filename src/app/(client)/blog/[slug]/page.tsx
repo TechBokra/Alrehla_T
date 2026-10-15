@@ -40,7 +40,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!post) return { title: 'مقال غير موجود' };
   return pageMetadata({
     title: post.title,
-    description: post.excerpt || post.title,
+    // وصف محركات البحث المستقل أولًا، والمقتطف احتياطي.
+    description: post.seoDescription || post.excerpt || post.title,
     path: `/blog/${post.slug}`,
     image: post.coverImageUrl,
     type: 'article',
@@ -68,7 +69,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         data={[
           articleSchema({
             title: post.title,
-            description: post.excerpt,
+            description: post.seoDescription || post.excerpt,
             image: post.coverImageUrl ? optimizedImageUrl(post.coverImageUrl, 1200) : undefined,
             path: `/blog/${post.slug}`,
             publishedAt: post.publishedAt || undefined,
@@ -93,7 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {/* Article Header */}
         <header className="mb-12 text-center">
-          <h1 className="mb-6 text-3xl font-black leading-tight text-slate-900 md:text-5xl">{post.title}</h1>
+          <h1 className="mb-6 text-balance break-words text-3xl font-black leading-tight text-slate-900 md:text-5xl">{post.title}</h1>
           
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-slate-500">
             <div className="flex items-center gap-2">
@@ -151,10 +152,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
             و`RichText` **مابيقبلش HTML خام عن قصد** — أي حد عنده
             صلاحية تعديل المحتوى كان هيقدر يحقن سكربت. */}
-        <article className="mx-auto max-w-3xl">
-          <p className="mb-8 text-xl leading-relaxed font-medium text-slate-600">
-            {post.excerpt}
-          </p>
+        {/* ⚠️ المقتطف اتشال من هنا: هو ملخّص بيجذب القارئ وهو في قايمة
+            المقالات، ولما بيتكرر في أول المقال بيبقى إعادة لنفس الكلام
+            قبل أول سطر حقيقي. وهو لسه ظاهر في البطاقات. */}
+        <article className="mx-auto w-full min-w-0 max-w-3xl break-words">
           <RichText
             value={watermarkCloudinaryUrlsIn(post.content, wm)}
             className="space-y-6 leading-loose text-slate-700"
@@ -169,7 +170,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             theme="amber"
             data={{
               title: post.title,
-              description: post.excerpt,
+              description: post.seoDescription || post.excerpt,
               url: `/blog/${post.slug}`,
               // ══ 🔴 رابط المشاركة كان بيروح لمنتج تاني ══════════
               //    كان `post.id.split('-')[0]` — **أول مقطع من الرقم**.

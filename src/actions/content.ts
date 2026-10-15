@@ -354,7 +354,7 @@ async function guardTestimonials(message: string) {
 
 export async function saveTestimonial(
   id: string | null,
-  data: { authorName: string; authorRole: string; content: string },
+  data: { authorName: string; authorRole: string; content: string; line?: string },
 ): Promise<TestimonialResult> {
   const auth = await guardTestimonials('غير مصرح لك بتعديل آراء العملاء');
   if (!auth.ok) return auth;
@@ -363,6 +363,9 @@ export async function saveTestimonial(
   const authorName = data.authorName.trim();
   const authorRole = data.authorRole.trim();
   const body = data.content.trim();
+  // ⚠️ القسم بيتحدد صراحةً: كان بيتخمّن من كلمة «ولي» في صفة صاحب الرأي.
+  const line =
+    data.line === 'enha_lak' || data.line === 'creative_writing' ? data.line : 'general';
 
   if (!authorName || !body) {
     return {
@@ -377,7 +380,7 @@ export async function saveTestimonial(
   if (id) {
     const { error } = await supabase
       .from('testimonials')
-      .update({ author_name: authorName, author_role: authorRole, content: body })
+      .update({ author_name: authorName, author_role: authorRole, content: body, line })
       .eq('id', id);
     if (error) {
       console.error('Error updating testimonial', error);
@@ -386,7 +389,7 @@ export async function saveTestimonial(
   } else {
     const { error } = await supabase
       .from('testimonials')
-      .insert({ author_name: authorName, author_role: authorRole, content: body });
+      .insert({ author_name: authorName, author_role: authorRole, content: body, line });
     if (error) {
       console.error('Error creating testimonial', error);
       return { ok: false, error: 'تعذّر إضافة الرأي' };

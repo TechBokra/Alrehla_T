@@ -388,15 +388,15 @@ export default async function Home() {
           ))}
         </div>
       </Section>
-      {/* Testimonials */}
+      {/* ⚠️ القسم كان بيظهر بكلمة «قريبًا» حتى من غير أي رأي — عنوان
+          وفراغ ووعد مابيتحققش. دلوقتي بيختفي خالص لحد ما يبقى فيه رأي. */}
+      {testimonials.length > 0 && (
       <Section>
         <h2 className="mb-12 text-center text-3xl font-black text-slate-800">
           {content['home.testimonials.title']}
         </h2>
         <div className="grid gap-6 md:grid-cols-3">
-          {testimonials.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500 font-medium">قريبًا</div>
-        ) : testimonials.map((testimonial) => (
+          {testimonials.map((testimonial) => (
             <Card key={testimonial.id} className="flex flex-col justify-between p-6">
               <div>
                 <Quote className="mb-4 h-8 w-8 text-blue-200" />
@@ -416,6 +416,7 @@ export default async function Home() {
           ))}
         </div>
       </Section>
+      )}
       {/* Blog Teaser */}
       <Section containerClassName="max-w-4xl text-center">
         <h2 className="mb-6 text-3xl font-black text-slate-800">

@@ -10,6 +10,7 @@ export function mapBlogPost(row: BlogRow): BlogPost {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt,
+    seoDescription: row.seo_description ?? undefined,
     content: row.content,
     coverImageUrl: row.cover_image_url || undefined,
     authorName: row.author_name || 'فريق الرحلة',

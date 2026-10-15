@@ -52,6 +52,7 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
   const [title, setTitle] = useState(post?.title ?? '');
   const [slug, setSlug] = useState(post?.slug ?? '');
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? '');
+  const [seoDescription, setSeoDescription] = useState(post?.seoDescription ?? '');
   const [content, setContent] = useState(post?.content ?? '');
   const [coverImageUrl, setCoverImageUrl] = useState(post?.coverImageUrl ?? '');
   const [authorName, setAuthorName] = useState(post?.authorName ?? 'فريق الرحلة');
@@ -81,6 +82,7 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
         title,
         slug,
         excerpt,
+        seoDescription,
         content,
         coverImageUrl,
         authorName,
@@ -187,8 +189,25 @@ export function BlogEditor({ post }: { post: BlogPost | null }) {
           />
         </Field>
 
-        <Field label="المقتطف" name="excerpt">
+        <Field
+          label="المقتطف"
+          name="excerpt"
+          hint="بيظهر للقارئ في بطاقة المقال داخل المدونة — مش في صفحة المقال نفسها."
+        >
           <TextArea rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
+        </Field>
+
+        <Field
+          label="وصف محركات البحث (SEO)"
+          name="seoDescription"
+          hint="اللي بيظهر في جوجل وفي معاينة الرابط على واتساب وفيسبوك. سيبه فاضي عشان يستعمل المقتطف. الأفضل بين 120 و160 حرفًا."
+        >
+          <TextArea
+            rows={2}
+            value={seoDescription}
+            onChange={(e) => setSeoDescription(e.target.value)}
+            maxLength={200}
+          />
         </Field>
 
         {/* المحتوى: أزرار تنسيق + معاينة. بيتخزّن نص عادي بعلامات بسيطة

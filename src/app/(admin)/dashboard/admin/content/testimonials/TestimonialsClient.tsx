@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Testimonial } from '@/types';
 import { saveTestimonial, deleteTestimonial } from '@/actions/content';
-import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
+import { Field, TextInput, TextArea, Select, BusyButton } from '@/components/forms/Form';
+
+/** الأقسام اللي الرأي ممكن يظهر فيها. */
+const LINES = [
+  { value: 'general', label: 'الصفحة الرئيسية' },
+  { value: 'enha_lak', label: 'إنها لك' },
+  { value: 'creative_writing', label: 'بداية الرحلة' },
+] as const;
 import { FormError } from '@/components/ui/FormError';
 
 /**
@@ -27,7 +34,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
   // اللي اتداس فعلًا مش على كل الصفوف.
   const [adding, setAdding] = useState(false);
 
-  const [draft, setDraft] = useState({ authorName: '', authorRole: '', content: '' });
+  const [draft, setDraft] = useState({ authorName: '', authorRole: '', content: '', line: 'general' });
 
   const add = async () => {
     setBusy(true);
@@ -39,7 +46,7 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
         setError(result.error);
         return;
       }
-      setDraft({ authorName: '', authorRole: '', content: '' });
+      setDraft({ authorName: '', authorRole: '', content: '', line: 'general' });
       router.refresh();
     } catch (err) {
       setError(messageOf(err, 'تعذّر إضافة الرأي — الاتصال بالخادم — اتأكد من النت وجرّب تاني.'));
@@ -88,12 +95,22 @@ export function TestimonialsClient({ testimonials }: { testimonials: Testimonial
               placeholder="مثال: أ. منى حسن"
             />
           </Field>
-          <Field label="صفته" hint="لو فيها كلمة «ولي» الرأي بيظهر كمان في «بداية الرحلة».">
+          <Field label="صفته" hint="زي «ولي أمر» أو «أم لطفلين» — بتظهر تحت الاسم.">
             <TextInput
               value={draft.authorRole}
               onChange={(e) => setDraft({ ...draft, authorRole: e.target.value })}
               placeholder="مثال: ولي أمر — القاهرة"
             />
+          </Field>
+          <Field
+            label="يظهر في"
+            hint="الرأي بيظهر في القسم ده وحده. والقسم بيختفي خالص لو مفيش فيه آراء."
+          >
+            <Select value={draft.line} onChange={(e) => setDraft({ ...draft, line: e.target.value })}>
+              {LINES.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </Select>
           </Field>
           <Field label="نص الرأي" required className="md:col-span-2">
             <TextArea
@@ -164,6 +181,7 @@ function TestimonialRow({
   const [value, setValue] = useState({
     authorName: testimonial.authorName,
     authorRole: testimonial.authorRole,
+    line: testimonial.line ?? 'general',
     content: testimonial.content,
   });
   const [saved, setSaved] = useState(false);
@@ -201,6 +219,13 @@ function TestimonialRow({
               setSaved(false);
             }}
           />
+        </Field>
+        <Field label="يظهر في">
+          <Select value={value.line} onChange={(e) => setValue({ ...value, line: e.target.value })}>
+            {LINES.map((l) => (
+              <option key={l.value} value={l.value}>{l.label}</option>
+            ))}
+          </Select>
         </Field>
         <Field label="صفته">
           <TextInput

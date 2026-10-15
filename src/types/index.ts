@@ -471,6 +471,8 @@ export type BlogPost = {
   slug: string;
   title: string;
   excerpt: string;
+  /** وصف محركات البحث — فاضي يعني استعمل المقتطف. */
+  seoDescription?: string;
   content: string;
   coverImageUrl?: string;
   publishedAt: string;
@@ -485,6 +487,8 @@ export type Testimonial = {
   authorName: string;
   authorRole: string;
   content: string;
+  /** القسم اللي بيظهر فيه: الرئيسية، إنها لك، بداية الرحلة. */
+  line?: 'general' | 'enha_lak' | 'creative_writing';
 };
 
 // إضافة إضافية لمنتج

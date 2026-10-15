@@ -46,7 +46,8 @@ import {
 
 
 export default async function EnhaLakPage() {
-  const testimonials = await getTestimonials();
+  // آراء القسم ده وحده — رأي عن الجلسات مالوش مكان في صفحة القصص.
+  const testimonials = await getTestimonials('enha_lak');
   const content = await getSiteContent();
   const settings = await getSiteSettings();
   const wm = await getWatermarkLayer(); // «على الكل»
@@ -242,7 +243,8 @@ export default async function EnhaLakPage() {
         </div>
       </Section>
 
-      {/* Testimonials */}
+      {/* ⚠️ كان بيظهر فاضي: عنوان «من تجاربهم» من غير ولا تجربة. */}
+      {testimonials.length > 0 && (
       <Section containerClassName="max-w-6xl pb-24">
         <h2 className="mb-12 text-center text-3xl font-black text-slate-800">
           {content['enhaLak.testimonials.title']}
@@ -272,6 +274,7 @@ export default async function EnhaLakPage() {
           ))}
         </div>
       </Section>
+      )}
 
       {/* ⚠️ **الصفحة كانت بتخلص من غير ولا زرار** — اللي قرا لحد هنا
           مقتنع، ومالقاش يروح فين غير إنه يطلع للقايمة فوق. (ملاحظة

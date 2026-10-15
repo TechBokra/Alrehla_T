@@ -56,6 +56,8 @@ export interface BlogPostInput {
   title: string;
   slug: string;
   excerpt: string;
+  /** وصف محركات البحث — فاضي يعني استعمل المقتطف. */
+  seoDescription: string;
   content: string;
   coverImageUrl: string;
   authorName: string;
@@ -74,6 +76,7 @@ type ChecksOk = {
     content: string;
     cover_image_url: string | null;
     author_name: string;
+    seo_description: string | null;
     updated_at: string;
   };
 };
@@ -99,6 +102,7 @@ function validate(input: BlogPostInput): ChecksOk | { ok: false; error: string; 
       title,
       slug,
       excerpt: input.excerpt.trim(),
+      seo_description: input.seoDescription.trim() || null,
       content,
       cover_image_url: input.coverImageUrl.trim() || null,
       author_name: input.authorName.trim() || 'فريق الرحلة',
