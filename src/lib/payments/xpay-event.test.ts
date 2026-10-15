@@ -25,6 +25,9 @@ describe('parseXpayEvent', () => {
     expect(parseXpayEvent(completed)).toEqual({
       id: 'evt_123',
       type: 'checkout.session.completed',
+      // جلسة من غير `metadata.kind` = طلب منتج — السلوك اللي كان
+      // الوحيد قبل ما «بداية الرحلة» تتربط بالبوابة.
+      kind: 'order',
       orderId: ORDER,
       sessionId: 'cs_abc',
       intentId: 'pi_abc',
@@ -33,6 +36,49 @@ describe('parseXpayEvent', () => {
       method: 'card',
       livemode: false,
     });
+  });
+
+  /**
+   * ⚠️ `kind` بتقرّر **أنهي جدول** بيتسجّل فيه الدفع: طلب منتج، خدمة
+   *    كتابة، ولا حجز باقة. قراءة غلط هنا معناها دفعة بتتسجّل على
+   *    الصف الغلط — أو ماتتسجّلش خالص والعميل يكون دفع.
+   */
+  it('reads the payment kind from the session metadata', () => {
+    const forService = {
+      ...completed,
+      data: {
+        object: {
+          ...completed.data.object,
+          metadata: { orderId: ORDER, kind: 'service_order' },
+        },
+      },
+    };
+    expect(parseXpayEvent(forService)?.kind).toBe('service_order');
+
+    const forBooking = {
+      ...completed,
+      data: {
+        object: {
+          ...completed.data.object,
+          metadata: { orderId: ORDER, kind: 'course_subscription' },
+        },
+      },
+    };
+    expect(parseXpayEvent(forBooking)?.kind).toBe('course_subscription');
+  });
+
+  it('treats a missing or unknown kind as a product order', () => {
+    // جلسة اتفتحت قبل ما الخانة دي تتعرّف لازم تفضل تتعالج زي الأول،
+    // مش تتجاهَل والعميل يكون دفع.
+    expect(parseXpayEvent(completed)?.kind).toBe('order');
+
+    const odd = {
+      ...completed,
+      data: {
+        object: { ...completed.data.object, metadata: { orderId: ORDER, kind: 'نجمة' } },
+      },
+    };
+    expect(parseXpayEvent(odd)?.kind).toBe('order');
   });
 
   it('rejects a payload with no event id or type', () => {
