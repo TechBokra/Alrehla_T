@@ -43,14 +43,35 @@ type FieldProps = {
   /** خطأ من الشاشة نفسها (غير خطأ الخادم). */
   error?: string;
   className?: string;
-  /** الخانة نفسها — بتاخد `id` و`aria-describedby` لوحدها لو هي عنصر واحد. */
-  children: React.ReactElement<Record<string, unknown>>;
+  /**
+   * الخانة نفسها — بتاخد `id` و`aria-describedby` لوحدها لو هي عنصر واحد.
+   *
+   * ⚠️ النوع `ReactNode` مش `ReactElement` عن قصد: المفروض عنصر واحد،
+   *    لكن المكوّن **مابيتكسرش** على غيره (التفاصيل جوّه الدالة).
+   */
+  children: React.ReactNode;
 };
 
 export function Field({ label, name, required, hint, help, error, className = '', children }: FieldProps) {
   const auto = useId();
   const { errorField, errorMessage } = useFormState();
-  const id = (children.props.id as string | undefined) ?? `f${auto}`;
+
+  // ⚠️ **`children` مش مضمون إنه عنصر واحد صالح — والسطر ده كان بيوقّع
+  //    الصفحة كلها.**
+  //
+  //    كان: `children.props.id`. ولما `children` بيبقى نص أو مصفوفة أو
+  //    مرجع بيتفكّ متأخرًا (الحالة اللي ضربت «مراجعة ملفات المدربين»)،
+  //    `props` بتبقى `undefined` والقراءة بترمي
+  //    `Cannot read properties of undefined (reading 'id')` — ورمي في
+  //    مكوّن بيترندر متأخر مابيتمسكش بأي `try` فوقه، فبيتحوّل لشاشة
+  //    «حدث خطأ غير متوقع» من غير ولا كلمة عن السبب.
+  //
+  //    و`Field` مستعملة في **٤١ شاشة**: خانة واحدة شكلها غريب كانت
+  //    تقدر تقفل أي لوحة فيهم. فبقت بتتعامل مع الحالة دي بدل ما
+  //    تتكسر عليها: العنصر الصالح بياخد `id` و`aria` زي الأول، وأي
+  //    حاجة تانية بتتعرض زي ما هي تحت عنوانها.
+  const control = React.isValidElement<Record<string, unknown>>(children) ? children : null;
+  const id = (control?.props?.id as string | undefined) ?? `f${auto}`;
   const hintId = hint ? `${id}-hint` : undefined;
   // ⚠️ (مراجعة م. محمد) خطأ الخادم على الخانة دي بيظهر **تحتها** لوحده —
   //    كانت بتتلوّن أحمر بس والرسالة فوق النموذج، فالمستخدم مش عارف ليه.
@@ -59,13 +80,15 @@ export function Field({ label, name, required, hint, help, error, className = ''
   const errorId = shownError ? `${id}-error` : undefined;
   const invalid = Boolean(shownError) || (name !== undefined && errorField === name);
 
-  const control = React.cloneElement(children, {
-    id,
-    ...(name !== undefined && children.props.name === undefined ? { name } : {}),
-    ...(required ? { required: true } : {}),
-    'aria-describedby': [hintId, errorId].filter(Boolean).join(' ') || undefined,
-    'aria-invalid': invalid || undefined,
-  });
+  const rendered = control
+    ? React.cloneElement(control, {
+        id,
+        ...(name !== undefined && control.props?.name === undefined ? { name } : {}),
+        ...(required ? { required: true } : {}),
+        'aria-describedby': [hintId, errorId].filter(Boolean).join(' ') || undefined,
+        'aria-invalid': invalid || undefined,
+      })
+    : children;
 
   return (
     <div className={className} data-field={name}>
@@ -81,7 +104,7 @@ export function Field({ label, name, required, hint, help, error, className = ''
         </label>
         {help && <HelpTip text={help} label={typeof label === 'string' ? `شرح: ${label}` : 'شرح'} />}
       </div>
-      {control}
+      {rendered}
       {hint && (
         <p id={hintId} className="mt-2 text-xs font-medium leading-relaxed text-slate-500">
           {hint}
