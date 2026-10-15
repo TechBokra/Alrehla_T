@@ -156,7 +156,6 @@ export async function removeMyPost(postId: string): Promise<AqlamActionResult> {
   const out = parseRpcResult(data);
   if (!out.ok) return { ok: false, error: out.error };
   refreshAqlam(postId);
-  revalidatePath('/aqlam/mine');
   return { ok: true };
 }
 
