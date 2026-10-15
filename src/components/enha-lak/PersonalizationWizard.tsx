@@ -170,24 +170,24 @@ export function PersonalizationWizard({
         customizedAddonIds: editing.customizedAddonIds ?? [],
         extraFields: {},
       } as never);
-      setIsLoaded(true);
-      return;
-    }
-
-    const saved = sessionStorage.getItem(`wizard_state_${product.id}`);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Exclude file objects from restoring
-        const { facePhotoFile, secondPhotoFile, ...rest } = parsed;
-        reset({ ...methods.getValues(), ...rest });
-      } catch (e) {
-        console.error("Failed to parse saved form state", e);
+    } else {
+      const saved = sessionStorage.getItem(`wizard_state_${product.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Exclude file objects from restoring
+          const { facePhotoFile, secondPhotoFile, ...rest } = parsed;
+          reset({ ...methods.getValues(), ...rest });
+        } catch (e) {
+          console.error("Failed to parse saved form state", e);
+        }
       }
     }
+    // ⚠️ نداء واحد بس لـ`setIsLoaded` في نهاية التأثير — كان فيه نداء
+    //    تاني في فرع التعديل من غير الاستثناء ده، والقاعدة بترفضه.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- استرجاع خطوات المعالج المحفوظة في المتصفح بعد أول رسم.
     setIsLoaded(true);
-  }, [product.id, reset, methods]);
+  }, [product.id, reset, methods, editing, goals]);
 
   const handleNext = async (stepFields: (keyof WizardFormValues)[]) => {
     setUploadError('');
