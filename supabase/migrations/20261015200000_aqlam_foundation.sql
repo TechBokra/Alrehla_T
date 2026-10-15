@@ -179,6 +179,36 @@ end;
 $$;
 
 
+-- إشعار داخل المنصة. بيحترم إيقاف النوع «aqlam» من شاشة «أنواع الإشعارات».
+-- ليه دالة هنا مش `notify_user`: الأخيرة بترفض أي مُرسِل مش إداري ومش طرف في
+-- طلب خدمة، والكاتب مش واحد منهم — فإشعار ولي الأمر كان هيسقط بصمت.
+-- الكتابة في `notifications` بس (جدول موجود)، والرابط داخلي ثابت من الدوال دي.
+create or replace function public.aqlam_notify(p_recipient text, p_title text, p_message text, p_link text)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_recipient is null or length(btrim(coalesce(p_title, ''))) = 0 then return; end if;
+  if coalesce((select (value -> 'disabled') ? 'aqlam' from site_settings where key = 'notifications'), false) then
+    return;
+  end if;
+  insert into notifications (recipient_profile_id, title, message, link)
+  values (p_recipient, left(btrim(p_title), 120), left(nullif(btrim(coalesce(p_message, '')), ''), 500), p_link);
+end;
+$$;
+
+create or replace function public.aqlam_notify_admins(p_title text, p_message text, p_link text)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  r record;
+begin
+  for r in select id from user_profiles where role in ('super_admin', 'general_supervisor') loop
+    perform public.aqlam_notify(r.id::text, p_title, p_message, p_link);
+  end loop;
+end;
+$$;
+
+
 -- ── ٢) الجداول ──────────────────────────────────────────────────────────────
 
 -- التحدّيات الأسبوعية (قبل النصوص لأن النص بيشاور عليها).
@@ -492,6 +522,8 @@ with (security_invoker = false) as
 select p.id,
        p.title,
        p.body,
+       -- مقتطف للقوائم: القائمة ماتسحبش النص كله (لحد ٢٠ ألف حرف × كل نص).
+       left(p.body, 280) as excerpt,
        p.category,
        p.display_name,
        p.age_band,
@@ -656,6 +688,16 @@ begin
     case when v_status = 'published' then now() end
   ) returning id into v_id;
 
+  -- نص طفل: ولي الأمر يعرف إن فيه حاجة بانتظاره.
+  if v_status = 'pending_guardian' and v_child.id is not null then
+    perform public.aqlam_notify(
+      (select user_profile_id::text from child_profiles where id = v_child.id),
+      'نص جديد بانتظار موافقتك',
+      split_part(btrim(coalesce(v_full_name, '')), ' ', 1) || ' كتب نصًا وعايز ينشره في أقلام الرحلة. اقراه وقرر.',
+      '/account/family/aqlam'
+    );
+  end if;
+
   return jsonb_build_object('ok', true, 'id', v_id, 'status', v_status, 'age_group', v_group);
 end;
 $$;
@@ -703,6 +745,14 @@ begin
    where id = p_post and status = 'pending_guardian';
   get diagnostics n = row_count;
   if n = 0 then return jsonb_build_object('ok', false, 'error', 'not_pending'); end if;
+
+  if p_approve then
+    perform public.aqlam_notify_admins('نص بانتظار مراجعتك في أقلام الرحلة',
+      'ولي الأمر وافق على نص طفل. راجعه قبل ما يظهر.', '/dashboard/admin/aqlam');
+  else
+    perform public.aqlam_notify(v_writer::text, 'نصك ما اتنشرش',
+      'ولي أمرك قرر إن النص مايتنشرش دلوقتي. تقدر تكتب نصًا جديدًا.', '/aqlam/mine');
+  end if;
   return jsonb_build_object('ok', true, 'status', case when p_approve then 'pending_review' else 'rejected' end);
 end;
 $$;
@@ -748,6 +798,20 @@ begin
 
   get diagnostics n = row_count;
   if n = 0 then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+
+  -- الكاتب يعرف نتيجة المراجعة (مش بنبلّغه بالإبراز/إلغاءه).
+  if p_action in ('approve', 'reject', 'hide', 'remove') then
+    perform public.aqlam_notify(
+      (select writer_id::text from aqlam_posts where id = p_post),
+      case p_action when 'approve' then 'نصك اتنشر في أقلام الرحلة'
+                    when 'reject'  then 'نصك ما اتنشرش'
+                    when 'hide'    then 'نصك اتخبّى مؤقتًا'
+                    else 'نصك اتشال من أقلام الرحلة' end,
+      case p_action when 'approve' then 'النص بقى ظاهر للقرّاء.'
+                    else 'لو عايز تعرف السبب، اتواصل مع الدعم.' end,
+      '/aqlam/mine'
+    );
+  end if;
 
   -- إخفاء أو شيل = البلاغات المفتوحة على النص اتعالجت. واسترجاع = الإدارة
   -- راجعت وقررت إنه سليم، فالبلاغات القديمة اتقفلت (وإلا بلاغ واحد جديد
@@ -929,6 +993,8 @@ begin
        where id = v_post_id;
     end if;
     v_hidden := true;
+    perform public.aqlam_notify_admins('إخفاء تلقائي في أقلام الرحلة',
+      'نص أو تعليق اتخبّى بعد ٣ بلاغات. راجعه.', '/dashboard/admin/aqlam');
   end if;
 
   return jsonb_build_object('ok', true, 'auto_hidden', v_hidden);
@@ -1042,6 +1108,45 @@ end;
 $$;
 
 
+-- حالة الحساب الحالي لصفحة النشر: السن مش بيتقرا من العميل (child_profiles
+-- مش مقروءة من حساب الابن نفسه)، فالسيرفر بيسأل الدالة دي.
+create or replace function public.aqlam_my_status()
+returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid     uuid := auth.uid();
+  v_child   record;
+  v_age     integer;
+  v_name    text;
+begin
+  if v_uid is null then return jsonb_build_object('ok', false, 'error', 'unauthenticated'); end if;
+
+  select c.id, c.full_name into v_child
+    from child_profiles c
+   where nullif(btrim(coalesce(c.account_profile_id, '')), '') = v_uid::text
+   order by c.created_at limit 1;
+
+  v_age := public.aqlam_age_of(v_uid);
+  select coalesce(v_child.full_name, (select full_name from user_profiles where id = v_uid)) into v_name;
+
+  return jsonb_build_object(
+    'ok', true,
+    'mode', public.aqlam_mode(),
+    'enabled', public.aqlam_enabled_for(v_uid),
+    'suspended', public.aqlam_is_suspended(v_uid),
+    'is_child', v_child.id is not null,
+    'age_group', case when v_age is null then null when v_age >= 12 then '12_plus' else 'under_12' end,
+    'needs_birthdate', (v_child.id is null and v_age is null),
+    'publishing_locked', coalesce((select not g.publishing_allowed from aqlam_guardian_settings g
+                                    where g.child_id = v_child.id), false),
+    'full_name', v_name,
+    'is_admin', public.is_admin(),
+    'is_instructor', exists (select 1 from instructors where user_id = v_uid and status = 'active')
+  );
+end;
+$$;
+
+
 -- ── ٨) صلاحيات تنفيذ الدوال ─────────────────────────────────────────────────
 -- الصلاحية الافتراضية في المشروع بتدّي `anon` و`authenticated` تنفيذ أي دالة
 -- جديدة. بنسحبها ونرجّع بس اللي الواجهة بتناديه. الدوال المساعدة بتتنفذ من
@@ -1052,6 +1157,7 @@ revoke all on function
   public.aqlam_age_on(date, date), public.aqlam_age_of(uuid),
   public.aqlam_is_child_account(uuid), public.aqlam_age_band(integer),
   public.aqlam_is_suspended(uuid), public.aqlam_contains_contact(text),
+  public.aqlam_notify(text, text, text, text), public.aqlam_notify_admins(text, text, text),
   public.aqlam_touch_updated_at(), public.aqlam_writer_birth_once()
   from public, anon, authenticated;
 
@@ -1062,7 +1168,7 @@ revoke all on function
   public.aqlam_add_comment(uuid, text), public.aqlam_report(text, uuid, text, text),
   public.aqlam_moderate_comment(uuid, text), public.aqlam_handle_report(uuid, text),
   public.aqlam_sanction_user(uuid, text, text),
-  public.aqlam_set_guardian_settings(text, boolean, boolean)
+  public.aqlam_set_guardian_settings(text, boolean, boolean), public.aqlam_my_status()
   from public, anon, authenticated;
 
 grant execute on function
@@ -1072,7 +1178,7 @@ grant execute on function
   public.aqlam_add_comment(uuid, text), public.aqlam_report(text, uuid, text, text),
   public.aqlam_moderate_comment(uuid, text), public.aqlam_handle_report(uuid, text),
   public.aqlam_sanction_user(uuid, text, text),
-  public.aqlam_set_guardian_settings(text, boolean, boolean)
+  public.aqlam_set_guardian_settings(text, boolean, boolean), public.aqlam_my_status()
   to authenticated;
 
 -- `aqlam_mode()` متاحة للزائر والمستخدم: سياسة التحدّيات بتناديها بصلاحية

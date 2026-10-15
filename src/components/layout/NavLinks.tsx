@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useActiveIntoView } from '@/lib/use-active-into-view';
 
-const LINKS = [
+const BASE_LINKS = [
   { href: '/', label: 'الرئيسية' },
   { href: '/enha-lak', label: 'إنها لك' },
   { href: '/creative-writing', label: 'بداية الرحلة' },
@@ -15,6 +15,20 @@ const LINKS = [
   // الدعم أكتر من رابط التوظيف في القايمة.
   { href: '/support', label: 'الدعم والمساعدة' },
 ];
+
+/**
+ * «أقلام الرحلة» بتظهر في القائمة **لما تتفتح للعامة بس**. الرابط ثابت
+ * (من غير عدّاد ولا استعلام)، والهيدر هو اللي بيقرر من إعداداته اللي
+ * بيقراها أصلًا.
+ */
+const AQLAM_LINK = { href: '/aqlam', label: 'أقلام الرحلة' };
+
+function linksFor(showAqlam: boolean) {
+  if (!showAqlam) return BASE_LINKS;
+  // بعد «بداية الرحلة» مباشرة: القسمين قريبين في الفكرة.
+  const i = BASE_LINKS.findIndex((l) => l.href === '/creative-writing');
+  return [...BASE_LINKS.slice(0, i + 1), AQLAM_LINK, ...BASE_LINKS.slice(i + 1)];
+}
 
 /**
  * روابط القائمة الرئيسية، ومعاها علامة على القسم اللي إنت فيه.
@@ -28,8 +42,9 @@ const LINKS = [
  * بيفضل مضيّي على «إنها لك». والرئيسية استثناء — بادئتها `/` بتطابق كل
  * حاجة، فبتتطابق بالتساوي بس.
  */
-export function NavLinks() {
+export function NavLinks({ showAqlam = false }: { showAqlam?: boolean }) {
   const pathname = usePathname();
+  const LINKS = linksFor(showAqlam);
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
@@ -70,8 +85,9 @@ export function NavLinks() {
  * الموبايل ولا زرار يفتحها**. الزائر على التليفون كان يقدر يوصل للأقسام
  * من الروابط جوّه الصفحة بس.
  */
-export function NavLinksMobile() {
+export function NavLinksMobile({ showAqlam = false }: { showAqlam?: boolean }) {
   const pathname = usePathname();
+  const LINKS = linksFor(showAqlam);
   const scroller = useRef<HTMLElement>(null);
   useActiveIntoView(scroller, pathname);
 

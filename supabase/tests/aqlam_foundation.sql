@@ -158,6 +158,9 @@ BEGIN
   ASSERT (SELECT display_name FROM public.aqlam_posts WHERE id = v_kid_post) = 'يوسف', 'الاسم الأول بس لأقل من 12';
   ASSERT NOT (SELECT allow_indexing FROM public.aqlam_posts WHERE id = v_kid_post), 'نص أقل من 12 اتسمح له بجوجل';
   ASSERT (SELECT age_band FROM public.aqlam_posts WHERE id = v_kid_post) = '6-9', 'فئة عرض الطفل غلط';
+  ASSERT EXISTS (SELECT 1 FROM public.notifications
+                  WHERE recipient_profile_id = v_guard::text AND link = '/account/family/aqlam'),
+    'ولي الأمر ما وصلوش إشعار بالنص';
 
   -- مش ظاهر للعامة قبل الموافقة
   EXECUTE 'SET LOCAL ROLE anon';
@@ -180,6 +183,9 @@ BEGIN
   r := public.aqlam_guardian_decide(v_kid_post, true);
   ASSERT (r->>'ok')::boolean AND r->>'status' = 'pending_review', 'موافقة ولي الأمر فشلت: ' || r::text;
   EXECUTE 'RESET ROLE';
+  ASSERT EXISTS (SELECT 1 FROM public.notifications
+                  WHERE recipient_profile_id = v_admin::text AND link = '/dashboard/admin/aqlam'),
+    'الإدارة ما وصلهاش إشعار بنص بانتظار المراجعة';
 
   -- لسه مش ظاهر: ينتظر الإدارة
   EXECUTE 'SET LOCAL ROLE anon';
@@ -199,11 +205,16 @@ BEGIN
   r := public.aqlam_moderate_post(v_kid_post, 'approve', NULL);
   ASSERT (r->>'ok')::boolean, 'اعتماد الإدارة فشل: ' || r::text;
   EXECUTE 'RESET ROLE';
+  ASSERT EXISTS (SELECT 1 FROM public.notifications
+                  WHERE recipient_profile_id = v_kid::text AND title LIKE 'نصك اتنشر%'),
+    'الكاتب ما وصلوش إشعار بالاعتماد';
 
   EXECUTE 'SET LOCAL ROLE anon';
   SELECT count(*) INTO n FROM public.aqlam_public_posts WHERE id = v_kid_post;
   ASSERT n = 1, 'نص معتمد مش ظاهر للزوار';
   EXECUTE 'RESET ROLE';
+  -- المقتطف في القوائم محدود
+  ASSERT (SELECT max(char_length(excerpt)) FROM public.aqlam_public_posts) <= 280, 'المقتطف أطول من 280';
 
   -- ── ٧) ابن ١٢+ ينشر مباشرة، وولي الأمر يقدر يقفل ────────────────────────
   PERFORM set_config('request.jwt.claim.sub', v_teen::text, true);
@@ -353,6 +364,35 @@ BEGIN
   SELECT count(*) INTO n FROM public.aqlam_public_posts;
   ASSERT n >= 2, 'القارئ ما شافش النصوص المنشورة من الـview';
   EXECUTE 'RESET ROLE';
+
+  -- ── حالة الحساب لصفحة النشر ──────────────────────────────────────────────
+  PERFORM set_config('request.jwt.claim.sub', v_kid::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_my_status();
+  ASSERT r->>'age_group' = 'under_12' AND (r->>'is_child')::boolean AND NOT (r->>'needs_birthdate')::boolean,
+    'حالة حساب الطفل: ' || r::text;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub', v_reader::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_my_status();
+  ASSERT (r->>'needs_birthdate')::boolean AND r->>'age_group' IS NULL AND r->>'enabled' = 'true',
+    'حالة حساب مستقل جديد: ' || r::text;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub', v_teen::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_my_status();
+  -- (ولي الأمر رجّع النشر مفتوح وقفل التعليقات بس قبل كده)
+  ASSERT NOT (r->>'publishing_locked')::boolean, 'حالة ابن 14: ' || r::text;
+  EXECUTE 'RESET ROLE';
+
+  -- إيقاف نوع «aqlam» من شاشة الإشعارات = مفيش إشعار جديد
+  INSERT INTO public.site_settings(key, value) VALUES ('notifications', jsonb_build_object('disabled', jsonb_build_array('aqlam')));
+  SELECT count(*) INTO n FROM public.notifications;
+  PERFORM public.aqlam_notify(v_guard::text, 'تجربة', 'x', '/aqlam');
+  ASSERT (SELECT count(*) FROM public.notifications) = n, 'إشعار اتبعت والنوع موقوف';
+  DELETE FROM public.site_settings WHERE key = 'notifications';
+  PERFORM public.aqlam_notify(v_guard::text, 'تجربة', 'x', '/aqlam');
+  ASSERT (SELECT count(*) FROM public.notifications) = n + 1, 'إشعار ماتبعتش والنوع شغّال';
 
   -- ── ١٢) «شيل» + الحذف مالوش علاقة بالمستند الأصلي ───────────────────────
   DELETE FROM public.portfolio_documents WHERE id = v_doc;   -- مسح المستند الأصلي

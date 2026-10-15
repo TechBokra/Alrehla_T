@@ -3621,6 +3621,7 @@ export type Database = {
           comment_count: number | null
           comments_enabled: boolean | null
           display_name: string | null
+          excerpt: string | null
           featured_at: string | null
           id: string | null
           published_at: string | null
@@ -3665,6 +3666,10 @@ export type Database = {
           p_source_document_id: string | null
           p_title: string
         }
+        Returns: Json
+      }
+      aqlam_my_status: {
+        Args: never
         Returns: Json
       }
       aqlam_remove_own_post: {

@@ -5,6 +5,7 @@ import { DEFAULT_RECORDING_SETTINGS, DEFAULT_RETENTION_DAYS } from '@/lib/sessio
 import { DEFAULT_WATERMARK, normalizeWatermark } from '@/lib/watermark-settings';
 import { DEFAULT_MEDIA_CLEANUP, normalizeMediaCleanup } from '@/lib/media-cleanup';
 import { DEFAULT_FILE_RETENTION_DAYS, normalizeRetentionDays } from '@/lib/private-files';
+import { AQLAM_OFF, normalizeAqlamSettings } from '@/lib/aqlam/settings';
 import type { SiteSettings } from '@/data/domains/(shared)/settings/types';
 
 /** Used only when the settings row has no wallet number saved yet. */
@@ -39,6 +40,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       watermark: DEFAULT_WATERMARK,
       mediaCleanup: DEFAULT_MEDIA_CLEANUP,
       fileRetentionDays: DEFAULT_FILE_RETENTION_DAYS,
+      aqlam: AQLAM_OFF,
       images: {},
     };
   }
@@ -77,6 +79,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     watermark: normalizeWatermark(value.watermark),
     mediaCleanup: normalizeMediaCleanup(value.mediaCleanup),
     fileRetentionDays: normalizeRetentionDays(value.fileRetentionDays),
+    aqlam: normalizeAqlamSettings(value),
     images: value.images ?? {},
   };
 });
