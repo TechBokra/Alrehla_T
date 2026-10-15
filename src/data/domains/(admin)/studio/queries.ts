@@ -52,6 +52,8 @@ export type StudioProjectRow = {
   childName: string | null;
   /** الموعد فات والمشروع لسه شغّال (محسوبة هنا مش في الشاشة). */
   overdue: boolean;
+  /** الطلب اتلغى/اتردّ والمشروع لسه شغّال — محتاج قرار. */
+  orderClosed: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -72,7 +74,7 @@ export async function listStudioProjects(): Promise<QueryResult<StudioProjectRow
   const { data, error } = await supabase
     .from('story_projects')
     .select(
-      'id, order_id, order_item_id, product_id, status, age_band, page_target, face_mode, sensitive_topic, editor_id, art_lead_id, due_at, brief, created_at, updated_at',
+      'id, order_id, order_item_id, product_id, status, age_band, page_target, face_mode, sensitive_topic, editor_id, art_lead_id, due_at, order_closed_at, brief, created_at, updated_at',
     )
     .order('due_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -101,6 +103,7 @@ export async function listStudioProjects(): Promise<QueryResult<StudioProjectRow
       artLeadId: r.art_lead_id,
       dueAt: r.due_at,
       childName: briefChildName(r.brief),
+      orderClosed: r.order_closed_at !== null,
       overdue:
         !!r.due_at &&
         r.status !== 'delivered' &&
@@ -182,7 +185,7 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
     supabase
       .from('story_projects')
       .select(
-        'id, order_id, order_item_id, product_id, status, held_from, brief, age_band, page_target, face_mode, photo_consent_at, photo_consent_note, sensitive_topic, editor_id, art_lead_id, due_at, character_notes, character_ref_url, character_approved_at, qa_checklist, qa_passed_at, delivered_at, delivery_note, created_at, updated_at',
+        'id, order_id, order_item_id, product_id, status, held_from, brief, age_band, page_target, face_mode, photo_consent_at, photo_consent_note, sensitive_topic, editor_id, art_lead_id, due_at, order_closed_at, character_notes, character_ref_url, character_approved_at, qa_checklist, qa_passed_at, delivered_at, delivery_note, created_at, updated_at',
       )
       .eq('id', id)
       .maybeSingle(),
@@ -250,6 +253,7 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
         deliveryNote: r.delivery_note,
         childName: briefChildName(r.brief),
         overdue: false,
+        orderClosed: r.order_closed_at !== null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       },
@@ -382,6 +386,8 @@ export type StudioReadiness = {
   rolesFound: string[];
   staffCount: number;
   projectCount: number;
+  /** بنود مخصّصة في طلبات مدفوعة من غير مشروع (للاستيراد). */
+  backfillPending: number;
 };
 
 export const STUDIO_ROLE_NAMES = ['محرر قصص', 'مشرف فني', 'مسؤول إنتاج القصص'] as const;
@@ -389,11 +395,12 @@ export const STUDIO_ROLE_NAMES = ['محرر قصص', 'مشرف فني', 'مسؤ�
 /** حالة تجهيز الاستوديو: إيه اللي اتطبّق وإيه لسه — لشاشة الإعدادات. */
 export async function getStudioReadiness(): Promise<StudioReadiness> {
   const supabase = await createClient();
-  const [mode, probe, roles, staff] = await Promise.all([
+  const [mode, probe, roles, staff, pending] = await Promise.all([
     getStudioMode(),
     supabase.from('story_projects').select('id', { count: 'exact', head: true }),
     supabase.from('admin_roles').select('name').in('name', [...STUDIO_ROLE_NAMES]),
     listStudioStaff(),
+    supabase.rpc('story_backfill_pending'),
   ]);
   const tablesReady = !probe.error;
   if (probe.error && !isMissingRelation(probe.error.code)) console.error('getStudioReadiness', probe.error.message);
@@ -403,5 +410,6 @@ export async function getStudioReadiness(): Promise<StudioReadiness> {
     rolesFound: (roles.data ?? []).map((r) => r.name),
     staffCount: staff.length,
     projectCount: tablesReady ? (probe.count ?? 0) : 0,
+    backfillPending: tablesReady && typeof pending.data === 'number' ? pending.data : 0,
   };
 }

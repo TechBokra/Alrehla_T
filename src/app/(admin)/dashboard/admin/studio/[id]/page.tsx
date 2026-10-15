@@ -181,6 +181,12 @@ export default async function StudioProjectPage({
           </ol>
         )}
 
+        {project.orderClosed && !isTerminal(project.status) && (
+          <p role="alert" className="rounded-2xl bg-rose-50 p-3 text-sm font-bold text-rose-900">
+            الطلب اتلغى أو اتردّ فلوسه والمشروع لسه شغّال. راجع مسؤول الإنتاج وقرّر: إلغاء المشروع أو إيقافه.
+          </p>
+        )}
+
         {project.status === 'delivered' && (
           <p className="rounded-2xl bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
             اتسلّم {project.deliveredAt ? formatDate(project.deliveredAt) : ''}

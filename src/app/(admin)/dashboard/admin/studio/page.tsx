@@ -162,6 +162,7 @@ export default async function StudioInboxPage({
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
                     <StatusBadge label={statusLabel(p.status)} type={statusTone(p.status)} />
+                    {p.orderClosed && <StatusBadge label="الطلب اتلغى — محتاج قرار" type="danger" />}
                     {!isTerminal(p.status) && p.status !== 'on_hold' && (
                       <span className="text-xs font-medium text-slate-500">عند: {owner}</span>
                     )}

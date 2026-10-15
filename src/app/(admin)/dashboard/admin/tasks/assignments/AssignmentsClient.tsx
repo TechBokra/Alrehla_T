@@ -7,9 +7,9 @@ import { saveAssignmentRule } from '@/actions/work-tasks';
 import {
   WORK_LINES,
   WORK_LINE_LABELS,
-  WORK_STAGES,
-  WORK_STAGE_HINTS,
+  WORK_LINE_STAGES,
   WORK_STAGE_LABELS,
+  workStageHint,
 } from '@/lib/work-tasks';
 import { BusyButton } from '@/components/forms/Form';
 import { PersonPicker } from '@/components/admin/PersonPicker';
@@ -51,7 +51,7 @@ export function AssignmentsClient({ rules, people }: { rules: Record<string, str
         <section key={line} className="rounded-3xl border border-slate-200 bg-white p-6">
           <h2 className="mb-4 text-lg font-black text-slate-800">{WORK_LINE_LABELS[line]}</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {WORK_STAGES.map((stage) => {
+            {WORK_LINE_STAGES[line].map((stage) => {
               const key = `${line}:${stage}`;
               const chosen = draft[key] ?? [];
               return (
@@ -59,7 +59,7 @@ export function AssignmentsClient({ rules, people }: { rules: Record<string, str
                   <legend className="sr-only">{WORK_STAGE_LABELS[stage]}</legend>
                   <div>
                     <p className="font-bold text-slate-800">{WORK_STAGE_LABELS[stage]}</p>
-                    <p className="text-xs font-medium text-slate-500">{WORK_STAGE_HINTS[stage]}</p>
+                    <p className="text-xs font-medium text-slate-500">{workStageHint(line, stage)}</p>
                   </div>
                   {/* ⚠️ **بحث بالاسم بدل خانة لكل إداري** (ملاحظة تامر،
                       ١٥ أكتوبر): ستّ مراحل × نوعين × كل الإداريين =

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAdmin, requireAnyAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyUser } from '@/lib/notifications';
-import { isWorkLine, isWorkStage } from '@/lib/work-tasks';
+import { isStageOfLine, isWorkLine, isWorkStage } from '@/lib/work-tasks';
 import type { AdminPermission } from '@/types';
 
 /**
@@ -65,7 +65,9 @@ export async function saveAssignmentRule(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
   }
-  if (!isWorkLine(line) || !isWorkStage(stage)) return { ok: false, error: 'نوع أو مرحلة غير معروفة' };
+  if (!isWorkLine(line) || !isWorkStage(stage) || !isStageOfLine(line, stage)) {
+    return { ok: false, error: 'نوع أو مرحلة غير معروفة' };
+  }
 
   const ids = await onlyAdmins(profileIds);
   const supabase = await createClient();
