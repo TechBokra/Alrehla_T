@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, Check, CreditCard, Wallet } from 'lucide-react';
-import { Checkbox, Field, TextArea, BusyButton } from '@/components/forms/Form';
+import { Checkbox, Field, TextArea, TextInput, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
-import { savePaymentSettings } from '@/actions/payments';
+import { savePaymentSettings, saveTransferDetails } from '@/actions/payments';
+import { PaymentQrUploader } from './PaymentQrUploader';
 import {
   METHOD_LABELS,
   PAYMENT_METHODS,
@@ -25,19 +26,51 @@ const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة و
 export function PaymentSettingsClient({
   settings,
   gatewayConfigured,
+  walletNumber: savedWallet,
+  qrUrl: savedQr,
 }: {
   settings: PaymentSettings;
   gatewayConfigured: boolean;
+  walletNumber: string;
+  qrUrl: string;
 }) {
   const [provider, setProvider] = useState<PaymentProvider>(settings.provider);
   const [methods, setMethods] = useState<GatewayMethod[]>(settings.methods);
   const [feesPassThrough, setFeesPassThrough] = useState(settings.feesPassThrough);
   const [downMessage, setDownMessage] = useState(settings.gatewayDownMessage);
 
+  const [wallet, setWallet] = useState(savedWallet);
+  const [qrUrl, setQrUrl] = useState(savedQr);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
+
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferError, setTransferError] = useState('');
+  const [transferErrorField, setTransferErrorField] = useState<string | undefined>();
+  const [transferSaved, setTransferSaved] = useState(false);
+
+  const saveTransfer = async () => {
+    setTransferBusy(true);
+    setTransferError('');
+    setTransferErrorField(undefined);
+    setTransferSaved(false);
+    try {
+      const result = await saveTransferDetails({ walletNumber: wallet, qrUrl: qrUrl || null });
+      if (!result.ok) {
+        setTransferError(result.error);
+        setTransferErrorField(result.field);
+        return;
+      }
+      setTransferSaved(true);
+    } catch {
+      setTransferError(UNEXPECTED);
+    } finally {
+      setTransferBusy(false);
+    }
+  };
 
   const toggleMethod = (m: GatewayMethod) =>
     setMethods((current) =>
@@ -190,9 +223,51 @@ export function PaymentSettingsClient({
 
       <div className="flex justify-end border-t border-slate-100 pt-6">
         <BusyButton busy={busy} onClick={save} className="px-8">
-          حفظ الإعدادات
+          حفظ إعدادات البوابة
         </BusyButton>
       </div>
+
+      {/* ──────────── التحويل اليدوي ──────────── */}
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-6">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-black text-slate-800">
+            <Wallet className="h-5 w-5" aria-hidden="true" /> استقبال التحويلات
+          </h2>
+          <p className="mt-1 text-sm font-medium leading-relaxed text-slate-600">
+            الرقم والكود دول بيظهروا للعميل في كل شاشات الدفع بالتحويل، سواء كانت البوابة
+            مقفولة أو وقعت. راجعهم كويس — ده الحساب اللي بتوصله فلوس العملاء.
+          </p>
+        </div>
+
+        {transferSaved && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+            <Check className="h-4 w-4" aria-hidden="true" /> تم حفظ بيانات التحويل.
+          </div>
+        )}
+        {!transferErrorField && <FormError message={transferError} />}
+
+        <Field
+          label="رقم المحفظة (إنستاباي / فودافون كاش)"
+          name="walletNumber"
+          required
+          error={transferErrorField === 'walletNumber' ? transferError : undefined}
+        >
+          <TextInput
+            dir="ltr"
+            className="text-left"
+            value={wallet}
+            onChange={(e) => setWallet(e.target.value)}
+          />
+        </Field>
+
+        <PaymentQrUploader value={qrUrl} walletNumber={wallet} onSaved={setQrUrl} />
+
+        <div className="flex justify-end">
+          <BusyButton busy={transferBusy} onClick={saveTransfer} className="px-8">
+            حفظ بيانات التحويل
+          </BusyButton>
+        </div>
+      </section>
     </div>
   );
 }

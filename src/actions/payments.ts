@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
@@ -101,8 +102,9 @@ const DENIED = 'غير مصرح لك بإدارة إعدادات الدفع';
 
 async function requirePaymentsAdmin() {
   try {
-    // نفس صلاحية الطلبات: اللي بيدير الطلبات هو اللي بيدير الدفع.
-    return await requireAdmin('canManageOrders', DENIED);
+    // ⚠️ صلاحية مستقلة عن «الطلبات» و«المحتوى»: الصفحة دي فيها رقم
+    //    المحفظة اللي بتستقبل فلوس العملاء ومفتاح فتح البوابة.
+    return await requireAdmin('canManagePayments', DENIED);
   } catch {
     return null;
   }
@@ -166,28 +168,99 @@ export async function savePaymentSettings(input: {
   return { ok: true };
 }
 
+/**
+ * بيانات استقبال التحويلات (رقم المحفظة وكود QR).
+ *
+ * ⚠️ كانت في «المحتوى وإعدادات الموقع»، يعني أي مسؤول محتوى يقدر يغيّر
+ *    الرقم اللي بتتحوّل عليه فلوس العملاء. اتنقلت هنا بصلاحيتها الخاصة.
+ */
+export async function saveTransferDetails(input: {
+  walletNumber: string;
+  qrUrl: string | null;
+}): Promise<SettingsResult> {
+  const admin = await requirePaymentsAdmin();
+  if (!admin) return { ok: false, error: DENIED };
+
+  const walletNumber = (input.walletNumber ?? '').trim();
+  // ⚠️ الرقم الفاضي بيرجّع الافتراضي المكتوب في الكود — وده أخطر من
+  //    إنه يفضل زي ما هو. فبنرفضه.
+  if (!walletNumber) {
+    return { ok: false, error: 'اكتب رقم المحفظة', field: 'walletNumber' };
+  }
+  if (!/^[0-9+\s-]{8,20}$/.test(walletNumber)) {
+    return { ok: false, error: 'رقم المحفظة غير صحيح', field: 'walletNumber' };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'general')
+    .maybeSingle();
+
+  const current = (existing?.value ?? {}) as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...current, paymentWalletNumber: walletNumber };
+  const qr = (input.qrUrl ?? '').trim();
+  if (qr) next.paymentQrUrl = qr;
+  else delete next.paymentQrUrl;
+
+  const { data, error } = await supabase
+    .from('site_settings')
+    .upsert({ key: 'general', value: next as never }, { onConflict: 'key' })
+    .select('key');
+
+  if (error || !data || data.length === 0) {
+    console.error('تعذّر حفظ بيانات التحويل', error);
+    return { ok: false, error: 'تعذّر حفظ بيانات التحويل' };
+  }
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'transfer_details_updated',
+    entityType: 'SiteSettings',
+    entityId: 'general',
+    // ⚠️ الرقم نفسه مابيتسجّلش كامل في السجل.
+    metadata: { walletTail: walletNumber.slice(-4), hasQr: !!qr },
+  });
+
+  revalidatePath('/dashboard/admin/settings/payments');
+  refreshPublicPages();
+  return { ok: true };
+}
+
 /** قراءة الإعدادات للوحة (مع حالة المفاتيح على الخادم). */
 export async function readPaymentSettingsForAdmin(): Promise<
-  { ok: true; settings: PaymentSettings; gatewayConfigured: boolean } | { ok: false; error: string }
+  | {
+      ok: true;
+      settings: PaymentSettings;
+      gatewayConfigured: boolean;
+      walletNumber: string;
+      qrUrl: string;
+    }
+  | { ok: false; error: string }
 > {
   const admin = await requirePaymentsAdmin();
   if (!admin) return { ok: false, error: DENIED };
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'payments')
-    .maybeSingle();
+  const [paymentsRes, generalRes] = await Promise.all([
+    supabase.from('site_settings').select('value').eq('key', 'payments').maybeSingle(),
+    supabase.from('site_settings').select('value').eq('key', 'general').maybeSingle(),
+  ]);
 
-  if (error) {
-    console.error('تعذّر قراءة إعدادات الدفع', error);
+  if (paymentsRes.error || generalRes.error) {
+    console.error('تعذّر قراءة إعدادات الدفع', paymentsRes.error ?? generalRes.error);
     return { ok: false, error: 'تعذّر قراءة إعدادات الدفع' };
   }
 
+  const general = (generalRes.data?.value ?? {}) as Record<string, unknown>;
+
   return {
     ok: true,
-    settings: parsePaymentSettings(data?.value),
+    settings: parsePaymentSettings(paymentsRes.data?.value),
     gatewayConfigured: isXpayConfigured(),
+    walletNumber: typeof general.paymentWalletNumber === 'string' ? general.paymentWalletNumber : '',
+    qrUrl: typeof general.paymentQrUrl === 'string' ? general.paymentQrUrl : '',
   };
 }

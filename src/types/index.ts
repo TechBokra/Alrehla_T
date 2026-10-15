@@ -703,6 +703,8 @@ export type AdminPermission =
   | 'canManageSupport'
   | 'canManageContent'
   | 'canManageFinance'
+  /** إعدادات الدفع: فتح/قفل بوابة الدفع، ورقم المحفظة اللي بتستقبل التحويلات. */
+  | 'canManagePayments'
   | 'canViewAuditLogs';
 
 

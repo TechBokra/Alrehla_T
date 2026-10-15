@@ -6,16 +6,24 @@ import Image from 'next/image';
 import { Upload, Trash2, QrCode } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { uploadImage } from '@/lib/upload-client';
-import { saveSiteImage } from '@/actions/content';
+import { saveTransferDetails } from '@/actions/payments';
 import { LibraryPicker } from '@/components/dashboard/LibraryPicker';
 
 /**
- * The InstaPay QR the customer scans instead of typing the wallet number.
+ * كود QR بتاع إنستاباي اللي العميل بيمسحه بدل ما يكتب رقم المحفظة.
  *
- * Stored as an image URL in site settings, so it changes from here — not from
- * the code — the same way the wallet number does.
+ * ⚠️ بيتحفظ مع رقم المحفظة في نفس النداء، عشان ما يحصلش إن الكود
+ *    يتغيّر والرقم لأ (أو العكس) والعميل يحوّل لحساب غلط.
  */
-export function PaymentQrUploader({ value }: { value: string }) {
+export function PaymentQrUploader({
+  value,
+  walletNumber,
+  onSaved,
+}: {
+  value: string;
+  walletNumber: string;
+  onSaved: (url: string) => void;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +35,12 @@ export function PaymentQrUploader({ value }: { value: string }) {
       const finalUrl = file
         ? (await uploadImage(file, 'alrehla/site')).url
         : url;
-      await saveSiteImage({ key: 'paymentQrUrl', url: finalUrl });
+      const result = await saveTransferDetails({ walletNumber, qrUrl: finalUrl || null });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onSaved(finalUrl);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر حفظ الصورة');

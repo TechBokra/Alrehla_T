@@ -56,15 +56,17 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers',
   'canManageCatalog', 'canManageSubscriptions', 'canManageOrders',
   'canManageBookings', 'canManageSupport', 'canManageContent',
-  'canManageFinance', 'canViewAuditLogs',
+  'canManageFinance', 'canManagePayments', 'canViewAuditLogs',
 ];
 
 export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {
   if (role === 'super_admin') return [...ALL_ADMIN_PERMISSIONS];
   if (role === 'general_supervisor') {
-    // المشرف العام: كل حاجة ما عدا الفلوس والسجل.
+    // المشرف العام: كل حاجة ما عدا الفلوس والسجل وإعدادات الدفع.
+    // ⚠️ إعدادات الدفع فيها رقم المحفظة اللي بتستقبل الفلوس ومفتاح فتح
+    //    البوابة — قرار مالي، فمالهاش مكان في صلاحية إشرافية عامة.
     return ALL_ADMIN_PERMISSIONS.filter(
-      (p) => p !== 'canManageFinance' && p !== 'canViewAuditLogs'
+      (p) => p !== 'canManageFinance' && p !== 'canViewAuditLogs' && p !== 'canManagePayments'
     );
   }
   return [];

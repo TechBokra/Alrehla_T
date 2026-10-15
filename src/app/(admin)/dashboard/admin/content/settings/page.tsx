@@ -6,7 +6,6 @@ import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { SettingsForm } from './SettingsForm';
-import { PaymentQrUploader } from './PaymentQrUploader';
 import { WatermarkFields } from './WatermarkFields';
 import { MAX_CLEANUP_DAYS, MIN_CLEANUP_DAYS } from '@/lib/media-cleanup';
 import { RETENTION_OPTIONS } from '@/lib/session-recording';
@@ -193,25 +192,10 @@ export default async function Page() {
           </div>
         </Section>
 
-        {/* ---------- الدفع ---------- */}
-        <Section
-          title="استقبال التحويلات"
-          hint="الرقم ده بيظهر للعملاء في كل شاشات الدفع. راجعه كويس قبل الحفظ."
-        >
-          {/* الأكشن بيتجاهل الرقم الفاضي ويسيب القديم (فاضي = الرقم الافتراضي،
-              وده أخطر) — فبنقولها في المساعدة بدل ما تبان إنها اتمسحت. */}
-          <Field
-            label="رقم المحفظة"
-            name="paymentWalletNumber"
-            hint="لو سبته فاضي الرقم الحالي بيفضل زي ما هو."
-            className="md:col-span-2"
-          >
-            <TextInput dir="ltr" className="text-left" defaultValue={settings.paymentWalletNumber} />
-          </Field>
-          <div className="md:col-span-2">
-            <PaymentQrUploader value={settings.paymentQrUrl} />
-          </div>
-        </Section>
+        {/* ⚠️ «استقبال التحويلات» (رقم المحفظة وكود QR) اتنقل لصفحة
+            «إعدادات الدفع» بصلاحية `canManagePayments` الخاصة بيه: الرقم
+            ده بتتحوّل عليه فلوس العملاء، وماكانش ينفع يفضل تحت صلاحية
+            المحتوى الواسعة. */}
 
         {/* ---------- الطلبات اللي مااتدفعتش ---------- */}
         <Section

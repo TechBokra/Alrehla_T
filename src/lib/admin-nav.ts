@@ -42,7 +42,7 @@ const A = '/dashboard/admin';
 const ALL_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
   'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
-  'canManageContent', 'canManageFinance', 'canViewAuditLogs',
+  'canManageContent', 'canManageFinance', 'canManagePayments', 'canViewAuditLogs',
 ];
 
 export const ADMIN_NAV: AdminGroup[] = [
@@ -131,7 +131,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'الطلبات', href: `${A}/orders`, permission: 'canManageOrders' },
           { label: 'أسعار الشحن', href: `${A}/settings/shipping`, permission: 'canManageOrders' },
-          { label: 'إعدادات الدفع', href: `${A}/settings/payments`, permission: 'canManageOrders' },
+          { label: 'إعدادات الدفع', href: `${A}/settings/payments`, permission: 'canManagePayments' },
           // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
           { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
         ],
