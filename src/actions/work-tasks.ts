@@ -28,7 +28,7 @@ export type WorkTaskResult =
 const ALL: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
   'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
-  'canManageContent', 'canManageFinance', 'canViewAuditLogs',
+  'canManageContent', 'canManageFinance', 'canAssignWork', 'canViewAuditLogs',
 ];
 
 async function anyAdmin() {
@@ -60,7 +60,7 @@ export async function saveAssignmentRule(
 ): Promise<WorkTaskResult> {
   let admin;
   try {
-    admin = await requireAdmin('canManageUsers', 'توزيع الطلبات محتاج صلاحية «المستخدمين»');
+    admin = await requireAdmin('canAssignWork', 'توزيع الطلبات محتاج صلاحية «توزيع المهام والطلبات»');
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
   }
@@ -121,8 +121,19 @@ export async function completeWorkTask(id: string): Promise<WorkTaskResult> {
 
 /** تغيير المسؤول عن مهمة — والجديد بيوصله إشعار. */
 export async function reassignWorkTask(id: string, profileIds: string[]): Promise<WorkTaskResult> {
-  const admin = await anyAdmin();
-  if (!admin) return { ok: false, error: 'المهام للإدارة بس' };
+  // ⚠️ **مش أي إداري** (قرار تامر، ١٥ أكتوبر): كان أي حد في الإدارة يقدر
+  //    يغيّر مسؤول أي مهمة — يعني مسؤول المحتوى يسحب مراجعة دفع من
+  //    المحاسب ويسنّدها لنفسه. تغيير المسؤول قرار تشغيلي وليه صلاحيته.
+  //    و«تم» فاضلة لأي إداري: اللي المهمة عنده بيقفلها.
+  let admin;
+  try {
+    admin = await requireAdmin(
+      'canAssignWork',
+      'تغيير مسؤول المهمة محتاج صلاحية «توزيع المهام والطلبات»',
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
+  }
   const ids = await onlyAdmins(profileIds);
   const supabase = await createClient();
 

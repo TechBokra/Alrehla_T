@@ -11,7 +11,9 @@ export const dynamic = 'force-dynamic';
 /** «توزيع الطلبات» (ملف 14) — مين مسؤول عن كل نوع وكل مرحلة. */
 export default async function Page() {
   const user = await getCurrentUser();
-  if (!hasAdminPermission(user, 'canManageUsers')) return <Unauthorized />;
+  // ⚠️ كانت `canManageUsers`: اللي بيوزّع الشغل ماكانش ينفع إلا لو معاه
+  //    مفاتيح الحسابات والصلاحيات كلها. بقت صلاحيتها الخاصة.
+  if (!hasAdminPermission(user, 'canAssignWork')) return <Unauthorized />;
 
   const [rules, people] = await Promise.all([getAssignmentRules(), getAdminPeople()]);
 

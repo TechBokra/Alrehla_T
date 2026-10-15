@@ -56,7 +56,7 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers',
   'canManageCatalog', 'canManageSubscriptions', 'canManageOrders',
   'canManageBookings', 'canManageSupport', 'canManageContent',
-  'canManageFinance', 'canManagePayments', 'canViewAuditLogs',
+  'canManageFinance', 'canManagePayments', 'canAssignWork', 'canViewAuditLogs',
 ];
 
 export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {

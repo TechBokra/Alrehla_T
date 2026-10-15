@@ -18,6 +18,14 @@ import {
   roleDisplayName,
   type AdminRoleOption,
 } from '@/lib/role-choice';
+import {
+  AUDIENCE_LABELS,
+  FAMILY_ROLES,
+  TEAM_ROLES,
+  audienceOf,
+  matchesAudience,
+  type Audience,
+} from '@/lib/user-audience';
 import { Field, TextInput, Select, BusyButton, fieldClass } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
 
@@ -55,7 +63,7 @@ const ASSIGNABLE: UserRole[] = [
 
 // `state` فاضي = الحسابات الموجودة — المحذوف (المؤرشف) مابيظهرش غير لو
 // اخترته (ملف 10: الحذف اللي عليه حركات بيأرشف بدل ما يمسح).
-const EMPTY_FILTERS = { search: '', role: '', guardian: '', account: '', state: '' };
+const EMPTY_FILTERS = { search: '', audience: '', role: '', guardian: '', account: '', state: '' };
 
 /** بيانات جاية من طلب انضمام مقبول — انظر `InstructorPrefill`. */
 export type UserPrefill = {
@@ -98,6 +106,7 @@ export function UsersClient({
     return users.filter((u) => {
       if (q && !`${u.fullName} ${u.email ?? ''}`.toLowerCase().includes(q))
         return false;
+      if (!matchesAudience(u.role, filters.audience as Audience)) return false;
       if (filters.role && u.role !== filters.role) return false;
       if (filters.guardian === 'yes' && !u.isGuardian) return false;
       if (filters.guardian === 'no' && u.isGuardian) return false;
@@ -110,6 +119,16 @@ export function UsersClient({
       return true;
     });
   }, [users, filters]);
+
+  /** عدد كل تبويب — من غير المؤرشف، لأنه مش معروض أصلًا. */
+  const audienceCounts = useMemo(() => {
+    const live = users.filter((u) => !u.archivedAt);
+    return {
+      all: live.length,
+      team: live.filter((u) => audienceOf(u.role) === 'team').length,
+      family: live.filter((u) => audienceOf(u.role) === 'family').length,
+    };
+  }, [users]);
 
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
@@ -196,6 +215,52 @@ export function UsersClient({
         />
       )}
 
+      {/* ══ فصل الفريق عن العائلات ══════════════════════════════
+          (ملاحظة تامر، ١٥ أكتوبر) الشاشة كانت بتحطّ مدير النظام
+          والمدربين جنب العملاء وحسابات الأطفال في قايمة واحدة
+          مرتّبة بالتسجيل، فسؤالين بسيطين — «مين في فريقي؟» و«فين
+          العميل اللي اتصل؟» — الاتنين محتاجين تدوير.
+
+          التبويبات دي بتفصل من غير ما تخفي: «الكل» موجود، وكل
+          تبويب معاه عدده، والحسابات المؤرشفة مش محسوبة فيهم لأنها
+          مش معروضة أصلًا. */}
+      <nav aria-label="نوع الحسابات" className="mb-4 flex flex-wrap gap-2">
+        {([
+          { key: '', label: 'الكل' },
+          { key: 'team', label: AUDIENCE_LABELS.team },
+          { key: 'family', label: AUDIENCE_LABELS.family },
+        ] as const).map((tab) => {
+          const active = filters.audience === tab.key;
+          return (
+            <button
+              key={tab.key || 'all'}
+              type="button"
+              onClick={() => {
+                set('audience', tab.key);
+                // الدور المختار ممكن يكون برّه التبويب الجديد — فيتفضّى
+                // بدل ما الجدول يطلع فاضي بلا سبب ظاهر.
+                if (tab.key && filters.role && !matchesAudience(filters.role as UserRole, tab.key)) {
+                  set('role', '');
+                }
+                setPage(1);
+              }}
+              aria-pressed={active}
+              className={
+                'inline-flex min-h-[40px] items-center gap-2 rounded-full border px-4 text-sm font-bold transition-colors ' +
+                (active
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400')
+              }
+            >
+              {tab.label}
+              <span className={active ? 'text-white/70' : 'text-slate-400'}>
+                {audienceCounts[tab.key || 'all'].toLocaleString('ar-EG')}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
       <div className="mb-6 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <div className="relative">
           <Search className="absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -213,11 +278,19 @@ export function UsersClient({
           <Field label="الدور">
             <Select value={filters.role} onChange={(e) => set('role', e.target.value)}>
               <option value="">كل الأدوار</option>
-              {Object.entries(ROLE_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
+              {/* الأدوار نفسها متجمّعة: «إداري» و«عميل» ماينفعش يبقوا
+                  جنب بعض في قايمة واحدة من غير فاصل — ضغطة غلط هنا
+                  بتدّي صلاحيات إدارية لعميل. */}
+              <optgroup label={AUDIENCE_LABELS.team}>
+                {TEAM_ROLES.map((v) => (
+                  <option key={v} value={v}>{ROLE_LABELS[v] ?? v}</option>
+                ))}
+              </optgroup>
+              <optgroup label={AUDIENCE_LABELS.family}>
+                {FAMILY_ROLES.map((v) => (
+                  <option key={v} value={v}>{ROLE_LABELS[v] ?? v}</option>
+                ))}
+              </optgroup>
             </Select>
           </Field>
           <Field label="ولي أمر">

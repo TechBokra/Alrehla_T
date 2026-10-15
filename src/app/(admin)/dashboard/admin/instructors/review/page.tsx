@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getInstructorMediaForAdmin, getInstructorReviewGroups } from '@/data/domains/(admin)/instructors/media';
 import type { InstructorReviewGroup } from '@/data/domains/(shared)/instructors/media-types';
+import type { WritingPackage } from '@/types';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { reviewInstructorMedia, revokeInstructorMedia } from '@/actions/instructor-media';
 import { reviewProfileRequest, approveAllForInstructor } from '@/actions/instructor-review';
@@ -19,6 +20,36 @@ import { optimizedImageUrl } from '@/lib/cloudinary';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * نصّ الخطأ لو كان مفهومًا.
+ *
+ * ⚠️ Next بيمسح نصوص أخطاء الخادم في الإنتاج ويسيب `digest` بس —
+ *    فبنعرض الاتنين: النصّ لو عدّى، والـ`digest` عشان يتدوّر بيه في
+ *    سجلّ فيرسل.
+ */
+type InstructorMediaRows = Awaited<ReturnType<typeof getInstructorMediaForAdmin>>;
+
+/** استعلام بيرجّع قيمته أو سبب فشله — من غير ما يوقّع الصفحة. */
+async function settle<T>(
+  promise: Promise<T>,
+  what: string,
+  fallback: T,
+): Promise<{ value: T; error: string }> {
+  try {
+    return { value: await promise, error: '' };
+  } catch (err) {
+    return { value: fallback, error: `تعذّر قراءة ${what}: ${messageOf(err)}` };
+  }
+}
+
+function messageOf(err: unknown): string {
+  const digest = (err as { digest?: unknown } | null)?.digest;
+  const text = err instanceof Error ? err.message.trim() : String(err ?? '');
+  return [text, typeof digest === 'string' ? `(digest ${digest})` : '']
+    .filter(Boolean)
+    .join(' ') || 'سبب غير معروف';
+}
 
 /**
  * مراجعة ملفات المدربين — **المكان الواحد**.
@@ -40,11 +71,26 @@ export default async function InstructorReviewPage() {
   } catch {
     return <Unauthorized />;
   }
-  const [groups, decided, packages] = await Promise.all([
-    getInstructorReviewGroups(),
-    getInstructorMediaForAdmin(),
-    getWritingPackages(),
+  // ⚠️ **القراءة مالهاش حق توقّع الشاشة.** الصفحة كانت بتطلّع «حدث خطأ
+  //    غير متوقع» من غير ما حد يعرف أي استعلام وقع — والإداري قدّامه
+  //    صفحة بيضا وبس. دلوقتي كل فشل بيتقال باسمه فوق الصفحة، والباقي
+  //    بيتعرض.
+  //
+  // ⚠️ كل استعلام بيرجّع `{ value, error }` بدل ما يعدّل متغيّرًا برّه —
+  //    الإسناد جوّه `.catch` بيكسر `react-hooks/immutability` والبناء معاه.
+  const [groupsRead, decidedRead, packagesRead] = await Promise.all([
+    settle(getInstructorReviewGroups(), 'طلبات المراجعة', [] as InstructorReviewGroup[]),
+    settle(getInstructorMediaForAdmin(), 'الصور', [] as InstructorMediaRows),
+    settle(getWritingPackages(), 'الباقات', [] as WritingPackage[]),
   ]);
+
+  const groups = groupsRead.value;
+  const decided = decidedRead.value;
+  const packages = packagesRead.value;
+  const loadError = [groupsRead.error, decidedRead.error, packagesRead.error]
+    .filter(Boolean)
+    .join(' · ');
+
   const pkgNames = packages.map((p) => ({ id: p.id, name: p.name }));
 
   // الصور اللي اتبتّ فيها، بالمدرب — «إيه اللي ظاهر في صفحة فلان؟».
@@ -68,6 +114,15 @@ export default async function InstructorReviewPage() {
         </p>
       </header>
 
+      {loadError && (
+        <p
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800"
+        >
+          {loadError}
+        </p>
+      )}
+
       <section className="space-y-6">
         <h2 className="text-xl font-black text-slate-900">
           مستني المراجعة {pendingCount > 0 && `(${pendingCount})`}
@@ -83,7 +138,7 @@ export default async function InstructorReviewPage() {
           </Card>
         ) : (
           groups.map((group) => (
-            <InstructorGroup key={group.instructorId} group={group} packages={pkgNames} />
+            <GroupOrReason key={group.instructorId} group={group} packages={pkgNames} />
           ))
         )}
       </section>
@@ -195,6 +250,50 @@ function show(value: unknown): string {
   if (Array.isArray(value)) return value.length ? value.join('، ') : '—';
   if (value === null || value === undefined || value === '') return '—';
   return String(value);
+}
+
+/**
+ * مجموعة مدرب واحد — **ومعاها حزام أمان**.
+ *
+ * ── العطل اللي بتمنعه ───────────────────────────────────────
+ *
+ * الصفحة كانت بتقع كلها («حدث خطأ غير متوقع») لو صفّ واحد في
+ * الطابور فيه حاجة مش متوقعة. يعني **مدرب واحد ببيانات غريبة بيقفل
+ * طابور المراجعة على كل المدربين**، والإدارة مش عارفة مين ولا ليه،
+ * ومفيش طريقة تعدّيه.
+ *
+ * دلوقتي الصف اللي بيوقع بيتعرض لوحده برسالته ورابط صفحة المدرب،
+ * والباقي بيشتغل عادي.
+ *
+ * ⚠️ `InstructorGroup` بتتنادى هنا **كدالة** مش كعنصر JSX — ودي
+ *    الطريقة الوحيدة اللي الـ`try` بتاعنا بيلفّ بيها جسمها فعلًا
+ *    في مكوّن خادم. (ومالهاش hooks، فالنداء المباشر سليم.)
+ */
+function GroupOrReason({
+  group,
+  packages,
+}: {
+  group: InstructorReviewGroup;
+  packages: { id: string; name: string }[];
+}) {
+  try {
+    return InstructorGroup({ group, packages });
+  } catch (err) {
+    return (
+      <Card className="space-y-2 border-red-200 bg-red-50/50 p-6">
+        <p className="font-black text-red-900">
+          تعذّر عرض طلبات {group.displayName || 'مدرب غير معروف'}
+        </p>
+        <p className="text-sm font-medium text-red-800">{messageOf(err)}</p>
+        <Link
+          href={`/dashboard/admin/instructors/${group.instructorId}`}
+          className="text-sm font-bold text-red-900 underline"
+        >
+          افتح صفحته
+        </Link>
+      </Card>
+    );
+  }
 }
 
 function InstructorGroup({

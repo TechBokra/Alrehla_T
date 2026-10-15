@@ -42,7 +42,8 @@ const A = '/dashboard/admin';
 const ALL_PERMISSIONS: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
   'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
-  'canManageContent', 'canManageFinance', 'canManagePayments', 'canViewAuditLogs',
+  'canManageContent', 'canManageFinance', 'canManagePayments', 'canAssignWork',
+  'canViewAuditLogs',
 ];
 
 export const ADMIN_NAV: AdminGroup[] = [
@@ -57,7 +58,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         icon: 'ClipboardList',
         tabs: [
           { label: 'مهامي', href: `${A}/tasks`, permission: 'anyAdmin' },
-          { label: 'توزيع الطلبات', href: `${A}/tasks/assignments`, permission: 'canManageUsers' },
+          { label: 'توزيع الطلبات', href: `${A}/tasks/assignments`, permission: 'canAssignWork' },
         ],
       },
     ],
