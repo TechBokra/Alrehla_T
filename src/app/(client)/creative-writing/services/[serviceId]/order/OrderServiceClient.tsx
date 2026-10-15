@@ -163,6 +163,43 @@ export function OrderServiceClient({
             {formatPrice(placed ? placed.amount : amount - discountOff)}
           </span>
         </div>
+
+        {/* ══ التوفير ══════════════════════════════════════
+            رقم واحد بدل سطر بالسالب — العميل اللي استعمل كودًا
+            يشوف إيه اللي كسبه، مش إيه اللي اتخصم. */}
+        {discountOff > 0 && (
+          <div
+            role="status"
+            className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+          >
+            <span className="text-sm font-black text-emerald-900">وفّرت في الطلب ده</span>
+            <span className="text-lg font-black text-emerald-700">{formatPrice(discountOff)}</span>
+          </div>
+        )}
+
+        {/* ══ كود الخصم ════════════════════════════════════
+            مكانه هنا جنب الأرقام اللي بيأثّر عليها، ومتاح من أول
+            الصفحة — كان تحت خالص بعد كل خانات النموذج، فالعميل
+            بيشوف الإجمالي من غير خصمه ويقرّر على أساسه.
+
+            ⚠️ وبيتقفل بعد تسجيل الطلب: القاعدة قفلت المبلغ ساعتها
+               وكود جديد مش هيعمل حاجة. */}
+        <div className="pt-4">
+          <DiscountCodeField
+            line="services"
+            value={discount}
+            onChange={(v) => {
+              setDiscount(v);
+              setError(null);
+            }}
+            disabled={isPending || Boolean(placed)}
+          />
+          {placed && (
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              الطلب اتسجّل بمبلغه — كود الخصم مابيتغيّرش بعد كده.
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -292,17 +329,7 @@ export function OrderServiceClient({
             />
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-8">
-            <DiscountCodeField
-              line="services"
-              value={discount}
-              onChange={(v) => {
-                setDiscount(v);
-                setError(null);
-              }}
-              disabled={isPending}
-            />
-          </div>
+          {/* كود الخصم اتنقل فوق لملخّص الطلب، جنب الإجمالي. */}
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-sm font-medium text-slate-600">
             الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الطلب الأول، وهيظهرلك

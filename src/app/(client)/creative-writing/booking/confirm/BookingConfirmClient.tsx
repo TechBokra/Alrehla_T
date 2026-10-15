@@ -202,6 +202,42 @@ export function BookingConfirmClient({
             </div>
           </>
         )}
+
+        {/* ══ التوفير ══════════════════════════════════════
+            رقم واحد بدل سطر بالسالب: «وفّرت كذا» بيقول اللي كسبته،
+            مش اللي اتخصم. */}
+        {discountOff > 0 && (
+          <div
+            role="status"
+            className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-3"
+          >
+            <span className="text-sm font-black text-emerald-900">وفّرت في الحجز ده</span>
+            <span className="text-lg font-black text-emerald-700">{formatPrice(discountOff)}</span>
+          </div>
+        )}
+
+        {/* ══ كود الخصم ════════════════════════════════════
+            مكانه هنا جنب الأرقام اللي بيأثّر عليها. كان تحت بعد كل
+            خانات النموذج، فالعميل بيشوف قيمة الباقة من غير خصمه
+            ويقرّر على أساسها.
+
+            ⚠️ وبيتقفل بعد تسجيل الحجز: القاعدة قفلت المبلغ ساعتها. */}
+        <div className="mt-4 border-t border-emerald-200 pt-4">
+          <DiscountCodeField
+            line="courses"
+            value={discount}
+            onChange={(v) => {
+              setDiscount(v);
+              setError('');
+            }}
+            disabled={isPending || Boolean(booking)}
+          />
+          {booking && (
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              الحجز اتسجّل بمبلغه — كود الخصم مابيتغيّرش بعد كده.
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -303,15 +339,7 @@ export function BookingConfirmClient({
                  والدالة `create_course_booking` لسه بتقبل المعامل
                  (بقيمة فاضية)، فمفيش كسر في القاعدة ولا في الدالة. */}
 
-          <DiscountCodeField
-            line="courses"
-            value={discount}
-            onChange={(v) => {
-              setDiscount(v);
-              setError('');
-            }}
-            disabled={isPending}
-          />
+          {/* كود الخصم اتنقل فوق لملخّص الدفع، جنب الأرقام. */}
 
           <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
 
