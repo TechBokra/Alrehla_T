@@ -413,3 +413,53 @@ export async function confirmOrderPayment(orderId: string) {
   revalidatePath('/dashboard/admin/orders');
   return { ok: true };
 }
+
+/**
+ * العميل بيلغي طلبه غير المدفوع.
+ *
+ * ── ليه الزرار ده موجود ────────────────────────────────────
+ *
+ * الطلب بيتسجّل **قبل** الدفع (عشان الرقم المرجعي)، فأي محاولة دفع ما
+ * كملتش بتسيب طلب «بانتظار الدفع» في حساب العميل. قبل كده مكانش قدامه
+ * غير إنه يستنى الإلغاء التلقائي أو يكلّم الدعم، فالحساب بيمتلي بطلبات
+ * مش محتاجها ومش عارف يشيلها.
+ *
+ * ⚠️ الملكية والحالة بيتفحصوا في القاعدة (`cancel_my_order`)، مش هنا —
+ *    ودي اللي بتمنع إلغاء طلب مدفوع أو طلب حد تاني.
+ */
+export async function cancelMyOrder(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let user;
+  try {
+    user = await requireNotDependent('إلغاء الطلب');
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
+  }
+  if (!user) return { ok: false, error: 'سجّل دخولك الأول' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cancel_my_order', { p_order_id: orderId });
+
+  if (error) {
+    console.error('Error cancelling own order', error);
+    return { ok: false, error: 'تعذّر إلغاء الطلب. جرّب تاني.' };
+  }
+
+  const result = data as { ok?: boolean; error?: string } | null;
+  if (!result?.ok) {
+    const reason = result?.error ?? 'unknown';
+    const messages: Record<string, string> = {
+      order_not_found: 'الطلب غير موجود',
+      not_your_order: 'الطلب ده مش بتاعك',
+      not_cancellable: 'الطلب ده مابينفعش يتلغي — كلّم الدعم لو محتاج مساعدة.',
+      unauthenticated: 'سجّل دخولك الأول',
+    };
+    return { ok: false, error: messages[reason] ?? 'تعذّر إلغاء الطلب' };
+  }
+
+  revalidatePath('/account/orders');
+  revalidatePath('/account/orders/enha-lak');
+  revalidatePath('/dashboard/admin/orders');
+  return { ok: true };
+}

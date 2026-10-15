@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
@@ -10,6 +9,8 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { PendingOrderActions } from '@/components/orders/PendingOrderActions';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export const dynamic = 'force-dynamic';
 // paid for a printed book was never told it had been sent.
 const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' | 'danger' }> = {
   pending: { label: 'بانتظار الدفع', type: 'warning' },
-  awaiting_verification: { label: 'بانتظار تأكيد الدفع', type: 'warning' },
+  awaiting_verification: { label: 'جارٍ مراجعة الدفع', type: 'warning' },
   paid: { label: 'مدفوع', type: 'success' },
   preparing: { label: 'قيد التجهيز', type: 'warning' },
   shipped: { label: 'تم الشحن', type: 'success' },
@@ -30,10 +31,12 @@ const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' 
 
 
 export default async function EnhaLakOrdersPage() {
-  const [allOrders, products, settings] = await Promise.all([
+  const [allOrders, products, settings, payment] = await Promise.all([
     getOrders(),
     getPersonalizedProducts(),
     getSiteSettings(),
+    // نص زرار الدفع بيختلف: بوابة = «أكمل الدفع»، تحويل = «ادفع وارفع الإيصال».
+    getPaymentAvailability(),
   ]);
   const cancelDays = settings.pendingOrderCancelDays;
   const names: Record<string, string> = Object.fromEntries(products.map((p) => [p.id, p.name]));
@@ -55,18 +58,18 @@ export default async function EnhaLakOrdersPage() {
           type={ORDER_STATUS[order.status]?.type ?? 'warning'}
           label={ORDER_STATUS[order.status]?.label ?? order.status}
         />
-        {/* الطلب اتسجّل والإيصال مااترفعش — كان مفيش رجوع ليه. */}
-        {order.status === 'pending' && (
-          <Link
-            href={`/account/orders/enha-lak/${order.id}/pay`}
-            className="rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-800"
-          >
-            ادفع وارفع الإيصال
-          </Link>
+        {/* الطلب اتسجّل والدفع ما كملش — يكمّله أو يلغيه بنفسه.
+            `failed` كمان: محاولة دفع رجعت بالفشل، والطلب لسه قابل للدفع. */}
+        {(order.status === 'pending' || order.status === 'failed') && (
+          <PendingOrderActions
+            orderId={order.id}
+            payHref={`/account/orders/enha-lak/${order.id}/pay`}
+            gateway={payment.mode === 'gateway'}
+          />
         )}
         {order.status === 'pending' && cancelDays > 0 && (
           <span className="text-xs text-slate-600">
-            بيتلغي لوحده لو مااتدفعش خلال {cancelDays} أيام من الطلب
+            بيتلغي تلقائيًا لو مااتدفعش خلال {cancelDays} أيام من تاريخ الطلب
           </span>
         )}
       </div>

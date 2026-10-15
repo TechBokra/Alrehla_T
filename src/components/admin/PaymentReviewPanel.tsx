@@ -3,9 +3,18 @@ import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 
+/**
+ * ⚠️ الوسائل الأربعة الأخيرة بتيجي من بوابة الدفع، مش من تحويل بنكي —
+ *    الطلب المدفوع بالبوابة مالوش إيصال يتراجع، وبيبان هنا بوسيلته.
+ */
 const METHOD_LABEL: Record<string, string> = {
   instapay: 'إنستاباي',
   vodafone_cash: 'فودافون كاش',
+  card: 'بطاقة بنكية',
+  fawry: 'فوري',
+  valu: 'فاليو (تقسيط)',
+  apple_pay: 'Apple Pay',
+  wallet: 'محفظة إلكترونية',
 };
 
 /**
