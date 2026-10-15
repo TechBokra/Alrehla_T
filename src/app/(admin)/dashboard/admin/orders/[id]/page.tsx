@@ -38,7 +38,26 @@ export default async function Page({
   const result = await getAdminOrderDetail(id);
   if (!result.success) {
     if (result.error.code === 'NOT_FOUND') notFound();
-    throw new Error(result.error.message);
+    // ⚠️ **كان `throw`** — والرمي في صفحة خادم بيتحوّل لشاشة «حدث خطأ
+    //    غير متوقع» بلا أي كلام، وNext بيمسح نصّ الرسالة في الإنتاج.
+    //    يعني الرسالة العربية اللي الاستعلام تعب وكتبها كانت بتضيع
+    //    بالظبط في اللحظة اللي محتاجينها فيها، والإداري بيلاقي طلبًا
+    //    في القايمة مابيفتحش ومفيش سبب ولا طريق قدّامه.
+    return (
+      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
+        <DashboardPageHeader title="تفاصيل الطلب" backHref="/dashboard/admin/orders" />
+        <div
+          role="alert"
+          className="space-y-3 rounded-3xl border border-red-200 bg-red-50 p-6"
+        >
+          <p className="font-black text-red-900">تعذّر فتح الطلب ده</p>
+          <p className="text-sm font-medium text-red-800">{result.error.message}</p>
+          <p className="text-xs font-medium text-red-700" dir="ltr">
+            {id}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const { order: target, customerName, productNames, boxSubscriptionId } = result.data;

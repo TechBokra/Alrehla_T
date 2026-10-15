@@ -146,11 +146,20 @@ export async function getAdminOrderDetail(
     };
   } catch (error) {
     console.error('Failed to load admin order detail:', error);
+    // ⚠️ **سبب الفشل بيتقال**: الشاشة دي للإدارة وحدها، والرسالة العامة
+    //    «جرّب تاني» كانت بتخلّي طلبًا مكسورًا واحدًا لغزًا — الإداري
+    //    بيعيد المحاولة عشرين مرة ومفيش حاجة بتتغيّر، ومفيش طريقة يعرف
+    //    بيها إيه الناقص ولا يبلّغ بيه.
+    const detail =
+      (error as { message?: unknown } | null)?.message ??
+      (typeof error === 'string' ? error : '');
     return {
       success: false,
       error: {
         code: 'LOAD_FAILED',
-        message: 'تعذّر تحميل تفاصيل الطلب. جرّب تاني.',
+        message: detail
+          ? `تعذّر تحميل تفاصيل الطلب: ${String(detail)}`
+          : 'تعذّر تحميل تفاصيل الطلب. جرّب تاني.',
       },
     };
   }
