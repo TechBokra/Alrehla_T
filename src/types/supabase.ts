@@ -3140,6 +3140,10 @@ export type Database = {
           reason: string
         }[]
       }
+      cancel_my_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       attach_payment_session: {
         Args: { p_order_id: string; p_session_id: string }
         Returns: Json
