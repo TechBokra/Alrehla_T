@@ -374,3 +374,34 @@ export async function getStudioOrderPanel(orderId: string): Promise<StudioOrderP
       .map((i) => ({ orderItemId: i.id, productId: i.product_id })),
   };
 }
+
+export type StudioReadiness = {
+  tablesReady: boolean;
+  mode: 'off' | 'on';
+  /** الأدوار الجاهزة اللي موجودة فعلًا من الثلاثة. */
+  rolesFound: string[];
+  staffCount: number;
+  projectCount: number;
+};
+
+export const STUDIO_ROLE_NAMES = ['محرر قصص', 'مشرف فني', 'مسؤول إنتاج القصص'] as const;
+
+/** حالة تجهيز الاستوديو: إيه اللي اتطبّق وإيه لسه — لشاشة الإعدادات. */
+export async function getStudioReadiness(): Promise<StudioReadiness> {
+  const supabase = await createClient();
+  const [mode, probe, roles, staff] = await Promise.all([
+    getStudioMode(),
+    supabase.from('story_projects').select('id', { count: 'exact', head: true }),
+    supabase.from('admin_roles').select('name').in('name', [...STUDIO_ROLE_NAMES]),
+    listStudioStaff(),
+  ]);
+  const tablesReady = !probe.error;
+  if (probe.error && !isMissingRelation(probe.error.code)) console.error('getStudioReadiness', probe.error.message);
+  return {
+    tablesReady,
+    mode,
+    rolesFound: (roles.data ?? []).map((r) => r.name),
+    staffCount: staff.length,
+    projectCount: tablesReady ? (probe.count ?? 0) : 0,
+  };
+}

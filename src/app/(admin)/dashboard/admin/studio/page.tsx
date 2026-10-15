@@ -78,7 +78,12 @@ export default async function StudioInboxPage({
 
       {!result.success && (
         <p role="alert" className="rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-900">
-          {result.error.message}
+          {result.error.message}{' '}
+          {canManage && (
+            <Link href="/dashboard/admin/studio/settings" className="underline">
+              شوف حالة التجهيز
+            </Link>
+          )}
         </p>
       )}
 
