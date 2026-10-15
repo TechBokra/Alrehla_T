@@ -73,13 +73,19 @@ export async function createCheckoutSession(
     locale: 'ar',
     submitType: 'PAY',
     expiresAfterMinutes: SESSION_MINUTES,
+    // ⚠️ الشكل ده مش تخمين: `{ name, unitAmount }` المسطّح اترفض بـ
+    //    `parameter_unknown: lineItems[0][name]`. السعر جوّه `priceData`
+    //    واسم المنتج جوّه `productData` — من مثال التوثيق الرسمي.
     lineItems: [
       {
-        name: input.description,
+        priceData: {
+          currency: 'EGP',
+          // ⚠️ بالقرش: الدالة في القاعدة بتقارن بـ`total_amount * 100`،
+          //    فأي تغيير هنا لازم يتغيّر هناك.
+          unitAmount: input.amount * 100,
+          productData: { name: input.description },
+        },
         quantity: 1,
-        // ⚠️ بالقرش: الدالة في القاعدة بتقارن بـ`total_amount * 100`،
-        //    فأي تغيير هنا لازم يتغيّر هناك.
-        unitAmount: input.amount * 100,
       },
     ],
     paymentMethodTypes: input.methods,
