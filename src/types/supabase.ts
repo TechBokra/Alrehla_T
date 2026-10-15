@@ -349,6 +349,7 @@ export type Database = {
           created_at: string
           excerpt: string
           id: string
+          is_draft: boolean
           published_at: string
           slug: string
           title: string
@@ -361,6 +362,7 @@ export type Database = {
           created_at?: string
           excerpt: string
           id?: string
+          is_draft?: boolean
           published_at?: string
           slug: string
           title: string
@@ -373,6 +375,7 @@ export type Database = {
           created_at?: string
           excerpt?: string
           id?: string
+          is_draft?: boolean
           published_at?: string
           slug?: string
           title?: string

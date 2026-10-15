@@ -1,29 +1,39 @@
 import { BlogPost } from '@/types';
+import type { Database } from '@/types/supabase';
 import { createPublicClient } from '@/lib/supabase/public';
 
-export const getBlogPosts = async (
-  options: { includeDrafts?: boolean } = {}
-): Promise<BlogPost[]> => {
+export type BlogRow = Database['public']['Tables']['blog_posts']['Row'];
+
+export function mapBlogPost(row: BlogRow): BlogPost {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt,
+    content: row.content,
+    coverImageUrl: row.cover_image_url || undefined,
+    authorName: row.author_name || 'فريق الرحلة',
+    publishedAt: row.published_at,
+    isDraft: row.is_draft,
+  };
+}
+
+/**
+ * المقالات **الظاهرة للزوار** فقط: مش مسودة وموعد نشرها جه.
+ *
+ * ⚠️ نفس الشرط مفروض في القاعدة (سياسة قراءة `blog_posts`)، فحتى لو حد
+ *    نادى الـAPI مباشرةً ما يشوفش مسودة ولا مقال مجدول. شاشات الإدارة
+ *    اللي بتعرض الكل بتقرا بجلسة الأدمن من `getAdminBlogPosts`.
+ */
+export const getBlogPosts = async (): Promise<BlogPost[]> => {
   const supabase = createPublicClient();
-  // A post dated in the future is a draft: the public listing must not show it.
-  const query = supabase.from('blog_posts').select('*');
-  if (!options.includeDrafts) {
-    query.lte('published_at', new Date().toISOString());
-  }
-  const { data, error } = await query.order('published_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('is_draft', false)
+    .lte('published_at', new Date().toISOString())
+    .order('published_at', { ascending: false });
 
-  if ((error || !data || data.length === 0)) {
-    return [];
-  }
-
-  return data.map((p: any) => ({
-    id: p.id,
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt,
-    content: p.content,
-    coverImageUrl: p.cover_image_url || undefined,
-    authorName: p.author_name || 'فريق الرحلة',
-    publishedAt: p.published_at
-  }));
+  if (error || !data || data.length === 0) return [];
+  return data.map(mapBlogPost);
 };

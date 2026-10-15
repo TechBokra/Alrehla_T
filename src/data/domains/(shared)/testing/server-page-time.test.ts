@@ -72,6 +72,23 @@ describe('server page temporal view models', () => {
     expect(blogPublicationData([{ publishedAt: now.toISOString() }, { publishedAt: '2026-10-09T12:00:01Z' }], now)
       .map((post) => post.isDraft)).toEqual([false, true]);
   });
+  it('separates published, scheduled and draft blog posts', () => {
+    const result = blogPublicationData([
+      { publishedAt: '2026-10-09T11:00:00Z', isDraft: false },
+      { publishedAt: '2026-10-10T09:00:00Z', isDraft: false },
+      { publishedAt: '2026-10-09T11:00:00Z', isDraft: true },
+      { publishedAt: '2027-10-09T11:00:00Z', isDraft: true },
+    ], now);
+    expect(result.map((post) => post.status)).toEqual(['published', 'scheduled', 'draft', 'draft']);
+    expect(result.map((post) => post.isDraft)).toEqual([false, true, true, true]);
+  });
+  it('never counts a draft as a published blog post even with a past date', () => {
+    const result = adminOverviewTiming([], [], [
+      { publishedAt: '2026-10-01T12:00:00Z', isDraft: false },
+      { publishedAt: '2026-10-01T12:00:00Z', isDraft: true },
+    ], now);
+    expect(result.publishedPosts).toBe(1);
+  });
   it('only treats a future valid auth ban as active', () => {
     expect(loginBlockedAt('2026-10-09T12:00:01Z', now)).toBe(true);
     expect(loginBlockedAt(now.toISOString(), now)).toBe(false);

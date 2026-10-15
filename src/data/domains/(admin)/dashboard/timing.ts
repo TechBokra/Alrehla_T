@@ -22,7 +22,7 @@ export async function getInstructorOverviewTiming(sessions: InstructorSession[])
 }
 
 export function adminOverviewTiming<T extends SessionTimeRow>(
-  sessions: T[], orders: { createdAt: string }[], posts: { publishedAt: string }[], now: Date,
+  sessions: T[], orders: { createdAt: string }[], posts: { publishedAt: string; isDraft?: boolean }[], now: Date,
 ) {
   const todaySessions = sessions.filter((session) => session.status !== 'cancelled' && isCairoToday(session.scheduledAt, now))
     .sort((a, b) => compareAsc(parseISO(a.scheduledAt), parseISO(b.scheduledAt)));
@@ -36,13 +36,14 @@ export function adminOverviewTiming<T extends SessionTimeRow>(
     return !!date && !isBefore(date, cutoff);
   }).length;
   const publishedPosts = posts.filter((post) => {
+    if (post.isDraft) return false;
     const date = validDate(post.publishedAt);
     return !!date && !isAfter(date, now);
   }).length;
   return { todaySessions, overdueSessions, ordersThisWeek, publishedPosts };
 }
 
-export async function getAdminOverviewTiming<T extends SessionTimeRow>(sessions: T[], orders: { createdAt: string }[], posts: { publishedAt: string }[]) {
+export async function getAdminOverviewTiming<T extends SessionTimeRow>(sessions: T[], orders: { createdAt: string }[], posts: { publishedAt: string; isDraft?: boolean }[]) {
   return adminOverviewTiming(sessions, orders, posts, getServerNow());
 }
 

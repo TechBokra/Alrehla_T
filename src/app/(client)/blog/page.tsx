@@ -16,6 +16,13 @@ import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 
 
 
+/**
+ * المقال المجدول بيظهر لوحده في موعده: الصفحة بتتجدد كل ٥ دقايق على الأكثر
+ * (الحفظ من اللوحة بيجدّدها فورًا). من غير كده كانت هتفضل على آخر نسخة
+ * متخزّنة لحد ساعة.
+ */
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: 'المدونة',

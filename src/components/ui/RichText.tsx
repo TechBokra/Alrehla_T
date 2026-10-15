@@ -8,7 +8,8 @@ import React from 'react';
  * يحقن سكربت في الصفحة — ده ثغرة أمنية معروفة (XSS). بدل كده بنستخدم
  * تنسيق مبسّط بيتحوّل لعناصر React جاهزة، فمفيش أي HTML بيتنفّذ:
  *
- *   ## عنوان          → عنوان فرعي
+ *   # عنوان           → عنوان
+ *   ## عنوان فرعي     → عنوان فرعي
  *   - نقطة            → عنصر في قائمة
  *   **نص**            → نص عريض
  *   سطر فاضي          → فقرة جديدة
@@ -73,6 +74,20 @@ export function RichText({
     if (line === '') {
       flushParagraph();
       flushList();
+      continue;
+    }
+
+    if (line.startsWith('# ')) {
+      flushParagraph();
+      flushList();
+      blocks.push(
+        <h2
+          key={`h-${blocks.length}`}
+          className="mt-10 mb-5 text-2xl font-black text-slate-900"
+        >
+          {line.slice(2).trim()}
+        </h2>,
+      );
       continue;
     }
 

@@ -1,6 +1,7 @@
 import { BlogPost } from '@/types';
 import { createPublicClient } from '@/lib/supabase/public';
 import { decodeSlug } from '@/lib/utils';
+import { mapBlogPost } from '@/data/domains/(shared)/content/blog';
 
 /**
  * مقال واحد بالاسم اللي في الرابط.
@@ -22,21 +23,11 @@ export const getBlogPostBySlug = async (slug: string): Promise<BlogPost | null> 
       .from('blog_posts')
       .select('*')
       .eq('slug', candidate)
+      .eq('is_draft', false)
       .lte('published_at', new Date().toISOString())
       .maybeSingle();
 
-    if (data) {
-      return {
-        id: data.id,
-        slug: data.slug,
-        title: data.title,
-        excerpt: data.excerpt,
-        content: data.content,
-        coverImageUrl: data.cover_image_url || undefined,
-        authorName: data.author_name || 'فريق الرحلة',
-        publishedAt: data.published_at,
-      };
-    }
+    if (data) return mapBlogPost(data);
   }
 
   return null;

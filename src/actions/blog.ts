@@ -6,6 +6,8 @@ import { refreshPublicPages } from '@/lib/revalidate';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
+import { isPublishMode, resolvePublishing, type PublishMode } from '@/lib/blog-publish';
+import { cairoLocalToIso } from '@/lib/promotions';
 
 /**
  * Writing and publishing blog posts.
@@ -57,30 +59,42 @@ export interface BlogPostInput {
   content: string;
   coverImageUrl: string;
   authorName: string;
-  /** Unpublished posts are dated in the future, which is how the list marks a draft. */
-  isPublished: boolean;
-  publishedAt: string;
+  /** منشور / مجدول / مسودة — الحالة اللي الأدمن اختارها صراحةً. */
+  publishMode: PublishMode;
+  /** موعد النشر المجدول بتوقيت القاهرة `YYYY-MM-DDTHH:mm` (مطلوب لو `scheduled`). */
+  scheduledAt: string;
 }
 
-function validate(input: BlogPostInput) {
+type ChecksOk = {
+  ok: true;
+  row: {
+    title: string;
+    slug: string;
+    excerpt: string;
+    content: string;
+    cover_image_url: string | null;
+    author_name: string;
+    updated_at: string;
+  };
+};
+
+/** تحقق من النص (العنوان والمحتوى والرابط). حالة النشر بتتحدد لوحدها بعد قراءة المقال الحالي. */
+function validate(input: BlogPostInput): ChecksOk | { ok: false; error: string; field: keyof BlogPostInput } {
   const title = input.title.trim();
   const content = input.content.trim();
-  if (!title) return { ok: false as const, error: 'اكتب عنوان المقال', field: 'title' as const };
-  if (!content) return { ok: false as const, error: 'اكتب محتوى المقال', field: 'content' as const };
+  if (!title) return { ok: false, error: 'اكتب عنوان المقال', field: 'title' };
+  if (!content) return { ok: false, error: 'اكتب محتوى المقال', field: 'content' };
+  if (!isPublishMode(input.publishMode)) {
+    return { ok: false, error: 'اختر حالة النشر', field: 'publishMode' };
+  }
 
   const slug = toSlug(input.slug || title);
   if (!slug) {
-    return { ok: false as const, error: 'تعذّر توليد رابط للمقال — غيّر العنوان', field: 'title' as const };
+    return { ok: false, error: 'تعذّر توليد رابط للمقال — غيّر العنوان', field: 'title' };
   }
 
-  // A draft is simply not yet published: it keeps a future date so the public
-  // listing, which orders and filters by date, never shows it.
-  const publishedAt = input.isPublished
-    ? input.publishedAt || new Date().toISOString()
-    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-
   return {
-    ok: true as const,
+    ok: true,
     row: {
       title,
       slug,
@@ -88,7 +102,6 @@ function validate(input: BlogPostInput) {
       content,
       cover_image_url: input.coverImageUrl.trim() || null,
       author_name: input.authorName.trim() || 'فريق الرحلة',
-      published_at: publishedAt,
       updated_at: new Date().toISOString(),
     },
   };
@@ -99,8 +112,34 @@ export async function saveBlogPost(id: string | null, input: BlogPostInput): Pro
   if (!admin) return { ok: false, error: DENIED };
   const checked = validate(input);
   if (!checked.ok) return checked;
-  const row = checked.row;
   const supabase = await createClient();
+
+  // الحالة الحالية من القاعدة — مش من المتصفح — عشان تعديل مقال منشور
+  // ما يغيّرش تاريخ نشره، ولا حد يقدر يبعت تاريخ مزيّف.
+  let existing: { isDraft: boolean; publishedAt: string } | null = null;
+  if (id) {
+    const { data: current, error: currentError } = await supabase
+      .from('blog_posts')
+      .select('is_draft, published_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (currentError) {
+      console.error('Error reading blog post before save', currentError);
+      return { ok: false, error: 'تعذّر حفظ المقال' };
+    }
+    if (!current) return { ok: false, error: 'المقال غير موجود — ربما اتحذف' };
+    existing = { isDraft: current.is_draft, publishedAt: current.published_at };
+  }
+
+  const publishing = resolvePublishing({
+    mode: input.publishMode,
+    scheduledAtIso: cairoLocalToIso(input.scheduledAt),
+    existing,
+    now: new Date(),
+  });
+  if (!publishing.ok) return publishing;
+
+  const row = { ...checked.row, is_draft: publishing.isDraft, published_at: publishing.publishedAt };
 
   const { data, error } = id
     ? await supabase.from('blog_posts').update(row).eq('id', id).select('id, slug').single()
@@ -120,7 +159,7 @@ export async function saveBlogPost(id: string | null, input: BlogPostInput): Pro
     action: id ? 'blog_post_updated' : 'blog_post_created',
     entityType: 'BlogPost',
     entityId: data.id,
-    metadata: { title: row.title, published: input.isPublished },
+    metadata: { title: row.title, mode: input.publishMode, publishedAt: row.published_at },
   });
 
   revalidatePath('/dashboard/admin/content/blog');

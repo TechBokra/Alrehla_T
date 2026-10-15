@@ -475,6 +475,8 @@ export type BlogPost = {
   coverImageUrl?: string;
   publishedAt: string;
   authorName: string;
+  /** مسودة صريحة (مخفية مهما كان التاريخ). المجدول = `isDraft` false وتاريخ في المستقبل. */
+  isDraft?: boolean;
 };
 
 // شهادة مستخدم

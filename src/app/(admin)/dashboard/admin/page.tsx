@@ -13,7 +13,7 @@ import { getAllOrders } from '@/data/domains/(admin)/orders/queries';
 import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
 import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
-import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
+import { getAdminBlogPosts } from '@/data/domains/(admin)/content/blog';
 import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getAuditLogs } from '@/data/domains/(admin)/audit/queries';
@@ -59,7 +59,10 @@ export default async function AdminDashboard() {
       getSessions(),
       getInstructors(),
       getReviewQueue(),
-      getBlogPosts({ includeDrafts: true }),
+      getAdminBlogPosts().catch((error: unknown) => {
+        console.error('تعذّر تحميل المقالات للوحة الإدارة', error);
+        return [];
+      }),
       getTestimonials(),
       getSiteSettings(),
     ]);
