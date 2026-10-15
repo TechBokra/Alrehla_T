@@ -17,6 +17,8 @@ import { useTransition } from 'react';
 import { createOrder, createBoxSubscriptionOrder, submitPaymentProof } from '@/actions/orders';
 import type { PaymentMethod } from '@/actions/orders';
 import { PaymentProofForm } from '@/components/checkout/PaymentProofForm';
+import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
+import type { PaymentAvailability } from '@/lib/payments/settings';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -44,10 +46,16 @@ interface Props {
   paymentQrUrl?: string;
   /** الدول والمحافظات والمناطق وأسعارها وإيقاف التوصيل — من الأدمن. للعرض فقط: القاعدة هي الحارس. */
   delivery: DeliveryCatalog;
+  /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
+  payment: PaymentAvailability;
   user: UserType;
 }
 
-export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery }: Props) {
+export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery, payment }: Props) {
+  // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
+  //    فبنفصله هنا مرة واحدة.
+  const gateway = payment.mode === 'gateway' ? payment : null;
+  const manualNotice = payment.mode === 'manual' ? payment.notice : '';
   const { items, cartTotal, clearCart, removeItem, addItem } = useCart();
   const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment
   // Card, wallet and Fawry options used to be offered here with forms that
@@ -485,8 +493,21 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
             <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
           </div>
 
-          {placedOrder ? (
+          {placedOrder && gateway ? (
+            <GatewayPayButton
+              orderId={placedOrder.id}
+              // ⚠️ إجمالي القاعدة، مش حساب الشاشة.
+              amount={placedOrder.total ?? grandTotal}
+              methods={gateway.methods}
+              reference={placedOrder.reference}
+            />
+          ) : placedOrder ? (
             <>
+              {manualNotice && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+                  {manualNotice}
+                </div>
+              )}
               <PaymentProofForm
                 reference={placedOrder.reference}
                 // ⚠️ إجمالي القاعدة، مش حساب الشاشة — هو اللي العميل لازم يحوّله.
@@ -508,9 +529,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
               <div className="flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
                 <ShieldCheck className="h-5 w-5 shrink-0" />
                 <p>
-                  الدفع بالتحويل (إنستاباي أو فودافون كاش). هتسجّل الطلب الأول،
-                  وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع الإيصال.
-                  ولن نطلب منك بيانات بطاقتك على هذه الصفحة أبدًا.
+                  {gateway
+                    ? 'هتسجّل الطلب الأول، وبعدها تتحوّل لصفحة دفع آمنة تدفع فيها بالبطاقة أو المحفظة. بيانات بطاقتك مابتعدّيش على موقعنا.'
+                    : 'الدفع بالتحويل (إنستاباي أو فودافون كاش). هتسجّل الطلب الأول، وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع الإيصال. ولن نطلب منك بيانات بطاقتك على هذه الصفحة أبدًا.'}
                 </p>
               </div>
 

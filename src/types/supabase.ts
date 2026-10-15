@@ -1435,6 +1435,10 @@ export type Database = {
           id: string
           independent_participant_id: string | null
           payment_method: string | null
+          paid_at: string | null
+          payment_intent_id: string | null
+          payment_provider: string
+          payment_session_id: string | null
           payment_receipt_url: string | null
           payment_reference: string | null
           recipient_name: string | null
@@ -1467,6 +1471,10 @@ export type Database = {
           id?: string
           independent_participant_id?: string | null
           payment_method?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           payment_receipt_url?: string | null
           payment_reference?: string | null
           recipient_name?: string | null
@@ -1499,6 +1507,10 @@ export type Database = {
           id?: string
           independent_participant_id?: string | null
           payment_method?: string | null
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           payment_receipt_url?: string | null
           payment_reference?: string | null
           recipient_name?: string | null
@@ -1541,6 +1553,36 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: string
+        }
+        Relationships: []
+      }
+      payment_events: {
+        Row: {
+          amount_minor: number | null
+          created_at: string
+          event_type: string
+          id: string
+          order_id: string | null
+          outcome: string
+          payload: Json | null
+        }
+        Insert: {
+          amount_minor?: number | null
+          created_at?: string
+          event_type: string
+          id: string
+          order_id?: string | null
+          outcome: string
+          payload?: Json | null
+        }
+        Update: {
+          amount_minor?: number | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          outcome?: string
+          payload?: Json | null
         }
         Relationships: []
       }
@@ -3097,6 +3139,23 @@ export type Database = {
           message: string
           reason: string
         }[]
+      }
+      attach_payment_session: {
+        Args: { p_order_id: string; p_session_id: string }
+        Returns: Json
+      }
+      record_gateway_payment: {
+        Args: {
+          p_amount_minor: number | null
+          p_event_id: string
+          p_event_type: string
+          p_intent_id: string | null
+          p_method: string | null
+          p_order_id: string
+          p_payload?: Json | null
+          p_session_id: string | null
+        }
+        Returns: Json
       }
       account_activity: { Args: { p_user: string }; Returns: Json }
       admin_purge_account: { Args: { p_user: string }; Returns: string[] }

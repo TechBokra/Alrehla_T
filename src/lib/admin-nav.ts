@@ -131,6 +131,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'الطلبات', href: `${A}/orders`, permission: 'canManageOrders' },
           { label: 'أسعار الشحن', href: `${A}/settings/shipping`, permission: 'canManageOrders' },
+          { label: 'إعدادات الدفع', href: `${A}/settings/payments`, permission: 'canManageOrders' },
           // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
           { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
         ],
