@@ -454,6 +454,8 @@ export async function cancelMyOrder(
       not_your_order: 'الطلب ده مش بتاعك',
       not_cancellable: 'الطلب ده مابينفعش يتلغي — كلّم الدعم لو محتاج مساعدة.',
       unauthenticated: 'سجّل دخولك الأول',
+      // القاعدة رفضت التغيير في صمت — بنقولها بدل ما نقول «تم» والطلب زي ما هو.
+      blocked: 'تعذّر إلغاء الطلب. كلّم الدعم لو محتاج مساعدة.',
     };
     return { ok: false, error: messages[reason] ?? 'تعذّر إلغاء الطلب' };
   }
