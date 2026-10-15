@@ -105,3 +105,23 @@ export async function getMyAqlamStatus(): Promise<MyAqlamStatus | null> {
     isInstructor: s.is_instructor === true,
   };
 }
+
+/** إعدادات القفل لأبناء ولي الأمر الحالي (RLS). غياب الصف = مسموح. */
+export async function listGuardianSettings(): Promise<
+  Record<string, { publishingAllowed: boolean; commentsAllowed: boolean }>
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_guardian_settings')
+    .select('child_id,publishing_allowed,comments_allowed');
+  if (error) {
+    console.error('Error listing aqlam guardian settings', error);
+    throw new Error('تعذّر تحميل الإعدادات');
+  }
+  return Object.fromEntries(
+    (data ?? []).map((r) => [
+      r.child_id,
+      { publishingAllowed: r.publishing_allowed, commentsAllowed: r.comments_allowed },
+    ]),
+  );
+}

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DocumentEditorClient } from './DocumentEditorClient';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
+import { AqlamPublishLink } from '@/components/writing/AqlamPublishLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         initialDocument={document}
         hasInstructor={hasInstructor}
         filesSlot={document ? <DocumentFilesSection document={document} viewer="writer" /> : undefined}
+        publishSlot={document ? <AqlamPublishLink documentId={document.id} /> : undefined}
       />
     </div>
   );

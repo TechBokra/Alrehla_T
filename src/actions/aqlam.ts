@@ -270,6 +270,15 @@ export async function guardianDecide(postId: string, approve: boolean): Promise<
   return { ok: true };
 }
 
+/** نفس `guardianDecide` بس لنموذج (زرارين `decision` = approve | reject). */
+export async function guardianDecideForm(formData: FormData): Promise<AqlamActionResult> {
+  const decision = str(formData.get('decision'));
+  if (decision !== 'approve' && decision !== 'reject') {
+    return { ok: false, error: aqlamErrorMessage('invalid') };
+  }
+  return guardianDecide(str(formData.get('postId')), decision === 'approve');
+}
+
 export async function saveGuardianSettings(formData: FormData): Promise<AqlamActionResult> {
   const auth = await signedIn();
   if (!auth.ok) return auth;

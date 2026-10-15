@@ -26,6 +26,8 @@ interface Props {
   basePath?: string;
   /** ملفات المستند (ملف 20) — بتتبني على الخادم، وبس بعد أول حفظ. */
   filesSlot?: React.ReactNode;
+  /** رابط النشر في «أقلام الرحلة» — بيتبني على الخادم ومابيظهرش لو الميزة مقفولة. */
+  publishSlot?: React.ReactNode;
 }
 
 export function DocumentEditorClient({
@@ -33,6 +35,7 @@ export function DocumentEditorClient({
   hasInstructor,
   basePath = '/dashboard/student/portfolio',
   filesSlot,
+  publishSlot,
 }: Props) {
   const router = useRouter();
   const [documentId, setDocumentId] = useState(initialDocument?.id ?? null);
@@ -169,6 +172,8 @@ export function DocumentEditorClient({
               <CheckCircle2 className="h-4 w-4" /> {saveMessage}
             </div>
           )}
+
+          {documentId && publishSlot}
 
           {/* مسح النص (طلب تامر) — أي حالة، على خطوتين. */}
           {documentId && (
