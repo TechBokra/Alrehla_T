@@ -19,11 +19,10 @@ import { pageMetadata } from '@/lib/seo';
 import { productSchema, breadcrumbSchema } from '@/lib/structured-data';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { ShareSection } from '@/components/share/ShareSection';
-import { ShareButton } from '@/components/share/ShareButton';
 import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
-import { electronicAvailable } from '@/lib/item-format';
+import { priceBlocks } from '@/lib/item-format';
 
 /**
  * ⚡ الصفحة بتتبني أول ما حد يفتحها، وبعدين **بتتخزّن** وتتبعت جاهزة من
@@ -72,6 +71,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);
+
+  // ترتيب الأسعار (الإلكترونية أولًا) من مصدر واحد مشترك مع الكارت.
+  const prices = priceBlocks(product);
 
   // الناشر باسمه ورابط صفحته — «الكتاب ده من دار أعرفها» معلومة بتبيع.
   // ⚠️ من القايمة العامة وبالحالة: ناشر موقوف مايتعرضش رابطه.
@@ -227,19 +229,40 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             )}
             
             <Card accentColor="rose" className="p-6">
-              <div className="flex items-center justify-between gap-4">
+              {/* ══ السعر ═══════════════════════════════════════
+                  الإلكترونية أولًا لما تكون متاحة (قرار تامر، ١٥
+                  أكتوبر) — هي الأرخص ومن غير شحن ومن غير انتظار،
+                  وكانت سطرًا صغيرًا تحت المطبوع. والترتيب من
+                  `priceBlocks` عشان الكارت والصفحة يقولوا نفس
+                  الحاجة. */}
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-sm font-bold text-slate-500">{prices.headline.label}</span>
                 <PriceTag
-                  price={product.price}
-                  listPrice={product.listPrice}
-                  endsAt={product.saleEndsAt}
-                  label={product.saleLabel}
+                  price={prices.headline.price}
+                  listPrice={prices.headline.listPrice}
+                  endsAt={prices.headline.endsAt}
+                  label={prices.headline.saleLabel}
                   className="text-enha-lak-strong text-3xl font-black"
                 />
               </div>
-              {/* ملف 138: العميل يعرف قبل المعالج إن فيه اختيار أرخص من غير شحن. */}
-              {electronicAvailable(product) && (
-                <p className="mt-2 text-sm font-bold text-slate-700">
-                  أو نسخة إلكترونية بـ<PriceTag price={product.electronicPrice ?? 0} listPrice={product.electronicListPrice} endsAt={product.electronicSaleEndsAt} showBadge={false} showEnds={false} className="font-bold" /> — بتوصلك على الإيميل من غير شحن
+              {prices.headline.format === 'electronic' && (
+                <p className="mt-1 text-sm font-medium text-emerald-700">
+                  بتوصلك على الإيميل فورًا — من غير شحن ومن غير انتظار.
+                </p>
+              )}
+              {/* ملف 138: العميل يعرف قبل المعالج إن فيه الاختيار التاني وبكام. */}
+              {prices.secondary && (
+                <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-sm font-bold text-slate-700">
+                  <span>أو {prices.secondary.label} بـ</span>
+                  <PriceTag
+                    price={prices.secondary.price}
+                    listPrice={prices.secondary.listPrice}
+                    endsAt={prices.secondary.endsAt}
+                    showBadge={false}
+                    showEnds={false}
+                    className="font-bold"
+                  />
+                  <span>— بتتشحن لحد باب البيت</span>
                 </p>
               )}
               
@@ -277,21 +300,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     }} 
                   />
                 )}
-                {/* مشاركة جنب زرار الشراء — قرار تامر 3 أكتوبر: الصور والروابط
-                    اللي الأهل بيبعتوها ترويج. قسم المشاركة الكامل لسه تحت في
-                    آخر الصفحة، بس محدش بيوصله. */}
-                <ShareButton
-                  variant="subtle"
-                  theme="rose"
-                  label="ابعته لحد يحبه"
-                  className="mt-3 w-full"
-                  data={{
-                    title: product.name,
-                    description: product.shortDescription,
-                    url: `/enha-lak/product/${product.slug}`,
-                    shortPath: `/s/p/${product.id ? product.id.split('-')[0] : product.slug}`,
-                  }}
-                />
+                {/* ⚠️ **زرار «ابعته لحد يحبه» اتشال من هنا** (قرار تامر،
+                    ١٥ أكتوبر): كان مكرّرًا — قسم المشاركة الكامل تحت في
+                    آخر الصفحة بيعمل نفس الحاجة، وزرار تاني جنب زرار
+                    الشراء كان بيسحب العين بعيد عن الشراء. */}
               </div>
             </Card>
           </div>

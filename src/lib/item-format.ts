@@ -28,6 +28,70 @@ export function electronicAvailable(product: { category?: string; electronicPric
   return product.category === 'custom' && (product.electronicPrice ?? 0) > 0;
 }
 
+/** بلوك سعر جاهز للعرض — نوع واحد باسمه وسعره وعرضه. */
+export type PriceBlock = {
+  format: 'printed' | 'electronic';
+  label: string;
+  price: number;
+  listPrice?: number;
+  endsAt?: string;
+  saleLabel?: string;
+};
+
+type PricedProduct = {
+  category?: string;
+  price: number;
+  listPrice?: number;
+  saleEndsAt?: string;
+  saleLabel?: string;
+  electronicPrice?: number | null;
+  electronicListPrice?: number;
+  electronicSaleEndsAt?: string;
+};
+
+/**
+ * ترتيب عرض الأسعار — **الإلكترونية أولًا** (قرار تامر، ١٥ أكتوبر).
+ *
+ * ── ليه ─────────────────────────────────────────────────────
+ *
+ * الكروت والصفحة كانوا بيعرضوا سعر المطبوع كبير، والإلكتروني سطرًا
+ * صغيرًا تحته أو مش موجود خالص. والإلكتروني هو **الأرخص ومن غير شحن
+ * ومن غير انتظار**، يعني أسهل أول خطوة للعميل الجديد، وكان مدفونًا.
+ *
+ * دلوقتي الرقم الكبير هو الإلكتروني لما يكون متاحًا، والمطبوع بيبقى
+ * السطر التاني. ومصدر الترتيب هنا وحده، فالكارت والصفحة مايفترقوش.
+ *
+ * ⚠️ **الخصم بيتنقل مع كل بلوك** (`listPrice` و`endsAt`): الإلكتروني
+ *    ليه عرضه الخاص، وكان بيتعرض من غير سعر قبل الخصم فالتوفير
+ *    مابيبانش.
+ */
+export function priceBlocks(product: PricedProduct): {
+  headline: PriceBlock;
+  secondary?: PriceBlock;
+} {
+  const printed: PriceBlock = {
+    format: 'printed',
+    label: FORMAT_LABELS.printed,
+    price: product.price,
+    listPrice: product.listPrice,
+    endsAt: product.saleEndsAt,
+    saleLabel: product.saleLabel,
+  };
+
+  if (!electronicAvailable(product)) return { headline: printed };
+
+  const electronic: PriceBlock = {
+    format: 'electronic',
+    label: FORMAT_LABELS.electronic,
+    price: product.electronicPrice ?? 0,
+    listPrice: product.electronicListPrice,
+    endsAt: product.electronicSaleEndsAt,
+    saleLabel: product.saleLabel,
+  };
+
+  return { headline: electronic, secondary: printed };
+}
+
 /** سعر القصة نفسها (من غير الإضافات) حسب النوع. */
 export function basePriceForFormat(
   product: { price: number; electronicPrice?: number | null },

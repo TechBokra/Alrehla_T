@@ -10,6 +10,7 @@ import { PriceTag } from '@/components/ui/PriceTag';
 import type { PersonalizedProduct } from '@/types';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { primaryAgeBand } from '@/lib/age-bands';
+import { priceBlocks } from '@/lib/item-format';
 import { cn } from '@/lib/utils';
 
 /**
@@ -88,6 +89,7 @@ export function ProductCard({
   // لون القسم.
   const band = primaryAgeBand(product);
   const isLibrary = product.category === 'library';
+  const prices = priceBlocks(product);
 
   return (
     <Card
@@ -221,19 +223,28 @@ export function ProductCard({
             والوزن — فالرقم، وهو أهم معلومة في الكارت، كان بيتوه.
             دلوقتي الصيغة سطر صغير رمادي **فوق** الرقم، والرقم
             وحده هو الكبير. و`mt-auto` بتثبّته تحت مهما طال الاسم،
-            فالأسعار بتتراصّ على خط واحد عبر الصف كله. */}
+            فالأسعار بتتراصّ على خط واحد عبر الصف كله.
+
+            والصيغة اللي فوق الرقم بقت من `priceBlocks`: الإلكترونية
+            أولًا لما تكون متاحة، والمطبوعة سطرًا تحتها — عشان أرخص
+            اختيار يبان، مش يتخبّى. */}
         <div className="pointer-events-none mt-auto mb-4 border-t border-slate-100 pt-4">
           <span className="block text-[11px] font-bold tracking-wide text-slate-500">
-            نسخة مطبوعة
+            {prices.headline.label}
           </span>
           <PriceTag
-            price={product.price}
-            listPrice={product.listPrice}
-            endsAt={product.saleEndsAt}
-            label={product.saleLabel}
+            price={prices.headline.price}
+            listPrice={prices.headline.listPrice}
+            endsAt={prices.headline.endsAt}
+            label={prices.headline.saleLabel}
             className="text-enha-lak-strong text-2xl font-black"
             showEnds={false}
           />
+          {prices.secondary && (
+            <span className="mt-1 block text-[11px] font-bold text-slate-500">
+              {prices.secondary.label} بـ{prices.secondary.price} ج.م
+            </span>
+          )}
         </div>
 
         <Button
