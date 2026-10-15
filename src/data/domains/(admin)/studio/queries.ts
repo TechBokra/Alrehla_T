@@ -14,6 +14,13 @@ import { isStudioStatus, type StudioStatus } from '@/lib/studio';
 
 const LIST_LIMIT = 200;
 
+/** الجداول لسه ماتعملتش في القاعدة (الـ migration ماتطبّقش) — رسالة تقول السبب بدل «تعذّر». */
+const NOT_SET_UP = 'الاستوديو لسه مش مفعّل في قاعدة البيانات — لازم تطبيق migration استوديو القصص أولًا.';
+
+function isMissingRelation(code: string | null | undefined): boolean {
+  return code === 'PGRST205' || code === '42P01';
+}
+
 export async function getStudioMode(): Promise<'off' | 'on'> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -72,7 +79,10 @@ export async function listStudioProjects(): Promise<QueryResult<StudioProjectRow
     .limit(LIST_LIMIT);
   if (error) {
     console.error('listStudioProjects', error.message);
-    return { success: false, error: { code: error.code ?? 'unknown', message: 'تعذّر تحميل المشاريع.' } };
+    return {
+      success: false,
+      error: { code: error.code ?? 'unknown', message: isMissingRelation(error.code) ? NOT_SET_UP : 'تعذّر تحميل المشاريع.' },
+    };
   }
   const now = Date.now();
   return {
@@ -199,7 +209,10 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
   const failure = p.error ?? v.error ?? pg.error;
   if (failure) {
     console.error('getStudioProject', failure.message);
-    return { success: false, error: { code: failure.code ?? 'unknown', message: 'تعذّر تحميل المشروع.' } };
+    return {
+      success: false,
+      error: { code: failure.code ?? 'unknown', message: isMissingRelation(failure.code) ? NOT_SET_UP : 'تعذّر تحميل المشروع.' },
+    };
   }
   const r = p.data;
   if (!r) return { success: true, data: null };
