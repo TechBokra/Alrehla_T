@@ -57,6 +57,7 @@ export const ALL_ADMIN_PERMISSIONS: AdminPermission[] = [
   'canManageCatalog', 'canManageSubscriptions', 'canManageOrders',
   'canManageBookings', 'canManageSupport', 'canManageContent',
   'canManageFinance', 'canManagePayments', 'canAssignWork', 'canViewAuditLogs',
+  'canManageStudio', 'canWorkStudio',
 ];
 
 export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {
@@ -65,8 +66,15 @@ export function defaultPermissionsForRole(role: UserRole): AdminPermission[] {
     // المشرف العام: كل حاجة ما عدا الفلوس والسجل وإعدادات الدفع.
     // ⚠️ إعدادات الدفع فيها رقم المحفظة اللي بتستقبل الفلوس ومفتاح فتح
     //    البوابة — قرار مالي، فمالهاش مكان في صلاحية إشرافية عامة.
+    //    وصلاحيتا الاستوديو كمان بره: بتتدّي بالأدوار («محرر قصص»…) مش بالافتراضي،
+    //    زي ما الدور الافتراضي في القاعدة مالوش فيهم حاجة.
     return ALL_ADMIN_PERMISSIONS.filter(
-      (p) => p !== 'canManageFinance' && p !== 'canViewAuditLogs' && p !== 'canManagePayments'
+      (p) =>
+        p !== 'canManageFinance' &&
+        p !== 'canViewAuditLogs' &&
+        p !== 'canManagePayments' &&
+        p !== 'canManageStudio' &&
+        p !== 'canWorkStudio'
     );
   }
   return [];
