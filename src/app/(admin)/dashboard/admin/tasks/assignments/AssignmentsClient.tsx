@@ -11,7 +11,8 @@ import {
   WORK_STAGE_HINTS,
   WORK_STAGE_LABELS,
 } from '@/lib/work-tasks';
-import { Checkbox, BusyButton } from '@/components/forms/Form';
+import { BusyButton } from '@/components/forms/Form';
+import { PersonPicker } from '@/components/admin/PersonPicker';
 import { FormError } from '@/components/ui/FormError';
 
 export function AssignmentsClient({ rules, people }: { rules: Record<string, string[]>; people: AdminPerson[] }) {
@@ -20,12 +21,6 @@ export function AssignmentsClient({ rules, people }: { rules: Record<string, str
   const [busy, setBusy] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [error, setError] = useState<{ key: string; message: string } | null>(null);
-
-  const toggle = (key: string, id: string, on: boolean) =>
-    setDraft((d) => {
-      const cur = d[key] ?? [];
-      return { ...d, [key]: on ? [...cur, id] : cur.filter((x) => x !== id) };
-    });
 
   const save = async (line: string, stage: string) => {
     const key = `${line}:${stage}`;
@@ -66,16 +61,17 @@ export function AssignmentsClient({ rules, people }: { rules: Record<string, str
                     <p className="font-bold text-slate-800">{WORK_STAGE_LABELS[stage]}</p>
                     <p className="text-xs font-medium text-slate-500">{WORK_STAGE_HINTS[stage]}</p>
                   </div>
-                  <div className="space-y-2">
-                    {people.map((p) => (
-                      <Checkbox
-                        key={p.id}
-                        label={p.name}
-                        checked={chosen.includes(p.id)}
-                        onChange={(e) => toggle(key, p.id, e.target.checked)}
-                      />
-                    ))}
-                  </div>
+                  {/* ⚠️ **بحث بالاسم بدل خانة لكل إداري** (ملاحظة تامر،
+                      ١٥ أكتوبر): ستّ مراحل × نوعين × كل الإداريين =
+                      صفحة من خانات الصح، وكل واحدة باسم بس. دلوقتي
+                      المختارين بيبانوا شيلة والباقي بالبحث. */}
+                  <PersonPicker
+                    multiple
+                    people={people}
+                    value={chosen}
+                    disabled={busy !== null}
+                    onChange={(ids) => setDraft((d) => ({ ...d, [key]: ids }))}
+                  />
                   {error?.key === key && <FormError message={error.message} />}
                   <div className="flex items-center gap-3">
                     <BusyButton busy={busy === key} disabled={busy !== null} onClick={() => save(line, stage)}>

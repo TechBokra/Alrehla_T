@@ -9,6 +9,7 @@ import type { AdminPerson, WorkTask } from '@/data/domains/(admin)/tasks/queries
 import { completeWorkTask, reassignWorkTask } from '@/actions/work-tasks';
 import { WORK_LINES, WORK_LINE_LABELS, WORK_STAGE_LABELS, type WorkLine, type WorkStage } from '@/lib/work-tasks';
 import { Field, Select, BusyButton } from '@/components/forms/Form';
+import { PersonPicker } from '@/components/admin/PersonPicker';
 import { FormError } from '@/components/ui/FormError';
 import { formatCairo } from '@/lib/timezone';
 
@@ -53,13 +54,24 @@ export function TasksClient({ tasks, people, me }: { tasks: WorkTask[]; people: 
     (t) => inView(t, view) && (!line || t.line === line) && (!stage || t.stage === stage),
   );
 
-  const run = async (id: string, key: string, fn: () => Promise<{ ok: boolean; error?: string }>) => {
+  const run = async (
+    id: string,
+    key: string,
+    fn: () => Promise<{ ok: boolean; error?: string; warning?: string }>,
+  ) => {
     setBusy(key);
     setRowError(null);
     try {
       const r = await fn();
-      if (!r.ok) setRowError({ id, message: r.error ?? 'تعذّر التنفيذ' });
-      else router.refresh();
+      if (!r.ok) {
+        setRowError({ id, message: r.error ?? 'تعذّر التنفيذ' });
+      } else {
+        // ⚠️ **نجاح بتحذير بيتحدّث وبيتكلّم**: التسنيد اتحفظ فلازم
+        //    الشاشة تعرض المسؤول الجديد، ومع كده الإداري يشوف إن
+        //    الإشعار ماوصلش.
+        if (r.warning) setRowError({ id, message: r.warning });
+        router.refresh();
+      }
     } catch {
       setRowError({ id, message: 'حصل خطأ غير متوقع — جرّب تاني' });
     } finally {
@@ -169,27 +181,24 @@ export function TasksClient({ tasks, people, me }: { tasks: WorkTask[]; people: 
 
               {t.status === 'open' && (
                 <div className="mt-4 max-w-sm">
-                  <Field label="سنّدها لـ" hint="المسؤول الجديد بيوصله إشعار.">
-                    <Select
-                      value=""
-                      disabled={busy !== null}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (!v) return;
-                        const ids = v === '__none' ? [] : [v];
-                        run(t.id, `assign:${t.id}`, () => reassignWorkTask(t.id, ids));
-                      }}
-                    >
-                      <option value="">{busy === `assign:${t.id}` ? 'جارٍ التغيير…' : 'اختار…'}</option>
-                      {people.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                          {p.id === me ? ' (أنا)' : ''}
-                        </option>
-                      ))}
-                      <option value="__none">— من غير مسؤول —</option>
-                    </Select>
-                  </Field>
+                  {/* ⚠️ **بحث بالاسم بدل قايمة منسدلة** (ملاحظة تامر، ١٥
+                      أكتوبر): القايمة كانت كل الإداريين ورا بعضهم —
+                      بتطول وبتتلفّ ومابتفرّقش بين اسمين متشابهين.
+                      و`PersonPicker` بيعرض الدور الإداري جنب الاسم. */}
+                  <PersonPicker
+                    label="سنّدها لـ"
+                    hint={
+                      busy === `assign:${t.id}`
+                        ? 'جارٍ التغيير…'
+                        : 'المسؤول الجديد بيوصله إشعار في «مهامي».'
+                    }
+                    people={people}
+                    value={t.assigneeIds}
+                    me={me}
+                    disabled={busy !== null}
+                    emptyLabel="شيل المسؤول — تبقى لكل الإدارة"
+                    onChange={(ids) => run(t.id, `assign:${t.id}`, () => reassignWorkTask(t.id, ids))}
+                  />
                 </div>
               )}
 

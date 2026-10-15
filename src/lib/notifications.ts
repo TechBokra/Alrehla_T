@@ -39,7 +39,17 @@ async function isEventDisabled(event?: NotificationEvent): Promise<boolean> {
  *
  * Notifications are never load-bearing. A failure is logged and swallowed so
  * that it can never turn a successful approval or delivery into an error.
+ *
+ * ⚠️ **بس بترجّع النتيجة دلوقتي** (`{ sent }`): «مابترميش» مش معناها
+ *    «مش مهم يبان». التسنيد مثلًا بيقول للإداري «المسؤول بيوصله إشعار»،
+ *    وفشل الإشعار في صمت بيخلّي الجملة دي كذبة. اللي عايز يتجاهل
+ *    النتيجة بيتجاهلها زيّ الأول — مفيش حاجة اتغيّرت عنده.
  */
+export type NotifyResult = {
+  sent: boolean;
+  reason?: 'no-recipient' | 'disabled' | 'failed';
+};
+
 export async function notifyUser(params: {
   recipientProfileId: string | null | undefined;
   title: string;
@@ -47,10 +57,10 @@ export async function notifyUser(params: {
   link?: string;
   /** نوع الإشعار — عشان شاشة الأنواع تقدر توقفه. */
   event?: NotificationEvent;
-}) {
+}): Promise<NotifyResult> {
   const { recipientProfileId, title, message, link } = params;
-  if (!recipientProfileId || !title.trim()) return;
-  if (await isEventDisabled(params.event)) return;
+  if (!recipientProfileId || !title.trim()) return { sent: false, reason: 'no-recipient' };
+  if (await isEventDisabled(params.event)) return { sent: false, reason: 'disabled' };
 
   try {
     const supabase = await createClient();
@@ -60,9 +70,14 @@ export async function notifyUser(params: {
       p_message: message ?? undefined,
       p_link: link ?? undefined,
     });
-    if (error) console.error('Error sending notification', error);
+    if (error) {
+      console.error('Error sending notification', error);
+      return { sent: false, reason: 'failed' };
+    }
+    return { sent: true };
   } catch (err) {
     console.error('Error sending notification', err);
+    return { sent: false, reason: 'failed' };
   }
 }
 

@@ -1,7 +1,12 @@
 import { type WorkLine, type WorkStage, isWorkLine, isWorkStage } from '@/lib/work-tasks';
 import { createClient } from '@/lib/supabase/server';
 
-export type AdminPerson = { id: string; name: string };
+export type AdminPerson = {
+  id: string;
+  name: string;
+  /** دوره الإداري («محاسب»، «مسؤول محتوى»…) — للتفريق بين اسمين متشابهين. */
+  roleName?: string;
+};
 
 export type WorkTask = {
   id: string;
@@ -17,15 +22,56 @@ export type WorkTask = {
   doneAt: string | null;
 };
 
-/** الإداريين — اللي ينفع يتسند لهم. */
+/**
+ * الإداريين — اللي ينفع يتسند لهم.
+ *
+ * ⚠️ **الدور الإداري بييجي معاهم عن قصد.** الشاشة بقت بحث بالاسم بدل
+ *    قايمة قصيرة، والفريق لما يكبر بيبقى فيه أكتر من «أحمد» — فالاسم
+ *    لوحده مابيكفيش للتسنيد الصح.
+ *
+ * ⚠️ **والمؤرشف والموقوف مابيظهروش.** كانوا بيظهروا في القايمة، فمهمة
+ *    ممكن تتسند لحساب مقفول وتفضل مستنية مسؤول مش بيدخل.
+ */
 export async function getAdminPeople(): Promise<AdminPerson[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('user_profiles')
-    .select('id, full_name')
+    .select('id, full_name, admin_role_id')
     .in('role', ['super_admin', 'general_supervisor'])
+    .is('archived_at', null)
+    .is('suspended_at', null)
     .order('full_name');
-  return (data ?? []).map((p) => ({ id: p.id, name: p.full_name }));
+
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  // أسماء الأدوار في استعلام واحد — وفشلها مش بيمنع القايمة من الظهور.
+  const roleIds = [
+    ...new Set(
+      rows
+        .map((p) => (p as { admin_role_id?: string | null }).admin_role_id)
+        .filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  const roleNameById = new Map<string, string>();
+  if (roleIds.length > 0) {
+    const { data: roles, error } = await supabase
+      .from('admin_roles')
+      .select('id, name')
+      .in('id', roleIds);
+    if (error) console.error('getAdminPeople: admin_roles read failed', error);
+    for (const r of roles ?? []) roleNameById.set(r.id, r.name);
+  }
+
+  return rows.map((p) => {
+    const roleId = (p as { admin_role_id?: string | null }).admin_role_id;
+    return {
+      id: p.id,
+      name: p.full_name,
+      // عمود فاضي = الدور الافتراضي، زيّ ما في `auth/queries`.
+      roleName: (roleId ? roleNameById.get(roleId) : undefined) ?? 'مشرف عام',
+    };
+  });
 }
 
 /** `null` = ملف 14 لسه ماتشغّلش. */

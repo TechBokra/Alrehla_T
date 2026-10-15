@@ -17,7 +17,13 @@ import type { AdminPermission } from '@/types';
  * كل الدوال بترجّع ولا بترمي (قاعدة «هـ»).
  */
 
-export type WorkTaskResult = { ok: true } | { ok: false; error: string; field?: string };
+/**
+ * `warning` = العملية نجحت وفيه حاجة جنبها وقعت (الإشعار مثلًا) — نجاح
+ * بتحذير، مش فشل: الشاشة بتحدّث نفسها **و**بتعرض السطر.
+ */
+export type WorkTaskResult =
+  | { ok: true; warning?: string }
+  | { ok: false; error: string; field?: string };
 
 const ALL: AdminPermission[] = [
   'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
@@ -139,15 +145,17 @@ export async function reassignWorkTask(id: string, profileIds: string[]): Promis
 
   // إشعار للي اتضاف بس (مش للي كان مسؤول أصلًا).
   const added = ids.filter((x) => !(before.assignee_ids ?? []).includes(x) && x !== admin.id);
+  let failedNotices = 0;
   for (const who of added) {
     // ⚠️ `notifyUser` (عن طريق `notify_user` في القاعدة) — الإداري ماعندوش
     //    صلاحية كتابة مباشرة في جدول الإشعارات.
-    await notifyUser({
+    const notice = await notifyUser({
       recipientProfileId: who,
       title: before.title,
       message: `${admin.fullName || 'الإدارة'} سند ليك المهمة دي${before.reference ? ` — ${before.reference}` : ''}. تلاقيها في «مهامي».`,
       link: before.link,
     });
+    if (notice.reason === 'failed') failedNotices += 1;
   }
 
   await logAuditAction({
@@ -158,5 +166,15 @@ export async function reassignWorkTask(id: string, profileIds: string[]): Promis
     metadata: { profileIds: ids },
   });
   revalidatePath('/dashboard/admin/tasks');
+
+  // ⚠️ **التسنيد اتحفظ، والإشعار هو اللي وقع.** الشاشة بتقول للإداري
+  //    «المسؤول الجديد بيوصله إشعار» — فلازم يعرف لما ده مايحصلش،
+  //    عشان يبلّغه بنفسه، بدل ما يستنى حد شايف حاجة ماوصلتهوش.
+  if (failedNotices > 0) {
+    return {
+      ok: true,
+      warning: 'المهمة اتسندت، بس الإشعار ماوصلش — بلّغ المسؤول بنفسك.',
+    };
+  }
   return { ok: true };
 }
