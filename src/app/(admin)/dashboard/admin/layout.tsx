@@ -4,7 +4,6 @@ import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 import { LogoutButton } from '@/components/LogoutButton';
-import Header from '@/components/layout/Header';
 import { AdminSidebarNav, AdminSectionTabs } from '@/components/admin/AdminSidebarNav';
 import { navFor } from '@/lib/admin-nav';
 
@@ -26,8 +25,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-slate-50 w-full">
-      {/* هيدر الموقع نفسه (الشعار + القائمة + الحساب) — بيفضل ظاهر في الإدارة. */}
-      <Header />
       <div className="flex flex-col md:flex-row w-full">
         {/* Sidebar */}
         <aside className="w-full md:w-64 bg-white border-l border-slate-200 shrink-0 flex flex-col">
