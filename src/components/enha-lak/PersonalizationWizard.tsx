@@ -5,7 +5,7 @@ import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
-import { addonsDisplayTotal, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
+import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -53,6 +53,16 @@ import {
  * الجدول ده بيخلّي الرفض يتحوّل لرسالة بإسم الحقل، والمعالج بيرجّع
  * العميل للخطوة اللي فيها المشكلة.
  */
+/**
+ * آخر خطوة بتوصّل **للدفع**، مش للسلة (قرار تامر، ١٥ أكتوبر).
+ *
+ * العميل كان بيكمّل التخصيص كله — الاسم والصورة والأهداف — وبعدين
+ * بيتحط في صفحة سلة فيها بند واحد وزرار «إتمام الطلب»: صفحة من غير
+ * شغل، في أهم لحظة في الرحلة. السلة لسه موجودة (أيقونة الهيدر)
+ * ولسه هي المخزن، بس بقت مش خطوة إجبارية.
+ */
+const CHECKOUT_PATH = '/enha-lak/checkout';
+
 const FIELD_STEP: Record<string, { step: number; label: string }> = {
   familyMemberId: { step: 1, label: 'البيانات / اختيار المستفيد' },
   newChildName: { step: 1, label: 'الاسم' },
@@ -408,7 +418,7 @@ export function PersonalizationWizard({
         },
       });
       sessionStorage.removeItem(`wizard_state_${product.id}`);
-      router.push('/cart');
+      router.push(CHECKOUT_PATH);
       return;
     }
 
@@ -440,6 +450,17 @@ export function PersonalizationWizard({
       price:
         basePriceForFormat(product, format) +
         addonsDisplayTotal(addons, data.selectedAddonIds, customizedAddonIds, addonDiscountPercent),
+      // السعر قبل العرض وقبل خصم المشترك — للعرض بس («وفّرت كذا» في
+      // الدفع)، وبيتحط بس لما يكون أكبر فعلًا.
+      listPrice: (() => {
+        const full =
+          baseListPriceForFormat(product, format) +
+          addonsDisplayTotal(addons, data.selectedAddonIds, customizedAddonIds, 0);
+        const now =
+          basePriceForFormat(product, format) +
+          addonsDisplayTotal(addons, data.selectedAddonIds, customizedAddonIds, addonDiscountPercent);
+        return full > now ? full : undefined;
+      })(),
       format,
       quantity: 1,
       type: product.category === 'subscription' ? 'subscription' : 'custom',
@@ -473,9 +494,8 @@ export function PersonalizationWizard({
 
     // Clear session storage
     sessionStorage.removeItem(`wizard_state_${product.id}`);
-    
-    // Redirect
-    router.push('/cart');
+
+    router.push(CHECKOUT_PATH);
   };
 
   if (!isLoaded) return null;

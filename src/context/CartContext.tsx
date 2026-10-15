@@ -27,6 +27,15 @@ export type CartItem = {
   productSlug?: string;
   name: string;
   price: number;
+  /**
+   * السعر **قبل العرض وخصم المشترك** — للعرض بس، عشان «وفّرت كذا»
+   * يبان في الدفع.
+   *
+   * ⚠️ اختياري عن قصد: السلال المحفوظة في المتصفح قبل الخانة دي
+   *    مالهاش، والتوفير ساعتها بيتحسب صفرًا بدل ما يطلع بالسالب.
+   *    وبيتحط بس لما يكون فعلًا أكبر من `price`.
+   */
+  listPrice?: number;
   quantity: number;
   imageUrl?: string;
   type: 'book' | 'custom' | 'subscription' | 'package';

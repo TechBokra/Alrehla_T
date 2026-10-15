@@ -3150,6 +3150,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: Json
       }
+      delete_instructor: {
+        Args: { p_instructor_id: string }
+        Returns: Json
+      }
       attach_payment_session: {
         Args: { p_order_id: string; p_session_id: string }
         Returns: Json

@@ -12,7 +12,7 @@ import { AdminInstructorClient } from './AdminInstructorClient';
 import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/(shared)/services/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getPublicInstructorById } from '@/data/domains/(shared)/instructors/public';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/SafeImage';
 import Link from 'next/link';
 import { getInstructorMediaForAdmin } from '@/data/domains/(admin)/instructors/media';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -107,7 +107,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             {media.map((item) => (
               <li key={item.id} className="overflow-hidden rounded-2xl border border-slate-200">
                 <div className="relative aspect-square bg-slate-50">
-                  <Image
+                  <SafeImage
                     src={optimizedImageUrl(item.imageUrl, 300)}
                     alt={item.title ?? 'صورة مدرب'}
                     fill

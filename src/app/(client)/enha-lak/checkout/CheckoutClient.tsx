@@ -130,6 +130,27 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   const discountOff = discount ? discountAmount(subtotal, discount.percent) : 0;
   const grandTotal = subtotal - discountOff + shipping;
 
+  // ══ التوفير ═══════════════════════════════════════════════
+  //
+  // ملاحظة تامر (١٥ أكتوبر): «اعرض التوفير المتحقق». كان الخصم بيبان
+  // سطرًا بالسالب وبس، والعرض على المنتج نفسه (`listPrice`) مابيبانش
+  // خالص — فالعميل اللي خد عرضًا وكود خصم مش شايف إنه وفّر حاجة.
+  //
+  // التوفير = (السعر قبل العرض − السعر الحالي) + كود الخصم.
+  //
+  // ⚠️ `listPrice` اختياري: السلال المحفوظة في المتصفح قبل الخانة دي
+  //    مالهاش، فبنرجع لـ`price` — التوفير يطلع صفرًا مش بالسالب.
+  const listTotal = items.reduce(
+    (sum: number, i: CartItem) => sum + (i.listPrice && i.listPrice > i.price ? i.listPrice : i.price),
+    0,
+  );
+  const offerSavings = Math.max(0, listTotal - subtotal);
+  const totalSavings = offerSavings + discountOff;
+
+  // كود الخصم «ذو صلة» لما يكون فيه حاجة يتحسب عليها، وقبل ما الطلب
+  // يتسجّل: بعد التسجيل القاعدة قفلت الإجمالي وتغيير الكود مابيعملش حاجة.
+  const discountRelevant = items.length > 0 && !placedOrder && !isSuccess;
+
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canContinue) return;
@@ -287,7 +308,27 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
 
   return (
     <Section containerClassName="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-0 pb-24">
-      
+
+      {/* ══ شريط الإجمالي على الموبايل ══════════════════════════
+          على الشاشة الصغيرة ملخّص الطلب بييجي **تحت** النموذجين،
+          فالعميل بيملا بياناته وهو مش شايف بيدفع كام. الشريط ده
+          بيحط الرقم فوق، والملخّص الكامل فاضل تحت زيّ ما هو. */}
+      <div className="lg:hidden">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <span className="text-sm font-bold text-rose-900">
+            {items.length.toLocaleString('ar-EG')}{' '}
+            {items.length === 1 ? 'منتج' : 'منتجات'}
+            {needsShipping && !shippingKnown ? ' — من غير الشحن' : ''}
+          </span>
+          <span className="text-xl font-black text-rose-700">{formatPrice(grandTotal)}</span>
+        </div>
+        {totalSavings > 0 && (
+          <p className="mt-2 text-center text-sm font-black text-emerald-700">
+            وفّرت {formatPrice(totalSavings)} في الطلب ده
+          </p>
+        )}
+      </div>
+
       {/* Forms Section */}
       <div className="lg:col-span-2 space-y-8">
         
@@ -541,15 +582,11 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                 </div>
               )}
 
-              <DiscountCodeField
-                line={boxItem ? 'box' : 'enha_lak'}
-                value={discount}
-                onChange={(v) => {
-                  setDiscount(v);
-                  setOrderError('');
-                }}
-                disabled={isProcessing || isPending}
-              />
+              {/* ⚠️ **كود الخصم اتنقل لملخّص الطلب** (ملاحظة تامر، ١٥
+                  أكتوبر): كان مدفونًا جوّه نموذج الدفع، يعني العميل
+                  مابيشوفهوش غير في الخطوة التانية — بعد ما يكون خلّص
+                  البيانات وشاف الإجمالي من غير خصمه. ودلوقتي هو جنب
+                  الأرقام اللي بيأثّر عليها، وظاهر من أول الصفحة. */}
 
               {mixedBox && (
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
@@ -624,11 +661,41 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
             ))}
           </div>
 
+          {/* ══ كود الخصم ════════════════════════════════════
+              مكانه هنا جنب الأرقام اللي بيأثّر عليها، ومتاح من أول
+              الصفحة مش من خطوة الدفع.
+
+              ⚠️ **وبيتقفل بعد تسجيل الطلب**: القاعدة قفلت الإجمالي
+                 ساعتها، فكود جديد مش هيعمل حاجة — وخانة شغّالة
+                 مابتعملش حاجة أسوأ من خانة مقفولة بسبب مكتوب. */}
+          <div className="mb-4">
+            <DiscountCodeField
+              line={boxItem ? 'box' : 'enha_lak'}
+              value={discount}
+              onChange={(v) => {
+                setDiscount(v);
+                setOrderError('');
+              }}
+              disabled={!discountRelevant || isProcessing || isPending}
+            />
+            {placedOrder && (
+              <p className="mt-2 text-xs font-medium text-slate-500">
+                الطلب اتسجّل بإجماله — كود الخصم مابيتغيّرش بعد كده.
+              </p>
+            )}
+          </div>
+
           <div className="space-y-3 py-4 border-y border-slate-100 mb-4">
             <div className="flex justify-between text-sm text-slate-600">
               <span>المجموع الفرعي</span>
               <span className="font-bold">{formatPrice(subtotal)}</span>
             </div>
+            {offerSavings > 0 && (
+              <div className="flex justify-between text-sm text-slate-500">
+                <span>قبل العرض</span>
+                <span className="font-bold line-through">{formatPrice(listTotal)}</span>
+              </div>
+            )}
             {discountOff > 0 && discount && (
               <div className="flex justify-between text-sm font-bold text-emerald-800">
                 <span>
@@ -653,10 +720,24 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
             </div>
           </div>
 
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-4">
             <span className="text-lg font-black text-slate-800">الإجمالي</span>
             <span className="text-2xl font-black text-rose-600">{formatPrice(grandTotal)}</span>
           </div>
+
+          {/* ══ التوفير ══════════════════════════════════════
+              ملاحظة تامر: «اعرض التوفير المتحقق». العرض على المنتج
+              وكود الخصم كانوا سطرين منفصلين بالسالب — ورقم واحد
+              مجمّع بيقول الحكاية: «وفّرت ٨٥ ج.م». */}
+          {totalSavings > 0 && (
+            <div
+              role="status"
+              className="mb-6 flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+            >
+              <span className="text-sm font-black text-emerald-900">وفّرت في الطلب ده</span>
+              <span className="text-lg font-black text-emerald-700">{formatPrice(totalSavings)}</span>
+            </div>
+          )}
 
           {needsShipping && !shippingKnown && (
             <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">

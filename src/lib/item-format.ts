@@ -103,6 +103,30 @@ export function basePriceForFormat(
   return product.price;
 }
 
+/**
+ * سعر القصة **قبل العرض** حسب النوع — عشان «وفّرت كذا» يبان في السلة
+ * والدفع.
+ *
+ * ⚠️ العمود فاضي = مفيش عرض على النوع ده، فبنرجّع السعر الحالي نفسه.
+ *    لو رجّعنا صفرًا كان التوفير هيطلع بالسالب.
+ */
+export function baseListPriceForFormat(
+  product: {
+    price: number;
+    listPrice?: number;
+    electronicPrice?: number | null;
+    electronicListPrice?: number;
+  },
+  format: ItemFormat,
+): number {
+  const printed = product.listPrice ?? product.price;
+  const e = product.electronicPrice ?? 0;
+  const electronic = product.electronicListPrice ?? e;
+  if (format === 'electronic') return electronic;
+  if (format === 'both') return printed + electronic;
+  return printed;
+}
+
 /** الكمية مقفولة على ١ — الإلكتروني ملف واحد. */
 export function isQuantityLocked(format: unknown): boolean {
   return format === 'electronic' || format === 'both';

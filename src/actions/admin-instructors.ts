@@ -391,3 +391,93 @@ export async function createInstructorFromJoinRequest(
     return { ok: false, error: err instanceof Error ? err.message : 'تعذّر إنشاء الحساب' };
   }
 }
+
+/* ------------------------------------------------------------------ */
+
+export type DeleteInstructorResult =
+  | { ok: true; name: string; accountStillInstructor: boolean }
+  | Failure;
+
+/**
+ * حذف مدرب — **بس لو مالوش أي سجل**.
+ *
+ * ── ليه الدالة دي موجودة ────────────────────────────────────
+ *
+ * ماكانش فيه حذف خالص. الإدارة بتعمل حساب مدرب للتجربة («مدرب3»)
+ * وبعدين مالهاش غير «إيقاف» — فالقايمة بتتلخبط بحسابات مش حقيقية،
+ * والإداري بيدوّر على زرار مش موجود ويفتكر إن فيه عطل.
+ *
+ * ── والقرار إنه حذف حقيقي، بشرط ──────────────────────────────
+ *
+ * المفاتيح الأجنبية على `instructors` **بتمسح السجل المالي وتقارير
+ * الجلسات CASCADE، وبتوهّ الجلسات والطلبات SET NULL**. فحذف مدرب
+ * شغّال بينجح وبيضيّع تاريخه في نفس اللحظة.
+ *
+ * القرار: الحذف للحساب **الفاضي** بس. وأي سجل = رفض برسالة فيها
+ * الأرقام («٣ جلسات، ١ مستحق») وتوجيه لـ«إيقاف». والحارس نفسه في
+ * القاعدة (`delete_instructor`) مش هنا، فنداء مباشر على الـAPI
+ * مايعدّيش.
+ *
+ * ⚠️ **والحساب مابيتمسحش**: بيرجع «عميل». ممكن يكون نفس الشخص عميل
+ *    عنده طلبات — فمسح الحساب حاجة تانية بتتعمل من «المستخدمين».
+ */
+export async function deleteInstructor(instructorId: string): Promise<DeleteInstructorResult> {
+  const admin = await tryRequireInstructorsAdmin('حذف المدربين محتاج صلاحية «المدربون»');
+  if (!admin) return fail('حذف المدربين محتاج صلاحية «المدربون»');
+  if (!instructorId) return fail('اختار مدربًا الأول');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('delete_instructor', {
+    p_instructor_id: instructorId,
+  });
+
+  if (error) {
+    console.error('deleteInstructor rpc', error);
+    // الدالة لسه ماتشغّلتش على القاعدة — رسالة واضحة بدل «حدث خطأ».
+    if (error.code === 'PGRST202' || error.message?.includes('delete_instructor')) {
+      return fail('الحذف محتاج ملف القاعدة 20261015110000 يتشغّل الأول');
+    }
+    return fail('تعذّر حذف المدرب');
+  }
+
+  const result = (data ?? null) as
+    | { ok: true; name?: string; accountRole?: string }
+    | { ok: false; error: string; blockers?: string[] }
+    | null;
+
+  if (!result) return fail('تعذّر حذف المدرب');
+
+  if (!result.ok) {
+    if (result.error === 'denied') return fail('حذف المدربين محتاج صلاحية «المدربون»');
+    if (result.error === 'not_found') return fail('المدرب ده مش موجود — حدّث الصفحة');
+    if (result.error === 'blocked') return fail('القاعدة رفضت الحذف — راجع الصلاحيات');
+    if (result.error === 'has_history') {
+      const why = (result.blockers ?? []).join('، ');
+      return fail(
+        why
+          ? `مينفعش يتحذف: عنده ${why}. استعمل «إيقاف» — الحذف هيضيّع السجل ده.`
+          : 'مينفعش يتحذف: عنده سجل على المنصة. استعمل «إيقاف».',
+      );
+    }
+    return fail('تعذّر حذف المدرب');
+  }
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'instructor_deleted',
+    entityType: 'Instructor',
+    entityId: instructorId,
+    metadata: { name: result.name ?? '', accountRole: result.accountRole ?? '' },
+  });
+
+  revalidatePath('/dashboard/admin/instructors');
+  revalidatePath('/dashboard/admin/instructors/review');
+  refreshPublicPages();
+
+  return {
+    ok: true,
+    name: result.name ?? 'المدرب',
+    accountStillInstructor: result.accountRole === 'instructor',
+  };
+}

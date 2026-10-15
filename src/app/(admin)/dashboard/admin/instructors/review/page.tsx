@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/SafeImage';
 import Link from 'next/link';
 import { CheckCircle2, ImageIcon, User } from 'lucide-react';
 import { requireAdmin } from '@/lib/auth-guard';
@@ -125,7 +125,7 @@ export default async function InstructorReviewPage() {
                     className="flex flex-col overflow-hidden rounded-2xl border border-slate-200"
                   >
                     <div className="relative aspect-[4/3] w-full bg-slate-50">
-                      <Image
+                      <SafeImage
                         src={optimizedImageUrl(item.imageUrl, 600)}
                         alt={item.title ?? 'صورة مدرب'}
                         fill
@@ -219,7 +219,7 @@ function InstructorGroup({
         <div className="flex items-center gap-4">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
             {group.avatarUrl ? (
-              <Image
+              <SafeImage
                 src={optimizedImageUrl(group.avatarUrl, 200)}
                 alt={group.displayName}
                 fill
@@ -301,7 +301,7 @@ function InstructorGroup({
                   <figure key={pic.label} className="flex flex-col items-center gap-2">
                     <div className="relative h-24 w-24 overflow-hidden rounded-full bg-slate-100">
                       {pic.url ? (
-                        <Image
+                        <SafeImage
                           src={optimizedImageUrl(pic.url, 200)}
                           alt={`الصورة ${pic.label}`}
                           fill
@@ -399,7 +399,7 @@ function InstructorGroup({
                 className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
                 <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-slate-50 to-white">
-                  <Image
+                  <SafeImage
                     src={optimizedImageUrl(item.imageUrl, 800)}
                     alt={item.title ?? 'صورة للمراجعة'}
                     fill

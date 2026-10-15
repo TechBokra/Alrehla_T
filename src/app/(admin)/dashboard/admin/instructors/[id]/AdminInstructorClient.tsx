@@ -39,6 +39,7 @@ import {
   KeyRound,
   Copy,
   Lock,
+  Trash2,
   X,
 } from 'lucide-react';
 import {
@@ -46,7 +47,7 @@ import {
   setInstructorStatus,
   setInstructorPackages,
 } from '@/actions/instructors';
-import { resetInstructorPassword } from '@/actions/admin-instructors';
+import { deleteInstructor, resetInstructorPassword } from '@/actions/admin-instructors';
 import { type PackageChoice } from '@/components/dashboard/PackagePicker';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { getInstructorChangeItems } from '@/lib/request-summary';
@@ -120,6 +121,8 @@ export function AdminInstructorClient({
   const [trainingPassed, setTrainingPassed] = useState(certification?.examPassed || false);
   const [status, setStatus] = useState(instructor.status);
   const [statusDone, setStatusDone] = useState('');
+  // تأكيد الحذف — خطوتين عن قصد: الحذف مش رجوع عنه.
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Password reset & access management state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -229,6 +232,22 @@ export function AdminInstructorClient({
 
   const certify = useAction(updateInstructorCertification, {
     fallbackError: 'تعذّر حفظ حالة التدريب.',
+  });
+
+  /**
+   * حذف المدرب — **بس لو مالوش أي سجل**.
+   *
+   * الحارس في القاعدة (`delete_instructor`)، مش هنا: مدرب عنده جلسات
+   * أو مستحقات بيترفض برسالة فيها الأرقام والبديل («إيقاف»)، لأن
+   * المفاتيح الأجنبية كانت هتمسح السجل المالي وتوهّ الجلسات.
+   */
+  const removeInstructor = useAction(deleteInstructor, {
+    onSuccess: (result) => {
+      if (!result.ok) return;
+      // الصفحة دي بقت بتشاور على مدرب مش موجود — نرجّع للقايمة.
+      router.push('/dashboard/admin/instructors');
+    },
+    fallbackError: 'تعذّر حذف المدرب.',
   });
 
   const handleTrainingToggle = async (checked: boolean) => {
@@ -385,11 +404,53 @@ export function AdminInstructorClient({
               <KeyRound className="h-3.5 w-3.5 text-indigo-700" />
               <span>بيانات الدخول وكلمة المرور</span>
             </button>
+
+            {/* ⚠️ **الحذف كان مش موجود خالص** (ملاحظة تامر، ١٥ أكتوبر):
+                الإدارة بتعمل حساب للتجربة ومالهاش غير «إيقاف»، فالقايمة
+                بتتلخبط بحسابات مش حقيقية. والحذف مشروط: الحارس في
+                القاعدة بيرفض أي مدرب عنده جلسات أو طلبات أو مستحقات —
+                لأن المفاتيح الأجنبية كانت هتمسح السجل المالي وتوهّ
+                الجلسات في نفس اللحظة. */}
+            {confirmDelete ? (
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-black text-rose-700">تحذف المدرب نهائيًا؟</span>
+                <button
+                  type="button"
+                  onClick={() => removeInstructor.run(instructor.id)}
+                  disabled={removeInstructor.pending}
+                  className="rounded-xl bg-rose-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-800 disabled:opacity-50"
+                >
+                  {removeInstructor.pending ? 'جارٍ الحذف…' : 'نعم، احذف'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={removeInstructor.pending}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800 disabled:opacity-50"
+                >
+                  تراجع
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusDone('');
+                  removeInstructor.clearError();
+                  setConfirmDelete(true);
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-1.5 text-xs font-bold text-rose-800 transition-colors hover:bg-rose-100"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>حذف المدرب</span>
+              </button>
+            )}
           </div>
         </div>
 
         {statusDone && <FormSuccess message={statusDone} className="mt-3" />}
         {changeStatus.error && <FormError message={changeStatus.error} className="mt-3" />}
+        {removeInstructor.error && <FormError message={removeInstructor.error} className="mt-3" />}
       </div>
 
       {/* 2. شريط التبويبات الرئيسي (Tabs Navigation for Dense Content) */}
