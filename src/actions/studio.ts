@@ -142,6 +142,27 @@ export async function startStudioProject(formData: FormData): Promise<StudioActi
   return { ok: true, message: 'اتفتح مشروع القصة.' };
 }
 
+/** استيراد الطلبات المدفوعة اللي ماعندهاش مشروع (دفعت والاستوديو مقفول، أو قبل التفعيل). */
+export async function backfillStudioProjects(): Promise<StudioActionResult> {
+  const auth = await manager();
+  if (!auth.ok) return auth;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('story_backfill_projects');
+  if (error) return dbFail('backfillStudioProjects', error);
+  const n = typeof data === 'number' ? data : 0;
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: 'story_backfill_run',
+    entityType: 'StoryProject',
+    entityId: 'backfill',
+    metadata: { created: n },
+  });
+  refresh();
+  revalidatePath('/dashboard/admin/studio/settings');
+  return { ok: true, message: n > 0 ? `اتفتح ${n.toLocaleString('ar-EG')} مشروع.` : 'مفيش طلبات ناقصها مشروع.' };
+}
+
 // ── التوزيع والبيانات الأساسية ───────────────────────────────────────────────
 
 /** التوزيع والموعد — مسؤول الإنتاج. */

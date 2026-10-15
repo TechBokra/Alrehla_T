@@ -3378,6 +3378,7 @@ export type Database = {
           held_from: string | null
           id: string
           order_id: string
+          order_closed_at: string | null
           order_item_id: string
           page_target: number | null
           photo_consent_at: string | null
@@ -3407,6 +3408,7 @@ export type Database = {
           face_mode?: string
           held_from?: string | null
           id?: string
+          order_closed_at?: string | null
           order_id: string
           order_item_id: string
           page_target?: number | null
@@ -3437,6 +3439,7 @@ export type Database = {
           face_mode?: string
           held_from?: string | null
           id?: string
+          order_closed_at?: string | null
           order_id?: string
           order_item_id?: string
           page_target?: number | null
@@ -4333,6 +4336,8 @@ export type Database = {
         Args: { p_instructor_id: string; p_package_ids: string[] }
         Returns: Json
       }
+      story_backfill_pending: { Args: never; Returns: number }
+      story_backfill_projects: { Args: never; Returns: number }
       story_mode: { Args: never; Returns: string }
       story_start_project: { Args: { p_order_item: string }; Returns: string }
       story_studio_access: { Args: never; Returns: boolean }

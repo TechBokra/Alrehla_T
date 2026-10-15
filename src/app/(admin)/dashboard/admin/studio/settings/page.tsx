@@ -4,7 +4,7 @@ import { Field, FormActions, Select, SubmitButton } from '@/components/forms/For
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { STUDIO_ROLE_NAMES, getStudioReadiness } from '@/data/domains/(admin)/studio/queries';
-import { saveStudioMode } from '@/actions/studio';
+import { backfillStudioProjects, saveStudioMode } from '@/actions/studio';
 import { hasAdminPermission } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,11 @@ export default async function StudioSettingsPage() {
               todo: 'شغّله من القايمة فوق بعد ما تخلّص الخطوات اللي قبل.',
             },
             {
+              ok: ready.backfillPending === 0,
+              label: `طلبات مدفوعة من غير مشروع (${ready.backfillPending.toLocaleString('ar-EG')})`,
+              todo: 'استوردها بالزرار تحت — الطلبات اللي اتسلّمت أو اتلغت مابتتستوردش.',
+            },
+            {
               ok: ready.projectCount > 0,
               label: `مشاريع اتفتحت (${ready.projectCount.toLocaleString('ar-EG')})`,
               todo: 'هتتفتح تلقائيًا مع أول طلب مخصّص مدفوع، أو يدويًا من صفحة الطلب.',
@@ -65,6 +70,21 @@ export default async function StudioSettingsPage() {
         </ul>
       </section>
 
+      {ready.tablesReady && ready.backfillPending > 0 && (
+        <section aria-labelledby="backfill" className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6">
+          <h2 id="backfill" className="text-lg font-black text-slate-800">
+            استيراد الطلبات الحالية
+          </h2>
+          <p className="text-sm leading-relaxed font-medium text-slate-600">
+            فيه {ready.backfillPending.toLocaleString('ar-EG')} بند مخصّص في طلبات مدفوعة (مدفوع / بيتجهّز / اتشحن)
+            من غير مشروع. الاستيراد بيفتح مشروعًا لكل بند ويرسل المهمة لمسؤول الإنتاج، ومايكرّرش اللي موجود.
+          </p>
+          <ActionForm action={backfillStudioProjects} successMessage="تم الاستيراد." className="flex justify-end">
+            <SubmitButton pendingLabel="جارٍ الاستيراد…">استيراد الآن</SubmitButton>
+          </ActionForm>
+        </section>
+      )}
+
       <section aria-labelledby="later" className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6">
         <h2 id="later" className="text-lg font-black text-slate-800">
           لسه مش مبني (المرحلة الجاية)
@@ -73,10 +93,8 @@ export default async function StudioSettingsPage() {
           <li>صفحة «قصتي» للعميل: يشوف النص ويوافق أو يطلب تعديلًا بنفسه (حاليًا الفريق بيسجّل موافقته بملاحظة).</li>
           <li>حقول الدفع: موافقة ولي الأمر على الصورة واختيار وضع الوجه (حاليًا بيتحدّدوا من الفريق).</li>
           <li>رفع الصور والملفات من الاستوديو (حاليًا روابط https، ويفضّل Cloudinary).</li>
-          <li>ربط التوزيع بـ«مهامي» وإشعار المحرر/المشرف الفني عند التعيين.</li>
-          <li>قوالب القصص ومكتبة الشخصيات وسجل مهام الذكاء الاصطناعي.</li>
-          <li>مشاريع للطلبات المدفوعة قبل التشغيل (بتتفتح يدويًا من صفحة الطلب).</li>
-        </ul>
+                    <li>قوالب القصص ومكتبة الشخصيات وسجل مهام الذكاء الاصطناعي.</li>
+                  </ul>
       </section>
 
       <section aria-labelledby="mode" className="space-y-4">
