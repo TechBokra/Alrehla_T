@@ -238,9 +238,12 @@ BEGIN
   EXECUTE 'RESET ROLE';
   ASSERT (SELECT status FROM public.story_projects WHERE id = p_prep) = 'text_draft',
     'فشل المزامنة منع تحريك المشروع';
+  ALTER TABLE public.work_tasks_broken RENAME TO work_tasks;
+  -- (محفّز مهام الطلبات الأصلي ماله علاقة بالاستوديو، فبنكسر جدول المشاريع بس.)
+  ALTER TABLE public.story_projects RENAME TO story_projects_broken;
   UPDATE public.orders SET status = 'cancelled' WHERE id = o_prep;
   ASSERT (SELECT status::text FROM public.orders WHERE id = o_prep) = 'cancelled', 'فشل المزامنة فشّل تغيير حالة الطلب';
-  ALTER TABLE public.work_tasks_broken RENAME TO work_tasks;
+  ALTER TABLE public.story_projects_broken RENAME TO story_projects;
 
   RAISE NOTICE 'story_studio_tasks_backfill: OK';
 END

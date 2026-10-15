@@ -59,6 +59,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'مهامي', href: `${A}/tasks`, permission: 'anyAdmin' },
           { label: 'توزيع الطلبات', href: `${A}/tasks/assignments`, permission: 'canAssignWork' },
+          { label: 'المراحل والمواعيد', href: `${A}/tasks/steps`, permission: 'canAssignWork' },
         ],
       },
     ],

@@ -3863,12 +3863,90 @@ export type Database = {
           },
         ]
       }
+      task_steps: {
+        Row: {
+          hint: string | null
+          label: string
+          line: string
+          owner_kind: string
+          show_tab: boolean
+          sla_hours: number | null
+          sort_order: number
+          step: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          hint?: string | null
+          label: string
+          line: string
+          owner_kind?: string
+          show_tab?: boolean
+          sla_hours?: number | null
+          sort_order?: number
+          step: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          hint?: string | null
+          label?: string
+          line?: string
+          owner_kind?: string
+          show_tab?: boolean
+          sla_hours?: number | null
+          sort_order?: number
+          step?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      work_task_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_value: string | null
+          id: number
+          kind: string
+          note: string | null
+          task_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_value?: string | null
+          id?: number
+          kind: string
+          note?: string | null
+          task_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_value?: string | null
+          id?: number
+          kind?: string
+          note?: string | null
+          task_id?: string
+          to_value?: string | null
+        }
+        Relationships: []
+      }
       work_tasks: {
         Row: {
           assignee_ids: string[]
           created_at: string
           done_at: string | null
           done_by: string | null
+          due_at: string | null
+          overdue_notified_at: string | null
+          priority: string
+          soon_notified_at: string | null
+          step: string
+          step_changed_at: string
           id: string
           line: string
           link: string
@@ -3883,6 +3961,12 @@ export type Database = {
           created_at?: string
           done_at?: string | null
           done_by?: string | null
+          due_at?: string | null
+          overdue_notified_at?: string | null
+          priority?: string
+          soon_notified_at?: string | null
+          step?: string
+          step_changed_at?: string
           id?: string
           line: string
           link: string
@@ -3897,6 +3981,12 @@ export type Database = {
           created_at?: string
           done_at?: string | null
           done_by?: string | null
+          due_at?: string | null
+          overdue_notified_at?: string | null
+          priority?: string
+          soon_notified_at?: string | null
+          step?: string
+          step_changed_at?: string
           id?: string
           line?: string
           link?: string
@@ -4336,6 +4426,8 @@ export type Database = {
         Args: { p_instructor_id: string; p_package_ids: string[] }
         Returns: Json
       }
+      work_tasks_sweep_if_due: { Args: never; Returns: Json }
+      work_tasks_deadline_sweep: { Args: never; Returns: Json }
       story_backfill_pending: { Args: never; Returns: number }
       story_backfill_projects: { Args: never; Returns: number }
       story_mode: { Args: never; Returns: string }

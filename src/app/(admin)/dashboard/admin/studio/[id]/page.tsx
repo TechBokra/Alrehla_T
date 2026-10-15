@@ -7,12 +7,12 @@ import { Field, TextInput } from '@/components/forms/Form';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getStudioProject, listStudioStaff } from '@/data/domains/(admin)/studio/queries';
+import { getStudioProject, getStudioStages, getStudioTasks, listStudioStaff } from '@/data/domains/(admin)/studio/queries';
+import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { moveStudioProject } from '@/actions/studio';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import {
   OWNER_LABELS,
-  STATUS_LABELS,
   STUDIO_PIPELINE,
   canMove,
   isTerminal,
@@ -90,7 +90,14 @@ export default async function StudioProjectPage({
   const canCosts = canManage || hasAdminPermission(user, 'canManageFinance');
   const canOrders = hasAdminPermission(user, 'canManageOrders');
 
-  const [result, staff, sp] = await Promise.all([getStudioProject(id), canManage ? listStudioStaff() : Promise.resolve([]), searchParams]);
+  const [result, staff, sp, stages, tasks] = await Promise.all([
+    getStudioProject(id),
+    canManage ? listStudioStaff() : Promise.resolve([]),
+    searchParams,
+    getStudioStages(),
+    getStudioTasks(),
+  ]);
+  const label = (v: string) => statusLabel(v, stages.labels);
   if (!result.success) {
     return (
       <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
@@ -119,11 +126,11 @@ export default async function StudioProjectPage({
   const forward = moves.filter(isForward);
   const sideways = moves.filter((to) => !isForward(to));
   const moveLabel = (to: StudioStatus) => {
-    if (project.status === 'on_hold') return `استئناف (${statusLabel(to)})`;
-    if (isForward(to)) return MOVE_LABELS[to] ?? statusLabel(to);
-    if (to === 'on_hold' || to === 'cancelled') return MOVE_LABELS[to] ?? statusLabel(to);
+    if (project.status === 'on_hold') return `استئناف (${label(to)})`;
+    if (isForward(to)) return MOVE_LABELS[to] ?? label(to);
+    if (to === 'on_hold' || to === 'cancelled') return MOVE_LABELS[to] ?? label(to);
     if (to === 'text_draft') return 'تعديل النص (تعديل نطاق)';
-    return `رجوع إلى «${statusLabel(to)}»`;
+    return `رجوع إلى «${label(to)}»`;
   };
   const ctx = {
     from: project.status,
@@ -137,6 +144,7 @@ export default async function StudioProjectPage({
   };
 
   const owner = OWNER_LABELS[stageOwner(project.status)];
+  const task = tasks.get(project.id);
   const title = project.childName ? `قصة ${project.childName}` : 'قصة مخصّصة';
 
   return (
@@ -146,20 +154,33 @@ export default async function StudioProjectPage({
       {/* الحالة */}
       <section aria-label="حالة المشروع" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge label={statusLabel(project.status)} type={statusTone(project.status)} />
+          <StatusBadge label={label(project.status)} type={statusTone(project.status)} />
           {!isTerminal(project.status) && project.status !== 'on_hold' && (
             <span className="text-xs font-medium text-slate-500">المرحلة عند: {owner}</span>
           )}
           {project.status === 'on_hold' && project.heldFrom && (
-            <span className="text-xs font-medium text-slate-500">كان في: {statusLabel(project.heldFrom)}</span>
+            <span className="text-xs font-medium text-slate-500">كان في: {label(project.heldFrom)}</span>
           )}
-          {project.dueAt && <span className="text-xs font-bold text-slate-500">الموعد: {formatDate(project.dueAt)}</span>}
+          {task && !isTerminal(project.status) && (
+            <Link href={`/dashboard/admin/tasks/${task.id}`} aria-label="تفاصيل مهمة المرحلة وتاريخها">
+              <DeadlineChip d={task.deadline} dueAt={task.dueAt} />
+            </Link>
+          )}
+          {project.dueAt && (
+            <span className="text-xs font-bold text-slate-500">تسليم المشروع: {formatDate(project.dueAt)}</span>
+          )}
           {canOrders && (
             <Link href={`/dashboard/admin/orders/${project.orderId}`} className="text-xs font-bold text-slate-600 underline">
               فتح الطلب
             </Link>
           )}
         </div>
+
+        {stages.hints[project.status] && !isTerminal(project.status) && (
+          <p className="rounded-2xl bg-slate-50 p-3 text-xs font-medium leading-6 text-slate-600">
+            {stages.hints[project.status]}
+          </p>
+        )}
 
         {stageIndex >= 0 && (
           <ol className="flex flex-wrap gap-1.5" aria-label="مراحل الإنتاج">
@@ -175,7 +196,7 @@ export default async function StudioProjectPage({
                       : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {STATUS_LABELS[s]}
+                {label(s)}
               </li>
             ))}
           </ol>
