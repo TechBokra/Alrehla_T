@@ -36,7 +36,8 @@ export function PaymentSettingsClient({
 }) {
   const [provider, setProvider] = useState<PaymentProvider>(settings.provider);
   const [methods, setMethods] = useState<GatewayMethod[]>(settings.methods);
-  const [feesPassThrough, setFeesPassThrough] = useState(settings.feesPassThrough);
+  // بيتحفظ زي ما هو عشان نرجّعه لو البوابة سمحت بيه لاحقًا — مش بيتبعت دلوقتي.
+  const [feesPassThrough] = useState(settings.feesPassThrough);
   const [downMessage, setDownMessage] = useState(settings.gatewayDownMessage);
 
   const [wallet, setWallet] = useState(savedWallet);
@@ -198,12 +199,14 @@ export function PaymentSettingsClient({
             )}
           </fieldset>
 
-          <Checkbox
-            label="إضافة رسوم البوابة على العميل"
-            hint="لو مقفولة، إحنا بنتحمل الرسوم والعميل بيدفع السعر المعلن بالظبط."
-            checked={feesPassThrough}
-            onChange={(e) => setFeesPassThrough(e.target.checked)}
-          />
+          {/* ⚠️ الرسوم والضريبة مابيتبعتوش من هنا: البوابة بترفض الطلب لو
+              الكائن ناقص، وتحديد تحصيل الضريبة قرار مالي مكانه حسابك
+              عندهم مش كود الموقع. */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium leading-relaxed text-slate-600">
+            <span className="font-bold text-slate-800">الرسوم والضريبة:</span> بتتحدد من حسابك
+            في XPay (الإعدادات ← الرسوم والضريبة)، مش من هنا. قرارك الحالي إن الموقع
+            بيتحمّل الرسوم والعميل بيدفع السعر المعلن — اتأكد إن ده نفس الإعداد عندهم.
+          </div>
         </>
       )}
 

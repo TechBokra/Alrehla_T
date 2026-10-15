@@ -69,7 +69,6 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
     amount: order.total_amount,
     description: `طلب رقم ${order.payment_reference ?? order.id.slice(0, 8)}`,
     methods: settings.methods,
-    feesPassThrough: settings.feesPassThrough,
     successUrl: `${SITE_URL}/enha-lak/order-confirmation?id=${order.id}`,
     cancelUrl: `${SITE_URL}/account/orders/enha-lak/${order.id}/pay`,
     customer: {

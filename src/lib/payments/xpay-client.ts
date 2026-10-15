@@ -38,7 +38,6 @@ export type CheckoutSessionInput = {
   amount: number;
   description: string;
   methods: GatewayMethod[];
-  feesPassThrough: boolean;
   successUrl: string;
   cancelUrl: string;
   customer?: { name?: string; email?: string; phone?: string };
@@ -89,7 +88,10 @@ export async function createCheckoutSession(
       },
     ],
     paymentMethodTypes: input.methods,
-    feeConfig: { feesPassThrough: input.feesPassThrough },
+    // ⚠️ **`feeConfig` مابيتبعتش عن قصد.** البوابة بترفض الكائن الناقص
+    //    (`vatCollectionEnabled` مطلوب جوّاه)، وتحديد تحصيل الضريبة من هنا
+    //    قرار مالي مش مكانه كود. من غيره بتسري إعدادات حسابك في XPay:
+    //    لوحة XPay ← الإعدادات ← الرسوم والضريبة.
     afterCompletion: { type: 'redirect', redirect: { url: input.successUrl } },
     cancelUrl: input.cancelUrl,
     // ⚠️ ده اللي بيربط الدفعة بالطلب. الويبهوك بيقراه، ومن غيره
