@@ -3,11 +3,17 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getStudioMode, listStudioProjects, listStudioStaff } from '@/data/domains/(admin)/studio/queries';
+import {
+  getStudioMode,
+  getStudioStages,
+  getStudioTasks,
+  listStudioProjects,
+  listStudioStaff,
+} from '@/data/domains/(admin)/studio/queries';
+import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import {
   OWNER_LABELS,
-  STATUS_LABELS,
   STUDIO_PIPELINE,
   isStudioStatus,
   isTerminal,
@@ -40,7 +46,14 @@ export default async function StudioInboxPage({
   const view: View = VIEWS.some((v) => v.id === sp.view) ? (sp.view as View) : 'active';
   const statusFilter = sp.status && isStudioStatus(sp.status) ? sp.status : null;
 
-  const [mode, result, staff] = await Promise.all([getStudioMode(), listStudioProjects(), listStudioStaff()]);
+  const [mode, result, staff, stages, tasks] = await Promise.all([
+    getStudioMode(),
+    listStudioProjects(),
+    listStudioStaff(),
+    getStudioStages(),
+    getStudioTasks(),
+  ]);
+  const label = (s: string) => statusLabel(s, stages.labels);
   const names = new Map(staff.map((s) => [s.id, s.name]));
   const all = result.success ? result.data : [];
 
@@ -89,7 +102,10 @@ export default async function StudioInboxPage({
 
       {/* عدّاد المراحل — كل رقم رابط فلتر */}
       <nav aria-label="المراحل" className="flex flex-wrap gap-2">
-        {STUDIO_PIPELINE.filter((s) => s !== 'delivered').map((s) => {
+        {STUDIO_PIPELINE.filter(
+          // التبويب المخفي من الإعدادات مابيختفيش وفيه مشاريع (عشان ماحدّش يتوه).
+          (s) => s !== 'delivered' && (!stages.hiddenTabs.includes(s) || (counts.get(s) ?? 0) > 0 || statusFilter === s),
+        ).map((s) => {
           const n = counts.get(s) ?? 0;
           const active = statusFilter === s;
           return (
@@ -101,7 +117,7 @@ export default async function StudioInboxPage({
                 active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700'
               }`}
             >
-              {STATUS_LABELS[s]} · {n.toLocaleString('ar-EG')}
+              {label(s)} · {n.toLocaleString('ar-EG')}
             </Link>
           );
         })}
@@ -126,7 +142,7 @@ export default async function StudioInboxPage({
         })}
         {statusFilter && (
           <Link href="/dashboard/admin/studio" className="min-h-[44px] rounded-xl px-5 py-2.5 text-sm font-bold text-slate-600 underline">
-            إلغاء فلتر «{statusLabel(statusFilter)}»
+            إلغاء فلتر «{label(statusFilter)}»
           </Link>
         )}
       </div>
@@ -139,6 +155,7 @@ export default async function StudioInboxPage({
         <ul className="space-y-3">
           {shown.map((p) => {
             const owner = OWNER_LABELS[stageOwner(p.status)];
+            const tk = tasks.get(p.id);
             return (
               <li key={p.id}>
                 <Link
@@ -161,14 +178,15 @@ export default async function StudioInboxPage({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
-                    <StatusBadge label={statusLabel(p.status)} type={statusTone(p.status)} />
+                    <StatusBadge label={label(p.status)} type={statusTone(p.status)} />
                     {p.orderClosed && <StatusBadge label="الطلب اتلغى — محتاج قرار" type="danger" />}
                     {!isTerminal(p.status) && p.status !== 'on_hold' && (
                       <span className="text-xs font-medium text-slate-500">عند: {owner}</span>
                     )}
+                    {tk && !isTerminal(p.status) && <DeadlineChip d={tk.deadline} dueAt={tk.dueAt} />}
                     {p.dueAt && (
                       <span className={`text-xs font-bold ${p.overdue ? 'text-rose-700' : 'text-slate-500'}`}>
-                        {p.overdue ? 'متأخر · ' : 'الموعد: '}
+                        {p.overdue ? 'تسليم المشروع متأخر · ' : 'تسليم المشروع: '}
                         {formatDate(p.dueAt)}
                       </span>
                     )}

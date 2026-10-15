@@ -3,7 +3,8 @@ import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Field, FormActions, Select, SubmitButton } from '@/components/forms/Form';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { STUDIO_ROLE_NAMES, getStudioReadiness } from '@/data/domains/(admin)/studio/queries';
+import { STUDIO_ROLE_NAMES, getStudioReadiness, getStudioStages } from '@/data/domains/(admin)/studio/queries';
+import { TaskStepsEditor } from '@/components/admin/TaskStepsEditor';
 import { backfillStudioProjects, saveStudioMode } from '@/actions/studio';
 import { hasAdminPermission } from '@/lib/utils';
 
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function StudioSettingsPage() {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageStudio')) return <Unauthorized />;
-  const ready = await getStudioReadiness();
+  const [ready, stages] = await Promise.all([getStudioReadiness(), getStudioStages()]);
   const mode = ready.mode;
 
   return (
@@ -117,6 +118,26 @@ export default async function StudioSettingsPage() {
             <SubmitButton>حفظ</SubmitButton>
           </FormActions>
         </ActionForm>
+      </section>
+
+      <section id="stages" aria-labelledby="stages-h" className="space-y-4">
+        <h2 id="stages-h" className="text-xl font-black text-slate-800">
+          مراحل الاستوديو (التبويبات)
+        </h2>
+        <div className="space-y-2 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm font-medium leading-relaxed text-slate-700">
+          <p>
+            هنا بتدير كل مرحلة بتظهر كتبويب في صندوق الاستوديو: <strong>اسمها</strong> (بيتغيّر في الصندوق وصفحة المشروع
+            وعنوان المهمة)، و<strong>شرحها</strong>، و<strong>مهلتها بالساعات</strong> (منها موعد المهمة وإشعارات «قرب» و«فات»
+            الموعد)، و<strong>صاحبها</strong> (المحرر / المشرف الفني / مسؤولو الإنتاج — منه بتروح المهمة)، و<strong>ظهور
+            تبويبها</strong>.
+          </p>
+          <p>
+            ⚠️ ترتيب المراحل والانتقالات المسموحة بينها (والشروط زي موافقة العميل واعتماد الشخصية) <strong>ثابتة ومحمية في
+            قاعدة البيانات</strong> — إضافة مرحلة جديدة أو حذف مرحلة تغيير في الكود مش إعداد. المهلة بتتطبّق على المشاريع اللي
+            بتدخل المرحلة بعد الحفظ؛ والموقوف من غير موعد.
+          </p>
+        </div>
+        <TaskStepsEditor line="studio" steps={stages.steps} />
       </section>
 
       <section aria-labelledby="how" className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-6">

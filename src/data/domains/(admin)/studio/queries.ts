@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import type { QueryResult } from '@/data/query-result';
 import type { Json } from '@/types/supabase';
 import { isStudioStatus, type StudioStatus } from '@/lib/studio';
+import { getTaskSteps } from '@/data/domains/(admin)/tasks/queries';
+import { deadlineState, type DeadlineState, type TaskStep } from '@/lib/work-tasks';
 
 /**
  * قراءة استوديو القصص (لوحة الإدارة بس).
@@ -412,4 +414,71 @@ export async function getStudioReadiness(): Promise<StudioReadiness> {
     projectCount: tablesReady ? (probe.count ?? 0) : 0,
     backfillPending: tablesReady && typeof pending.data === 'number' ? pending.data : 0,
   };
+}
+
+
+export type StudioStages = {
+  /** كل مرحلة في الكتالوج بترتيبها (فاضية لو الـ migration لسه ماتطبّقتش). */
+  steps: TaskStep[];
+  /** الأسماء اللي اتعدّلت — بتتمرّر لـ`statusLabel`. */
+  labels: Record<string, string>;
+  hints: Record<string, string>;
+  /** مراحل تبويبها مخفي (لو مفيهاش مشاريع). */
+  hiddenTabs: string[];
+};
+
+/** مراحل الاستوديو من الكتالوج (الاسم/الشرح/ظهور التبويب). أي فشل = الأسماء الأصلية. */
+export async function getStudioStages(): Promise<StudioStages> {
+  const steps = (await getTaskSteps('studio')) ?? [];
+  return {
+    steps,
+    labels: Object.fromEntries(steps.map((s) => [s.step, s.label])),
+    hints: Object.fromEntries(steps.filter((s) => s.hint).map((s) => [s.step, s.hint as string])),
+    hiddenTabs: steps.filter((s) => !s.showTab).map((s) => s.step),
+  };
+}
+
+export type StudioTaskInfo = {
+  id: string;
+  projectId: string;
+  status: 'open' | 'done';
+  dueAt: string | null;
+  stepChangedAt: string;
+  assigneeIds: string[];
+  /** حالة موعد المرحلة الحالية (محسوبة وقت الطلب). */
+  deadline: DeadlineState;
+};
+
+/** مهام المشاريع (موعد المرحلة الحالية ومسؤولها) — مفتاحها رقم المشروع. */
+export async function getStudioTasks(): Promise<Map<string, StudioTaskInfo>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('work_tasks')
+    .select('*')
+    .eq('line', 'studio')
+    .eq('status', 'open')
+    .limit(LIST_LIMIT);
+  if (error) {
+    console.error('getStudioTasks', error.message);
+    return new Map();
+  }
+  const now = Date.now();
+  return new Map(
+    (data ?? []).map((t) => {
+      const dueAt = t.due_at ?? null;
+      const stepChangedAt = t.step_changed_at ?? t.created_at;
+      return [
+        t.source_id,
+        {
+          id: t.id,
+          projectId: t.source_id,
+          status: 'open' as const,
+          dueAt,
+          stepChangedAt,
+          assigneeIds: t.assignee_ids ?? [],
+          deadline: deadlineState({ status: 'open', dueAt, stepChangedAt }, now),
+        },
+      ] as const;
+    }),
+  );
 }

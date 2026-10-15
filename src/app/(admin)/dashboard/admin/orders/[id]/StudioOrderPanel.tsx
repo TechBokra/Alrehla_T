@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { SubmitButton } from '@/components/forms/Form';
 import { StatusBadge } from '@/components/StatusBadge';
-import { getStudioOrderPanel } from '@/data/domains/(admin)/studio/queries';
+import { getStudioOrderPanel, getStudioStages } from '@/data/domains/(admin)/studio/queries';
 import { startStudioProject } from '@/actions/studio';
 import { statusLabel, statusTone } from '@/lib/studio';
 
@@ -21,7 +21,7 @@ export async function StudioOrderPanel({
   paid: boolean;
   canManage: boolean;
 }) {
-  const data = await getStudioOrderPanel(orderId);
+  const [data, stages] = await Promise.all([getStudioOrderPanel(orderId), getStudioStages()]);
   const canStart = canManage && paid && data.mode === 'on' && data.startable.length > 0;
   if (data.projects.length === 0 && !canStart) return null;
 
@@ -32,7 +32,7 @@ export async function StudioOrderPanel({
       </h4>
       {data.projects.map((p) => (
         <div key={p.id} className="flex flex-wrap items-center justify-between gap-3">
-          <StatusBadge label={statusLabel(p.status)} type={statusTone(p.status)} />
+          <StatusBadge label={statusLabel(p.status, stages.labels)} type={statusTone(p.status)} />
           <Link href={`/dashboard/admin/studio/${p.id}`} className="text-sm font-bold text-slate-700 underline">
             فتح المشروع في الاستوديو
           </Link>

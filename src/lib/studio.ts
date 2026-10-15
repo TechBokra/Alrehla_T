@@ -82,7 +82,13 @@ export function isStudioStatus(v: unknown): v is StudioStatus {
   return typeof v === 'string' && (STUDIO_STATUSES as readonly string[]).includes(v);
 }
 
-export function statusLabel(v: string): string {
+/**
+ * اسم المرحلة. `overrides` = الأسماء اللي مسؤول الإنتاج غيّرها من «إعدادات الاستوديو»
+ * (جدول `task_steps`)؛ من غيرها الأسماء الأصلية دي.
+ */
+export function statusLabel(v: string, overrides?: Partial<Record<string, string>>): string {
+  const custom = overrides?.[v];
+  if (custom) return custom;
   return isStudioStatus(v) ? STATUS_LABELS[v] : v;
 }
 
