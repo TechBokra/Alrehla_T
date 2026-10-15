@@ -98,7 +98,13 @@ export function PersonalizationWizard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { addItem } = useCart();
+  const { addItem, items, replaceItem } = useCart();
+
+  // ⚠️ **وضع التعديل**: العميل جاي من السلة يصلّح بند موجود. من غيره
+  //    كان لازم يحذف البند ويعيد كل خطوات التخصيص من الأول عشان يغيّر
+  //    حرف في اسم الطفل.
+  const editId = searchParams?.get('edit') ?? null;
+  const editing = editId ? items.find((i) => i.id === editId) ?? null : null;
   
   const currentStep = parseInt(searchParams?.get('step') || '1', 10);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -139,6 +145,35 @@ export function PersonalizationWizard({
   const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
+    // بند السلة أولى من الحالة المحفوظة: العميل طلب تعديل بند بعينه.
+    if (editing) {
+      const data = (editing.customizationData ?? {}) as Record<string, unknown>;
+      const savedGoal = typeof data.storyGoal === 'string' ? data.storyGoal : '';
+      // «هدف آخر» بيتحفظ بنص العميل، فلو مش من القايمة بنرجّعه لخانة الحر.
+      const knownGoal = goals.some((g) => g.label === savedGoal);
+      reset({
+        ...methods.getValues(),
+        familyMemberId: typeof data.childId === 'string' && data.childId ? data.childId : undefined,
+        heroDescription: typeof data.heroDescription === 'string' ? data.heroDescription : '',
+        dedicationText: typeof data.dedicationText === 'string' ? data.dedicationText : '',
+        familyMemberNames: typeof data.familyMemberNames === 'string' ? data.familyMemberNames : '',
+        storyGoal: savedGoal ? (knownGoal ? savedGoal : 'other') : '',
+        customStoryGoal: savedGoal && !knownGoal ? savedGoal : '',
+        writingStyle: typeof data.writingStyle === 'string'
+          ? (data.writingStyle.split(':')[0] as never)
+          : undefined,
+        writingDialect: typeof data.writingStyle === 'string' && data.writingStyle.includes(':')
+          ? data.writingStyle.split(':')[1]
+          : '',
+        format: editing.format ?? 'printed',
+        selectedAddonIds: editing.addonIds ?? [],
+        customizedAddonIds: editing.customizedAddonIds ?? [],
+        extraFields: {},
+      } as never);
+      setIsLoaded(true);
+      return;
+    }
+
     const saved = sessionStorage.getItem(`wizard_state_${product.id}`);
     if (saved) {
       try {
@@ -342,10 +377,11 @@ export function PersonalizationWizard({
     // اختيار في النموذج (جلسة قديمة كان ممكن يكون فيها «بدون تخصيص»).
     const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
 
-    // 2. Add to cart
-    addItem({
-      id: `${product.id}-${crypto.randomUUID()}`,
+    // 2. Add to cart — أو استبدال البند اللي جاي يتعدّل.
+    const line = {
+      id: editing ? editing.id : `${product.id}-${crypto.randomUUID()}`,
       productId: product.id,
+      productSlug: product.slug,
       name: format === 'printed' ? product.name : `${product.name} — ${FORMAT_LABELS[format]}`,
       // للعرض بس — القاعدة بتسعّر من الجدول. ⚠️ **بالإضافات**: كان سعر
       // القصة لوحده، والعميل يتقاله «حوّل» رقمًا أقل من طلبه.
@@ -378,7 +414,10 @@ export function PersonalizationWizard({
       addonIds: data.selectedAddonIds,
       // القاعدة بتضيف سعر التخصيص للإضافات دي وحدها.
       customizedAddonIds,
-    });
+    };
+
+    if (editing) replaceItem(editing.id, line);
+    else addItem(line);
 
     // Clear session storage
     sessionStorage.removeItem(`wizard_state_${product.id}`);

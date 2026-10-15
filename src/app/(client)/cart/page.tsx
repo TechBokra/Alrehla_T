@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 import CartClient from './CartClient';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,6 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function CartPage() {
-  return <CartClient />;
+// ⚠️ إيقاف التوصيل بيتغيّر من اللوحة في أي لحظة، فالصفحة ماتتخزّنش.
+export const dynamic = 'force-dynamic';
+
+export default async function CartPage() {
+  // ⚠️ العميل كان بيعرف إن التوصيل متوقف **بعد** ما يخلّص تخصيص القصة
+  //    ويوصل لآخر خطوة في الدفع. دلوقتي بيعرف وهو في السلة.
+  const delivery = await getDeliveryCatalog();
+  return <CartClient deliveryPaused={delivery.pause.paused} pauseMessage={delivery.pause.message} />;
 }

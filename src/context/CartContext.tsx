@@ -19,6 +19,12 @@ export type CartItem = {
    * الصح. الرقم ده هو اللي بيتبعت للخادم.
    */
   productId: string;
+  /**
+   * اسم المنتج في الرابط — عشان زرار «تعديل» في السلة يرجّع العميل
+   * لنفس شاشة التخصيص. البنود المحفوظة في المتصفح قبل الخانة دي
+   * مالهاش، وزرار التعديل بيختفي عنها بدل ما يوديه لرابط مكسور.
+   */
+  productSlug?: string;
   name: string;
   price: number;
   quantity: number;
@@ -46,6 +52,8 @@ interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
+  /** يستبدل بند موجود ببند معدّل — بيحافظ على ترتيبه في السلة. */
+  replaceItem: (id: string, item: CartItem) => void;
   updateQuantity: (id: string, quantity: number) => void;
   /** Emptying the cart after an order. The checkout used to carry the comment
    *  "In real app, clearCart() would be here" — so every completed order left
@@ -120,6 +128,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (quantity <= 0) removeItem(id);
   };
 
+  /**
+   * ⚠️ الاستبدال في مكانه، مش حذف وإضافة: العميل اللي بيعدّل بند
+   *    مايلاقيهوش نط لآخر السلة ويفتكر إنه اتضاف مرتين.
+   */
+  const replaceItem = (id: string, item: CartItem) => {
+    setItems((prev) => {
+      const index = prev.findIndex((i) => i.id === id);
+      if (index === -1) return [...prev, item];
+      const next = [...prev];
+      next[index] = item;
+      return next;
+    });
+  };
+
   const clearCart = () => setItems([]);
 
   const itemCount = items.length;
@@ -127,7 +149,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, itemCount, cartTotal }}
+      value={{ items, addItem, removeItem, replaceItem, updateQuantity, clearCart, itemCount, cartTotal }}
     >
       {children}
     </CartContext.Provider>
