@@ -8,6 +8,7 @@ import { NavLinks, NavLinksMobile } from '@/components/layout/NavLinks';
 import { NavCollapseOnScroll } from '@/components/layout/NavCollapseOnScroll';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { slotImageUrl } from '@/lib/cloudinary';
+import { aqlamNavVisible } from '@/lib/aqlam/settings';
 
 /**
  * الهيدر.
@@ -64,7 +65,7 @@ export default async function Header() {
             )}
           </Link>
 
-          <NavLinks />
+          <NavLinks showAqlam={aqlamNavVisible(settings.aqlam)} />
         </div>
 
         <div className="flex items-center gap-3">
@@ -82,7 +83,7 @@ export default async function Header() {
              والمراقب مكوّن عميل صغير مابيرسمش حاجة — فالهيدر
              بيفضل **مكوّن خادم** زي ما هو. */}
       <div className="nav-collapsible pointer-events-auto">
-        <NavLinksMobile />
+        <NavLinksMobile showAqlam={aqlamNavVisible(settings.aqlam)} />
       </div>
       <NavCollapseOnScroll />
     </div>

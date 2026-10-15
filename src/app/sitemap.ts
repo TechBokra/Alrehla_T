@@ -7,6 +7,9 @@ import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { aqlamNavVisible } from '@/lib/aqlam/settings';
+import { listIndexablePostIds } from '@/data/domains/(shared)/aqlam/queries';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
@@ -98,8 +101,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
+  // أقلام الرحلة: بس لما الوضع «عام». والنصوص المسموح بفهرستها فقط (١٢+ وإذن الكاتب).
+  // لو القراءة فشلت، الخريطة تكمل من غيرها — مش هنوقّع الـsitemap كله.
+  let aqlamRoutes: MetadataRoute.Sitemap = [];
+  try {
+    if (aqlamNavVisible((await getSiteSettings()).aqlam)) {
+      const ids = await listIndexablePostIds();
+      aqlamRoutes = [
+        { url: `${baseUrl}/aqlam`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.6 },
+        ...ids.map((p) => ({
+          url: `${baseUrl}/aqlam/p/${p.id}`,
+          lastModified: new Date(p.publishedAt || new Date()),
+          changeFrequency: 'monthly' as const,
+          priority: 0.5,
+        })),
+      ];
+    }
+  } catch (error) {
+    console.error('sitemap: aqlam routes skipped', error);
+  }
+
   return [
     ...staticRoutes,
+    ...aqlamRoutes,
     ...packageRoutes,
     ...serviceRoutes,
     ...blogRoutes,

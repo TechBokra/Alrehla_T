@@ -282,6 +282,445 @@ export type Database = {
           },
         ]
       }
+      aqlam_challenges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          is_active: boolean
+          prompt: string
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          prompt: string
+          starts_at: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          prompt?: string
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_challenges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_comments: {
+        Row: {
+          author_display_name: string
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_instructor: boolean
+          post_id: string
+          status: string
+        }
+        Insert: {
+          author_display_name: string
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_instructor?: boolean
+          post_id: string
+          status?: string
+        }
+        Update: {
+          author_display_name?: string
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_instructor?: boolean
+          post_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "aqlam_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_guardian_settings: {
+        Row: {
+          child_id: string
+          comments_allowed: boolean
+          guardian_id: string
+          publishing_allowed: boolean
+          updated_at: string
+        }
+        Insert: {
+          child_id: string
+          comments_allowed?: boolean
+          guardian_id: string
+          publishing_allowed?: boolean
+          updated_at?: string
+        }
+        Update: {
+          child_id?: string
+          comments_allowed?: boolean
+          guardian_id?: string
+          publishing_allowed?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_guardian_settings_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_guardian_settings_guardian_id_fkey"
+            columns: ["guardian_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_posts: {
+        Row: {
+          age_band: string | null
+          age_group: string
+          allow_indexing: boolean
+          body: string
+          category: string
+          challenge_id: string | null
+          comment_count: number
+          comments_enabled: boolean
+          consent_at: string
+          consent_version: string
+          created_at: string
+          display_name: string
+          featured_at: string | null
+          guardian_approved_at: string | null
+          guardian_approved_by: string | null
+          id: string
+          name_mode: string
+          published_at: string | null
+          reaction_count: number
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          share_card_url: string | null
+          source_document_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          writer_id: string
+        }
+        Insert: {
+          age_band?: string | null
+          age_group: string
+          allow_indexing?: boolean
+          body: string
+          category: string
+          challenge_id?: string | null
+          comment_count?: number
+          comments_enabled?: boolean
+          consent_at?: string
+          consent_version: string
+          created_at?: string
+          display_name: string
+          featured_at?: string | null
+          guardian_approved_at?: string | null
+          guardian_approved_by?: string | null
+          id?: string
+          name_mode: string
+          published_at?: string | null
+          reaction_count?: number
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_card_url?: string | null
+          source_document_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          writer_id: string
+        }
+        Update: {
+          age_band?: string | null
+          age_group?: string
+          allow_indexing?: boolean
+          body?: string
+          category?: string
+          challenge_id?: string | null
+          comment_count?: number
+          comments_enabled?: boolean
+          consent_at?: string
+          consent_version?: string
+          created_at?: string
+          display_name?: string
+          featured_at?: string | null
+          guardian_approved_at?: string | null
+          guardian_approved_by?: string | null
+          id?: string
+          name_mode?: string
+          published_at?: string | null
+          reaction_count?: number
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_card_url?: string | null
+          source_document_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_posts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "aqlam_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_posts_guardian_approved_by_fkey"
+            columns: ["guardian_approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_posts_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_posts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_posts_writer_id_fkey"
+            columns: ["writer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "aqlam_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          status: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          reason: string
+          reporter_id: string
+          status?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_reports_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_sanctions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_sanctions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_sanctions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_writer_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
+          created_at: string
+          pen_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          pen_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          pen_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_writer_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_rules: {
         Row: {
           created_at: string
@@ -3160,9 +3599,108 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      aqlam_public_comments: {
+        Row: {
+          author_display_name: string | null
+          body: string | null
+          created_at: string | null
+          id: string | null
+          is_instructor: boolean | null
+          post_id: string | null
+        }
+        Relationships: []
+      }
+      aqlam_public_posts: {
+        Row: {
+          age_band: string | null
+          age_group: string | null
+          allow_indexing: boolean | null
+          body: string | null
+          category: string | null
+          challenge_id: string | null
+          comment_count: number | null
+          comments_enabled: boolean | null
+          display_name: string | null
+          excerpt: string | null
+          featured_at: string | null
+          id: string | null
+          published_at: string | null
+          reaction_count: number | null
+          share_card_url: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      aqlam_add_comment: {
+        Args: { p_body: string; p_post: string }
+        Returns: Json
+      }
+      aqlam_guardian_decide: {
+        Args: { p_approve: boolean; p_post: string }
+        Returns: Json
+      }
+      aqlam_handle_report: {
+        Args: { p_report: string; p_status: string }
+        Returns: Json
+      }
+      aqlam_moderate_comment: {
+        Args: { p_action: string; p_comment: string }
+        Returns: Json
+      }
+      aqlam_moderate_post: {
+        Args: { p_action: string; p_post: string; p_reason?: string }
+        Returns: Json
+      }
+      aqlam_publish_post: {
+        Args: {
+          p_allow_indexing: boolean
+          p_birth_date: string | null
+          p_body: string
+          p_category: string
+          p_comments_enabled: boolean
+          p_consent_version: string
+          p_name_mode: string
+          p_pen_name: string | null
+          p_source_document_id: string | null
+          p_title: string
+        }
+        Returns: Json
+      }
+      aqlam_my_status: {
+        Args: never
+        Returns: Json
+      }
+      aqlam_remove_own_post: {
+        Args: { p_post: string }
+        Returns: Json
+      }
+      aqlam_report: {
+        Args: {
+          p_details?: string
+          p_reason: string
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: Json
+      }
+      aqlam_sanction_user: {
+        Args: { p_kind: string; p_reason: string; p_user: string }
+        Returns: Json
+      }
+      aqlam_set_guardian_settings: {
+        Args: {
+          p_child: string
+          p_comments_allowed: boolean
+          p_publishing_allowed: boolean
+        }
+        Returns: Json
+      }
+      aqlam_set_reaction: {
+        Args: { p_kind: string; p_on: boolean; p_post: string }
+        Returns: Json
+      }
       effective_price: {
         Args: { p_at?: string; p_base: number; p_id: string; p_type: string }
         Returns: number

@@ -23,6 +23,7 @@ export type NotificationEvent =
   | 'support'
   | 'account_deletion'
   | 'withdrawal'
+  | 'aqlam'
   | 'broadcast';
 
 export const NOTIFICATION_EVENTS: {
@@ -101,6 +102,12 @@ export const NOTIFICATION_EVENTS: {
     label: 'طلبات السحب',
     description: 'تحديث حالة طلب سحب أرباح.',
     audience: 'المدرب',
+  },
+  {
+    key: 'aqlam',
+    label: 'أقلام الرحلة',
+    description: 'نص بانتظار موافقة ولي الأمر أو مراجعة الإدارة، ونتيجة المراجعة، وإخفاء تلقائي بعد بلاغات.',
+    audience: 'الطرفين',
   },
   {
     key: 'broadcast',

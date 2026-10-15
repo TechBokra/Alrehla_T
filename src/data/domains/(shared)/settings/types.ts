@@ -2,6 +2,7 @@ import type { SessionRecordingSettings } from '@/lib/session-recording';
 import type { WatermarkSettings } from '@/lib/watermark-settings';
 import type { MediaCleanupSettings } from '@/lib/media-cleanup';
 import type { SiteImages } from '@/lib/site-images';
+import type { AqlamSettings } from '@/lib/aqlam/settings';
 
 // Import from auth if needed
 
@@ -67,6 +68,12 @@ export interface SiteSettings {
    * بعد المدة دي من قفل الطلب أو مراجعة المستند (`lib/private-files`).
    */
   fileRetentionDays: number;
+  /**
+   * تشغيل «أقلام الرحلة» (`lib/aqlam/settings`). متخزّن جوّه نفس صف
+   * `general` اللي كل صفحة بتقراه أصلًا، فالعلم مايكلّفش استعلامًا.
+   * الافتراضي **مقفول**.
+   */
+  aqlam: AqlamSettings;
   /** Site imagery, by slot. See src/lib/site-images.ts. */
   images: SiteImages;
 }

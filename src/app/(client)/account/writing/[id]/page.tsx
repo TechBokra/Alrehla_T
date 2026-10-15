@@ -5,6 +5,7 @@ import { getStudentSessions } from '@/data/domains/(client)/sessions/queries';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { DocumentEditorClient } from '@/app/(admin)/dashboard/student/portfolio/[id]/DocumentEditorClient';
 import { DocumentFilesSection } from '@/components/files/DocumentFilesSection';
+import { AqlamPublishLink } from '@/components/writing/AqlamPublishLink';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,7 @@ export default async function AccountDocumentPage({ params }: { params: Promise<
         hasInstructor={hasInstructor}
         basePath="/account/writing"
         filesSlot={document ? <DocumentFilesSection document={document} viewer="writer" /> : undefined}
+        publishSlot={document ? <AqlamPublishLink documentId={document.id} /> : undefined}
       />
     </div>
   );
