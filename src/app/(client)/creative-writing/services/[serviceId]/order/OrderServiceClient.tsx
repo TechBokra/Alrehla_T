@@ -9,10 +9,14 @@ import { BRIEF_MAX } from '@/lib/service-details';
 import { formatPrice } from '@/lib/utils';
 import { createServiceOrder, submitServiceOrderPayment } from '@/actions/service-orders';
 import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/PaymentProofForm';
+import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
+import type { PaymentAvailability } from '@/lib/payments/settings';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
 
 interface Props {
+  /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
+  payment: PaymentAvailability;
   /** Read from site settings — it used to be the placeholder {paymentWalletNumber}. */
   paymentWalletNumber: string;
   /** InstaPay QR from site settings, when one has been uploaded. */
@@ -46,12 +50,17 @@ export function OrderServiceClient({
   providerId,
   providerName,
   amount,
+  payment,
   paymentWalletNumber,
   paymentQrUrl,
   presetChildId,
   filesNote,
 }: Props) {
   const router = useRouter();
+  // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
+  //    فبنفصله هنا مرة واحدة (نفس نمط `CheckoutClient`).
+  const gateway = payment.mode === 'gateway' ? payment : null;
+  const manualNotice = payment.mode === 'manual' ? payment.notice : '';
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [placed, setPlaced] = useState<{ id: string; reference: string; amount: number } | null>(null);
@@ -105,11 +114,13 @@ export function OrderServiceClient({
   };
 
   /** الخطوة التانية: الإيصال بعد التحويل. */
-  const handleReceipt = (payment: { method: PaymentMethod; receiptUrl: string }) => {
+  // ⚠️ المعامل اسمه `proof` مش `payment`: بقى فيه خاصية اسمها `payment`
+  //    (إعدادات البوابة)، والتظليل هنا كان هيخلّي القراية مضلّلة.
+  const handleReceipt = (proof: { method: PaymentMethod; receiptUrl: string }) => {
     if (!placed) return;
     setError(null);
     startTransition(async () => {
-      const result = await submitServiceOrderPayment(placed.id, payment);
+      const result = await submitServiceOrderPayment(placed.id, proof);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -213,17 +224,33 @@ export function OrderServiceClient({
         </div>
       )}
 
-      {placed ? (
-        <PaymentProofForm
-          reference={placed.reference}
-          // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+      {placed && gateway ? (
+        /* ⚠️ المبلغ من القاعدة (بعد الخصم) — مش من الشاشة. */
+        <GatewayPayButton
+          orderId={placed.id}
+          kind="service_order"
           amount={placed.amount}
-          walletNumber={paymentWalletNumber}
-          qrUrl={paymentQrUrl}
-          accent="emerald"
-          busy={isPending}
-          onSubmit={handleReceipt}
+          methods={gateway.methods}
+          reference={placed.reference}
         />
+      ) : placed ? (
+        <>
+          {manualNotice && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+              {manualNotice}
+            </div>
+          )}
+          <PaymentProofForm
+            reference={placed.reference}
+            // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+            amount={placed.amount}
+            walletNumber={paymentWalletNumber}
+            qrUrl={paymentQrUrl}
+            accent="emerald"
+            busy={isPending}
+            onSubmit={handleReceipt}
+          />
+        </>
       ) : (
         <form onSubmit={handleRegister} className="flex flex-col gap-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-8">
@@ -332,8 +359,9 @@ export function OrderServiceClient({
           {/* كود الخصم اتنقل فوق لملخّص الطلب، جنب الإجمالي. */}
 
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-sm font-medium text-slate-600">
-            الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الطلب الأول، وهيظهرلك
-            رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.
+            {gateway
+              ? 'هتسجّل الطلب الأول، وبعدها تتحوّل لصفحة دفع آمنة تدفع فيها بالبطاقة أو المحفظة. بيانات بطاقتك مابتعدّيش على موقعنا.'
+              : 'الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الطلب الأول، وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.'}
           </div>
 
           <button
@@ -342,7 +370,11 @@ export function OrderServiceClient({
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 font-black text-white shadow-lg transition-colors hover:bg-emerald-700 disabled:opacity-70"
           >
             <CheckCircle2 className="h-5 w-5" />
-            {isPending ? 'جاري تسجيل الطلب...' : 'سجّل الطلب واعرض بيانات التحويل'}
+            {isPending
+              ? 'جاري تسجيل الطلب...'
+              : gateway
+                ? 'سجّل الطلب وكمّل الدفع'
+                : 'سجّل الطلب واعرض بيانات التحويل'}
           </button>
         </form>
       )}

@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
@@ -46,8 +47,9 @@ export default async function BookingConfirmPage({
     time: slotTime,
     child: childParam,
   } = await searchParams;
-  const [settings, packages, instructors, content] = await Promise.all([
+  const [settings, payment, packages, instructors, content] = await Promise.all([
     getSiteSettings(),
+    getPaymentAvailability(),
     getWritingPackages(),
     getPublicInstructors(),
     getSiteContent(),
@@ -92,6 +94,7 @@ export default async function BookingConfirmPage({
         <Card accentColor="emerald" className="p-6 md:p-10 shadow-xl shadow-slate-200/50">
           <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
             <BookingConfirmClient
+              payment={payment}
               recording={settings.sessionRecording}
               recordingText={{
                 notice: content['recording.notice'],

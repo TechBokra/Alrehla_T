@@ -3,6 +3,10 @@ import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { readXpayConfig } from '@/lib/payments/xpay-client';
 import { verifyXpaySignature } from '@/lib/payments/xpay-signature';
 import { isHandledEvent, parseXpayEvent } from '@/lib/payments/xpay-event';
+import {
+  afterCourseBookingPaid,
+  afterServiceOrderPaid,
+} from '@/lib/payments/after-gateway-payment';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -80,6 +84,52 @@ export async function POST(request: Request) {
   }
 
   const supabase = createAdminClient();
+
+  // ── خدمة كتابة أو حجز باقة ────────────────────────────────
+  //
+  // ⚠️ **مش مجرد دالة تانية.** الدالة بتسجّل الدفعة وبس؛ اللي بعدها
+  //    (`afterCourseBookingPaid`) هو اللي **بيولّد جلسات الباقة**
+  //    ويحجز غرفها، و(`afterServiceOrderPaid`) بيحسب مهلة مقدّم
+  //    الخدمة. من غيرهم العميل بيدفع بالبطاقة ويلاقي حجزًا «نشطًا»
+  //    بلا ولا جلسة — نفس اللي تأكيد الدفع اليدوي بيعمله من اللوحة.
+  if (event.kind !== 'order') {
+    const { data, error } = await supabase.rpc('record_gateway_payment_cw', {
+      p_event_id: event.id,
+      p_event_type: event.type,
+      p_kind: event.kind,
+      p_id: event.orderId,
+      p_session_id: event.sessionId,
+      p_intent_id: event.intentId,
+      p_amount_minor: event.amountMinor,
+      p_method: event.method,
+      p_payload: parsedBody as never,
+    });
+
+    if (error) {
+      console.error('xpay webhook: فشل تسجيل الدفع', event.id, error);
+      return NextResponse.json({ error: 'could not record payment' }, { status: 500 });
+    }
+
+    const outcome = (data as { outcome?: string } | null)?.outcome ?? 'unknown';
+    if (outcome !== 'paid') {
+      if (outcome === 'amount_mismatch' || outcome === 'order_not_found') {
+        console.error('xpay webhook: حدث مرفوض', event.id, outcome);
+      }
+      return NextResponse.json({ received: true, outcome });
+    }
+
+    const after =
+      event.kind === 'course_subscription'
+        ? await afterCourseBookingPaid(supabase, event.orderId)
+        : await afterServiceOrderPaid(supabase, event.orderId);
+
+    // ⚠️ **الرد 200 حتى لو التجهيز فشل**: الدفعة اتسجّلت وإعادة إرسال
+    //    الحدث هترجع 'duplicate' من غير ما تصلّح حاجة. الفشل بيتسجّل
+    //    عشان الإدارة تكمّل بالإيد.
+    if (!after.ok) console.error('xpay webhook: التجهيز بعد الدفع فشل', event.id, after.note);
+    return NextResponse.json({ received: true, outcome, prepared: after.ok });
+  }
+
   const { data, error } = await supabase.rpc('record_gateway_payment', {
     p_event_id: event.id,
     p_event_type: event.type,

@@ -602,6 +602,10 @@ export type Database = {
       }
       course_subscriptions: {
         Row: {
+          paid_at: string | null
+          payment_intent_id: string | null
+          payment_provider: string
+          payment_session_id: string | null
           amount: number | null
           child_id: string | null
           created_at: string
@@ -623,6 +627,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           amount?: number | null
           child_id?: string | null
           created_at?: string
@@ -644,6 +652,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           amount?: number | null
           child_id?: string | null
           created_at?: string
@@ -1561,6 +1573,8 @@ export type Database = {
       }
       payment_events: {
         Row: {
+          source_id: string | null
+          source_kind: string
           amount_minor: number | null
           created_at: string
           event_type: string
@@ -1570,6 +1584,8 @@ export type Database = {
           payload: Json | null
         }
         Insert: {
+          source_id?: string | null
+          source_kind?: string
           amount_minor?: number | null
           created_at?: string
           event_type: string
@@ -1579,6 +1595,8 @@ export type Database = {
           payload?: Json | null
         }
         Update: {
+          source_id?: string | null
+          source_kind?: string
           amount_minor?: number | null
           created_at?: string
           event_type?: string
@@ -2224,6 +2242,10 @@ export type Database = {
       }
       service_orders: {
         Row: {
+          paid_at: string | null
+          payment_intent_id: string | null
+          payment_provider: string
+          payment_session_id: string | null
           amount: number
           buyer_profile_id: string
           child_id: string | null
@@ -2250,6 +2272,10 @@ export type Database = {
           transaction_reference: string | null
         }
         Insert: {
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           amount: number
           buyer_profile_id: string
           child_id?: string | null
@@ -2276,6 +2302,10 @@ export type Database = {
           transaction_reference?: string | null
         }
         Update: {
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          payment_provider?: string
+          payment_session_id?: string | null
           amount?: number
           buyer_profile_id?: string
           child_id?: string | null
@@ -3152,6 +3182,24 @@ export type Database = {
       }
       delete_instructor: {
         Args: { p_instructor_id: string }
+        Returns: Json
+      }
+      attach_payment_session_cw: {
+        Args: { p_kind: string; p_id: string; p_session_id: string }
+        Returns: Json
+      }
+      record_gateway_payment_cw: {
+        Args: {
+          p_amount_minor: number | null
+          p_event_id: string
+          p_event_type: string
+          p_id: string
+          p_intent_id: string | null
+          p_kind: string
+          p_method: string | null
+          p_payload?: Json | null
+          p_session_id: string | null
+        }
         Returns: Json
       }
       attach_payment_session: {

@@ -17,9 +17,26 @@ export const HANDLED_EVENTS = [
   'payment_intent.payment_failed',
 ] as const;
 
+/**
+ * نوع المدفوع له — الدفعة ممكن تكون لطلب منتج، أو لخدمة كتابة، أو
+ * لحجز باقة. التلاتة في جداول مختلفة بدوال مختلفة.
+ *
+ * ⚠️ الجلسات القديمة اللي اتفتحت قبل الخانة دي مافيهاش `kind`، فالغياب
+ *    معناه 'order' — وده كان السلوك الوحيد وقتها.
+ */
+export type PaymentKind = 'order' | 'service_order' | 'course_subscription';
+
+export const PAYMENT_KINDS: PaymentKind[] = ['order', 'service_order', 'course_subscription'];
+
+export function isPaymentKind(v: unknown): v is PaymentKind {
+  return typeof v === 'string' && (PAYMENT_KINDS as string[]).includes(v);
+}
+
 export type ParsedEvent = {
   id: string;
   type: string;
+  /** لأي جدول تخصّ الدفعة دي. */
+  kind: PaymentKind;
   orderId: string | null;
   sessionId: string | null;
   intentId: string | null;
@@ -83,11 +100,17 @@ export function parseXpayEvent(raw: unknown): ParsedEvent | null {
   //    بيرمي خطأ في القاعدة بدل ما يترفض بهدوء.
   const orderId = orderIdRaw && UUID.test(orderIdRaw) ? orderIdRaw.toLowerCase() : null;
 
+  // ⚠️ الغياب = 'order': جلسة اتفتحت قبل ما الأنواع تتعرّف لازم تفضل
+  //    تتعالج زي الأول، مش تتجاهَل والعميل يكون دفع.
+  const kindRaw = str(metadata?.kind);
+  const kind: PaymentKind = isPaymentKind(kindRaw) ? kindRaw : 'order';
+
   const paymentIntent = obj(object.paymentIntent);
 
   return {
     id,
     type,
+    kind,
     orderId,
     sessionId:
       str(object.id)?.startsWith('cs_') === true

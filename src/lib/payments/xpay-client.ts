@@ -1,5 +1,6 @@
 import 'server-only';
 import type { GatewayMethod } from './settings';
+import type { PaymentKind } from './xpay-event';
 
 /**
  * الاتصال بـ XPay لإنشاء جلسة دفع.
@@ -34,6 +35,11 @@ export function isXpayConfigured(): boolean {
 
 export type CheckoutSessionInput = {
   orderId: string;
+  /**
+   * لأي جدول تخصّ الدفعة — بيترجع في بيانات الحدث، وهو اللي بيقول
+   * للويبهوك ينادي أنهي دالة. غيابه معناه طلب منتج (`order`).
+   */
+  kind?: PaymentKind;
   /** بالجنيه المصري الصحيح — بيتحوّل للقرش هنا. */
   amount: number;
   description: string;
@@ -97,7 +103,10 @@ export async function createCheckoutSession(
     cancelUrl: input.cancelUrl,
     // ⚠️ ده اللي بيربط الدفعة بالطلب. الويبهوك بيقراه، ومن غيره
     //    مانعرفش الدفعة دي بتاعة مين.
-    metadata: { orderId: input.orderId },
+    // ⚠️ `kind` بيرجع لنا من البوابة مع الحدث — من غيره الويبهوك
+    //    مايعرفش الدفعة بتاعة طلب ولا خدمة ولا حجز، وبيدوّر على رقم
+    //    خدمة في جدول الطلبات ومايلاقيهوش.
+    metadata: { orderId: input.orderId, kind: input.kind ?? 'order' },
     customerDetails: input.customer?.email
       ? { email: input.customer.email, name: input.customer.name, phone: input.customer.phone }
       : undefined,

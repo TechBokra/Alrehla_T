@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Calendar, Clock, User, CheckCircle2, ArrowRight } from 'lucide-react';
 import { createCourseBooking, submitBookingPaymentProof } from '@/actions/bookings';
 import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/PaymentProofForm';
+import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
+import type { PaymentAvailability } from '@/lib/payments/settings';
 import { Button } from '@/components/ui/Button';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
@@ -14,6 +16,7 @@ import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/D
 import { discountAmount } from '@/lib/discount-codes';
 
 export function BookingConfirmClient({
+  payment,
   paymentWalletNumber,
   paymentQrUrl,
   packageId,
@@ -27,6 +30,8 @@ export function BookingConfirmClient({
   recording,
   recordingText,
 }: {
+  /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
+  payment: PaymentAvailability;
   paymentWalletNumber: string;
   paymentQrUrl?: string;
   packageId: string;
@@ -57,6 +62,11 @@ export function BookingConfirmClient({
   React.useEffect(() => {
     import('@/app/actions/family').then(mod => mod.fetchFamilyMembers()).then(data => setChildren(data ? data.map((d: any) => ({id: d.id, name: d.fullName})) : []));
   }, []);
+
+  // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
+  //    فبنفصله هنا مرة واحدة (نفس نمط `CheckoutClient`).
+  const gateway = payment.mode === 'gateway' ? payment : null;
+  const manualNotice = payment.mode === 'manual' ? payment.notice : '';
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -105,11 +115,13 @@ export function BookingConfirmClient({
   };
 
   /** الخطوة التانية: الإيصال بعد التحويل. */
-  const handleReceipt = (payment: { method: PaymentMethod; receiptUrl: string }) => {
+  // ⚠️ المعامل اسمه `proof` مش `payment`: بقى فيه خاصية اسمها `payment`
+  //    (إعدادات البوابة)، والتظليل هنا كان هيخلّي القراية مضلّلة.
+  const handleReceipt = (proof: { method: PaymentMethod; receiptUrl: string }) => {
     if (!booking) return;
     startTransition(async () => {
       setError('');
-      const result = await submitBookingPaymentProof(booking.id, payment);
+      const result = await submitBookingPaymentProof(booking.id, proof);
       if (!result.ok) {
         setError(result.error ?? 'تعذّر إرسال الإيصال');
         return;
@@ -246,17 +258,34 @@ export function BookingConfirmClient({
         </div>
       )}
 
-      {booking ? (
-        <PaymentProofForm
-          reference={booking.reference}
-          // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+      {booking && gateway ? (
+        /* ⚠️ المبلغ من القاعدة (بعد الخصم) — مش من الشاشة. */
+        <GatewayPayButton
+          orderId={booking.id}
+          kind="course_subscription"
+          label="رقم الحجز"
           amount={booking.amount ?? packagePrice - discountOff}
-          walletNumber={paymentWalletNumber}
-          qrUrl={paymentQrUrl}
-          accent="emerald"
-          busy={isPending}
-          onSubmit={handleReceipt}
+          methods={gateway.methods}
+          reference={booking.reference}
         />
+      ) : booking ? (
+        <>
+          {manualNotice && (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+              {manualNotice}
+            </div>
+          )}
+          <PaymentProofForm
+            reference={booking.reference}
+            // ⚠️ المبلغ من القاعدة (بعد الخصم) — هو اللي لازم يتحوّل.
+            amount={booking.amount ?? packagePrice - discountOff}
+            walletNumber={paymentWalletNumber}
+            qrUrl={paymentQrUrl}
+            accent="emerald"
+            busy={isPending}
+            onSubmit={handleReceipt}
+          />
+        </>
       ) : (
         <form onSubmit={handleRegisterBooking} className="space-y-6">
           {/* ── المشارك ────────────────────────────────────────────
@@ -344,8 +373,9 @@ export function BookingConfirmClient({
           <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
 
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm font-medium text-slate-600">
-            الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الحجز الأول، وهيظهرلك
-            رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.
+            {gateway
+              ? 'هتسجّل الحجز الأول، وبعدها تتحوّل لصفحة دفع آمنة تدفع فيها بالبطاقة أو المحفظة. بيانات بطاقتك مابتعدّيش على موقعنا.'
+              : 'الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الحجز الأول، وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.'}
           </div>
 
           {/* ── الإفصاح والموافقة — قبل الدفع، مش بعده ──────────

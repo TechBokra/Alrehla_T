@@ -16,6 +16,7 @@ import {
   type PaymentProvider,
   type PaymentSettings,
 } from '@/lib/payments/settings';
+import type { PaymentKind } from '@/lib/payments/xpay-event';
 import { SITE_URL } from '@/lib/seo';
 
 /**
@@ -37,7 +38,10 @@ const PAY_FAILED = 'تعذّر فتح صفحة الدفع. جرّب تاني، �
  * ⚠️ **المبلغ بيتقرا من القاعدة، مش من المتصفح.** لو خدناه من الواجهة،
  *    أي حد يقدر يعدّله ويدفع ١ جنيه بدل ٥٠٠.
  */
-export async function startGatewayPayment(orderId: string): Promise<StartPaymentResult> {
+export async function startGatewayPayment(
+  orderId: string,
+  kind: PaymentKind = 'order',
+): Promise<StartPaymentResult> {
   const supabase = await createClient();
 
   const { data: user } = await supabase.auth.getUser();
@@ -46,6 +50,11 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
   const settings = await getPaymentSettings();
   if (settings.provider !== 'xpay' || !isXpayConfigured()) {
     return { ok: false, error: 'الدفع بالبطاقة غير متاح حاليًا — ادفع بالتحويل.' };
+  }
+
+  // خدمة كتابة أو حجز باقة — جدول تاني ودوال تانية.
+  if (kind !== 'order') {
+    return startCreativeWritingPayment(orderId, kind, settings.methods);
   }
 
   // RLS بتضمن إن العميل يقرا طلبه هو بس.
@@ -66,6 +75,7 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
 
   const session = await createCheckoutSession({
     orderId: order.id,
+    kind: 'order',
     amount: order.total_amount,
     description: `طلب رقم ${order.payment_reference ?? order.id.slice(0, 8)}`,
     methods: settings.methods,
@@ -112,20 +122,133 @@ export async function startGatewayPayment(orderId: string): Promise<StartPayment
  * الجميع عن قصد. فشل التسجيل نفسه مابيوقّفش حاجة — العميل شاف رسالته
  * خلاص، ومفيش داعي نوقعه مرتين.
  */
-async function recordSessionFailure(orderId: string, detail: string): Promise<void> {
+async function recordSessionFailure(
+  orderId: string,
+  detail: string,
+  kind: PaymentKind = 'order',
+): Promise<void> {
   if (!isAdminApiConfigured()) return;
   try {
     const admin = createAdminClient();
     await admin.from('payment_events').insert({
       id: `local_fail_${orderId}_${Date.now()}`,
       event_type: 'checkout.session.create_failed',
-      order_id: orderId,
+      // ⚠️ `order_id` عليه مفتاح أجنبي على `orders` وحده — فرقم خدمة
+      //    أو حجز بيترفض. دول بيتكتبوا في `source_id` بدل كده.
+      order_id: kind === 'order' ? orderId : null,
+      source_kind: kind,
+      source_id: orderId,
       outcome: 'session_create_failed',
       payload: { detail: detail.slice(0, 1000) } as never,
     });
   } catch (error) {
     console.error('تعذّر تسجيل فشل جلسة الدفع', error);
   }
+}
+
+/* ──────────────── دفع خدمات وحجوزات «بداية الرحلة» ──────────────── */
+
+/** صفحة العميل اللي بيرجع لها بعد الدفع، لكل نوع. */
+const CW_RETURN: Record<'service_order' | 'course_subscription', (id: string) => string> = {
+  service_order: (id) => `/account/orders/creative-writing/${id}`,
+  course_subscription: () => '/account/bookings',
+};
+
+/**
+ * دفعة بالبوابة لخدمة كتابة أو حجز باقة.
+ *
+ * ⚠️ **جدول تاني وقواعد تانية**: مفيش حالة `failed` هنا، فالمحاولة
+ *    الفاشلة بتسيب الصف `pending` والعميل يقدر يعيد. والمبلغ بيتقرا من
+ *    القاعدة زي الطلبات بالظبط — مش من المتصفح.
+ */
+async function startCreativeWritingPayment(
+  id: string,
+  kind: 'service_order' | 'course_subscription',
+  methods: GatewayMethod[],
+): Promise<StartPaymentResult> {
+  const supabase = await createClient();
+
+  // RLS بتقصر القراءة على صفوف العميل نفسه.
+  //
+  // ⚠️ الفرعين بيتقروا في متغيّرات بسيطة مش في اتحاد من ردّين — اتحاد
+  //    `PostgrestSingleResponse` لجدولين مختلفين بيضيّع التضييق.
+  let amountRaw: number | null = null;
+  let status = '';
+  let reference: string | null = null;
+  let found = false;
+  let readFailed = false;
+
+  if (kind === 'service_order') {
+    const { data, error } = await supabase
+      .from('service_orders')
+      .select('amount, status, payment_reference')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) readFailed = true;
+    else if (data) {
+      found = true;
+      amountRaw = data.amount;
+      status = data.status;
+      reference = data.payment_reference;
+    }
+  } else {
+    const { data, error } = await supabase
+      .from('course_subscriptions')
+      .select('amount, status, payment_reference')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) readFailed = true;
+    else if (data) {
+      found = true;
+      amountRaw = data.amount;
+      status = data.status;
+      reference = data.payment_reference;
+    }
+  }
+
+  if (readFailed) return { ok: false, error: PAY_FAILED };
+  if (!found) return { ok: false, error: 'الطلب غير موجود' };
+  if (status !== 'pending') {
+    return { ok: false, error: 'الطلب ده مش في انتظار الدفع' };
+  }
+
+  const amount = Number(amountRaw ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: 'مبلغ الطلب غير محدد — كلّمنا من صفحة الدعم.' };
+  }
+
+  const label = kind === 'service_order' ? 'خدمة' : 'حجز';
+  const session = await createCheckoutSession({
+    orderId: id,
+    kind,
+    amount,
+    description: `${label} رقم ${reference ?? id.slice(0, 8)}`,
+    methods,
+    successUrl: `${SITE_URL}${CW_RETURN[kind](id)}`,
+    cancelUrl: `${SITE_URL}${CW_RETURN[kind](id)}`,
+  });
+
+  if (session.ok && session.note) await recordSessionFailure(id, session.note, kind);
+
+  if (!session.ok) {
+    await recordSessionFailure(id, session.detail ?? 'unknown', kind);
+    return { ok: false, error: session.error };
+  }
+
+  const { data: attached, error: attachError } = await supabase.rpc('attach_payment_session_cw', {
+    p_kind: kind,
+    p_id: id,
+    p_session_id: session.sessionId,
+  });
+
+  // ⚠️ الدالة بتتأكد إن رقم الجلسة اتخزن فعلًا وبترجّع `blocked` لو لأ —
+  //    نجاح كاذب هنا معناه دفعة مالهاش أثر نتتبعه.
+  if (attachError || !(attached as { ok?: boolean } | null)?.ok) {
+    console.error('تعذّر ربط جلسة الدفع', attachError ?? attached);
+    return { ok: false, error: PAY_FAILED };
+  }
+
+  return { ok: true, url: session.url };
 }
 
 /* ───────────────────────── إعدادات اللوحة ───────────────────────── */

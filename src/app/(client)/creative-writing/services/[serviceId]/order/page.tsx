@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -45,6 +46,8 @@ export default async function OrderServicePage({
   } = await searchParams;
 
   const settings = await getSiteSettings();
+  // بوابة ولا تحويل — الإعداد في اللوحة، والمفاتيح على الخادم.
+  const payment = await getPaymentAvailability();
   const services = await getStandaloneServices();
   const service = services.find((s) => s.id === serviceId);
   if (!service) notFound();
@@ -96,6 +99,7 @@ export default async function OrderServicePage({
         <h1 className="mb-8 text-3xl font-black tracking-tight text-slate-900">تأكيد الطلب</h1>
 
         <OrderServiceClient
+          payment={payment}
           paymentWalletNumber={settings.paymentWalletNumber}
           paymentQrUrl={settings.paymentQrUrl}
           serviceId={serviceId}

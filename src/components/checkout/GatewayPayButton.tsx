@@ -6,6 +6,7 @@ import { formatPrice } from '@/lib/utils';
 import { BusyButton } from '@/components/forms/Form';
 import { startGatewayPayment } from '@/actions/payments';
 import { METHOD_LABELS, type GatewayMethod } from '@/lib/payments/settings';
+import type { PaymentKind } from '@/lib/payments/xpay-event';
 
 /**
  * زرار الدفع بالبوابة: بيفتح جلسة دفع وبيحوّل العميل لصفحة XPay.
@@ -22,11 +23,17 @@ export function GatewayPayButton({
   amount,
   methods,
   reference,
+  kind = 'order',
+  label = 'رقم الطلب',
 }: {
   orderId: string;
   amount: number;
   methods: GatewayMethod[];
   reference: string;
+  /** طلب منتج، خدمة كتابة، أو حجز باقة — بيحدد جدول القاعدة والدوال. */
+  kind?: PaymentKind;
+  /** «رقم الطلب» أو «رقم الحجز» — نفس الزرار في تلات شاشات. */
+  label?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +42,7 @@ export function GatewayPayButton({
     setBusy(true);
     setError('');
     try {
-      const result = await startGatewayPayment(orderId);
+      const result = await startGatewayPayment(orderId, kind);
       if (!result.ok) {
         setError(result.error);
         setBusy(false);
@@ -57,7 +64,7 @@ export function GatewayPayButton({
           <span className="text-2xl font-black text-slate-900">{formatPrice(amount)}</span>
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
-          <span className="text-sm font-bold text-slate-600">رقم الطلب</span>
+          <span className="text-sm font-bold text-slate-600">{label}</span>
           <span className="font-mono text-sm font-bold text-slate-800" dir="ltr">
             {reference}
           </span>
