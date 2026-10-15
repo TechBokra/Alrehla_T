@@ -7,6 +7,8 @@ import { Section } from '@/components/ui/Section';
 import { getPublicPost, listPublicComments } from '@/data/domains/(shared)/aqlam/queries';
 import { ageBandById } from '@/lib/age-bands';
 import { categoryLabel } from '@/lib/aqlam/post';
+import { bandBar, bandBorder, bandSoft, readingLook } from '@/lib/aqlam/look';
+import { CategoryIcon } from '@/components/aqlam/CategoryBadge';
 import { pageMetadata } from '@/lib/seo';
 import { formatDate } from '@/lib/utils';
 import { requireAqlamReadable, robotsFor } from '../../gate';
@@ -51,6 +53,7 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
 
   const comments = post.commentsEnabled ? await listPublicComments(post.id) : [];
   const band = post.ageBand ? ageBandById(post.ageBand) : null;
+  const look = readingLook(post.ageBand, post.category);
 
   return (
     <PageContainer>
@@ -63,13 +66,17 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
           كل النصوص
         </Link>
 
-        <article className="space-y-6">
-          <header className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
+        <article className="space-y-8">
+          <header
+            className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br px-6 py-8 pt-9 text-center md:px-10 md:py-12 ${bandSoft(post.ageBand)} ${bandBorder(post.ageBand)}`}
+          >
+            <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-2 ${bandBar(post.ageBand)}`} />
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white text-slate-800 shadow-sm ring-1 ring-slate-200">
+              <CategoryIcon category={post.category} className="h-7 w-7" />
+            </span>
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
               {post.category && (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                  {categoryLabel(post.category)}
-                </span>
+                <span className="text-sm font-black text-slate-800">{categoryLabel(post.category)}</span>
               )}
               {band && (
                 <span className={`rounded-full border px-3 py-1 text-xs font-bold ${band.tone.chip}`}>
@@ -77,14 +84,18 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
                 </span>
               )}
             </div>
-            <h1 className="text-3xl leading-tight font-black text-slate-900 md:text-5xl">{post.title}</h1>
-            <p className="text-sm font-bold text-slate-500">
-              {post.displayName}
+            <h1 className="mx-auto max-w-2xl text-3xl leading-tight font-black text-slate-900 [overflow-wrap:anywhere] md:text-5xl md:leading-tight">
+              {post.title}
+            </h1>
+            <p className="mt-4 text-sm font-bold text-slate-600">
+              بقلم {post.displayName}
               {post.publishedAt && ` · ${formatDate(post.publishedAt)}`}
             </p>
           </header>
 
-          <div className="text-lg leading-loose font-medium whitespace-pre-wrap text-slate-800 [overflow-wrap:anywhere]">
+          <div
+            className={`font-medium whitespace-pre-wrap text-slate-800 [overflow-wrap:anywhere] ${look.text} ${look.wrap}`}
+          >
             {post.body}
           </div>
         </article>

@@ -22,7 +22,8 @@ export type SiteImageKey =
   | 'homeFamily'
   | 'aboutTeam'
   | 'creativeSlide1'
-  | 'enhaLakSlide1';
+  | 'enhaLakSlide1'
+  | 'aqlamHero';
 
 /**
  * إزاي الصورة تتظبط على المقاس:
@@ -159,6 +160,16 @@ export const SITE_IMAGE_SLOTS: SiteImageSlot[] = [
     key: 'enhaLakSlide1',
     label: 'بانر «إنها لك»',
     location: 'أعلى صفحة «إنها لك» — صورة واحدة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'aqlamHero',
+    label: 'بانر «أقلام الرحلة»',
+    location: 'أعلى صفحة أقلام الرحلة — صورة واحدة عريضة',
     ratio: 'عريضة (16:9) — 1600×900',
     ar: '16:9',
     w: 1600,
