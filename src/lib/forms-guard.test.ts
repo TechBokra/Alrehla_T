@@ -38,7 +38,7 @@ const RAW_INPUT_ALLOWED = new Set([
   'src/app/(admin)/dashboard/admin/media/OrphanGallery.tsx',
   'src/app/(admin)/dashboard/admin/content/images/SiteImagesClient.tsx',
   // اتنقل مع «استقبال التحويلات» لصفحة إعدادات الدفع بصلاحيتها الخاصة.
-  'src/app/(admin)/dashboard/admin/settings/payments/PaymentQrUploader.tsx',
+  'src/app/(admin)/dashboard/admin/settings/pricing/PaymentQrUploader.tsx',
   'src/components/dashboard/ImageField.tsx',
   'src/components/dashboard/GalleryField.tsx',
   // أدوات بحث وفلترة واختيار — مش نماذج حفظ، ومستخدمة جوه نماذج الكيت.

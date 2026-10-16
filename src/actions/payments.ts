@@ -321,7 +321,7 @@ export async function savePaymentSettings(input: {
     metadata: { provider: settings.provider, methods: settings.methods },
   });
 
-  revalidatePath('/dashboard/admin/settings/payments');
+  revalidatePath('/dashboard/admin/settings/pricing');
   return { ok: true };
 }
 
@@ -381,7 +381,7 @@ export async function saveTransferDetails(input: {
     metadata: { walletTail: walletNumber.slice(-4), hasQr: !!qr },
   });
 
-  revalidatePath('/dashboard/admin/settings/payments');
+  revalidatePath('/dashboard/admin/settings/pricing');
   refreshPublicPages();
   return { ok: true };
 }

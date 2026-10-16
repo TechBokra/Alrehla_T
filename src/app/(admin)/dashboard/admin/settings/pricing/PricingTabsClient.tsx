@@ -5,8 +5,11 @@ import type { PricingFormulaSettings } from '@/types';
 import { updatePricingFormulaSettings } from '@/actions/instructors';
 import { updatePublisherPricingSettings, updateProviderPricingSettings } from '@/actions/finance';
 import { PricingFormulaEditor, type SaveFormula } from './PricingFormulaEditor';
+import { PaymentSettingsClient } from './PaymentSettingsClient';
+import { FormError } from '@/components/ui/FormError';
+import type { PaymentSettingsPayload } from './types';
 
-export type PricingTabKey = 'sessions' | 'providers' | 'publishers';
+export type PricingTabKey = 'sessions' | 'providers' | 'publishers' | 'payments';
 
 /**
  * معادلات التسعير التلاتة في مكان واحد.
@@ -20,15 +23,26 @@ export type PricingTabKey = 'sessions' | 'providers' | 'publishers';
  */
 export function PricingTabsClient({
   tabs,
+  payments,
 }: {
-  tabs: { key: PricingTabKey; settings: PricingFormulaSettings }[];
+  /** تبويبات المعادلات اللي الإداري ده مسموح له بيها. */
+  tabs: { key: Exclude<PricingTabKey, 'payments'>; settings: PricingFormulaSettings }[];
+  /** إعدادات الدفع — `null` لو مالوش صلاحية `canManagePayments`. */
+  payments: PaymentSettingsPayload | null;
 }) {
-  const [active, setActive] = useState<PricingTabKey>(tabs[0]?.key ?? 'sessions');
+  const allKeys: PricingTabKey[] = [...tabs.map((t) => t.key), ...(payments ? ['payments' as const] : [])];
+  const [active, setActive] = useState<PricingTabKey>(allKeys[0] ?? 'sessions');
+
+  const LABEL: Record<PricingTabKey, string> = {
+    sessions: 'جلسات الكتابة',
+    providers: 'خدمات مقدّمي الخدمات',
+    publishers: 'منتجات الناشرين',
+    payments: 'إعدادات الدفع',
+  };
 
   const CONFIG: Record<
-    PricingTabKey,
+    Exclude<PricingTabKey, 'payments'>,
     {
-      label: string;
       save: SaveFormula;
       headline: string;
       formula: string;
@@ -38,7 +52,6 @@ export function PricingTabsClient({
     }
   > = {
     sessions: {
-      label: 'جلسات الكتابة',
       save: updatePricingFormulaSettings,
       headline: 'معادلة تسعير جلسات المدربين',
       formula: 'السعر النهائي للعميل = (مستحق المدرب × مضاعف المنصة) + الرسوم الثابتة',
@@ -47,7 +60,6 @@ export function PricingTabsClient({
       examples: [100, 150, 200, 300],
     },
     providers: {
-      label: 'خدمات مقدّمي الخدمات',
       save: updateProviderPricingSettings,
       headline: 'معادلة تسعير خدمات مقدّمي الخدمات',
       formula: 'السعر النهائي للعميل = (مستحق مقدّم الخدمة × مضاعف المنصة) + الرسوم الثابتة',
@@ -56,7 +68,6 @@ export function PricingTabsClient({
       examples: [50, 100, 200, 500],
     },
     publishers: {
-      label: 'منتجات الناشرين',
       save: updatePublisherPricingSettings,
       headline: 'معادلة تسعير منتجات الناشرين',
       formula: 'السعر النهائي للعميل = (سعر الناشر الأساسي × مضاعف المنصة) + الرسوم الثابتة',
@@ -66,26 +77,24 @@ export function PricingTabsClient({
     },
   };
 
-  const current = tabs.find((t) => t.key === active) ?? tabs[0];
-  if (!current) return null;
-  const cfg = CONFIG[current.key];
+  const formula = tabs.find((t) => t.key === active);
 
   return (
     <div className="space-y-6">
-      {tabs.length > 1 && (
+      {allKeys.length > 1 && (
         <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
-          {tabs.map((t) => (
+          {allKeys.map((k) => (
             <button
-              key={t.key}
+              key={k}
               type="button"
-              onClick={() => setActive(t.key)}
+              onClick={() => setActive(k)}
               className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
-                t.key === current.key
+                k === active
                   ? 'bg-slate-900 text-white'
                   : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
-              {CONFIG[t.key].label}
+              {LABEL[k]}
             </button>
           ))}
         </div>
@@ -94,7 +103,21 @@ export function PricingTabsClient({
       {/* ⚠️ `key` بيعيد بناء المحرّر مع كل تبويب — من غيره الخانات
           بتفضل شايلة أرقام التبويب اللي قبله، والإداري يحفظ معادلة
           بقيم معادلة تانية. */}
-      <PricingFormulaEditor key={current.key} settings={current.settings} {...cfg} />
+      {formula && (
+        <PricingFormulaEditor key={formula.key} settings={formula.settings} {...CONFIG[formula.key]} />
+      )}
+
+      {active === 'payments' &&
+        (payments?.ok ? (
+          <PaymentSettingsClient
+            settings={payments.settings}
+            gatewayConfigured={payments.gatewayConfigured}
+            walletNumber={payments.walletNumber}
+            qrUrl={payments.qrUrl}
+          />
+        ) : (
+          <FormError message={payments?.error ?? 'تعذّر قراءة إعدادات الدفع'} />
+        ))}
     </div>
   );
 }

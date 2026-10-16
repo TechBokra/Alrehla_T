@@ -131,7 +131,6 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'الطلبات', href: `${A}/orders`, permission: 'canManageOrders' },
           { label: 'أسعار الشحن', href: `${A}/settings/shipping`, permission: 'canManageOrders' },
-          { label: 'إعدادات الدفع', href: `${A}/settings/payments`, permission: 'canManagePayments' },
           // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
           { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
           // استوديو القصص: مسار إنتاج الطلبات المخصّصة بعد الدفع. تبويب في «طلبات
@@ -162,10 +161,6 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'باقات الكتابة', href: `${A}/writing/packages`, permission: 'canManageCatalog' },
           { label: 'اشتراكات الباقات', href: `${A}/subscriptions/courses`, permission: 'canManageSubscriptions' },
-          // ⚠️ **التلاتة كانوا تلات تبويبات.** والمعادلات بتتقارن
-          // ببعضها بطبيعتها، فشاشة واحدة بتبويبات أقرب للشغل الفعلي.
-          // كل تبويب لسه بصلاحيته الأصلية جوّه الصفحة.
-          { label: 'معادلات التسعير', href: `${A}/settings/pricing`, permission: 'canManageCatalog' },
           { label: 'آراء العملاء', href: `${A}/feedback/creative-writing`, permission: 'canManageSupport' },
         ],
       },
@@ -253,6 +248,15 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'مستحقات الناشرين', href: `${A}/finance/publisher-payouts`, permission: 'canManageFinance' },
           { label: 'طلبات السحب', href: `${A}/finance/withdrawals`, permission: 'canManageFinance' },
           { label: 'أكواد الخصم', href: `${A}/finance/discount-codes`, permission: 'canManageFinance' },
+          // ⚠️ **التسعير والدفع كانوا متفرّقين على قسمين تانيين** —
+          //    معادلات التسعير تحت «الباقات»، وإعدادات الدفع تحت
+          //    «طلبات المنتجات». الاتنين قرارات مالية، والمسؤول عنهم
+          //    واحد، فمكانهم هنا.
+          //
+          // ⚠️ والصلاحيات زيّ ما هي: الصفحتين لسه بيفحصوا
+          //    `canManageCatalog` و`canManagePayments` جوّه. التبويب
+          //    بيوَدّي، مش بيفتح.
+          { label: 'التسعير والمدفوعات', href: `${A}/settings/pricing`, permission: 'canManageFinance' },
         ],
       },
       {
