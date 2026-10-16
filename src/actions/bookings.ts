@@ -493,3 +493,51 @@ export async function cancelBooking(
 
   return { ok: true, wasPaid: result.wasPaid ?? false, sessionsCancelled };
 }
+
+/**
+ * إلغاء العميل لحجزه المعلّق.
+ *
+ * ── ليه ─────────────────────────────────────────────────────
+ *
+ * العميل كان يقدر يكمّل أو يلغي طلبه المعلّق في «إنها لك» بس. الحجز
+ * المعلّق ماكانش ليه أي مخرج: لا يكمّل الدفع ولا يشيله — **ومفيش
+ * إلغاء تلقائي للحجوزات** (اللي موجود بيغطّي `orders` وحدها). فالحجز
+ * بيفضل في حسابه للأبد.
+ *
+ * ⚠️ المعلّق بس. الحجز المفعّل أو اللي رفع إيصاله ومستني المراجعة
+ *    بيتلغي من الإدارة بسبب مسجَّل — فيه فلوس أو مراجعة جارية.
+ */
+export async function cancelMyBooking(
+  subscriptionId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role === 'visitor') return { ok: false, error: 'سجّل دخولك الأول' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cancel_my_booking', { p_id: subscriptionId });
+
+  if (error) {
+    console.error('Error cancelling own booking', error);
+    if (error.code === 'PGRST202' || error.message?.includes('cancel_my_booking')) {
+      return { ok: false, error: 'الإلغاء محتاج ملف القاعدة 20261016110000 يتشغّل الأول' };
+    }
+    return { ok: false, error: 'تعذّر إلغاء الحجز. جرّب تاني.' };
+  }
+
+  const result = data as unknown as { ok?: boolean; error?: string } | null;
+  if (!result?.ok) {
+    const messages: Record<string, string> = {
+      not_found: 'الحجز غير موجود',
+      not_yours: 'الحجز ده مش بتاعك',
+      not_cancellable: 'الحجز ده مابينفعش يتلغي — كلّمنا من صفحة الدعم.',
+      unauthenticated: 'سجّل دخولك الأول',
+      // القاعدة رفضت التغيير في صمت — بنقولها بدل ما نقول «تم» والحجز زيّ ما هو.
+      blocked: 'تعذّر إلغاء الحجز. كلّمنا من صفحة الدعم.',
+    };
+    return { ok: false, error: messages[result?.error ?? ''] ?? 'تعذّر إلغاء الحجز' };
+  }
+
+  revalidatePath('/account/subscriptions/course');
+  revalidatePath('/dashboard/admin/bookings');
+  return { ok: true };
+}

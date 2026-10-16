@@ -4209,6 +4209,14 @@ export type Database = {
         Args: { p_id: string; p_reason?: string }
         Returns: Json
       }
+      cancel_my_booking: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      cancel_my_service_order: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       attach_payment_session_cw: {
         Args: { p_kind: string; p_id: string; p_session_id: string }
         Returns: Json

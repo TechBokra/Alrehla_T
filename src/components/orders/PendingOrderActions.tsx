@@ -5,6 +5,27 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CreditCard, X } from 'lucide-react';
 import { cancelMyOrder } from '@/actions/orders';
+import { cancelMyBooking } from '@/actions/bookings';
+import { cancelMyServiceOrder } from '@/actions/service-orders';
+
+/**
+ * نوع الشيء المعلّق — التلاتة بيتعملوا قبل الدفع ونفس العطل بيحصل
+ * فيهم، فنفس الزرارين بيخدموهم بدالة إلغاء مختلفة لكل واحد.
+ */
+export type PendingKind = 'order' | 'booking' | 'service_order';
+
+const CANCEL: Record<PendingKind, (id: string) => Promise<{ ok: boolean; error?: string }>> = {
+  order: cancelMyOrder,
+  booking: cancelMyBooking,
+  service_order: cancelMyServiceOrder,
+};
+
+/** «الطلب» للمنتجات والخدمات، و«الحجز» للباقات. */
+const NOUN: Record<PendingKind, string> = {
+  order: 'الطلب',
+  booking: 'الحجز',
+  service_order: 'الطلب',
+};
 
 /**
  * «أكمل الدفع» و«ألغِ الطلب» على طلب لسه مادفعش.
@@ -24,10 +45,17 @@ export function PendingOrderActions({
   payHref,
   /** بوابة دفع شغّالة = «أكمل الدفع»؛ تحويل بنكي = «ادفع وارفع الإيصال». */
   gateway,
+  kind = 'order',
 }: {
   orderId: string;
-  payHref: string;
+  /**
+   * صفحة إكمال الدفع. فاضية = مفيش صفحة دفع للنوع ده لسه، فبيظهر
+   * الإلغاء وحده — وده أحسن من زرار بيودّي لحتة مش موجودة.
+   */
+  payHref?: string;
   gateway: boolean;
+  /** طلب منتج، حجز باقة، أو طلب خدمة. */
+  kind?: PendingKind;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -38,7 +66,7 @@ export function PendingOrderActions({
     setBusy(true);
     setError('');
     try {
-      const result = await cancelMyOrder(orderId);
+      const result = await CANCEL[kind](orderId);
       if (!result.ok) {
         setError(result.error);
         setConfirming(false);
@@ -56,13 +84,15 @@ export function PendingOrderActions({
   return (
     <div className="flex flex-col items-start gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={payHref}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-800"
-        >
-          <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
-          {gateway ? 'أكمل الدفع' : 'ادفع وارفع الإيصال'}
-        </Link>
+        {payHref && (
+          <Link
+            href={payHref}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-800"
+          >
+            <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+            {gateway ? 'أكمل الدفع' : 'ادفع وارفع الإيصال'}
+          </Link>
+        )}
 
         <button
           type="button"
@@ -75,7 +105,7 @@ export function PendingOrderActions({
           }`}
         >
           <X className="h-3.5 w-3.5" aria-hidden="true" />
-          {busy ? 'جارٍ الإلغاء…' : confirming ? 'اضغط تاني للتأكيد' : 'إلغاء الطلب'}
+          {busy ? 'جارٍ الإلغاء…' : confirming ? 'اضغط تاني للتأكيد' : `إلغاء ${NOUN[kind]}`}
         </button>
       </div>
 

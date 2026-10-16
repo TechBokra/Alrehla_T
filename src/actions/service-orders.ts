@@ -1,5 +1,6 @@
 'use server';
 import { requireAdmin, getDependentGuardian } from '@/lib/auth-guard';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
@@ -992,6 +993,49 @@ export async function submitServiceOrderPayment(
     message: 'عميل رفع إيصال تحويل لطلب خدمة إبداعية.',
     link: `/dashboard/admin/orders/services/${orderId}`,
   });
+
+  revalidatePath('/account/orders/creative-writing');
+  revalidatePath('/dashboard/admin/orders/services');
+  return { ok: true };
+}
+
+/**
+ * إلغاء المشتري لطلب خدمته المعلّق.
+ *
+ * نفس الفجوة اللي في الحجوزات: الطلب اللي اتبدأ وما اتدفعش ماكانش
+ * ليه مخرج من حساب العميل، ومفيش إلغاء تلقائي بيغطّيه.
+ *
+ * ⚠️ المعلّق بس — المدفوع أو اللي تحت التنفيذ بيتلغي من الإدارة
+ *    (`setServiceOrderStatusByAdmin`) بسبب مسجَّل.
+ */
+export async function cancelMyServiceOrder(
+  orderId: string,
+): Promise<ServiceOrderResult> {
+  const user = await getCurrentUser();
+  if (!user || user.role === 'visitor') return fail('سجّل دخولك الأول');
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cancel_my_service_order', { p_id: orderId });
+
+  if (error) {
+    console.error('Error cancelling own service order', error);
+    if (error.code === 'PGRST202' || error.message?.includes('cancel_my_service_order')) {
+      return fail('الإلغاء محتاج ملف القاعدة 20261016110000 يتشغّل الأول');
+    }
+    return fail('تعذّر إلغاء الطلب. جرّب تاني.');
+  }
+
+  const result = data as unknown as { ok?: boolean; error?: string } | null;
+  if (!result?.ok) {
+    const messages: Record<string, string> = {
+      not_found: 'الطلب غير موجود',
+      not_yours: 'الطلب ده مش بتاعك',
+      not_cancellable: 'الطلب ده مابينفعش يتلغي — كلّمنا من صفحة الدعم.',
+      unauthenticated: 'سجّل دخولك الأول',
+      blocked: 'تعذّر إلغاء الطلب. كلّمنا من صفحة الدعم.',
+    };
+    return fail(messages[result?.error ?? ''] ?? 'تعذّر إلغاء الطلب');
+  }
 
   revalidatePath('/account/orders/creative-writing');
   revalidatePath('/dashboard/admin/orders/services');

@@ -6,6 +6,8 @@ import { formatDate, formatPrice } from '@/lib/utils';
 import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 import { getMyServiceOrders } from '@/data/domains/(client)/service-orders/queries';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { PendingOrderActions } from '@/components/orders/PendingOrderActions';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +30,10 @@ const SESSION_STATUS: Record<string, { label: string; type: 'success' | 'warning
 };
 
 export default async function CreativeWritingOrdersPage() {
-  const [sessions, serviceOrders] = await Promise.all([
+  const [sessions, serviceOrders, payment] = await Promise.all([
     getSessions(),
     getMyServiceOrders(),
+    getPaymentAvailability(),
   ]);
 
   const serviceRows = serviceOrders.map((order) => {
@@ -49,6 +52,18 @@ export default async function CreativeWritingOrdersPage() {
       date: formatDate(order.createdAt),
       amount: formatPrice(order.amount),
       statusDisplay: <StatusBadge type={status.type} label={status.label} />,
+      // الطلب بيتسجّل قبل الدفع عشان ياخد رقمًا مرجعيًا، فكل محاولة ما
+      // كملتش بتسيب طلبًا معلّقًا في الحساب — ومفيش إلغاء تلقائي
+      // بيغطّي طلبات الخدمات، فبيفضل للأبد.
+      actions:
+        order.status === 'pending' ? (
+          <PendingOrderActions
+            orderId={order.id}
+            kind="service_order"
+            payHref={`/account/orders/creative-writing/${order.id}`}
+            gateway={payment.mode === 'gateway'}
+          />
+        ) : null,
     };
   });
 
@@ -58,6 +73,7 @@ export default async function CreativeWritingOrdersPage() {
     { header: 'تاريخ الطلب', accessorKey: 'date' },
     { header: 'المبلغ', accessorKey: 'amount' },
     { header: 'الحالة', accessorKey: 'statusDisplay' },
+    { header: '', accessorKey: 'actions' },
   ];
 
   const sessionRows = sessions.map((session) => {
