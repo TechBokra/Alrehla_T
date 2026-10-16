@@ -4,6 +4,7 @@ import {
   DEFAULT_FLOW,
   GATE_KEYS,
   GATE_LABELS,
+  applyRoute,
   buildFlow,
   flowBlockers,
   flowCanMove,
@@ -14,6 +15,7 @@ import {
   flowProblems,
   flowStep,
   isTerminalIn,
+  routeBase,
   ownerLabelOf,
   statusLabel,
   statusTone,
@@ -265,3 +267,53 @@ describe('studio-flow — مراحل اختيارية وإلزامية', () => {
     expect(hits[0].type).toBe('edge');
   });
 });
+
+describe('studio-flow — تسلسل لكل منتج', () => {
+  it('من غير تخصيص: نفس الكائن (التسلسل العام)', () => {
+    expect(applyRoute(F, undefined)).toBe(F);
+    expect(applyRoute(F, {})).toBe(F);
+  });
+
+  it('غير مستخدمة: بتختفي من الحركة والشريط، والتسلسل العام ماتغيّرش', () => {
+    const f = applyRoute(F, { art_review: { state: 'off', gatesOff: [] }, layout: { state: 'off', gatesOff: [] } });
+    expect(flowNext(f, 'scenes')).toBe('qa');
+    expect(flowNext(F, 'scenes')).toBe('art_review');
+    expect(flowPipeline(f).map((s) => s.step)).not.toContain('art_review');
+    expect(flowProblems(f)).toEqual([]);
+    expect(targetsOf(f, 'scenes')).not.toContain('art_review');
+  });
+
+  it('اختيارية للمنتج بتدّي تخطّي، وإلزامية بتلغيه', () => {
+    const opt = applyRoute(F, { client_text_approval: { state: 'optional', gatesOff: [] } });
+    expect(flowMoves(opt, 'text_review', null).some((m) => m.type === 'skip' && m.to === 'character')).toBe(true);
+    const req = applyRoute(
+      buildFlow(F.steps.map((s) => (s.step === 'client_text_approval' ? { ...s, optional: true } : s)), F.edges),
+      { client_text_approval: { state: 'required', gatesOff: [] } },
+    );
+    expect(flowSkipTargets(req, 'text_review')).toEqual([]);
+  });
+
+  it('شروط ملغية للمنتج بس', () => {
+    const f = applyRoute(F, { character: { state: 'required', gatesOff: ['text_client_approved'] } });
+    expect(flowStep(f, 'character')?.gates).toEqual(['photo_consent']);
+    expect(flowStep(F, 'character')?.gates).toContain('text_client_approved');
+  });
+
+  it('البداية والنظامية ماتتغيّرش', () => {
+    const f = applyRoute(F, {
+      brief: { state: 'off', gatesOff: [] },
+      delivered: { state: 'off', gatesOff: [] },
+    });
+    expect(flowStep(f, 'brief')?.active).toBe(true);
+    expect(flowStep(f, 'delivered')?.active).toBe(true);
+  });
+
+  it('حالة المرحلة في العام', () => {
+    expect(routeBase(flowStep(F, 'qa')!)).toBe('required');
+    expect(routeBase({ ...flowStep(F, 'qa')!, optional: true })).toBe('optional');
+  });
+});
+
+function targetsOf(flow: StudioFlow, status: string) {
+  return flowMoves(flow, status, null).map((m) => m.to);
+}

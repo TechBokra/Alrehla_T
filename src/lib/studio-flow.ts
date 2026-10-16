@@ -174,6 +174,50 @@ export function buildFlow(steps: FlowStep[], edges: FlowEdge[]): StudioFlow {
   };
 }
 
+// ── تسلسل لكل نوع منتج ─────────────────────────────────────────────────────
+
+/** حالة مرحلة لمنتج: إلزامية · اختيارية (تتخطّى) · غير مستخدمة. */
+export type RouteState = 'required' | 'optional' | 'off';
+export const ROUTE_STATES: readonly RouteState[] = ['required', 'optional', 'off'];
+export const ROUTE_STATE_LABELS: Record<RouteState, string> = {
+  required: 'إلزامية',
+  optional: 'اختيارية',
+  off: 'غير مستخدمة',
+};
+export function isRouteState(v: unknown): v is RouteState {
+  return typeof v === 'string' && (ROUTE_STATES as readonly string[]).includes(v);
+}
+
+export type StageRoute = { state: RouteState; gatesOff: GateKey[] };
+/** تخصيص منتج: مفتاح المرحلة ← حالتها وشروطها الملغية. المنتج اللي مالوش تخصيص بيمشي على العام. */
+export type ProductRoute = Record<string, StageRoute>;
+
+/** حالة المرحلة في التسلسل العام (من غير تخصيص). */
+export function routeBase(s: FlowStep): RouteState {
+  return s.optional ? 'optional' : 'required';
+}
+
+/** التدفق الفعلي لمنتج (مرآة `task_effective_steps`). */
+export function applyRoute(flow: StudioFlow, route: ProductRoute | null | undefined): StudioFlow {
+  if (!route || Object.keys(route).length === 0) return flow;
+  return {
+    edges: flow.edges,
+    steps: flow.steps.map((s) => {
+      const o = route[s.step];
+      if (!o || (s.kind !== 'start' && s.kind !== 'stage')) return s;
+      const gates = s.gates.filter((g) => !o.gatesOff.includes(g));
+      // البداية ثابتة: بس الشروط ممكن تتلغي.
+      if (s.kind === 'start') return { ...s, gates };
+      return {
+        ...s,
+        active: s.active && o.state !== 'off',
+        optional: o.state === 'optional' ? true : o.state === 'required' ? false : s.optional,
+        gates,
+      };
+    }),
+  };
+}
+
 // ── استعلامات على التدفق ────────────────────────────────────────────────────
 
 export function flowStep(flow: StudioFlow, key: string): FlowStep | undefined {

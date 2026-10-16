@@ -123,6 +123,12 @@ supabase db push
 - الحرّاس الثلاثة (`story_project_guard` · `story_version_guard` · `story_page_guard`) تقرأ من الكتالوج بدل جداول مكتوبة في الكود؛ السلوك الأصلي محفوظ بالبذور وملف الاختبار الأصلي يمر بلا تعديل جوهري. رموز SQLSTATE كما هي (`23514` · `42501` · `55000`).
 - «صاحب المرحلة» = المسند له مهمة المشروع المفتوحة، أو المحرر/المشرف المعيّن على المشروع (استثناء)، أو مسؤول الإنتاج (`story_is_worker`). لم يعد المطلوب دورًا مخصوصًا بالاستوديو.
 - `assignment_rules.stage` يقبل مفتاح أي مرحلة في الكتالوج (محفّز `assignment_rules_valid_trg`) — مراحل الاستوديو وحالات الطلب الدقيقة (`paid`/`preparing`/…). `story_studio_access()` مشتق من التوزيع والمهام المفتوحة.
+
+تضيف [`migrations/20261016050000_studio_product_routes.sql`](migrations/20261016050000_studio_product_routes.sql) **تسلسلًا لكل نوع منتج** (قصة مخصّصة):
+
+- `studio_product_routes(product_id, step, state, gates_off)`: لكل منتج، المرحلة `required` (إلزامية) أو `optional` (تُتخطّى) أو `off` (غير مستخدمة)، وشروط دخول تُلغى له. المنتج بلا تخصيص يمشي على الكتالوج العام. الكتابة عبر `studio_route_set` / `studio_route_reset` (صلاحية `canManageStudio`) فقط.
+- `task_effective_steps(line, product)` يعطي الكتالوج بعد تطبيق التخصيص؛ و`task_next_step` / `task_skip_target` / `story_transition_rule` أصبحت تقبل المنتج (اختياري)، و`story_project_guard` يطبّق تسلسل منتج المشروع وشروطه. المرحلة التي فيها مشاريع من المنتج لا تُعطَّل له.
+- الاختبار: `tests/workflow_engine.sql` (القسم ١٣).
 - دوال الإدارة (بصلاحية `canManageStudio` للاستوديو): `studio_stage_create/move/delete`, `studio_stage_flow`, `studio_edges_set`؛ و`task_rule_apply` لتطبيق التوزيع على المهام المفتوحة (`canAssignWork`، وللاستوديو `canManageStudio` أيضًا).
 - `order_studio_projects(order)`: حالة مشاريع الاستوديو لرحلة الطلب لمن له `canManageOrders` أو وصول استوديو، دون النصوص ولا التكلفة.
 

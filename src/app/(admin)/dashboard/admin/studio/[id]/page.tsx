@@ -7,7 +7,13 @@ import { Field, TextInput } from '@/components/forms/Form';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getStudioProject, getStudioStages, getStudioTasks, listStudioStaff } from '@/data/domains/(admin)/studio/queries';
+import {
+  getStudioProductRoutes,
+  getStudioProject,
+  getStudioStages,
+  getStudioTasks,
+  listStudioStaff,
+} from '@/data/domains/(admin)/studio/queries';
 import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { moveStudioProject } from '@/actions/studio';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
@@ -16,6 +22,7 @@ import {
   flowBlockers,
   flowCanMove,
   flowMoves,
+  applyRoute,
   flowNext,
   flowSkipTargets,
   flowPipeline,
@@ -81,12 +88,13 @@ export default async function StudioProjectPage({
   const canCosts = canManage || hasAdminPermission(user, 'canManageFinance');
   const canOrders = hasAdminPermission(user, 'canManageOrders');
 
-  const [result, staff, sp, stages, tasks] = await Promise.all([
+  const [result, staff, sp, stages, tasks, routes] = await Promise.all([
     getStudioProject(id),
     canManage ? listStudioStaff() : Promise.resolve([]),
     searchParams,
     getStudioStages(),
     getStudioTasks(),
+    getStudioProductRoutes(),
   ]);
   const label = (v: string) => statusLabel(v, stages.labels);
   if (!result.success) {
@@ -105,7 +113,9 @@ export default async function StudioProjectPage({
   const visibleTabs = TABS.filter((t) => t.id !== 'costs' || canCosts);
   const tab: TabId = visibleTabs.some((t) => t.id === sp.tab) ? (sp.tab as TabId) : defaultTab(stages.flow, project.status);
 
-  const flow = stages.flow;
+  // تسلسل المنتج ده (لو مخصّص) فوق التسلسل العام.
+  const productRoute = routes[project.productId];
+  const flow = applyRoute(stages.flow, productRoute);
   const cur = flowStep(flow, project.status);
   const task = tasks.get(project.id);
   // صاحب المرحلة: المسند له المهمة، أو المحرر/المشرف المعيّن على المشروع لو المرحلة بتاعته.
@@ -204,9 +214,25 @@ export default async function StudioProjectPage({
                 }`}
               >
                 {label(st.step)}
+                {st.kind === 'stage' && st.optional && <span className="ms-1 font-medium opacity-70">(اختيارية)</span>}
               </li>
             ))}
           </ol>
+        )}
+
+        {productRoute && Object.keys(productRoute).length > 0 && !terminal && (
+          <p className="text-xs font-medium text-slate-500">
+            المنتج ده ماشي على تسلسل مخصّص
+            {canManage && (
+              <>
+                {' — '}
+                <Link href="/dashboard/admin/studio/settings#product-routes" className="font-bold underline">
+                  تعديله من الإعدادات
+                </Link>
+              </>
+            )}
+            .
+          </p>
         )}
 
         {project.orderClosed && !terminal && (
