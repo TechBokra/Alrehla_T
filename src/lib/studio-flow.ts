@@ -70,6 +70,8 @@ export type FlowStep = {
   abilities: StageAbility[];
   gates: GateKey[];
   advanceBy: AdvanceBy;
+  /** اختيارية: ينفع المشروع يتخطّاها (الإلزامية لازم يعدّي عليها). */
+  optional: boolean;
   /** من الأصل (مش مضافة من الشاشة). */
   builtin: boolean;
 };
@@ -116,6 +118,7 @@ const S = (
   abilities: [],
   gates: [],
   advanceBy: 'owner',
+  optional: false,
   builtin: true,
   ...rest,
 });
@@ -210,6 +213,25 @@ export function flowNext(flow: StudioFlow, key: string): string | null {
   return hit?.step ?? null;
 }
 
+/**
+ * أهداف «التخطّي»: بعد «التالي» مباشرة، كل مرحلة تانية بتتوصل لها من غير ما نعدّي على
+ * مرحلة إلزامية (مرآة `task_skip_target`). فاضية لو التالي إلزامي.
+ */
+export function flowSkipTargets(flow: StudioFlow, key: string): string[] {
+  const cur = flowStep(flow, key);
+  if (!cur || (cur.kind !== 'start' && cur.kind !== 'stage')) return [];
+  const ahead = flow.steps.filter(
+    (s) => s.active && (s.kind === 'stage' || s.kind === 'done') && s.sortOrder > cur.sortOrder,
+  );
+  const out: string[] = [];
+  for (let i = 0; i < ahead.length; i++) {
+    const s = ahead[i];
+    if (i > 0) out.push(s.step);
+    if (s.kind === 'done' || !s.optional) break;
+  }
+  return out;
+}
+
 export type FlowMove = {
   to: string;
   /** مين ينفّذ: صاحب المرحلة أو مسؤول الإنتاج. */
@@ -218,7 +240,7 @@ export type FlowMove = {
   pagesRedo: boolean;
   resetQa: boolean;
   /** «للأمام» العادي، رجوع/قفز استثنائي، أو إيقاف/إلغاء/استئناف. */
-  type: 'forward' | 'edge' | 'hold' | 'cancel' | 'resume';
+  type: 'forward' | 'skip' | 'edge' | 'hold' | 'cancel' | 'resume';
 };
 
 /** الانتقالات المتاحة من حالة (مرآة `story_transition_rule`). */
@@ -234,6 +256,11 @@ export function flowMoves(flow: StudioFlow, status: string, heldFrom: string | n
   const next = flowNext(flow, status);
   if (next) {
     out.push({ to: next, who: cur.advanceBy, skipGates: false, pagesRedo: false, resetQa: false, type: 'forward' });
+  }
+  const edgeTargets = new Set(flow.edges.filter((e) => e.from === status).map((e) => e.to));
+  for (const to of flowSkipTargets(flow, status)) {
+    if (edgeTargets.has(to)) continue; // الانتقال الاستثنائي أقوى (له علاماته)
+    out.push({ to, who: cur.advanceBy, skipGates: false, pagesRedo: false, resetQa: false, type: 'skip' });
   }
   for (const e of flow.edges) {
     if (e.from !== status || e.to === next) continue;

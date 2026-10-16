@@ -507,6 +507,7 @@ export async function getStudioFlow(): Promise<{ flow: StudioFlow; engine: boole
     abilities: (r.abilities ?? []).filter(isAbility),
     gates: (r.gates ?? []).filter(isGateKey),
     advanceBy: r.advance_by === 'manager' ? 'manager' : 'owner',
+    optional: r.optional === true,
     builtin: r.builtin,
   }));
   const edges: FlowEdge[] = (edgesRes.data ?? []).map((e) => ({

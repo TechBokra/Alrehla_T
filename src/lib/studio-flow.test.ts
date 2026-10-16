@@ -10,6 +10,7 @@ import {
   flowMoves,
   flowNext,
   flowPipeline,
+  flowSkipTargets,
   flowProblems,
   flowStep,
   isTerminalIn,
@@ -105,6 +106,7 @@ describe('studio-flow — مرحلة مضافة وتعديلات', () => {
     abilities: ['text'],
     gates: ['text_editor_approved'],
     advanceBy: 'owner',
+    optional: false,
     builtin: false,
   };
   const withExtra: StudioFlow = buildFlow([...F.steps, extra], F.edges);
@@ -200,5 +202,66 @@ describe('studio-flow — تسميات وشروط', () => {
     expect(flowBlockers(F, 'ready', base)).toHaveLength(1);
     expect(flowBlockers(F, 'ready', { ...base, qaChecklist: full })).toEqual([]);
     expect(flowBlockers(F, 'ready', { ...base, qaChecklist: full, sensitiveTopic: true })).toHaveLength(1);
+  });
+});
+
+describe('studio-flow — مراحل اختيارية وإلزامية', () => {
+  const withOptional = (...keys: string[]): StudioFlow =>
+    buildFlow(
+      F.steps.map((st) => (keys.includes(st.step) ? { ...st, optional: true } : st)),
+      F.edges,
+    );
+
+  it('الإلزامية هي الأصل: مفيش تخطّي في التدفق الافتراضي', () => {
+    expect(F.steps.every((st) => !st.optional)).toBe(true);
+    expect(flowSkipTargets(F, 'text_review')).toEqual([]);
+    expect(flowMoves(F, 'text_review', null).some((m) => m.type === 'skip')).toBe(false);
+  });
+
+  it('الاختيارية بتديك زر تخطّي للي بعدها', () => {
+    const f = withOptional('client_text_approval');
+    expect(flowSkipTargets(f, 'text_review')).toEqual(['character']);
+    const skip = flowMoves(f, 'text_review', null).find((m) => m.type === 'skip');
+    expect(skip).toMatchObject({ to: 'character', who: 'owner', skipGates: false });
+    // التالي العادي لسه موجود.
+    expect(flowMoves(f, 'text_review', null).some((m) => m.type === 'forward' && m.to === 'client_text_approval')).toBe(true);
+  });
+
+  it('اتنين اختياريين ورا بعض = تخطّي لكل واحد منهم وللي بعدهم', () => {
+    const f = withOptional('client_text_approval', 'character');
+    expect(flowSkipTargets(f, 'text_review')).toEqual(['character', 'scenes']);
+  });
+
+  it('مرحلة إلزامية بتقطع التخطّي', () => {
+    const f = withOptional('client_text_approval');
+    expect(flowSkipTargets(f, 'text_review')).not.toContain('scenes');
+  });
+
+  it('الاختيارية الأخيرة قبل التسليم تتخطّى للتسليم', () => {
+    const f = withOptional('ready');
+    expect(flowSkipTargets(f, 'qa')).toEqual(['delivered']);
+  });
+
+  it('التخطّي بنفس صاحب نقل المرحلة الحالية', () => {
+    const f = withOptional('ready');
+    expect(flowMoves(f, 'qa', null).find((m) => m.type === 'skip')?.who).toBe('manager');
+  });
+
+  it('المرحلة المعطّلة مش بتعمل تخطّي ومش هدف', () => {
+    const f = buildFlow(
+      F.steps.map((st) => (st.step === 'client_text_approval' ? { ...st, active: false } : st)),
+      F.edges,
+    );
+    expect(flowSkipTargets(f, 'text_review')).toEqual([]);
+  });
+
+  it('الانتقال الاستثنائي أقوى من التخطّي لنفس الهدف', () => {
+    const f = buildFlow(
+      withOptional('client_text_approval').steps,
+      [...F.edges, { from: 'text_review', to: 'character', who: 'manager', skipGates: true, pagesRedo: false, resetQa: false }],
+    );
+    const hits = flowMoves(f, 'text_review', null).filter((m) => m.to === 'character');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].type).toBe('edge');
   });
 });

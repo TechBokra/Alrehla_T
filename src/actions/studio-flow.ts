@@ -136,6 +136,7 @@ export async function saveStudioStageFlow(formData: FormData): Promise<StudioFlo
   const advanceBy = str(formData.get('advanceBy'));
   if (advanceBy !== 'owner' && advanceBy !== 'manager') return { ok: false, error: 'اختار مين ينقل من المرحلة.', field: 'advanceBy' };
   const active = formData.get('active') === 'on';
+  const optional = formData.get('optional') === 'on';
 
   const supabase = await createClient();
   const { error } = await supabase.rpc('studio_stage_flow', {
@@ -144,6 +145,7 @@ export async function saveStudioStageFlow(formData: FormData): Promise<StudioFlo
     p_abilities: abilities,
     p_gates: gates,
     p_advance_by: advanceBy,
+    p_optional: optional,
   });
   if (error) return fail('flow', error);
   await logAuditAction({
@@ -152,7 +154,7 @@ export async function saveStudioStageFlow(formData: FormData): Promise<StudioFlo
     action: 'studio_stage_flow_saved',
     entityType: 'task_step',
     entityId: `studio:${step}`,
-    metadata: { active, abilities, gates, advanceBy },
+    metadata: { active, abilities, gates, advanceBy, optional },
   });
   refresh();
   return { ok: true, message: 'اتحفظ سلوك المرحلة.' };

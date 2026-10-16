@@ -290,6 +290,17 @@ function StageCard({
         )}
         {inactive && <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">متوقفة</span>}
         {fs && !fs.builtin && <span className="rounded-md bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-900">مضافة</span>}
+        {fs?.kind === 'stage' && (
+          <span
+            className={
+              fs.optional
+                ? 'rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900'
+                : 'rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700'
+            }
+          >
+            {fs.optional ? 'اختيارية' : 'إلزامية'}
+          </span>
+        )}
         {generic && !isStudio && (
           <span className="text-xs font-medium text-slate-500">
             {s.step === 'payment'
@@ -490,6 +501,15 @@ function BehaviourForm({ fs }: { fs: FlowStep }) {
           />
         )}
         {fs.kind === 'start' && <input type="hidden" name="active" value="on" />}
+        {fs.kind === 'stage' && (
+          <Checkbox
+            name="optional"
+            defaultChecked={fs.optional}
+            label="مرحلة اختيارية (ينفع تتخطّى)"
+            hint="الاختيارية بيظهر لها زر «تخطّي» عند المرحلة اللي قبلها. شروط المرحلة اللي بعدها بتفضل شغّالة، فلو مرحلة تالية بتشترط حاجة بتتسجّل هنا (زي موافقة العميل) شيل الشرط منها. الإلزامية لازم المشروع يعدّي عليها."
+            className="md:col-span-2"
+          />
+        )}
       </div>
       <div className="flex justify-end">
         <SubmitButton pendingLabel="جارٍ الحفظ…">حفظ السلوك</SubmitButton>

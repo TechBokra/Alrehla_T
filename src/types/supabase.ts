@@ -3868,6 +3868,7 @@ export type Database = {
           abilities: string[]
           active: boolean
           advance_by: string
+          optional: boolean
           builtin: boolean
           gates: string[]
           hint: string | null
@@ -3886,6 +3887,7 @@ export type Database = {
           abilities?: string[]
           active?: boolean
           advance_by?: string
+          optional?: boolean
           builtin?: boolean
           gates?: string[]
           hint?: string | null
@@ -3904,6 +3906,7 @@ export type Database = {
           abilities?: string[]
           active?: boolean
           advance_by?: string
+          optional?: boolean
           builtin?: boolean
           gates?: string[]
           hint?: string | null
@@ -4503,7 +4506,7 @@ export type Database = {
       studio_stage_move: { Args: { p_dir: number; p_step: string }; Returns: undefined }
       studio_stage_delete: { Args: { p_step: string }; Returns: undefined }
       studio_stage_flow: {
-        Args: { p_abilities: string[]; p_active: boolean; p_advance_by: string; p_gates: string[]; p_step: string }
+        Args: { p_abilities: string[]; p_active: boolean; p_advance_by: string; p_gates: string[]; p_optional?: boolean; p_step: string }
         Returns: undefined
       }
       studio_edges_set: { Args: { p_edges: Json; p_from: string }; Returns: undefined }

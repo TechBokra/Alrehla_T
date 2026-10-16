@@ -17,6 +17,7 @@ import {
   flowCanMove,
   flowMoves,
   flowNext,
+  flowSkipTargets,
   flowPipeline,
   flowStep,
   isTerminalIn,
@@ -120,13 +121,14 @@ export default async function StudioProjectPage({
   const pipeline = flowPipeline(flow);
   const placeKey = cur?.kind === 'hold' ? (project.heldFrom ?? '') : project.status;
   const stageIndex = pipeline.findIndex((s) => s.step === placeKey);
-  const isForward = (m: FlowMove) => m.type === 'forward' || m.type === 'resume';
+  const isForward = (m: FlowMove) => m.type === 'forward' || m.type === 'skip' || m.type === 'resume';
   const ordered = [...moves.filter(isForward), ...moves.filter((m) => !isForward(m))];
   const moveLabel = (m: FlowMove) => {
     if (m.type === 'resume') return `استئناف (${label(m.to)})`;
     if (m.type === 'hold') return 'إيقاف مؤقت';
     if (m.type === 'cancel') return 'إلغاء المشروع';
     if (m.type === 'forward') return MOVE_LABELS[m.to] ?? `انقل إلى «${label(m.to)}»`;
+    if (m.type === 'skip') return `تخطّي إلى «${label(m.to)}»`;
     if (m.pagesRedo) return `تعديل النص (تعديل نطاق)`;
     const goingBack = (flowStep(flow, m.to)?.sortOrder ?? 0) < (cur?.sortOrder ?? 0);
     return goingBack ? `رجوع إلى «${label(m.to)}»` : `انتقال إلى «${label(m.to)}»`;
@@ -145,7 +147,10 @@ export default async function StudioProjectPage({
   const nextKey = flowNext(flow, project.status);
   const writing = !!cur?.abilities.includes('text');
   const art = !!cur?.abilities.includes('pages');
-  const clientStage = !!(nextKey && flowStep(flow, nextKey)?.gates.includes('text_client_approved'));
+  // لو موافقة العميل شرط في مرحلة جاية (حتى لو بالتخطّي) فتسجيلها متاح من المرحلة دي.
+  const clientStage = [nextKey, ...flowSkipTargets(flow, project.status)].some(
+    (k) => !!k && !!flowStep(flow, k)?.gates.includes('text_client_approved'),
+  );
   const terminal = isTerminalIn(flow, project.status);
   const title = project.childName ? `قصة ${project.childName}` : 'قصة مخصّصة';
 

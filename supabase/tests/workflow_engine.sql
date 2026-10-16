@@ -298,6 +298,61 @@ BEGIN
   -- ── ١١) إنشاء مشروع جديد يبدأ من مرحلة «start» ────────────────────────────
   ASSERT (SELECT step FROM public.task_steps WHERE line = 'studio' AND kind = 'start') = 'brief', 'مرحلة البداية';
 
+  -- ── ١٢) مراحل اختيارية / إلزامية + إلغاء مرحلة أو استبدالها ───────────────
+  PERFORM set_config('request.jwt.claim.sub', v_plain::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.__t_try($q$SELECT public.studio_stage_flow('client_text_approval', true, ARRAY['text'], ARRAY['text_editor_approved'], 'owner', true)$q$);
+  EXECUTE 'RESET ROLE';
+  ASSERT r LIKE '42501:%', 'مشرف عادي غيّر الاختياري: ' || coalesce(r, 'نجح');
+
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.__t_try($q$SELECT public.studio_stage_flow('brief', true, ARRAY[]::text[], ARRAY[]::text[], 'owner', true)$q$);
+  ASSERT r LIKE '23514:%', 'البداية بقت اختيارية: ' || coalesce(r, 'نجح');
+  -- الإلزامية هي الأصل: ماحدش بيتخطّى مرحلة من نفسه.
+  ASSERT NOT (SELECT allowed FROM public.story_transition_rule('text_review', 'character', NULL)), 'تخطّي إلزامية عدّى';
+  PERFORM public.studio_stage_flow('client_text_approval', true, ARRAY['text'], ARRAY['text_editor_approved'], 'owner', true);
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT optional FROM public.task_steps WHERE line = 'studio' AND step = 'client_text_approval'), 'optional ماتخزّنتش';
+  ASSERT (SELECT allowed FROM public.story_transition_rule('text_review', 'character', NULL)), 'تخطّي الاختيارية رُفض';
+  ASSERT (SELECT who FROM public.story_transition_rule('text_review', 'character', NULL)) = 'owner', 'مين بيتخطّى';
+  ASSERT NOT (SELECT allowed FROM public.story_transition_rule('text_review', 'scenes', NULL)),
+    'تخطّي اتنين وفيهم إلزامية';
+  ASSERT public.task_next_step('studio', 'text_review') = 'client_text_approval', 'التالي العادي اتغيّر';
+  -- الاختيارية على الصف الأخير للتسليم مش ممكنة لو فيه إلزامية بينهم.
+  ASSERT NOT public.task_skip_target('studio', 'qa', 'delivered'), 'qa ← delivered رغم ready الإلزامية';
+
+  -- الاختيارية مش للهيكل غير الاستوديو.
+  r := public.__t_try($q$UPDATE public.task_steps SET optional = true WHERE line = 'enha_lak' AND step = (SELECT min(step) FROM public.task_steps WHERE line = 'enha_lak')$q$);
+  ASSERT r IS NOT NULL, 'مرحلة طلبات بقت اختيارية';
+
+  -- مشروع فعلي في «موافقة العميل»: تخطّي «الشخصية» الاختيارية بتتطبّق عليه شروط «المشاهد».
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_stage_flow('character', true, ARRAY['pages'], ARRAY['text_client_approved', 'photo_consent'], 'owner', true);
+  r := public.__t_try(format($q$UPDATE public.story_projects SET status = 'scenes' WHERE id = %L$q$, v_proj));
+  ASSERT r LIKE '23514:%', 'التخطّي عدّى من غير شرط المرحلة الهدف: ' || coalesce(r, 'نجح');
+  UPDATE public.story_projects SET character_approved_at = now() WHERE id = v_proj;
+  UPDATE public.story_projects SET status = 'scenes' WHERE id = v_proj;
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT status FROM public.story_projects WHERE id = v_proj) = 'scenes', 'التخطّي ماحصلش';
+
+  -- إلغاء مرحلة (موافقة العميل) بعد ما المشروع عدّى: تتحذف، والشرط (حقيقة) يفضل لحد ما يتشال.
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_stage_delete('client_text_approval');
+  EXECUTE 'RESET ROLE';
+  ASSERT public.task_next_step('studio', 'text_review') = 'character', 'بعد الحذف text_review ← character';
+  ASSERT 'text_client_approved' = ANY (SELECT unnest(gates) FROM public.task_steps WHERE line = 'studio' AND step = 'character'),
+    'شرط موافقة العميل اختفى لوحده';
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_stage_flow('character', true, ARRAY['pages'], ARRAY['photo_consent'], 'owner', false);
+  EXECUTE 'RESET ROLE';
+  ASSERT NOT (SELECT optional FROM public.task_steps WHERE line = 'studio' AND step = 'character'), 'optional ما اتصفّرتش';
+  ASSERT NOT 'text_client_approved' = ANY (SELECT unnest(gates) FROM public.task_steps WHERE line = 'studio' AND step = 'character'),
+    'الشرط ماتشالش';
+
   RAISE NOTICE 'workflow_engine: OK';
 END
 $$;

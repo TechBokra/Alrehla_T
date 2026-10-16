@@ -40,11 +40,11 @@
 --   story_page_guard / story_sync_task / story_studio_access / work_task_open /
 --   story_create_project_for_item من ملفات 20261016010000..030000؛ drop table task_edges؛
 --   drop function story_transition_rule, story_gate_check, story_is_worker,
---   task_next_step, task_flow_admin, studio_renumber, studio_stage_create,
+--   task_next_step, task_skip_target, task_flow_admin, studio_renumber, studio_stage_create,
 --   studio_stage_move, studio_stage_delete, studio_stage_flow, studio_edges_set,
 --   task_rule_people, task_rule_apply؛ أعِد القيدين story_projects_status
 --   وstory_projects_held_from وassignment_rules_stage؛ واحذف أعمدة kind/active/
---   abilities/gates/advance_by/builtin من task_steps ومحفّز assignment_rules_valid.
+--   abilities/gates/advance_by/optional/builtin من task_steps ومحفّز assignment_rules_valid.
 -- ============================================================================
 
 
@@ -56,6 +56,8 @@ alter table public.task_steps
   add column if not exists abilities  text[]  not null default '{}',
   add column if not exists gates      text[]  not null default '{}',
   add column if not exists advance_by text    not null default 'owner',
+  -- مرحلة اختيارية: ينفع تتخطّى (الإلزامية لازم المشروع يعدّي عليها).
+  add column if not exists optional   boolean not null default false,
   add column if not exists builtin    boolean not null default false;
 
 alter table public.task_steps drop constraint if exists task_steps_kind;
@@ -76,12 +78,16 @@ alter table public.task_steps
     'has_text', 'text_editor_approved', 'text_client_approved', 'photo_consent',
     'character_approved', 'pages_ready', 'pages_approved', 'qa_complete']::text[]);
 
+alter table public.task_steps drop constraint if exists task_steps_optional;
+alter table public.task_steps
+  add constraint task_steps_optional check (not optional or kind = 'stage');
+
 -- التركيب الهيكلي للاستوديو بس؛ مراحل الطلبات (حالات الطلب) مالهاش هيكل.
 alter table public.task_steps drop constraint if exists task_steps_structure_line;
 alter table public.task_steps
   add constraint task_steps_structure_line check (
     line = 'studio'
-    or (kind = 'stage' and active and abilities = '{}' and gates = '{}' and advance_by = 'owner')
+    or (kind = 'stage' and active and abilities = '{}' and gates = '{}' and advance_by = 'owner' and not optional)
   );
 
 -- كل المراحل الموجودة قبل الملف ده «أصلية».
@@ -197,6 +203,32 @@ $$;
 revoke all on function public.task_next_step(text, text) from public, anon;
 grant execute on function public.task_next_step(text, text) to authenticated, service_role;
 
+-- هل p_to هدف «تخطّي» من p_from؟ أي مرحلة فعّالة (أو التسليم) بعد المرحلة الحالية
+-- بشرط إن كل المراحل الفعّالة اللي بينهم اختيارية. (الإلزامية مابتتخطّاش.)
+create or replace function public.task_skip_target(p_line text, p_from text, p_to text)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1
+      from task_steps c
+      join task_steps t on t.line = c.line
+     where c.line = p_line and c.step = p_from and c.kind in ('start', 'stage')
+       and t.step = p_to and t.active and t.kind in ('stage', 'done')
+       and t.sort_order > c.sort_order
+       and exists (
+         select 1 from task_steps m
+          where m.line = c.line and m.active and m.kind = 'stage'
+            and m.sort_order > c.sort_order and m.sort_order < t.sort_order)
+       and not exists (
+         select 1 from task_steps m
+          where m.line = c.line and m.active and m.kind = 'stage' and not m.optional
+            and m.sort_order > c.sort_order and m.sort_order < t.sort_order)
+  )
+$$;
+
+revoke all on function public.task_skip_target(text, text, text) from public, anon;
+grant execute on function public.task_skip_target(text, text, text) to authenticated, service_role;
+
 -- هل الانتقال ده مسموح؟ ومين ينفّذه؟ وإيه أثره؟
 create or replace function public.story_transition_rule(
   p_from text, p_to text, p_held_from text,
@@ -242,6 +274,12 @@ begin
   if found then
     allowed := true; who := e.who; skip_gates := e.skip_gates;
     pages_redo := e.pages_redo; reset_qa := e.reset_qa;
+    return;
+  end if;
+
+  -- تخطّي مراحل اختيارية: بنفس صلاحية النقل للأمام، وشروط المرحلة الهدف بتتطبّق.
+  if public.task_skip_target('studio', p_from, p_to) then
+    allowed := true; who := f.advance_by;
   end if;
 end;
 $$;
@@ -1098,7 +1136,8 @@ $$;
 
 -- خصائص المرحلة: فعّالة؟ قدراتها؟ شروط دخولها؟ مين ينقل منها؟
 create or replace function public.studio_stage_flow(
-  p_step text, p_active boolean, p_abilities text[], p_gates text[], p_advance_by text
+  p_step text, p_active boolean, p_abilities text[], p_gates text[], p_advance_by text,
+  p_optional boolean default false
 )
 returns void
 language plpgsql security definer set search_path = public as $$
@@ -1124,6 +1163,10 @@ begin
   if p_advance_by not in ('owner', 'manager') then
     raise exception 'قيمة النقل غير معروفة' using errcode = '23514';
   end if;
+  p_optional := coalesce(p_optional, false);
+  if p_optional and v_row.kind <> 'stage' then
+    raise exception 'مرحلة البداية مش ممكن تبقى اختيارية' using errcode = '23514';
+  end if;
   if not p_active then
     if v_row.kind = 'start' then
       raise exception 'مرحلة البداية ماتتوقفش' using errcode = '23514';
@@ -1133,7 +1176,8 @@ begin
     end if;
   end if;
   update task_steps
-     set active = p_active, abilities = p_abilities, gates = p_gates, advance_by = p_advance_by
+     set active = p_active, abilities = p_abilities, gates = p_gates, advance_by = p_advance_by,
+         optional = p_optional
    where line = 'studio' and step = p_step;
 end;
 $$;
@@ -1246,13 +1290,13 @@ $$;
 revoke all on function public.studio_stage_create(text, text, text, numeric, text) from public, anon;
 revoke all on function public.studio_stage_move(text, integer) from public, anon;
 revoke all on function public.studio_stage_delete(text) from public, anon;
-revoke all on function public.studio_stage_flow(text, boolean, text[], text[], text) from public, anon;
+revoke all on function public.studio_stage_flow(text, boolean, text[], text[], text, boolean) from public, anon;
 revoke all on function public.studio_edges_set(text, jsonb) from public, anon;
 revoke all on function public.task_rule_apply(text, text) from public, anon;
 grant execute on function public.studio_stage_create(text, text, text, numeric, text) to authenticated, service_role;
 grant execute on function public.studio_stage_move(text, integer) to authenticated, service_role;
 grant execute on function public.studio_stage_delete(text) to authenticated, service_role;
-grant execute on function public.studio_stage_flow(text, boolean, text[], text[], text) to authenticated, service_role;
+grant execute on function public.studio_stage_flow(text, boolean, text[], text[], text, boolean) to authenticated, service_role;
 grant execute on function public.studio_edges_set(text, jsonb) to authenticated, service_role;
 grant execute on function public.task_rule_apply(text, text) to authenticated, service_role;
 
