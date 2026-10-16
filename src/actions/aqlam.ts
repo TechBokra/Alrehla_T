@@ -560,37 +560,28 @@ export async function liftSanction(formData: FormData): Promise<AqlamActionResul
   return { ok: true };
 }
 
+type AqlamSettingsPatch = { mode?: 'off' | 'pilot' | 'public'; allowlist?: string[] };
+
 /**
- * تشغيل/إيقاف أقلام الرحلة: بيتكتب جوّه صف `general` (دمج مش استبدال —
- * باقي الإعدادات بتفضل زي ما هي). الإيقاف هو الإيقاف الطارئ.
+ * يدمج تغيير أقلام الرحلة جوّه صف `general` (دمج مش استبدال — باقي الإعدادات
+ * بتفضل زي ما هي). اللي مش في `patch` بيفضل زي ما هو.
  */
-export async function saveAqlamSettings(formData: FormData): Promise<AqlamActionResult> {
-  const auth = await adminOnly('غير مصرح لك بتعديل إعدادات الموقع');
-  if (!auth.ok) return auth;
-
-  const mode = str(formData.get('mode'));
-  if (mode !== 'off' && mode !== 'pilot' && mode !== 'public') {
-    return { ok: false, error: 'اختار حالة التشغيل.', field: 'mode' };
-  }
-  const ids = str(formData.get('allowlist'))
-    .split(/[\s,;،]+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const bad = ids.find((id) => !UUID_RE.test(id));
-  if (bad) {
-    return { ok: false, error: `المعرّف «${bad}» مش مظبوط — لازم يكون رقم حساب كامل.`, field: 'allowlist' };
-  }
-
+async function writeAqlamSettings(
+  patch: AqlamSettingsPatch,
+  actor: { id: string; fullName: string },
+  action: string,
+): Promise<AqlamActionResult> {
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from('site_settings')
     .select('value')
     .eq('key', 'general')
     .single();
+  const current = (existing?.value ?? {}) as Record<string, unknown>;
   const next = {
-    ...((existing?.value ?? {}) as Record<string, unknown>),
-    aqlamMode: mode,
-    aqlamAllowlist: Array.from(new Set(ids)),
+    ...current,
+    ...(patch.mode ? { aqlamMode: patch.mode } : {}),
+    ...(patch.allowlist ? { aqlamAllowlist: Array.from(new Set(patch.allowlist)) } : {}),
   };
 
   const { data: saved, error } = await supabase
@@ -606,16 +597,57 @@ export async function saveAqlamSettings(formData: FormData): Promise<AqlamAction
   }
 
   await logAuditAction({
-    actorProfileId: auth.user.id,
-    actorName: auth.user.fullName,
-    action: 'aqlam_settings_updated',
+    actorProfileId: actor.id,
+    actorName: actor.fullName,
+    action,
     entityType: 'SiteSettings',
     entityId: 'general',
-    metadata: { aqlamMode: mode, allowlistCount: next.aqlamAllowlist.length },
+    metadata: {
+      aqlamMode: next.aqlamMode,
+      allowlistCount: Array.isArray(next.aqlamAllowlist) ? next.aqlamAllowlist.length : 0,
+    },
   });
   revalidatePath('/dashboard/admin/aqlam');
-  // تغيير حالة التشغيل بيغيّر رابط القائمة في كل الصفحات — ده الاستثناء
-  // الوحيد المقصود لتحديث الموقع كله (مرة عند التشغيل/الإيقاف، مش مع كل نشر).
+  // تغيير الحالة أو القايمة بيغيّر رابط القائمة/اللي يقدر ينشر في كل الصفحات —
+  // الاستثناء المقصود لتحديث الموقع كله (نادر وبيد الإدارة، مش مع كل نشر).
   refreshPublicPages();
   return { ok: true, message: 'اتحفظ.' };
+}
+
+function currentAllowlist(value: unknown): string[] {
+  const list = (value as { aqlamAllowlist?: unknown } | null)?.aqlamAllowlist;
+  return Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string') : [];
+}
+
+/** حالة التشغيل (مقفول/تجريبي/عام). القايمة بتتدار لوحدها من `setAllowlistMember`. */
+export async function saveAqlamSettings(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك بتعديل إعدادات الموقع');
+  if (!auth.ok) return auth;
+
+  const mode = str(formData.get('mode'));
+  if (mode !== 'off' && mode !== 'pilot' && mode !== 'public') {
+    return { ok: false, error: 'اختار حالة التشغيل.', field: 'mode' };
+  }
+  return writeAqlamSettings({ mode }, auth.user, 'aqlam_settings_updated');
+}
+
+/** إضافة/شيل حساب من قايمة التجربة (الاختيار من نتايج البحث بالاسم، مش بكتابة رقم). */
+export async function setAllowlistMember(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك بتعديل إعدادات الموقع');
+  if (!auth.ok) return auth;
+
+  const userId = str(formData.get('userId'));
+  const op = str(formData.get('op'));
+  if (!UUID_RE.test(userId) || (op !== 'add' && op !== 'remove')) {
+    return { ok: false, error: aqlamErrorMessage('invalid') };
+  }
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'general')
+    .single();
+  const list = currentAllowlist(existing?.value);
+  const next = op === 'add' ? [...list, userId] : list.filter((id) => id !== userId);
+  return writeAqlamSettings({ allowlist: next }, auth.user, `aqlam_allowlist_${op}`);
 }

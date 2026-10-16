@@ -150,6 +150,25 @@ export async function listPostsAwaitingGuardian(): Promise<GuardianPostRow[]> {
   }));
 }
 
+/** كل نصوص أبناء ولي الأمر (حساباتهم بأرقامها). RLS بتقصرها على أبنائه، والمشال مش بيظهر. */
+export async function listChildrenPosts(writerIds: string[]): Promise<(MyPostRow & { writerId: string })[]> {
+  const ids = Array.from(new Set(writerIds.filter(Boolean)));
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_posts')
+    .select(`${COLUMNS},writer_id`)
+    .in('writer_id', ids)
+    .neq('status', 'removed')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) {
+    console.error('Error listing children aqlam posts', error);
+    throw new Error('تعذّر تحميل نصوص الأبناء');
+  }
+  return (data ?? []).map((p) => ({ ...toMyPostRow(p), writerId: p.writer_id }));
+}
+
 /** حالة الحساب الحالي في أقلام الرحلة (من دالة القاعدة `aqlam_my_status`). */
 export type MyAqlamStatus = {
   enabled: boolean;

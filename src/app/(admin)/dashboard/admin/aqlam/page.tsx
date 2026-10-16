@@ -16,7 +16,7 @@ import {
   type AdminPostEdit,
   type AdminUserLabel,
 } from '@/data/domains/(shared)/aqlam/admin';
-import { handleReport, liftSanction, moderatePost, saveAqlamSettings } from '@/actions/aqlam';
+import { handleReport, liftSanction, moderatePost, saveAqlamSettings, setAllowlistMember } from '@/actions/aqlam';
 import { SanctionBox } from './SanctionBox';
 import { REPORT_REASONS } from '@/lib/aqlam/post';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
@@ -56,6 +56,19 @@ function Person({ id, labels }: { id: string | null; labels: Map<string, AdminUs
         </span>
       )}
     </span>
+  );
+}
+
+/** إضافة/شيل حساب من قايمة التجربة. */
+function AllowlistButton({ userId, op }: { userId: string; op: 'add' | 'remove' }) {
+  return (
+    <ActionForm action={setAllowlistMember}>
+      <input type="hidden" name="userId" value={userId} />
+      <input type="hidden" name="op" value={op} />
+      <FormActions>
+        <SubmitButton pendingLabel="جارٍ الحفظ…">{op === 'add' ? 'أضف للقايمة' : 'شيل من القايمة'}</SubmitButton>
+      </FormActions>
+    </ActionForm>
   );
 }
 
@@ -111,6 +124,7 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
     ...live.map((p) => p.writerId),
     ...reports.flatMap((r) => (r.writerId ? [r.writerId] : [])),
     ...sanctions.map((s) => s.userId),
+    ...aqlam.allowlist,
   ]);
   for (const f of found) labels.set(f.id, f);
   const edits = await listPostEdits([...review.map((p) => p.id), ...live.map((p) => p.id)]);
@@ -132,17 +146,31 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
               ))}
             </Select>
           </Field>
-          <Field
-            label="قايمة التجربة (أرقام الحسابات)"
-            name="allowlist"
-            hint="رقم الحساب الكامل، واحد في كل سطر (بيظهر تحت اسم الحساب في «الحسابات» تحت). بتشتغل في الوضع التجريبي فقط. المسؤولون مسموح لهم دايمًا."
-          >
-            <TextArea name="allowlist" rows={4} defaultValue={aqlam.allowlist.join('\n')} dir="ltr" />
-          </Field>
           <FormActions>
             <SubmitButton>حفظ</SubmitButton>
           </FormActions>
         </ActionForm>
+      </section>
+
+      {/* ── قايمة التجربة ── */}
+      <section aria-labelledby="allowlist" className="space-y-4">
+        <Heading id="allowlist">قايمة التجربة ({aqlam.allowlist.length.toLocaleString('ar-EG')})</Heading>
+        <p className="text-sm font-medium text-slate-500">
+          الحسابات اللي تقدر تنشر وتتفاعل في الوضع «تجريبي» (المسؤولون مسموح لهم دايمًا). لإضافة حساب: ابحث عنه بالاسم
+          أو البريد في «الحسابات» تحت واضغط «أضف للقايمة».
+        </p>
+        {aqlam.allowlist.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">القايمة فاضية.</p>
+        ) : (
+          <ul className="space-y-2">
+            {aqlam.allowlist.map((id) => (
+              <li key={id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <Person id={id} labels={labels} />
+                <AllowlistButton userId={id} op="remove" />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {/* ── المراجعة ── */}
@@ -324,6 +352,11 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
                   <p className="text-xs font-medium text-slate-400" dir="ltr">
                     {u.id}
                   </p>
+                  {!aqlam.allowlist.includes(u.id) ? (
+                    <AllowlistButton userId={u.id} op="add" />
+                  ) : (
+                    <p className="text-sm font-bold text-emerald-700">في قايمة التجربة ✓</p>
+                  )}
                   <SanctionBox userId={u.id} label={u.fullName || 'الحساب'} />
                 </li>
               ))}

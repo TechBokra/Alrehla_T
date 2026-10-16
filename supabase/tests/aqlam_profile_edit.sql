@@ -230,7 +230,7 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   r := public.aqlam_set_writer_profile(NULL, NULL, true);
   ASSERT r->>'error' = 'pen_name_required', 'صفحة من غير اسم قلم: ' || r::text;
-  r := public.aqlam_set_writer_profile('سلمى', NULL, true);
+  r := public.aqlam_set_writer_profile('نجمة', NULL, true);
   ASSERT (r->>'ok')::boolean, 'ابن ١٤ سنة مايقدرش يفتح صفحته: ' || r::text;
   EXECUTE 'RESET ROLE';
 
@@ -312,6 +312,22 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   EXECUTE 'RESET ROLE';
+
+  -- التعليق باسم القلم (١٢+) وإلا الاسم الأول
+  UPDATE public.aqlam_posts SET status = 'published' WHERE id = v_post;
+  PERFORM set_config('request.jwt.claim.sub', v_teen::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_add_comment(v_post, 'نص جميل جدًا');
+  ASSERT (r->>'ok')::boolean, 'تعليق: ' || r::text;
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT author_display_name FROM public.aqlam_comments WHERE id = (r->>'id')::uuid) = 'نجمة',
+    'تعليق باسم القلم ماظهرش';
+  PERFORM set_config('request.jwt.claim.sub', v_other::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_add_comment(v_post, 'تحفة');
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT author_display_name FROM public.aqlam_comments WHERE id = (r->>'id')::uuid) = 'حد',
+    'تعليق من غير اسم قلم لازم يكون الاسم الأول';
 
   RAISE NOTICE 'aqlam_profile_edit: OK';
 END $$;
