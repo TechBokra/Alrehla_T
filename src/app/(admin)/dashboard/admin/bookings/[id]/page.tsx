@@ -11,6 +11,7 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { AssignInstructor } from './AssignInstructor';
+import { CancelBooking } from './CancelBooking';
 import { AddSession } from './AddSession';
 import { getSubscriptionSessionPlan } from '@/data/domains/(admin)/sessions/plan';
 import { quotaNotice } from '@/lib/session-plan';
@@ -182,6 +183,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </p>
           </div>
         )}
+
+        {/* ⚠️ **الإلغاء ماكانش موجود خالص** (ملاحظة ١٦ أكتوبر): «ملغي»
+            كانت تسمية حالة في الشاشة ومفيش طريقة توصّلها، فالحجز
+            المعلّق بيفضل معلّقًا للأبد. والمكوّن بيخفي نفسه للمكتمل
+            والملغي. */}
+        <div className="mb-6">
+          <CancelBooking subscriptionId={target.id} status={target.status} />
+        </div>
 
         <div className="flex gap-4 border-t border-slate-100 pt-6">
           <Link

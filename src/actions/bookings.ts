@@ -395,3 +395,101 @@ export async function assignBookingInstructor(params: {
   revalidatePath('/dashboard/instructor/sessions');
   return { ok: true, sessions: sessions?.length ?? 0 };
 }
+
+/* ------------------------------------------------------------------ */
+
+export type CancelBookingResult =
+  | { ok: true; wasPaid: boolean; sessionsCancelled: number }
+  | { ok: false; error: string };
+
+/**
+ * إلغاء حجز باقة من الإدارة.
+ *
+ * ── ليه الدالة دي موجودة ────────────────────────────────────
+ *
+ * **ماكانش فيه إلغاء خالص.** كلمة «ملغي» موجودة في شاشات الإدارة
+ * كتسمية لحالة، ومفيش ولا أكشن في المشروع كله بيحوّل اشتراك
+ * لـ`cancelled`. يعني حجز معلّق بيفضل معلّقًا للأبد، والإدارة
+ * قدّامها حالة مالهاش طريق.
+ *
+ * (والإلغاء التلقائي للطلبات المتروكة بيشتغل على «إنها لك» وحدها —
+ *  الحجوزات وطلبات الخدمات برّه تغطيته.)
+ *
+ * ⚠️ **والإلغاء بيشيل الجلسات اللي لسه ماحصلتش معاه.** من غير كده
+ *    الحجز بيبقى «ملغي» وجلساته لسه في تقويم المدرب وفي لوحة
+ *    الطالب، والتذكيرات بتتبعت عنها — وده اللي بيخلّي الإلغاء
+ *    «يعمل مشاكل» بدل ما ينضّف. والمكتملة مابتتلمسش: دي حصلت فعلًا.
+ */
+export async function cancelBooking(
+  subscriptionId: string,
+  reason?: string,
+): Promise<CancelBookingResult> {
+  const user = await getCurrentUser();
+  if (!hasAdminPermission(user, 'canManageBookings')) {
+    return { ok: false, error: 'غير مصرح لك بإلغاء الحجوزات' };
+  }
+  if (!subscriptionId) return { ok: false, error: 'اختار الحجز الأول' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('cancel_course_booking', {
+    p_id: subscriptionId,
+    p_reason: reason?.trim() || undefined,
+  });
+
+  if (error) {
+    console.error('cancelBooking rpc', error);
+    if (error.code === 'PGRST202' || error.message?.includes('cancel_course_booking')) {
+      return { ok: false, error: 'الإلغاء محتاج ملف القاعدة 20261016100000 يتشغّل الأول' };
+    }
+    return { ok: false, error: 'تعذّر إلغاء الحجز' };
+  }
+
+  const result = (data ?? null) as
+    | { ok: true; wasPaid?: boolean; sessionsCancelled?: number; userId?: string }
+    | { ok: false; error: string; status?: string }
+    | null;
+
+  if (!result) return { ok: false, error: 'تعذّر إلغاء الحجز' };
+
+  if (!result.ok) {
+    const messages: Record<string, string> = {
+      denied: 'غير مصرح لك بإلغاء الحجوزات',
+      not_found: 'الحجز ده مش موجود — حدّث الصفحة',
+      already_cancelled: 'الحجز ده ملغي خلاص',
+      completed: 'الحجز ده خلص بالفعل — مينفعش يتلغي',
+      blocked: 'القاعدة رفضت الإلغاء — راجع الصلاحيات',
+    };
+    return { ok: false, error: messages[result.error] ?? 'تعذّر إلغاء الحجز' };
+  }
+
+  const sessionsCancelled = result.sessionsCancelled ?? 0;
+
+  // ⚠️ العميل لازم يعرف — الحجز بتاعه اتلغى من غير ما هو يطلب.
+  if (result.userId) {
+    await notifyUser({
+      event: 'session_update',
+      recipientProfileId: result.userId,
+      title: 'تم إلغاء حجزك',
+      message: reason?.trim()
+        ? `اتلغى حجزك: ${reason.trim()}. لو عندك استفسار كلّمنا من صفحة الدعم.`
+        : 'اتلغى حجزك. لو عندك استفسار كلّمنا من صفحة الدعم.',
+      link: '/account/subscriptions/course',
+    });
+  }
+
+  await logAuditAction({
+    actorProfileId: user.id,
+    actorName: user.fullName || 'Admin',
+    action: 'booking_cancelled',
+    entityType: 'CourseSubscription',
+    entityId: subscriptionId,
+    metadata: { reason: reason?.trim() ?? '', wasPaid: result.wasPaid ?? false, sessionsCancelled },
+  });
+
+  revalidatePath('/dashboard/admin/bookings');
+  revalidatePath(`/dashboard/admin/bookings/${subscriptionId}`);
+  revalidatePath('/dashboard/instructor/students');
+  revalidatePath('/dashboard/instructor/sessions');
+
+  return { ok: true, wasPaid: result.wasPaid ?? false, sessionsCancelled };
+}
