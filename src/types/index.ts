@@ -810,7 +810,22 @@ export interface ServiceOrder {
 }
 
 // اشتراك في دورة
-export type CourseSubscriptionStatus = 'active' | 'completed' | 'cancelled';
+/**
+ * حالات الحجز — **نفس قيد القاعدة بالظبط**
+ * (`course_subscriptions_status_check`).
+ *
+ * ⚠️ **كان ناقص `pending` و`awaiting_verification`.** يعني النوع كان
+ *    بيقول إن الحجز مستحيل يكون في انتظار الدفع — وهي الحالة اللي
+ *    بيتولد بيها كل حجز أصلًا. فالمقارنة بـ`'pending'` كان المترجم
+ *    بيرفضها على إنها «مستحيلة»، وأي شاشة بتتعامل مع حجز غير مدفوع
+ *    كانت بتشتغل على نوع بيكدب.
+ */
+export type CourseSubscriptionStatus =
+  | 'pending'
+  | 'awaiting_verification'
+  | 'active'
+  | 'completed'
+  | 'cancelled';
 
 export interface CourseSubscription {
   id: string;

@@ -68,7 +68,9 @@ export function PendingOrderActions({
     try {
       const result = await CANCEL[kind](orderId);
       if (!result.ok) {
-        setError(result.error);
+        // الاتحاد العام للتلات دوال بيخلّي `error` اختيارية — ومفيش
+        // حالة بترجّع فشل بلا سبب، بس المترجم مايعرفش ده.
+        setError(result.error ?? `تعذّر إلغاء ${NOUN[kind]}`);
         setConfirming(false);
         return;
       }
