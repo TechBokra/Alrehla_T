@@ -8,6 +8,7 @@ BEGIN;
 
 DO $$
 DECLARE
+  v_role   text;
   v_admin  uuid := gen_random_uuid();
   v_guard  uuid := gen_random_uuid();
   v_teen   uuid := gen_random_uuid();   -- ابن 14 سنة
@@ -241,8 +242,12 @@ BEGIN
   ASSERT (r->>'ok')::boolean, 'توقيف: ' || r::text;
   v_sanc := (r->>'id')::uuid;
   EXECUTE 'RESET ROLE';
+  -- العروض العامة لازم تتقرا بصلاحية الزائر (anon) — مش بصلاحية صاحب الجدول،
+  -- لأن دوال المساعدة مسحوبة منه (كان ده سبب خطأ الصفحات العامة).
+  EXECUTE 'SET LOCAL ROLE anon';
   ASSERT NOT EXISTS (SELECT 1 FROM public.aqlam_public_writers WHERE slug = v_slug), 'كاتب موقوف صفحته ظاهرة';
   ASSERT (SELECT writer_slug IS NULL FROM public.aqlam_public_posts WHERE id = v_post), 'كاتب موقوف رابطه ظاهر';
+  EXECUTE 'RESET ROLE';
   ASSERT (SELECT count(*) FROM public.notifications
            WHERE recipient_profile_id = v_adult::text AND message = 'مخالفة تجريبية') = 1,
     'الموقوف ما اتبلّغش';
@@ -328,6 +333,19 @@ BEGIN
   EXECUTE 'RESET ROLE';
   ASSERT (SELECT author_display_name FROM public.aqlam_comments WHERE id = (r->>'id')::uuid) = 'حد',
     'تعليق من غير اسم قلم لازم يكون الاسم الأول';
+
+  -- قراءة كل العروض العامة بدور الزائر والمستخدم المسجّل: لازم ماتفشلش.
+  UPDATE public.aqlam_sanctions SET lifted_at = now() WHERE user_id = v_adult AND lifted_at IS NULL;
+  FOREACH v_role IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+    EXECUTE format('SET LOCAL ROLE %I', v_role);
+    ASSERT (SELECT count(*) FROM public.aqlam_public_posts) >= 1, v_role || ': النصوص العامة فاضية';
+    ASSERT (SELECT count(*) FROM public.aqlam_public_comments) >= 1, v_role || ': التعليقات العامة فاضية';
+    ASSERT (SELECT count(*) FROM public.aqlam_public_writers) >= 1, v_role || ': الكتّاب العامين فاضيين';
+    ASSERT EXISTS (SELECT 1 FROM public.aqlam_public_writers WHERE name = 'نجمة' AND age_band = '13-17'),
+      v_role || ': صفحة الكاتب أو شريحة السن غلط';
+    ASSERT EXISTS (SELECT 1 FROM public.aqlam_public_posts WHERE id = v_post), v_role || ': النص مش ظاهر';
+    EXECUTE 'RESET ROLE';
+  END LOOP;
 
   RAISE NOTICE 'aqlam_profile_edit: OK';
 END $$;
