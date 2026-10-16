@@ -218,6 +218,11 @@ export function stepLabel(catalog: TaskStep[], line: WorkLine, step: string, sta
  */
 export function pathSteps(catalog: TaskStep[], line: WorkLine): TaskStep[] {
   const mine = catalog.filter((s) => s.line === line).sort((a, b) => a.sortOrder - b.sortOrder);
+  // صندوق الرحلة: مراجعة الدفع، ثم شحنة لكل شهر (مهمة لكل شحنة). «التنفيذ» العام مجرد افتراضي للمسؤولين،
+  // ومراحل حالة الطلب الدقيقة (paid/preparing/shipped) مابقتش بتتفتح على الصندوق.
+  if (line === 'box') {
+    return mine.filter((s) => s.step === 'payment' || s.step === 'shipment');
+  }
   const hasSpecific = mine.some((s) => s.step !== 'payment' && s.step !== 'fulfilment');
   return hasSpecific ? mine.filter((s) => s.step !== 'fulfilment') : mine;
 }

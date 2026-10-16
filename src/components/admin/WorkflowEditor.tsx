@@ -272,7 +272,7 @@ function StageCard({
   onNotice: (m: string | null) => void;
 }) {
   const isStudio = line === 'studio';
-  const generic = s.step === 'payment' || s.step === 'fulfilment';
+  const generic = s.step === 'payment' || s.step === 'fulfilment' || (s.line === 'box' && s.step === 'shipment');
   const structural = isStudio && engine && fs && (fs.kind === 'start' || fs.kind === 'stage');
   const inactive = fs ? !fs.active : false;
 
@@ -305,7 +305,11 @@ function StageCard({
           <span className="text-xs font-medium text-slate-500">
             {s.step === 'payment'
               ? 'مهلة ومسؤولو مراجعة الدفع'
-              : 'التنفيذ العام — الافتراضي لو حالة الطلب الدقيقة مالهاش مسؤولين ولا مهلة'}
+              : s.line === 'box' && s.step === 'shipment'
+                ? 'مسؤولو شحنات الصندوق الشهرية — موعد كل مهمة هو موعد شحنتها'
+                : s.line === 'box'
+                  ? 'الافتراضي لمسؤولي الشحنات لو «شحنة الشهر» مالهاش مسؤولين مخصوصين'
+                  : 'التنفيذ العام — الافتراضي لو حالة الطلب الدقيقة مالهاش مسؤولين ولا مهلة'}
           </span>
         )}
         {structural && canStructure && flow && (
@@ -322,15 +326,25 @@ function StageCard({
               <Field label="اسم المرحلة" name="label" required className="md:col-span-2">
                 <TextInput name="label" defaultValue={s.label} maxLength={60} />
               </Field>
-              <Field label="المهلة (ساعات)" name="slaHours" hint="فاضية = من غير موعد">
-                <TextInput
-                  name="slaHours"
-                  inputMode="decimal"
-                  dir="ltr"
-                  defaultValue={s.slaHours === null ? '' : String(s.slaHours)}
-                  placeholder="مثال: 24"
-                />
-              </Field>
+              {s.line === 'box' && s.step === 'shipment' ? (
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-700">المهلة</p>
+                  <p className="text-xs font-medium leading-6 text-slate-500">
+                    موعد المهمة = موعد الشحنة نفسه. عدد الأيام اللي بتتفتح قبلها من «الشحنات الشهرية» فوق.
+                  </p>
+                  <input type="hidden" name="slaHours" value="" />
+                </div>
+              ) : (
+                <Field label="المهلة (ساعات)" name="slaHours" hint="فاضية = من غير موعد">
+                  <TextInput
+                    name="slaHours"
+                    inputMode="decimal"
+                    dir="ltr"
+                    defaultValue={s.slaHours === null ? '' : String(s.slaHours)}
+                    placeholder="مثال: 24"
+                  />
+                </Field>
+              )}
               {isStudio && (
                 <Field label="صاحب المرحلة الافتراضي" name="ownerKind" required>
                   <Select name="ownerKind" defaultValue={s.ownerKind === 'rule' ? 'manager' : s.ownerKind}>

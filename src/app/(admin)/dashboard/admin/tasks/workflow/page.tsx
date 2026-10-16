@@ -4,7 +4,13 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { WorkflowEditor } from '@/components/admin/WorkflowEditor';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getAdminPeople, getAssignmentRules, getTaskSteps } from '@/data/domains/(admin)/tasks/queries';
+import {
+  getAdminPeople,
+  getAssignmentRules,
+  getBoxShipmentLeadDays,
+  getTaskSteps,
+} from '@/data/domains/(admin)/tasks/queries';
+import { BoxShipmentSettings } from '@/components/admin/BoxShipmentSettings';
 import { getStudioStages } from '@/data/domains/(admin)/studio/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import {
@@ -48,11 +54,12 @@ export default async function WorkflowPage({
   const group = groups.find((g) => g.id === wanted) ?? groups[0];
   const lines = group.lines.filter(allowed);
 
-  const [people, rules, stages, catalog] = await Promise.all([
+  const [people, rules, stages, catalog, boxLeadDays] = await Promise.all([
     getAdminPeople(),
     getAssignmentRules(),
     lines.includes('studio') ? getStudioStages() : Promise.resolve(null),
     getTaskSteps(),
+    lines.includes('box') ? getBoxShipmentLeadDays() : Promise.resolve(7),
   ]);
 
   // شريط الرحلة (قراءة فقط): مسار كل نوع بمراحله بالترتيب.
@@ -152,7 +159,21 @@ export default async function WorkflowPage({
                 محتاج تطبيق migration «مواعيد المهام» على قاعدة البيانات الأول.
               </p>
             ) : (
-              <WorkflowEditor line={l} steps={catalog.filter((s) => s.line === l)} rules={rules} people={people} />
+              <>
+                {l === 'box' && <BoxShipmentSettings leadDays={boxLeadDays} />}
+                <WorkflowEditor
+                  line={l}
+                  steps={
+                    l === 'box'
+                      ? catalog
+                          .filter((s) => s.line === 'box' && ['payment', 'fulfilment', 'shipment'].includes(s.step))
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                      : catalog.filter((s) => s.line === l)
+                  }
+                  rules={rules}
+                  people={people}
+                />
+              </>
             )}
           </section>
         ))
