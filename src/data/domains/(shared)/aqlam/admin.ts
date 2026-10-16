@@ -192,3 +192,32 @@ export async function listSanctions(limit = 30): Promise<AdminSanctionRow[]> {
     };
   });
 }
+
+// ── نسخ النصوص قبل التعديل ──────────────────────────────────────────────────
+
+export type AdminPostEdit = { oldTitle: string; oldBody: string; createdAt: string };
+
+/** النسخ القديمة لنصوص معيّنة (الأحدث أولًا). دليل لو نص سليم اتبدّل بنص مخالف. */
+export async function listPostEdits(postIds: string[]): Promise<Map<string, AdminPostEdit[]>> {
+  const ids = Array.from(new Set(postIds)).slice(0, 100);
+  const out = new Map<string, AdminPostEdit[]>();
+  if (ids.length === 0) return out;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_post_edits')
+    .select('post_id,old_title,old_body,created_at')
+    .in('post_id', ids)
+    .order('created_at', { ascending: false })
+    .limit(300);
+  if (error) {
+    // مش حرج: الشاشة بتشتغل من غير النسخ القديمة.
+    console.error('Error listing aqlam post edits', error);
+    return out;
+  }
+  for (const e of data ?? []) {
+    const list = out.get(e.post_id) ?? [];
+    list.push({ oldTitle: e.old_title, oldBody: e.old_body, createdAt: e.created_at });
+    out.set(e.post_id, list);
+  }
+  return out;
+}

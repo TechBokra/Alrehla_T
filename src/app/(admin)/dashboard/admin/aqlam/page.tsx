@@ -11,7 +11,9 @@ import {
   labelUsers,
   listAdminPosts,
   listOpenReports,
+  listPostEdits,
   listSanctions,
+  type AdminPostEdit,
   type AdminUserLabel,
 } from '@/data/domains/(shared)/aqlam/admin';
 import { handleReport, liftSanction, moderatePost, saveAqlamSettings } from '@/actions/aqlam';
@@ -57,6 +59,28 @@ function Person({ id, labels }: { id: string | null; labels: Map<string, AdminUs
   );
 }
 
+/** النسخ القديمة قبل تعديل الكاتب (لو فيه). */
+function PostEdits({ edits }: { edits: AdminPostEdit[] | undefined }) {
+  if (!edits || edits.length === 0) return null;
+  return (
+    <details className="rounded-2xl border border-slate-200 bg-slate-50">
+      <summary className="flex min-h-[44px] cursor-pointer items-center px-4 text-sm font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none">
+        اتعدّل {edits.length.toLocaleString('ar-EG')} مرة · شوف النسخ القديمة
+      </summary>
+      <ul className="space-y-3 border-t border-slate-200 p-4">
+        {edits.map((e) => (
+          <li key={e.createdAt} className="space-y-1">
+            <p className="text-xs font-bold text-slate-500">قبل تعديل {formatDate(e.createdAt)} · «{e.oldTitle}»</p>
+            <div className="max-h-48 overflow-y-auto rounded-xl bg-white p-3 text-sm leading-loose font-medium whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">
+              {e.oldBody}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function Heading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <h2 id={id} className="text-xl font-black text-slate-800">
@@ -89,6 +113,7 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
     ...sanctions.map((s) => s.userId),
   ]);
   for (const f of found) labels.set(f.id, f);
+  const edits = await listPostEdits([...review.map((p) => p.id), ...live.map((p) => p.id)]);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 space-y-12 px-6 py-12">
@@ -141,6 +166,7 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
                 <div className="max-h-72 overflow-y-auto rounded-2xl bg-slate-50 p-4 text-sm leading-loose font-medium whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">
                   {p.body}
                 </div>
+                <PostEdits edits={edits.get(p.id)} />
                 <ActionForm action={moderatePost} className="space-y-3">
                   <input type="hidden" name="postId" value={p.id} />
                   <Field label="السبب (للرفض)" name="reason">
@@ -222,6 +248,7 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
                 <p className="text-xs font-medium text-slate-500">
                   يظهر باسم {p.displayName} · الكاتب: <Person id={p.writerId} labels={labels} />
                 </p>
+                <PostEdits edits={edits.get(p.id)} />
                 <ActionForm action={moderatePost} className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="postId" value={p.id} />
                   {p.status === 'published' ? (

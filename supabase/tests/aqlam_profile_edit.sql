@@ -20,6 +20,7 @@ DECLARE
   v_kid_child  text := 'aq2-kid-'  || substr(gen_random_uuid()::text, 1, 8);
   r        jsonb;
   v_post   uuid;
+  v_post2  uuid;
   v_kid_post uuid;
   v_slug   text;
   v_sanc   uuid;
@@ -198,6 +199,18 @@ BEGIN
    WHERE table_schema = 'public' AND table_name IN ('aqlam_public_writers', 'aqlam_public_posts');
   ASSERT v_cols !~ '(user_id|writer_id|birth_date)', 'عمود حساس في العرض العام: ' || v_cols;
 
+  -- نص تاني باسمه الحقيقي ما يتربطش بصفحة اسم القلم
+  PERFORM set_config('request.jwt.claim.sub', v_adult::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_publish_post('نص باسمي', v_text2, 'story', 'full_name', NULL, false, true, NULL, NULL, 'v1');
+  ASSERT (r->>'ok')::boolean, 'نشر باسم حقيقي: ' || r::text;
+  v_post2 := (r->>'id')::uuid;
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT writer_slug IS NULL FROM public.aqlam_public_posts WHERE id = v_post2),
+    'نص باسم حقيقي اتربط بصفحة اسم القلم';
+  ASSERT (SELECT posts_count = 1 FROM public.aqlam_public_writers WHERE slug = v_slug),
+    'صفحة اسم القلم عدّت نص باسم تاني';
+
   -- الرابط ثابت بعد القفل والفتح
   PERFORM set_config('request.jwt.claim.sub', v_adult::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
@@ -216,7 +229,7 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub', v_teen::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   r := public.aqlam_set_writer_profile(NULL, NULL, true);
-  ASSERT r->>'error' = 'pen_name_required', 'صفحة من غير اسم ولا نص: ' || r::text;
+  ASSERT r->>'error' = 'pen_name_required', 'صفحة من غير اسم قلم: ' || r::text;
   r := public.aqlam_set_writer_profile('سلمى', NULL, true);
   ASSERT (r->>'ok')::boolean, 'ابن ١٤ سنة مايقدرش يفتح صفحته: ' || r::text;
   EXECUTE 'RESET ROLE';
