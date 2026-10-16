@@ -122,10 +122,6 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'منتجات الناشرين', href: `${A}/products`, permission: 'canManagePublishers' },
           // ⚠️ من غيرها منتج الناشر المعلَّق بيفضل واقف عن البيع للأبد.
           { label: 'مراجعة المنتجات', href: `${A}/products/review`, permission: 'canManageCatalog' },
-          { label: 'تسعير الناشرين', href: `${A}/settings/publisher-pricing`, permission: 'canManagePublishers' },
-          // معادلة الخدمات كانت مربوطة بمعادلة الجلسات — بقت منفصلة
-          // (20261017000000)، فمحتاجة مكان تتظبط منه.
-          { label: 'تسعير مقدّمي الخدمات', href: `${A}/settings/provider-pricing`, permission: 'canManageCatalog' },
         ],
       },
       {
@@ -166,7 +162,10 @@ export const ADMIN_NAV: AdminGroup[] = [
         tabs: [
           { label: 'باقات الكتابة', href: `${A}/writing/packages`, permission: 'canManageCatalog' },
           { label: 'اشتراكات الباقات', href: `${A}/subscriptions/courses`, permission: 'canManageSubscriptions' },
-          { label: 'تسعير الكتابة', href: `${A}/settings/creative-writing-pricing`, permission: 'canManageCatalog' },
+          // ⚠️ **التلاتة كانوا تلات تبويبات.** والمعادلات بتتقارن
+          // ببعضها بطبيعتها، فشاشة واحدة بتبويبات أقرب للشغل الفعلي.
+          // كل تبويب لسه بصلاحيته الأصلية جوّه الصفحة.
+          { label: 'معادلات التسعير', href: `${A}/settings/pricing`, permission: 'canManageCatalog' },
           { label: 'آراء العملاء', href: `${A}/feedback/creative-writing`, permission: 'canManageSupport' },
         ],
       },

@@ -709,7 +709,7 @@ export async function updatePricingFormulaSettings(
     metadata: { platformMultiplier, fixedAdminFee },
   });
 
-  revalidatePath('/dashboard/admin/settings/creative-writing-pricing');
+  revalidatePath('/dashboard/admin/settings/pricing');
   // المعادلة بتغيّر أسعار المدربين اللي ظاهرة للزوّار.
   refreshPublicPages();
   return { ok: true };

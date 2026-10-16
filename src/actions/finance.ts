@@ -385,7 +385,7 @@ export async function updateProviderPricingSettings(
     metadata: { multiplier, fixedFee },
   });
 
-  revalidatePath('/dashboard/admin/settings/provider-pricing');
+  revalidatePath('/dashboard/admin/settings/pricing');
   revalidatePath('/dashboard/admin/services');
   return { ok: true };
 }
@@ -444,7 +444,7 @@ export async function updatePublisherPricingSettings(
     metadata: { multiplier, fixedFee },
   });
 
-  revalidatePath('/dashboard/admin/settings/publisher-pricing');
+  revalidatePath('/dashboard/admin/settings/pricing');
   revalidatePath('/dashboard/admin/products');
   return { ok: true };
 }
