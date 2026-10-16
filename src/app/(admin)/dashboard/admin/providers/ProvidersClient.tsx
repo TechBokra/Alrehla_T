@@ -41,6 +41,8 @@ const STATUS_LABEL: Record<string, string> = {
   suspended: 'موقوف',
 };
 
+import { TransferProviderPanel } from './TransferProviderPanel';
+
 export function ProvidersClient({
   providers,
   services,
@@ -166,6 +168,11 @@ export function ProvidersClient({
           busyKey={busyKey}
           failure={failure}
           run={run}
+          // المنقول له لازم يكون مفعّل — الدالة بترفض غير كده،
+          // فالقايمة مابتعرضش اختيارًا هيترفض.
+          transferTargets={providers
+            .filter((x) => x.id !== provider.id && x.status === 'active')
+            .map((x) => ({ id: x.id, name: x.displayName }))}
         />
       ))}
 
@@ -318,8 +325,11 @@ function ProviderCard({
   busyKey,
   failure,
   run,
+  transferTargets,
 }: {
   provider: ProviderWithOfferings;
+  /** المقدّمون المفعَّلون اللي ينفع ينتقل لهم الشغل. */
+  transferTargets: { id: string; name: string }[];
   services: CatalogService[];
   platformMultiplier: number | null;
   fixedAdminFee: number | null;
@@ -427,6 +437,18 @@ function ProviderCard({
               حفظ
             </BusyButton>
           </div>
+
+          {/* ⚠️ **الإيقاف كان بيسيب الطلبات الجارية معلّقة عليه.**
+              ومفيش أي شاشة كانت بتغيّر مقدّم الطلب بعد إنشائه —
+              فالعميل دافع وطلبه عند حد موقوف. النقل هنا جنب الحالة
+              عشان يكون في نفس اللحظة. */}
+          {!isPlatform && provider.status !== 'active' && (
+            <TransferProviderPanel
+              providerId={provider.id}
+              providerName={provider.displayName}
+              targets={transferTargets}
+            />
+          )}
 
           {/* شرح معنى السعر — الفرق ده سبب غلطة تسعير حقيقية قبل كده. */}
           <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">

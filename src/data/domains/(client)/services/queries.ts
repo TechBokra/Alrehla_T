@@ -87,10 +87,12 @@ export async function getProvidersForService(
   const needsFormula = rows.some((r) => r.provider.kind !== 'platform');
   let formula: { platformMultiplier: number; fixedAdminFee: number } | null = null;
   if (needsFormula) {
+    // معادلة المقدّمين — نفس اللي بيتحاسب بيها الطلب وقت الشراء،
+    // وإلا السعر المعروض في الكتالوج يفرق عن اللي بيتحصّل فعلًا.
     const { data: f } = await supabase
       .from('pricing_formula_settings')
       .select('platform_multiplier, fixed_admin_fee')
-      .eq('id', 'default')
+      .eq('id', 'provider-default')
       .maybeSingle();
     if (f) {
       formula = {

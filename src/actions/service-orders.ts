@@ -182,10 +182,12 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
       // معادلة المنصة — نفس قاعدة تسعير الجلسات.
       providerEarning = offer.approved_price;
 
+      // ⚠️ **معادلة المقدّمين، مش معادلة الجلسات.** كانت `default`
+      //    — يعني نصيب المنصة من الخدمة مربوط بنصيبها من الجلسة.
       const { data: formula } = await supabase
         .from('pricing_formula_settings')
         .select('platform_multiplier, fixed_admin_fee')
-        .eq('id', 'default')
+        .eq('id', 'provider-default')
         .maybeSingle();
 
       amount = formula

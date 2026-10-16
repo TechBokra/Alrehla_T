@@ -123,6 +123,9 @@ export const ADMIN_NAV: AdminGroup[] = [
           // ⚠️ من غيرها منتج الناشر المعلَّق بيفضل واقف عن البيع للأبد.
           { label: 'مراجعة المنتجات', href: `${A}/products/review`, permission: 'canManageCatalog' },
           { label: 'تسعير الناشرين', href: `${A}/settings/publisher-pricing`, permission: 'canManagePublishers' },
+          // معادلة الخدمات كانت مربوطة بمعادلة الجلسات — بقت منفصلة
+          // (20261017000000)، فمحتاجة مكان تتظبط منه.
+          { label: 'تسعير مقدّمي الخدمات', href: `${A}/settings/provider-pricing`, permission: 'canManageCatalog' },
         ],
       },
       {

@@ -5,6 +5,7 @@ import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
+import { notifyUser } from '@/lib/notifications';
 import type { ProviderKind } from '@/types';
 
 /**
@@ -290,4 +291,118 @@ export async function removeProviderOffering(
 
   revalidateProviders();
   return { ok: true };
+}
+
+/**
+ * نقل طلبات الخدمة من مقدّم لمقدّم تاني.
+ *
+ * ⚠️ **النقل بنفس السعر بالظبط.** `amount` و`instructor_earning`
+ *    مابيتحسبوش من جديد: العميل اتفق على رقم، وسعر المقدّم الجديد
+ *    ممكن يكون أعلى أو أقل — ومش ذنبه في الحالتين. الفرق (لو فيه)
+ *    على المنصة.
+ *
+ * ⚠️ **واللي اتسجّل له مستحق مابيتنقلش.** المستحق متسجّل باسم المقدّم
+ *    القديم في `payouts`، ونقل الطلب بعده بيفصل الفلوس عن الشغل.
+ *    بيرجع في `blocked` بسببه — نفس قاعدة نقل المدربين.
+ */
+export type TransferProviderResult =
+  | {
+      ok: true;
+      fromName: string;
+      toName: string;
+      moved: number;
+      blocked: { id: string; status: string; why: string }[];
+      remaining: number;
+    }
+  | { ok: false; error: string };
+
+export async function transferProviderWork(
+  fromProviderId: string,
+  toProviderId: string,
+): Promise<TransferProviderResult> {
+  const admin = await requireProvidersAdmin();
+  if (!admin) return { ok: false, error: DENIED };
+  if (!fromProviderId || !toProviderId) {
+    return { ok: false, error: 'اختار المقدّم اللي هينتقل له الشغل' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('transfer_provider_work', {
+    p_from: fromProviderId,
+    p_to: toProviderId,
+  });
+
+  if (error) {
+    console.error('transferProviderWork rpc', error);
+    if (error.code === 'PGRST202') {
+      return { ok: false, error: 'النقل محتاج ملف القاعدة 20261017000000 يتشغّل الأول' };
+    }
+    return { ok: false, error: `تعذّر نقل الطلبات (${error.code ?? 'خطأ'}) — ابعت الكود ده للدعم.` };
+  }
+
+  const result = (data ?? null) as
+    | {
+        ok: true;
+        fromName: string;
+        toName: string;
+        toUserId: string | null;
+        moved: number;
+        blocked: { id: string; status: string; why: string }[];
+        remaining: number;
+      }
+    | { ok: false; error: string; status?: string }
+    | null;
+
+  if (!result) return { ok: false, error: 'تعذّر نقل الطلبات' };
+
+  if (!result.ok) {
+    if (result.error === 'denied') return { ok: false, error: DENIED };
+    if (result.error === 'same_provider') return { ok: false, error: 'اختار مقدّمًا مختلفًا' };
+    if (result.error === 'from_not_found' || result.error === 'to_not_found') {
+      return { ok: false, error: 'واحد من المقدّمين مش موجود — حدّث الصفحة' };
+    }
+    if (result.error === 'to_not_active') {
+      return {
+        ok: false,
+        error: 'المقدّم اللي هتنقل له لازم يكون «مفعّل» — النقل لمقدّم موقوف بينقل المشكلة مش بيحلّها.',
+      };
+    }
+    return { ok: false, error: 'تعذّر نقل الطلبات' };
+  }
+
+  if (result.moved > 0 && result.toUserId) {
+    await notifyUser({
+      event: 'service_order_new',
+      recipientProfileId: result.toUserId,
+      title: 'اتنقل لك طلبات جديدة',
+      message: `${result.moved} طلب من ${result.fromName} — بنفس السعر المتفق عليه مع العميل.`,
+      link: '/dashboard/provider',
+    });
+  }
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'provider_work_transferred',
+    entityType: 'ServiceProvider',
+    entityId: fromProviderId,
+    metadata: {
+      to: toProviderId,
+      moved: result.moved,
+      blocked: result.blocked.length,
+      remaining: result.remaining,
+    },
+  });
+
+  revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/provider');
+
+  return {
+    ok: true,
+    fromName: result.fromName,
+    toName: result.toName,
+    moved: result.moved,
+    blocked: result.blocked ?? [],
+    remaining: result.remaining,
+  };
 }

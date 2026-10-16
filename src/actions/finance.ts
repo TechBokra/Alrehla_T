@@ -325,6 +325,71 @@ export async function submitWithdrawalRequest(
  *    بالسالب أو رسم بالسالب معناه سعر عميل أقل من نصيب الناشر —
  *    يعني المنصة بتدفع من جيبها على كل عملية بيع.
  */
+/**
+ * معادلة تسعير **مقدّمي الخدمات** — منفصلة عن معادلة الجلسات.
+ *
+ * ⚠️ نفس فحوص معادلة الناشرين: معامل بالسالب أو رسم بالسالب معناه
+ *    سعر عميل أقل من نصيب المقدّم — يعني المنصة بتدفع من جيبها على
+ *    كل خدمة. والفحص هنا لا في الواجهة وبس.
+ */
+export async function updateProviderPricingSettings(
+  multiplier: number,
+  fixedFee: number,
+): Promise<{ ok: true } | { ok: false; error: string; field?: 'multiplier' | 'fixedFee' }> {
+  let user;
+  try {
+    user = await requireSuperAdmin();
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح لك بإدارة المدفوعات' };
+  }
+
+  if (!Number.isFinite(multiplier) || multiplier <= 0) {
+    return { ok: false, error: 'المعامل لازم يكون رقمًا أكبر من صفر', field: 'multiplier' };
+  }
+  if (!Number.isFinite(fixedFee) || fixedFee < 0) {
+    return { ok: false, error: 'الرسم الثابت لازم يكون صفرًا أو أكتر', field: 'fixedFee' };
+  }
+
+  const supabase = await createClient();
+
+  // `upsert` لا `update`: الصف ممكن يكون لسه ماتزرعش، و`UPDATE` على
+  // صف مش موجود بينجح ويرجّع صفر صفوف (قاعدة «و»).
+  const { data, error } = await supabase
+    .from('pricing_formula_settings')
+    .upsert(
+      {
+        id: 'provider-default',
+        platform_multiplier: multiplier,
+        fixed_admin_fee: fixedFee,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    )
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error updating provider pricing settings', error);
+    return { ok: false, error: 'تعذّر حفظ إعدادات التسعير' };
+  }
+  if (!data) {
+    return { ok: false, error: 'الحفظ ما وصلش للقاعدة — كلّم الإدارة التقنية' };
+  }
+
+  await logAuditAction({
+    actorName: user.fullName,
+    actorProfileId: user.id,
+    action: 'provider_pricing_settings_updated',
+    entityType: 'settings',
+    entityId: 'provider-default',
+    metadata: { multiplier, fixedFee },
+  });
+
+  revalidatePath('/dashboard/admin/settings/provider-pricing');
+  revalidatePath('/dashboard/admin/services');
+  return { ok: true };
+}
+
 export async function updatePublisherPricingSettings(
   multiplier: number,
   fixedFee: number,
