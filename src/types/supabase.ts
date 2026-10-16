@@ -3956,6 +3956,33 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_product_routes: {
+        Row: {
+          gates_off: string[]
+          line: string
+          product_id: string
+          state: string
+          step: string
+          updated_at: string
+        }
+        Insert: {
+          gates_off?: string[]
+          line?: string
+          product_id: string
+          state?: string
+          step: string
+          updated_at?: string
+        }
+        Update: {
+          gates_off?: string[]
+          line?: string
+          product_id?: string
+          state?: string
+          step?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       work_task_events: {
         Row: {
           actor_id: string | null
@@ -4510,6 +4537,11 @@ export type Database = {
         Returns: undefined
       }
       studio_edges_set: { Args: { p_edges: Json; p_from: string }; Returns: undefined }
+      studio_route_set: {
+        Args: { p_gates_off?: string[]; p_product: string; p_state: string; p_step: string }
+        Returns: undefined
+      }
+      studio_route_reset: { Args: { p_product: string }; Returns: number }
       task_rule_apply: { Args: { p_line: string; p_step: string }; Returns: number }
       student_sessions: {
         Args: never

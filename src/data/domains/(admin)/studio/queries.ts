@@ -7,9 +7,11 @@ import {
   buildFlow,
   isAbility,
   isGateKey,
+  isRouteState,
   isStageKind,
   type FlowEdge,
   type FlowStep,
+  type ProductRoute,
   type StageOwnerKind,
   type StudioFlow,
 } from '@/lib/studio-flow';
@@ -532,6 +534,38 @@ export async function getStudioStages(): Promise<StudioStages> {
     flow,
     engine,
   };
+}
+
+/** تخصيصات التسلسل لكل منتج (فاضية قبل الـ migration أو لو مفيش تخصيص). */
+export async function getStudioProductRoutes(): Promise<Record<string, ProductRoute>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('studio_product_routes').select('*').eq('line', 'studio');
+  if (error) {
+    if (!isMissingRelation(error.code)) console.error('getStudioProductRoutes', error.message);
+    return {};
+  }
+  const out: Record<string, ProductRoute> = {};
+  for (const r of data ?? []) {
+    if (!isRouteState(r.state)) continue;
+    (out[r.product_id] ??= {})[r.step] = { state: r.state, gatesOff: (r.gates_off ?? []).filter(isGateKey) };
+  }
+  return out;
+}
+
+/** منتجات «القصة المخصّصة» (اللي ليها مشاريع استوديو) — لتخصيص تسلسل كل منتج. */
+export async function getStudioCustomProducts(): Promise<{ id: string; name: string; isActive: boolean }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('personalized_products')
+    .select('id, name, is_active')
+    .eq('category', 'custom')
+    .order('name', { ascending: true })
+    .limit(200);
+  if (error) {
+    console.error('getStudioCustomProducts', error.message);
+    return [];
+  }
+  return (data ?? []).map((p) => ({ id: p.id, name: p.name, isActive: p.is_active }));
 }
 
 export type StudioTaskInfo = {

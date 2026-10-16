@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { studioErrorMessage } from '@/lib/studio';
-import { isAbility, isGateKey, type StageOwnerKind } from '@/lib/studio-flow';
+import { isAbility, isGateKey, isRouteState, type StageOwnerKind } from '@/lib/studio-flow';
 
 /**
  * إدارة هيكل سير عمل الاستوديو من الشاشة: إضافة مرحلة · حذف · ترتيب · قدرات وشروط
@@ -188,4 +188,63 @@ export async function saveStudioEdges(formData: FormData): Promise<StudioFlowRes
   });
   refresh();
   return { ok: true, message: 'اتحفظت الانتقالات.' };
+}
+
+/** تسلسل مراحل منتج: حالة كل مرحلة (إلزامية/اختيارية/غير مستخدمة) والشروط اللي بتتلغي له. */
+export async function saveStudioProductRoute(formData: FormData): Promise<StudioFlowResult> {
+  const auth = await flowAdmin();
+  if (!auth.ok) return auth;
+  const productId = str(formData.get('productId'));
+  if (productId.length === 0 || productId.length > 120) return { ok: false, error: 'المنتج غير معروف.' };
+  const steps = Array.from(new Set(formData.getAll('step').map(String))).filter((t) => KEY.test(t));
+  if (steps.length === 0) return { ok: false, error: 'مفيش مراحل للحفظ.' };
+
+  const supabase = await createClient();
+  const saved: Record<string, { state: string; gatesOff: string[] }> = {};
+  for (const step of steps) {
+    const state = str(formData.get(`state:${step}`));
+    if (!isRouteState(state)) return { ok: false, error: 'حالة مرحلة غير معروفة.' };
+    const gatesOff = formData.getAll(`gatesOff:${step}`).map(String).filter(isGateKey);
+    const { error } = await supabase.rpc('studio_route_set', {
+      p_product: productId,
+      p_step: step,
+      p_state: state,
+      p_gates_off: gatesOff,
+    });
+    if (error) {
+      refresh();
+      return fail('route', error);
+    }
+    saved[step] = { state, gatesOff };
+  }
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: 'studio_product_route_saved',
+    entityType: 'personalized_product',
+    entityId: productId,
+    metadata: { stages: saved },
+  });
+  refresh();
+  return { ok: true, message: 'اتحفظ تسلسل المنتج.' };
+}
+
+/** رجّع منتج للتسلسل العام. */
+export async function resetStudioProductRoute(formData: FormData): Promise<StudioFlowResult> {
+  const auth = await flowAdmin();
+  if (!auth.ok) return auth;
+  const productId = str(formData.get('productId'));
+  if (productId.length === 0 || productId.length > 120) return { ok: false, error: 'المنتج غير معروف.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('studio_route_reset', { p_product: productId });
+  if (error) return fail('route-reset', error);
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: 'studio_product_route_reset',
+    entityType: 'personalized_product',
+    entityId: productId,
+  });
+  refresh();
+  return { ok: true, message: 'رجع المنتج للتسلسل العام.' };
 }

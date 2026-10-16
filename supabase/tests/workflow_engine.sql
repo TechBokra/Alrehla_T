@@ -353,6 +353,84 @@ BEGIN
   ASSERT NOT 'text_client_approved' = ANY (SELECT unnest(gates) FROM public.task_steps WHERE line = 'studio' AND step = 'character'),
     'الشرط ماتشالش';
 
+  -- ── ١٣) تسلسل لكل نوع منتج ────────────────────────────────────────────────
+  -- من غير تخصيص: التسلسل العام زي ما هو.
+  ASSERT public.task_next_step('studio', 'scenes', v_prod) = 'art_review', 'تخصيص من غير ما حد يعمله';
+  ASSERT (SELECT count(*) FROM public.studio_product_routes) = 0, 'تخصيصات جاهزة من غير ما حد يعمل';
+
+  -- مشرف عادي مايعدّلش.
+  PERFORM set_config('request.jwt.claim.sub', v_plain::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.__t_try(format($q$SELECT public.studio_route_set(%L, 'art_review', 'off')$q$, v_prod));
+  EXECUTE 'RESET ROLE';
+  ASSERT r LIKE '42501:%', 'مشرف عادي عدّل تسلسل منتج: ' || coalesce(r, 'نجح');
+
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  -- منتج مش «قصة مخصّصة» / مرحلة نظامية / حالة غريبة.
+  r := public.__t_try($q$SELECT public.studio_route_set('no-such-product', 'art_review', 'off')$q$);
+  ASSERT r LIKE '23514:%', 'منتج مجهول عدّى: ' || coalesce(r, 'نجح');
+  r := public.__t_try(format($q$SELECT public.studio_route_set(%L, 'delivered', 'off')$q$, v_prod));
+  ASSERT r LIKE '23514:%', 'التسليم اتعطّل للمنتج';
+  r := public.__t_try(format($q$SELECT public.studio_route_set(%L, 'brief', 'optional')$q$, v_prod));
+  ASSERT r LIKE '23514:%', 'البداية بقت اختيارية للمنتج';
+  r := public.__t_try(format($q$SELECT public.studio_route_set(%L, 'art_review', 'maybe')$q$, v_prod));
+  ASSERT r LIKE '23514:%', 'حالة غريبة عدّت';
+
+  -- مراجعة الرسوم والتركيب «غير مستخدمة» للمنتج ده بس.
+  PERFORM public.studio_route_set(v_prod, 'art_review', 'off');
+  PERFORM public.studio_route_set(v_prod, 'layout', 'off');
+  EXECUTE 'RESET ROLE';
+  ASSERT public.task_next_step('studio', 'scenes', v_prod) = 'qa', 'تسلسل المنتج بعد تعطيل مرحلتين';
+  ASSERT public.task_next_step('studio', 'scenes') = 'art_review', 'التخصيص سرّب على العام';
+  ASSERT public.task_next_step('studio', 'scenes', 'منتج-تاني') = 'art_review', 'التخصيص سرّب على منتج تاني';
+  ASSERT (SELECT allowed FROM public.story_transition_rule('scenes', 'qa', NULL, v_prod)), 'تخطّي المعطّلة للمنتج';
+  ASSERT NOT (SELECT allowed FROM public.story_transition_rule('scenes', 'qa', NULL)), 'القفز عدّى على العام';
+  ASSERT NOT (SELECT allowed FROM public.story_transition_rule('scenes', 'art_review', NULL, v_prod)), 'مرحلة معطّلة للمنتج هدف';
+
+  -- المشروع الفعلي (منتجه v_prod) بيمشي على تسلسله: ماينفعش يدخل مرحلة معطّلة، وينفع يقفز لـqa.
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.__t_try(format($q$UPDATE public.story_projects SET status = 'art_review' WHERE id = %L$q$, v_proj));
+  ASSERT r LIKE '23514:%', 'دخل مرحلة معطّلة لمنتجه: ' || coalesce(r, 'نجح');
+  -- المرحلة اللي فيها مشروع من المنتج ماتتعطّلش.
+  r := public.__t_try(format($q$SELECT public.studio_route_set(%L, 'scenes', 'off')$q$, v_prod));
+  ASSERT r LIKE '23514:%', 'عطّل مرحلة فيها مشروع: ' || coalesce(r, 'نجح');
+  UPDATE public.story_projects SET status = 'qa' WHERE id = v_proj;
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT status FROM public.story_projects WHERE id = v_proj) = 'qa', 'المشروع ماتخطّاش للمرحلة الصح';
+
+  -- شروط ملغية للمنتج (شرط من شروط المرحلة نفسها بس).
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_route_set(v_prod, 'ready', 'required', ARRAY['qa_complete', 'photo_consent']);
+  EXECUTE 'RESET ROLE';
+  ASSERT (SELECT gates FROM public.task_effective_steps('studio', v_prod) WHERE step = 'ready') = ARRAY[]::text[],
+    'شرط ماتلغاش للمنتج';
+  ASSERT (SELECT gates FROM public.task_effective_steps('studio') WHERE step = 'ready') = ARRAY['qa_complete'],
+    'الإلغاء سرّب على العام';
+  ASSERT (SELECT gates_off FROM public.studio_product_routes WHERE product_id = v_prod AND step = 'ready') = ARRAY['qa_complete'],
+    'شروط خارج المرحلة اتسجّلت';
+
+  -- اختيارية للمنتج.
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_route_set(v_prod, 'ready', 'optional', ARRAY['qa_complete']);
+  EXECUTE 'RESET ROLE';
+  ASSERT public.task_skip_target('studio', 'qa', 'delivered', v_prod), 'الاختيارية للمنتج ماتتخطّتش';
+  ASSERT NOT public.task_skip_target('studio', 'qa', 'delivered'), 'الاختيارية سرّبت على العام';
+
+  -- الرجوع للعام: حالة ≡ الأصل من غير شروط = التخصيص بيتشال.
+  PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  PERFORM public.studio_route_set(v_prod, 'ready', 'required', ARRAY[]::text[]);
+  ASSERT NOT EXISTS (SELECT 1 FROM public.studio_product_routes WHERE product_id = v_prod AND step = 'ready'),
+    'تخصيص مطابق للأصل فضل';
+  n := public.studio_route_reset(v_prod);
+  EXECUTE 'RESET ROLE';
+  ASSERT n = 2, 'عدد التخصيصات المتشالة: ' || n;
+  ASSERT public.task_next_step('studio', 'scenes', v_prod) = 'art_review', 'الرجوع للعام ماحصلش';
+
   RAISE NOTICE 'workflow_engine: OK';
 END
 $$;
