@@ -139,8 +139,8 @@ export default async function StudioSettingsPage() {
             الجودة…)، و<strong>مين ينقل منها</strong>، و<strong>الانتقالات الاستثنائية</strong> (رجوع / قفز).
           </p>
           <p>
-            الاستوديو جزء من «سير العمل والتوزيع» العام ({' '}
-            <Link href="/dashboard/admin/tasks/workflow?line=studio" className="font-bold text-blue-800 underline underline-offset-4">
+            الاستوديو مسار من منظومة «إنها لك» في «سير العمل والتوزيع» ({' '}
+            <Link href="/dashboard/admin/tasks/workflow?group=enha_lak#track-studio" className="font-bold text-blue-800 underline underline-offset-4">
               نفس الشاشة من هناك
             </Link>
             {' '}). المحفّز في قاعدة البيانات هو اللي بيفرض القواعد دي فعلًا، فمفيش حد يقدر يتخطّاها حتى لو لعب في الرابط.

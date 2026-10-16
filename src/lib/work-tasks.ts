@@ -4,16 +4,48 @@
 export type WorkLine = 'enha_lak' | 'box' | 'courses' | 'services' | 'studio';
 export type WorkStage = 'payment' | 'fulfilment';
 
-export const WORK_LINES: WorkLine[] = ['enha_lak', 'box', 'courses', 'services', 'studio'];
+// الترتيب مقصود: مسارات «إنها لك» (الطلب · الاستوديو · الصندوق) جنب بعض.
+export const WORK_LINES: WorkLine[] = ['enha_lak', 'studio', 'box', 'courses', 'services'];
 export const WORK_STAGES: WorkStage[] = ['payment', 'fulfilment'];
 
+/** اسم المسار كامل (للمهام والفلاتر): «إنها لك» واحدة بمساراتها. */
 export const WORK_LINE_LABELS: Record<WorkLine, string> = {
-  enha_lak: '«إنها لك» (قصص ومكتبة)',
-  box: 'صندوق الرحلة',
+  enha_lak: 'إنها لك — الطلب (مكتبة وقصص)',
+  studio: 'إنها لك — إنتاج القصة المخصّصة',
+  box: 'إنها لك — صندوق الرحلة',
   courses: 'حجوزات «بداية الرحلة»',
   services: 'الخدمات الإبداعية',
-  studio: 'استوديو القصص (التأليف والرسم)',
 };
+
+/** اسم المسار داخل منظومته (بدون اسم المنظومة). */
+export const WORK_TRACK_LABELS: Record<WorkLine, string> = {
+  enha_lak: 'الطلب (مكتبة وقصص)',
+  studio: 'إنتاج القصة المخصّصة (الاستوديو)',
+  box: 'صندوق الرحلة',
+  courses: 'الحجوزات',
+  services: 'الخدمات',
+};
+
+/**
+ * المنظومات: «إنها لك» منظومة واحدة مساراتها الطلب العادي وإنتاج القصة المخصّصة (الاستوديو)
+ * وصندوق الرحلة. المفاتيح (`line`) هي مفاتيح التخزين في القاعدة، والشاشات بتعرض المنظومة كوحدة
+ * واحدة وتخصّص كل مسار جواها (مراحله ومسؤولوه ومهله).
+ */
+export type WorkGroup = 'enha_lak' | 'courses' | 'services';
+
+export const WORK_GROUPS: { id: WorkGroup; label: string; lines: WorkLine[] }[] = [
+  { id: 'enha_lak', label: 'إنها لك', lines: ['enha_lak', 'studio', 'box'] },
+  { id: 'courses', label: 'حجوزات «بداية الرحلة»', lines: ['courses'] },
+  { id: 'services', label: 'الخدمات الإبداعية', lines: ['services'] },
+];
+
+export function groupOfLine(line: WorkLine): WorkGroup {
+  return WORK_GROUPS.find((g) => g.lines.includes(line))?.id ?? 'enha_lak';
+}
+
+export function isWorkGroup(v: unknown): v is WorkGroup {
+  return typeof v === 'string' && WORK_GROUPS.some((g) => g.id === v);
+}
 
 export const WORK_STAGE_LABELS: Record<WorkStage, string> = {
   payment: 'مراجعة الدفع',

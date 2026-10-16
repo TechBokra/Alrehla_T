@@ -76,7 +76,7 @@ export default async function Page({
       />
 
       {/* رحلة الطلب: مراحله من الدفع للتسليم + مشروع الاستوديو لبنوده المخصّصة (ملف 14 + الاستوديو). */}
-      <OrderJourney orderId={target.id} canOpenStudio={hasAdminPermission(user, 'canWorkStudio')} />
+      <OrderJourney orderId={target.id} orderStatus={target.status} canOpenStudio={hasAdminPermission(user, 'canWorkStudio')} />
 
       <PaymentReviewPanel
         reference={target.paymentReference}

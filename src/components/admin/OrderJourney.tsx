@@ -10,9 +10,20 @@ import { getOrderJourney } from '@/data/domains/(admin)/tasks/journey';
  * مكان واحد، ومعاها مشروع/مشاريع الاستوديو لبنوده المخصّصة (مرحلته ومسؤوله وموعده).
  * الاستوديو هنا مرحلة من الرحلة، مش عالم منفصل. بيعرض حاجة بس لو فيه مهام أو مشاريع.
  */
-export async function OrderJourney({ orderId, canOpenStudio }: { orderId: string; canOpenStudio: boolean }) {
+export async function OrderJourney({
+  orderId,
+  orderStatus,
+  canOpenStudio,
+}: {
+  orderId: string;
+  orderStatus: string;
+  canOpenStudio: boolean;
+}) {
   const { steps, projects } = await getOrderJourney(orderId);
   if (steps.length === 0 && projects.length === 0) return null;
+  // الطلب اتجهّز/اتشحن ولسه فيه قصة مخصّصة ماتسلّمتش — تنبيه (مش منع): قرار التجهيز بتاع الفريق.
+  const unfinished = projects.filter((p) => !p.terminal).length;
+  const fulfilmentStarted = ['preparing', 'shipped', 'delivered'].includes(orderStatus);
 
   return (
     <section aria-labelledby="journey-h" className="mb-6 space-y-4 rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
@@ -24,6 +35,13 @@ export async function OrderJourney({ orderId, canOpenStudio }: { orderId: string
           «مهامي»
         </Link>
       </div>
+
+      {fulfilmentStarted && unfinished > 0 && (
+        <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-6 text-amber-900">
+          الطلب في مرحلة التجهيز/الشحن، ولسه {unfinished.toLocaleString('ar-EG')} من القصص المخصّصة فيه ماتسلّمتش.
+          اتأكد إن الكتاب جاهز قبل ما الطلب يتشحن.
+        </p>
+      )}
 
       {steps.length > 0 && (
         <ol className="space-y-2" aria-label="مراحل الطلب">
