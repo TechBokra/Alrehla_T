@@ -48,7 +48,7 @@ BEGIN
     (v_customer,'عميل',       'customer',           NULL,       NULL);
 
   -- ── ١) الكتالوج ─────────────────────────────────────────────────────────
-  ASSERT (SELECT count(*) FROM public.task_steps WHERE line = 'studio') = 11, 'مراحل الاستوديو لازم ١١';
+  ASSERT (SELECT count(*) FROM public.task_steps WHERE line = 'studio' AND kind IN ('start', 'stage', 'hold')) = 11, 'مراحل الاستوديو لازم ١١';
   ASSERT (SELECT count(*) FROM public.task_steps WHERE line = 'enha_lak' AND step IN ('payment','fulfilment','paid','preparing','shipped')) = 5,
     'مراحل «إنها لك» ناقصة';
   ASSERT (SELECT sla_hours FROM public.task_steps WHERE line = 'studio' AND step = 'on_hold') IS NULL,

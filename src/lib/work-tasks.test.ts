@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  WORK_GROUPS,
   WORK_LINES,
   WORK_LINE_LABELS,
   WORK_LINE_STAGES,
+  groupOfLine,
   WORK_STAGES,
   isStageOfLine,
   isWorkLine,
@@ -34,5 +36,25 @@ describe('work-tasks — خطوط المهام', () => {
   it('شرح خاص للاستوديو وعادي لغيره', () => {
     expect(workStageHint('studio', 'fulfilment')).toMatch(/مسؤولو الإنتاج/);
     expect(workStageHint('enha_lak', 'payment')).toMatch(/الإيصال/);
+  });
+});
+
+describe('منظومة «إنها لك»', () => {
+  it('الطلب والاستوديو والصندوق في منظومة واحدة', () => {
+    expect(groupOfLine('enha_lak')).toBe('enha_lak');
+    expect(groupOfLine('studio')).toBe('enha_lak');
+    expect(groupOfLine('box')).toBe('enha_lak');
+    expect(groupOfLine('courses')).toBe('courses');
+  });
+
+  it('كل مسار في منظومة واحدة بس، وكلهم موجودين', () => {
+    const all = WORK_GROUPS.flatMap((g) => g.lines);
+    expect(new Set(all).size).toBe(all.length);
+    expect([...all].sort()).toEqual([...WORK_LINES].sort());
+  });
+
+  it('اسم مسار الاستوديو والصندوق يوضّح إنهم جزء من «إنها لك»', () => {
+    expect(WORK_LINE_LABELS.studio).toMatch(/إنها لك/);
+    expect(WORK_LINE_LABELS.box).toMatch(/إنها لك/);
   });
 });

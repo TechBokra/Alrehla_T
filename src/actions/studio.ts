@@ -16,7 +16,6 @@ import {
   QA_ITEMS,
   QA_SENSITIVE_ITEM,
   isHttpsUrl,
-  isStudioStatus,
   isUuid,
   studioErrorMessage,
   type CostKind,
@@ -540,7 +539,7 @@ export async function moveStudioProject(formData: FormData): Promise<StudioActio
   const id = projectIdOf(formData);
   if (!id) return BAD_PROJECT;
   const to = str(formData.get('to'));
-  if (!isStudioStatus(to)) return { ok: false, error: 'الحالة غير معروفة.' };
+  if (!/^[a-z][a-z0-9_]{1,40}$/.test(to)) return { ok: false, error: 'الحالة غير معروفة.' };
   const note = str(formData.get('note'));
   if (note.length > 1000) return { ok: false, error: 'الملاحظة طويلة (الحد ١٠٠٠ حرف).', field: 'note' };
 

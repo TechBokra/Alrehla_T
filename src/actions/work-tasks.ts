@@ -59,7 +59,23 @@ async function onlyAdmins(ids: string[]): Promise<string[]> {
   return (data ?? []).map((r) => r.id);
 }
 
-/** مين مسؤول عن نوع ومرحلة — بيستبدل القايمة كلها. */
+/**
+ * مين يوزّع؟ «توزيع المهام» لكل الأنواع، ومسؤول إنتاج القصص لتوزيع الاستوديو.
+ * ⚠️ القاعدة هي الحارس الحقيقي لمفتاح المرحلة (محفّز `assignment_rules_valid_trg`).
+ */
+async function distributionAdmin(line: string) {
+  if (line === 'studio') {
+    return requireAnyAdmin(['canAssignWork', 'canManageStudio'], 'توزيع الاستوديو لمسؤول الإنتاج أو «توزيع المهام»');
+  }
+  return requireAdmin('canAssignWork', 'توزيع الطلبات محتاج صلاحية «توزيع المهام والطلبات»');
+}
+
+const STEP_KEY = /^[a-z][a-z0-9_]{1,40}$/;
+
+/**
+ * مين مسؤول عن مرحلة من نوع — بيستبدل القايمة كلها. المرحلة: «payment» أو «fulfilment» العامتين،
+ * أو مفتاح مرحلة دقيقة من الكتالوج (حالة طلب: paid/preparing…، أو مرحلة استوديو).
+ */
 export async function saveAssignmentRule(
   line: string,
   stage: string,
@@ -67,11 +83,14 @@ export async function saveAssignmentRule(
 ): Promise<WorkTaskResult> {
   let admin;
   try {
-    admin = await requireAdmin('canAssignWork', 'توزيع الطلبات محتاج صلاحية «توزيع المهام والطلبات»');
+    admin = await distributionAdmin(line);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
   }
-  if (!isWorkLine(line) || !isWorkStage(stage) || !isStageOfLine(line, stage)) {
+  if (!isWorkLine(line) || typeof stage !== 'string' || !STEP_KEY.test(stage)) {
+    return { ok: false, error: 'نوع أو مرحلة غير معروفة' };
+  }
+  if (isWorkStage(stage) && !isStageOfLine(line, stage)) {
     return { ok: false, error: 'نوع أو مرحلة غير معروفة' };
   }
 
@@ -93,7 +112,13 @@ export async function saveAssignmentRule(
       .insert(ids.map((profile_id) => ({ line, stage, profile_id })));
     if (error) {
       console.error('saveAssignmentRule insert', error);
-      return { ok: false, error: 'تعذّر حفظ التوزيع — القايمة اتفضّت، جرّب تاني' };
+      return {
+        ok: false,
+        error:
+          error.code === '23514'
+            ? 'المرحلة دي مش موجودة في سير عمل النوع ده'
+            : 'تعذّر حفظ التوزيع — القايمة اتفضّت، جرّب تاني',
+      };
     }
   }
 
@@ -105,7 +130,43 @@ export async function saveAssignmentRule(
     metadata: { profileIds: ids },
   });
   revalidatePath('/dashboard/admin/tasks/assignments');
+  revalidatePath('/dashboard/admin/tasks/workflow');
+  if (line === 'studio') revalidatePath('/dashboard/admin/studio/settings');
   return { ok: true };
+}
+
+/**
+ * طبّق قاعدة التوزيع الحالية لمرحلة على مهامها **المفتوحة** دلوقتي (وإلا بتسري على الجاية بس).
+ * بترجّع عدد المهام اللي اتغيّر مسؤولها؛ والجديد بيوصله إشعار. المحرر/المشرف المعيّن على مشروع
+ * استوديو (استثناء المشروع) بيفضل غالب.
+ */
+export async function applyStageRule(line: string, step: string): Promise<WorkTaskResult & { changed?: number }> {
+  let admin;
+  try {
+    admin = await distributionAdmin(line);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح' };
+  }
+  if (!isWorkLine(line) || typeof step !== 'string' || !STEP_KEY.test(step)) {
+    return { ok: false, error: 'نوع أو مرحلة غير معروفة' };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('task_rule_apply', { p_line: line, p_step: step });
+  if (error) {
+    console.error('applyStageRule', error);
+    return { ok: false, error: error.code === '42501' ? 'مالكش صلاحية التوزيع' : 'تعذّر تطبيق التوزيع' };
+  }
+  await logAuditAction({
+    actorProfileId: admin.id,
+    action: 'assignment_rule_applied',
+    entityType: 'assignment_rule',
+    entityId: `${line}:${step}`,
+    metadata: { changed: data },
+  });
+  revalidatePath('/dashboard/admin/tasks');
+  revalidatePath('/dashboard/admin/tasks/workflow');
+  if (line === 'studio') revalidatePath('/dashboard/admin/studio');
+  return { ok: true, changed: typeof data === 'number' ? data : 0 };
 }
 
 /** «تم» بالإيد — لما المهمة خلصت من غير ما حالة الطلب تتغيّر (الصندوق مثلًا). */
@@ -385,6 +446,7 @@ export async function saveTaskStep(formData: FormData): Promise<WorkTaskResult> 
   });
   revalidatePath('/dashboard/admin/tasks');
   revalidatePath('/dashboard/admin/tasks/steps');
+  revalidatePath('/dashboard/admin/tasks/workflow');
   if (line === 'studio') {
     revalidatePath('/dashboard/admin/studio');
     revalidatePath('/dashboard/admin/studio/settings');

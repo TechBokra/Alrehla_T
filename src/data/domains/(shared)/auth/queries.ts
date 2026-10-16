@@ -180,10 +180,28 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
   const role: UserRole = (profile.role as UserRole) || 'customer';
 
   // الصلاحيات من دوره الإداري — كل اللي في الدور بياخدوا نفس الحاجة.
-  const { permissions, roleName } = await getAdminAccess(
+  const access = await getAdminAccess(
     role,
     (profile as { admin_role_id?: string | null }).admin_role_id,
   );
+  const { roleName } = access;
+  let { permissions } = access;
+
+  // الاستوديو: المسؤول عن مرحلة من «توزيع المهام» (أو عنده مهمة استوديو مفتوحة) يدخل
+  // ويشتغل من غير دور استوديو مخصوص. القاعدة هي المرجع (story_studio_access)؛
+  // الفشل = من غير الصلاحية المشتقة (مافيش تصعيد).
+  if (
+    role === 'general_supervisor' &&
+    !permissions.includes('canWorkStudio') &&
+    !permissions.includes('canManageStudio')
+  ) {
+    try {
+      const { data: allowed } = await supabase.rpc('story_studio_access');
+      if (allowed === true) permissions = [...permissions, 'canWorkStudio'];
+    } catch (e) {
+      console.error('story_studio_access', e);
+    }
+  }
 
   return {
     id: user.id,

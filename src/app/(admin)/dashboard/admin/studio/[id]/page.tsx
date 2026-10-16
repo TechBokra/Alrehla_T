@@ -11,19 +11,22 @@ import { getStudioProject, getStudioStages, getStudioTasks, listStudioStaff } fr
 import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { moveStudioProject } from '@/actions/studio';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
+import { isUuid } from '@/lib/studio';
 import {
-  OWNER_LABELS,
-  STUDIO_PIPELINE,
-  canMove,
-  isTerminal,
-  isUuid,
-  nextStatuses,
-  stageOwner,
+  flowBlockers,
+  flowCanMove,
+  flowMoves,
+  flowNext,
+  flowSkipTargets,
+  flowPipeline,
+  flowStep,
+  isTerminalIn,
+  ownerLabelOf,
   statusLabel,
   statusTone,
-  studioBlockers,
-  type StudioStatus,
-} from '@/lib/studio';
+  type FlowMove,
+  type StudioFlow,
+} from '@/lib/studio-flow';
 import { BriefPanel, CharacterPanel, CostsPanel, PagesPanel, QaPanel, TextPanel } from './panels';
 
 export const dynamic = 'force-dynamic';
@@ -39,27 +42,17 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 /** التبويب المناسب لمرحلة المشروع — بيفتح عليه لو مفيش اختيار. */
-function defaultTab(status: StudioStatus): TabId {
-  switch (status) {
-    case 'text_draft':
-    case 'text_review':
-    case 'client_text_approval':
-      return 'text';
-    case 'character':
-      return 'character';
-    case 'scenes':
-    case 'art_review':
-    case 'layout':
-      return 'pages';
-    case 'qa':
-    case 'ready':
-      return 'qa';
-    default:
-      return 'brief';
-  }
+function defaultTab(flow: StudioFlow, status: string): TabId {
+  if (status === 'character') return 'character';
+  if (status === 'qa' || status === 'ready') return 'qa';
+  const abilities = flowStep(flow, status)?.abilities ?? [];
+  if (abilities.includes('text')) return 'text';
+  if (abilities.includes('pages')) return 'pages';
+  return 'brief';
 }
 
-const MOVE_LABELS: Partial<Record<StudioStatus, string>> = {
+/** أسماء الأزرار للمراحل الأصلية؛ المضافة بتاخد اسمًا عامًا من اسم المرحلة. */
+const MOVE_LABELS: Partial<Record<string, string>> = {
   text_draft: 'ابدأ كتابة النص',
   text_review: 'أرسل للمراجعة',
   client_text_approval: 'أرسل للعميل',
@@ -70,8 +63,6 @@ const MOVE_LABELS: Partial<Record<StudioStatus, string>> = {
   qa: 'ابدأ فحص الجودة',
   ready: 'جاهز للتسليم',
   delivered: 'تم التسليم',
-  on_hold: 'إيقاف مؤقت',
-  cancelled: 'إلغاء المشروع',
 };
 
 export default async function StudioProjectPage({
@@ -112,28 +103,37 @@ export default async function StudioProjectPage({
   const { project, versions, pages, costs } = result.data;
 
   const visibleTabs = TABS.filter((t) => t.id !== 'costs' || canCosts);
-  const tab: TabId = visibleTabs.some((t) => t.id === sp.tab) ? (sp.tab as TabId) : defaultTab(project.status);
+  const tab: TabId = visibleTabs.some((t) => t.id === sp.tab) ? (sp.tab as TabId) : defaultTab(stages.flow, project.status);
 
-  const actor = { id: user.id, canManage, canWork: true };
-  const pmProject = { status: project.status, editorId: project.editorId, artLeadId: project.artLeadId };
-  const moves = nextStatuses(project.status, project.heldFrom).filter((to) => canMove(actor, pmProject, to));
-  const stageIndex = STUDIO_PIPELINE.indexOf(
-    project.status === 'on_hold' ? (project.heldFrom as StudioStatus) : project.status,
+  const flow = stages.flow;
+  const cur = flowStep(flow, project.status);
+  const task = tasks.get(project.id);
+  // صاحب المرحلة: المسند له المهمة، أو المحرر/المشرف المعيّن على المشروع لو المرحلة بتاعته.
+  const isWorker =
+    (task?.assigneeIds ?? []).includes(user.id) ||
+    (cur?.ownerKind === 'editor' && project.editorId === user.id) ||
+    (cur?.ownerKind === 'art_lead' && project.artLeadId === user.id);
+  const actor = { canManage, isWorker };
+  const moves = flowMoves(flow, project.status, project.heldFrom).filter((m) =>
+    flowCanMove(actor, m, project.status, flow),
   );
-  // «للأمام» = المرحلة التالية في الخط (أو الاستئناف من الإيقاف).
-  const isForward = (to: StudioStatus) =>
-    project.status === 'on_hold' || STUDIO_PIPELINE.indexOf(to) === stageIndex + 1;
-  const forward = moves.filter(isForward);
-  const sideways = moves.filter((to) => !isForward(to));
-  const moveLabel = (to: StudioStatus) => {
-    if (project.status === 'on_hold') return `استئناف (${label(to)})`;
-    if (isForward(to)) return MOVE_LABELS[to] ?? label(to);
-    if (to === 'on_hold' || to === 'cancelled') return MOVE_LABELS[to] ?? label(to);
-    if (to === 'text_draft') return 'تعديل النص (تعديل نطاق)';
-    return `رجوع إلى «${label(to)}»`;
+
+  const pipeline = flowPipeline(flow);
+  const placeKey = cur?.kind === 'hold' ? (project.heldFrom ?? '') : project.status;
+  const stageIndex = pipeline.findIndex((s) => s.step === placeKey);
+  const isForward = (m: FlowMove) => m.type === 'forward' || m.type === 'skip' || m.type === 'resume';
+  const ordered = [...moves.filter(isForward), ...moves.filter((m) => !isForward(m))];
+  const moveLabel = (m: FlowMove) => {
+    if (m.type === 'resume') return `استئناف (${label(m.to)})`;
+    if (m.type === 'hold') return 'إيقاف مؤقت';
+    if (m.type === 'cancel') return 'إلغاء المشروع';
+    if (m.type === 'forward') return MOVE_LABELS[m.to] ?? `انقل إلى «${label(m.to)}»`;
+    if (m.type === 'skip') return `تخطّي إلى «${label(m.to)}»`;
+    if (m.pagesRedo) return `تعديل النص (تعديل نطاق)`;
+    const goingBack = (flowStep(flow, m.to)?.sortOrder ?? 0) < (cur?.sortOrder ?? 0);
+    return goingBack ? `رجوع إلى «${label(m.to)}»` : `انتقال إلى «${label(m.to)}»`;
   };
   const ctx = {
-    from: project.status,
     faceMode: project.faceMode,
     photoConsentAt: project.photoConsentAt,
     characterApprovedAt: project.characterApprovedAt,
@@ -143,8 +143,15 @@ export default async function StudioProjectPage({
     pages,
   };
 
-  const owner = OWNER_LABELS[stageOwner(project.status)];
-  const task = tasks.get(project.id);
+  const owner = ownerLabelOf(flow, project.status);
+  const nextKey = flowNext(flow, project.status);
+  const writing = !!cur?.abilities.includes('text');
+  const art = !!cur?.abilities.includes('pages');
+  // لو موافقة العميل شرط في مرحلة جاية (حتى لو بالتخطّي) فتسجيلها متاح من المرحلة دي.
+  const clientStage = [nextKey, ...flowSkipTargets(flow, project.status)].some(
+    (k) => !!k && !!flowStep(flow, k)?.gates.includes('text_client_approved'),
+  );
+  const terminal = isTerminalIn(flow, project.status);
   const title = project.childName ? `قصة ${project.childName}` : 'قصة مخصّصة';
 
   return (
@@ -154,14 +161,14 @@ export default async function StudioProjectPage({
       {/* الحالة */}
       <section aria-label="حالة المشروع" className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge label={label(project.status)} type={statusTone(project.status)} />
-          {!isTerminal(project.status) && project.status !== 'on_hold' && (
+          <StatusBadge label={label(project.status)} type={statusTone(project.status, flow)} />
+          {!terminal && cur?.kind !== 'hold' && (
             <span className="text-xs font-medium text-slate-500">المرحلة عند: {owner}</span>
           )}
-          {project.status === 'on_hold' && project.heldFrom && (
+          {cur?.kind === 'hold' && project.heldFrom && (
             <span className="text-xs font-medium text-slate-500">كان في: {label(project.heldFrom)}</span>
           )}
-          {task && !isTerminal(project.status) && (
+          {task && !terminal && (
             <Link href={`/dashboard/admin/tasks/${task.id}`} aria-label="تفاصيل مهمة المرحلة وتاريخها">
               <DeadlineChip d={task.deadline} dueAt={task.dueAt} />
             </Link>
@@ -176,7 +183,7 @@ export default async function StudioProjectPage({
           )}
         </div>
 
-        {stages.hints[project.status] && !isTerminal(project.status) && (
+        {stages.hints[project.status] && !terminal && (
           <p className="rounded-2xl bg-slate-50 p-3 text-xs font-medium leading-6 text-slate-600">
             {stages.hints[project.status]}
           </p>
@@ -184,9 +191,9 @@ export default async function StudioProjectPage({
 
         {stageIndex >= 0 && (
           <ol className="flex flex-wrap gap-1.5" aria-label="مراحل الإنتاج">
-            {STUDIO_PIPELINE.map((s, i) => (
+            {pipeline.map((st, i) => (
               <li
-                key={s}
+                key={st.step}
                 aria-current={i === stageIndex ? 'step' : undefined}
                 className={`rounded-lg px-2.5 py-1 text-[11px] font-bold ${
                   i < stageIndex
@@ -196,13 +203,13 @@ export default async function StudioProjectPage({
                       : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {label(s)}
+                {label(st.step)}
               </li>
             ))}
           </ol>
         )}
 
-        {project.orderClosed && !isTerminal(project.status) && (
+        {project.orderClosed && !terminal && (
           <p role="alert" className="rounded-2xl bg-rose-50 p-3 text-sm font-bold text-rose-900">
             الطلب اتلغى أو اتردّ فلوسه والمشروع لسه شغّال. راجع مسؤول الإنتاج وقرّر: إلغاء المشروع أو إيقافه.
           </p>
@@ -217,9 +224,11 @@ export default async function StudioProjectPage({
 
         {moves.length > 0 && (
           <div className="space-y-3 border-t border-slate-100 pt-4">
-            {[...forward, ...sideways].map((to) => {
-              const blockers = studioBlockers(to, ctx);
-              const fwd = isForward(to);
+            {ordered.map((m) => {
+              const to = m.to;
+              const blockers = flowBlockers(flow, to, ctx, m.skipGates);
+              const fwd = isForward(m);
+              const noteKind = flowStep(flow, to)?.kind;
               return (
                 <div key={to} className="space-y-2">
                   <ActionForm
@@ -229,9 +238,9 @@ export default async function StudioProjectPage({
                   >
                     <input type="hidden" name="projectId" value={project.id} />
                     <input type="hidden" name="to" value={to} />
-                    {(to === 'delivered' || to === 'on_hold' || to === 'cancelled') && (
+                    {(noteKind === 'done' || noteKind === 'hold' || noteKind === 'cancel') && (
                       <div className="min-w-[14rem] flex-1">
-                        <Field label={to === 'delivered' ? 'ملاحظة التسليم' : 'السبب'} name="note">
+                        <Field label={noteKind === 'done' ? 'ملاحظة التسليم' : 'السبب'} name="note">
                           <TextInput name="note" maxLength={1000} />
                         </Field>
                       </div>
@@ -241,7 +250,7 @@ export default async function StudioProjectPage({
                       disabled={blockers.length > 0}
                       pendingLabel="جارٍ التنفيذ…"
                     >
-                      {moveLabel(to)}
+                      {moveLabel(m)}
                     </DecisionButton>
                   </ActionForm>
                   {blockers.length > 0 && (
@@ -283,9 +292,11 @@ export default async function StudioProjectPage({
             orderHref={canOrders ? `/dashboard/admin/orders/${project.orderId}` : null}
           />
         )}
-        {tab === 'text' && <TextPanel project={project} versions={versions} />}
+        {tab === 'text' && (
+          <TextPanel project={project} versions={versions} writing={writing} clientStage={clientStage} />
+        )}
         {tab === 'character' && <CharacterPanel project={project} />}
-        {tab === 'pages' && <PagesPanel project={project} pages={pages} canManage={canManage} />}
+        {tab === 'pages' && <PagesPanel project={project} pages={pages} canManage={canManage} art={art} />}
         {tab === 'qa' && <QaPanel project={project} canManage={canManage} />}
         {tab === 'costs' && canCosts && <CostsPanel project={project} costs={costs} />}
       </div>
