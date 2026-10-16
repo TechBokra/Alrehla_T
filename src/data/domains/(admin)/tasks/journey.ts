@@ -12,6 +12,7 @@ import {
   type StudioFlow,
 } from '@/lib/studio-flow';
 import type { StudioTone } from '@/lib/studio';
+import { shipmentDueDate } from '@/lib/box-schedule';
 import {
   deadlineState,
   isWorkLine,
@@ -53,7 +54,19 @@ export type JourneyProject = {
   pipeline: { key: string; label: string; state: 'done' | 'current' | 'todo' }[];
 };
 
-export type OrderJourneyData = { steps: JourneyStep[]; projects: JourneyProject[] };
+export type JourneyShipment = {
+  id: string;
+  month: number;
+  months: number;
+  status: string;
+  dueAt: string;
+  taskId: string | null;
+  taskOpen: boolean;
+  assignees: string[];
+  deadline: DeadlineState | null;
+};
+
+export type OrderJourneyData = { steps: JourneyStep[]; projects: JourneyProject[]; shipments: JourneyShipment[] };
 
 type Row = {
   id: string;
@@ -84,9 +97,39 @@ export async function getOrderJourney(orderId: string): Promise<OrderJourneyData
     ? await supabase.from('work_tasks').select('*').eq('line', 'studio').in('source_id', projectIds).limit(40)
     : { data: [] as Row[], error: null };
 
+  // شحنات اشتراك الصندوق: لكل شهر مهمة مستقلة (source_id = رقم الشحنة) بموعد الشحنة نفسه.
+  const sub = await supabase
+    .from('box_subscriptions')
+    .select('id, starts_at, months, status')
+    .eq('order_id', orderId)
+    .maybeSingle();
+  const shipRows = sub.data
+    ? ((
+        await supabase
+          .from('box_shipments')
+          .select('id, month_number, status')
+          .eq('subscription_id', sub.data.id)
+          .order('month_number', { ascending: true })
+          .limit(24)
+      ).data ?? [])
+    : [];
+  const shipTasks = shipRows.length
+    ? (((
+        await supabase
+          .from('work_tasks')
+          .select('*')
+          .eq('line', 'box')
+          .in(
+            'source_id',
+            shipRows.map((r) => r.id),
+          )
+          .limit(48)
+      ).data ?? []) as Row[])
+    : [];
+
   const orderRows = (orderTasks.data ?? []) as Row[];
   const studioRows = (studioTasks.data ?? []) as Row[];
-  const ids = Array.from(new Set([...orderRows, ...studioRows].flatMap((t) => t.assignee_ids ?? [])));
+  const ids = Array.from(new Set([...orderRows, ...studioRows, ...shipTasks].flatMap((t) => t.assignee_ids ?? [])));
   const names = new Map<string, string>();
   if (ids.length) {
     const { data } = await supabase.from('user_profiles').select('id, full_name').in('id', ids);
@@ -149,7 +192,34 @@ export async function getOrderJourney(orderId: string): Promise<OrderJourneyData
     };
   });
 
-  return { steps, projects: projectsOut };
+  const subRow = sub.data;
+  const startsAt = subRow?.starts_at ?? null;
+  const totalMonths = subRow?.months ?? shipRows.length;
+  const shipments: JourneyShipment[] = startsAt
+    ? shipRows.map((r) => {
+        const task = shipTasks.find((t) => t.source_id === r.id);
+        const open = task?.status === 'open';
+        const dueAt = shipmentDueDate(startsAt, r.month_number).toISOString();
+        return {
+          id: r.id,
+          month: r.month_number,
+          months: totalMonths,
+          status: r.status,
+          dueAt,
+          taskId: task?.id ?? null,
+          taskOpen: open,
+          assignees: open ? who(task?.assignee_ids ?? null) : [],
+          deadline: open
+            ? deadlineState(
+                { status: 'open', dueAt: task?.due_at ?? dueAt, stepChangedAt: task?.step_changed_at ?? task?.created_at ?? null },
+                now,
+              )
+            : null,
+        } satisfies JourneyShipment;
+      })
+    : [];
+
+  return { steps, projects: projectsOut, shipments };
 }
 
 export type { StudioFlow };

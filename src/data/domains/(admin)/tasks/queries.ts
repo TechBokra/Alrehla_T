@@ -11,6 +11,7 @@ import {
   isWorkTaskEventKind,
 } from '@/lib/work-tasks';
 import { createClient } from '@/lib/supabase/server';
+import { clampLeadDays } from '@/lib/box-schedule';
 
 export type AdminPerson = {
   id: string;
@@ -301,4 +302,12 @@ export async function runTaskDeadlineSweep(): Promise<void> {
   } catch (e) {
     console.error('runTaskDeadlineSweep', e);
   }
+}
+
+/** كام يوم قبل موعد شحنة الصندوق تتفتح مهمتها (الافتراضي ٧). */
+export async function getBoxShipmentLeadDays(): Promise<number> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('site_settings').select('value').eq('key', 'general').maybeSingle();
+  const v = (data?.value ?? {}) as { boxShipmentLeadDays?: unknown };
+  return clampLeadDays(v.boxShipmentLeadDays);
 }

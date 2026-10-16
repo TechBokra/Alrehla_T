@@ -4542,6 +4542,7 @@ export type Database = {
         Returns: undefined
       }
       studio_route_reset: { Args: { p_product: string }; Returns: number }
+      box_shipment_tasks_sync: { Args: never; Returns: Json }
       task_rule_apply: { Args: { p_line: string; p_step: string }; Returns: number }
       student_sessions: {
         Args: never

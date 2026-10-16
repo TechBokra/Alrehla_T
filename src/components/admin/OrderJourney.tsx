@@ -5,6 +5,13 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { getOrderJourney } from '@/data/domains/(admin)/tasks/journey';
 
+const SHIPMENT_STATUS: Record<string, string> = {
+  pending: 'مستنية التجهيز',
+  preparing: 'قيد التجهيز',
+  shipped: 'اتشحنت',
+  delivered: 'اتسلّمت',
+};
+
 /**
  * «رحلة الطلب» — بديل لافتة «مين ماسك الطلب» في صفحة الطلب: كل مراحل الطلب من الدفع للتسليم في
  * مكان واحد، ومعاها مشروع/مشاريع الاستوديو لبنوده المخصّصة (مرحلته ومسؤوله وموعده).
@@ -19,8 +26,8 @@ export async function OrderJourney({
   orderStatus: string;
   canOpenStudio: boolean;
 }) {
-  const { steps, projects } = await getOrderJourney(orderId);
-  if (steps.length === 0 && projects.length === 0) return null;
+  const { steps, projects, shipments } = await getOrderJourney(orderId);
+  if (steps.length === 0 && projects.length === 0 && shipments.length === 0) return null;
   // الطلب اتجهّز/اتسلّم (إلكتروني أو مطبوع) ولسه فيه قصة مخصّصة ماتسلّمتش — تنبيه (مش منع): قرار الفريق.
   const unfinished = projects.filter((p) => !p.terminal).length;
   const fulfilmentStarted = ['preparing', 'shipped', 'delivered'].includes(orderStatus);
@@ -67,6 +74,38 @@ export async function OrderJourney({
             </li>
           ))}
         </ol>
+      )}
+
+      {shipments.length > 0 && (
+        <div className="space-y-2 rounded-xl bg-white p-3 text-sm">
+          <p className="font-black text-slate-900">شحنات الاشتراك الشهرية</p>
+          <ol className="space-y-1.5" aria-label="شحنات الاشتراك">
+            {shipments.map((sh) => (
+              <li key={sh.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="font-bold text-slate-900">
+                  الشهر {sh.month.toLocaleString('ar-EG')} من {sh.months.toLocaleString('ar-EG')}
+                </span>
+                <span className="text-xs font-medium text-slate-600">
+                  {SHIPMENT_STATUS[sh.status] ?? sh.status}
+                  {' · '}
+                  موعدها {new Date(sh.dueAt).toLocaleDateString('ar-EG', { timeZone: 'UTC' })}
+                  {sh.taskOpen && (
+                    <>
+                      {' · '}
+                      {sh.assignees.length > 0 ? sh.assignees.join('، ') : 'من غير مسؤول'}
+                    </>
+                  )}
+                </span>
+                {sh.deadline && <DeadlineChip d={sh.deadline} dueAt={sh.dueAt} />}
+                {sh.taskId && sh.taskOpen && (
+                  <Link href={`/dashboard/admin/tasks/${sh.taskId}`} className="ms-auto text-xs font-bold text-slate-700 underline">
+                    المهمة
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {projects.map((p) => (

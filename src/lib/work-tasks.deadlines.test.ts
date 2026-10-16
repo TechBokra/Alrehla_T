@@ -107,6 +107,14 @@ describe('كتالوج المراحل', () => {
     expect(pathSteps(catalog, 'enha_lak').map((s) => s.step)).toEqual(['payment', 'paid', 'preparing']);
     expect(pathSteps(catalog, 'courses').map((s) => s.step)).toEqual(['payment', 'fulfilment']);
   });
+
+  it('الصندوق: الدفع ثم شحنة الشهر فقط (من غير مراحل حالة الطلب)', () => {
+    const box = (step: string, sortOrder: number) => ({
+      line: 'box' as const, step, label: step, hint: null, slaHours: null, ownerKind: 'rule' as const, sortOrder, showTab: true,
+    });
+    const cat = [box('payment', 10), box('fulfilment', 20), box('shipment', 24), box('paid', 21), box('preparing', 22), box('shipped', 23)];
+    expect(pathSteps(cat, 'box').map((s) => s.step)).toEqual(['payment', 'shipment']);
+  });
 });
 
 describe('describeEvent', () => {

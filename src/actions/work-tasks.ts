@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireAdmin, requireAnyAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyUser } from '@/lib/notifications';
+import { BOX_LEAD_DAYS_MAX, BOX_LEAD_DAYS_MIN } from '@/lib/box-schedule';
 import {
   isStageOfLine,
   isTaskStepOwner,
@@ -451,5 +452,54 @@ export async function saveTaskStep(formData: FormData): Promise<WorkTaskResult> 
     revalidatePath('/dashboard/admin/studio');
     revalidatePath('/dashboard/admin/studio/settings');
   }
+  return { ok: true };
+}
+
+/**
+ * كام يوم قبل موعد شحنة الصندوق الشهرية تتفتح مهمتها. بيتخزّن في `site_settings.general`
+ * (`boxShipmentLeadDays`) ويسري على المهام اللي بتتفتح بعد كده (الفحص بيتشغّل من cron المهام
+ * ومن فتح صفحة المهام).
+ */
+export async function saveBoxShipmentLeadDays(formData: FormData): Promise<WorkTaskResult> {
+  let user;
+  try {
+    user = await requireAdmin('canAssignWork', 'ضبط مهام الصندوق محتاج صلاحية «توزيع المهام والطلبات»');
+  } catch {
+    return { ok: false, error: 'ضبط مهام الصندوق محتاج صلاحية «توزيع المهام والطلبات».' };
+  }
+  const raw = formData.get('leadDays');
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  if (!/^[0-9]{1,3}$/.test(text)) {
+    return { ok: false, error: `اكتب عدد أيام صحيح من ${BOX_LEAD_DAYS_MIN} لـ${BOX_LEAD_DAYS_MAX}.`, field: 'leadDays' };
+  }
+  const days = Number(text);
+  if (days < BOX_LEAD_DAYS_MIN || days > BOX_LEAD_DAYS_MAX) {
+    return { ok: false, error: `العدد من ${BOX_LEAD_DAYS_MIN} لـ${BOX_LEAD_DAYS_MAX} يوم.`, field: 'leadDays' };
+  }
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from('site_settings').select('value').eq('key', 'general').maybeSingle();
+  const next = { ...((existing?.value ?? {}) as Record<string, unknown>), boxShipmentLeadDays: days };
+  const { data: saved, error } = await supabase
+    .from('site_settings')
+    .upsert({ key: 'general', value: next as never }, { onConflict: 'key' })
+    .select('key');
+  if (error) {
+    console.error('saveBoxShipmentLeadDays', error);
+    return { ok: false, error: 'تعذّر حفظ الإعداد.' };
+  }
+  if (!saved || saved.length === 0) {
+    return { ok: false, error: 'الحفظ مروّحش للقاعدة — صلاحيات جدول الإعدادات مش سامحة بالكتابة.' };
+  }
+  await logAuditAction({
+    actorProfileId: user.id,
+    actorName: user.fullName,
+    action: 'box_shipment_lead_days_updated',
+    entityType: 'SiteSettings',
+    entityId: 'general',
+    metadata: { boxShipmentLeadDays: days },
+  });
+  revalidatePath('/dashboard/admin/tasks/workflow');
+  revalidatePath('/dashboard/admin/tasks');
   return { ok: true };
 }
