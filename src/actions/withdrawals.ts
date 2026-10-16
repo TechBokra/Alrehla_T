@@ -49,7 +49,7 @@ export async function setWithdrawalStatus(params: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', requestId)
-    .select('instructor_id, publisher_id, amount')
+    .select('instructor_id, publisher_id, provider_id, amount')
     .single();
 
   if (error || !data) {
@@ -57,7 +57,14 @@ export async function setWithdrawalStatus(params: {
     return { ok: false, error: 'تعذّر تحديث الطلب' };
   }
 
-  const isPublisher = data.publisher_id != null;
+  const ownerKind: 'instructor' | 'publisher' | 'provider' =
+    data.publisher_id != null ? 'publisher' : data.provider_id != null ? 'provider' : 'instructor';
+  const ownerId =
+    (ownerKind === 'publisher'
+      ? data.publisher_id
+      : ownerKind === 'provider'
+        ? data.provider_id
+        : data.instructor_id) as string;
 
   // ── «تم التحويل» لازم تكون قفلت الرصيد فعلًا ───────────────
   //
@@ -70,17 +77,12 @@ export async function setWithdrawalStatus(params: {
   //    والثغرة ترجع في صمت — وهي بالظبط الحاجة اللي مايصحّش نثق فيها
   //    من غير ما نشوفها.
   if (status === 'paid') {
-    const stillOpen = isPublisher
-      ? await supabase
-          .from('publisher_payouts')
-          .select('id', { count: 'exact', head: true })
-          .eq('publisher_id', data.publisher_id as string)
-          .eq('status', 'pending')
-      : await supabase
-          .from('instructor_payouts')
-          .select('id', { count: 'exact', head: true })
-          .eq('instructor_id', data.instructor_id as string)
-          .eq('status', 'pending');
+    const stillOpen = await supabase
+      .from('payouts')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_kind', ownerKind)
+      .eq('owner_id', ownerId)
+      .eq('status', 'pending');
 
     // مستحقات اتسجّلت **بعد** الطلب مش غلط — دي شغل جديد. اللي بيقلق
     // هو إن العدد يفضل زيّ ما هو؛ وده بيتشاف من التقرير في آخر الملف،
@@ -100,15 +102,34 @@ export async function setWithdrawalStatus(params: {
     rejected: 'لم يُعتمد طلب السحب',
   };
 
+  // ⚠️ **مقدّم الخدمة المستقل `user_id` على صفه مباشرة** — مفيش دالة
+  //    وسيطة زي المدرب والناشر، فالقراءة من الجدول هنا.
+  let recipient: string | null = null;
+  if (ownerKind === 'publisher') {
+    recipient = await getPublisherUserId(ownerId);
+  } else if (ownerKind === 'instructor') {
+    recipient = await getInstructorUserId(ownerId);
+  } else {
+    const { data: prov } = await supabase
+      .from('service_providers')
+      .select('user_id')
+      .eq('id', ownerId)
+      .maybeSingle();
+    recipient = prov?.user_id ?? null;
+  }
+
   await notifyUser({
     event: 'withdrawal',
-    recipientProfileId: isPublisher
-      ? await getPublisherUserId(data.publisher_id as string)
-      : await getInstructorUserId(data.instructor_id as string),
+    recipientProfileId: recipient,
     title: titles[status],
     message: adminNotes?.trim(),
-    // الرابط لازم يوديه للوحته هو — لوحة المدرب مقفولة على الناشر.
-    link: isPublisher ? '/dashboard/publisher/payouts' : '/dashboard/instructor/payouts',
+    // الرابط لازم يوديه للوحته هو — كل لوحة مقفولة على التانية.
+    link:
+      ownerKind === 'publisher'
+        ? '/dashboard/publisher/payouts'
+        : ownerKind === 'provider'
+          ? '/dashboard/provider/payouts'
+          : '/dashboard/instructor/payouts',
   });
 
   await logAuditAction({
@@ -123,6 +144,7 @@ export async function setWithdrawalStatus(params: {
   revalidatePath('/dashboard/admin/finance/withdrawals');
   revalidatePath('/dashboard/instructor/payouts');
   revalidatePath('/dashboard/publisher/payouts');
+  revalidatePath('/dashboard/provider/payouts');
   revalidatePath('/dashboard/admin');
   return { ok: true };
 }

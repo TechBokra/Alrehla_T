@@ -81,10 +81,20 @@ export default async function ProviderDashboard() {
         </p>
       )}
 
-      <p className="text-sm font-medium text-slate-500">
-        المبلغ المعروض هو مستحقك أنت، مش اللي دفعه العميل. مهلة التسليم الطبيعية
-        14 يومًا من تأكيد الدفع، وأي تعديل عليها بيوصلك كإشعار.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-medium text-slate-500">
+          المبلغ المعروض هو مستحقك أنت، مش اللي دفعه العميل. مهلة التسليم الطبيعية
+          14 يومًا من تأكيد الدفع، وأي تعديل عليها بيوصلك كإشعار.
+        </p>
+        {/* ⚠️ العمود اسمه «مستحقك» من الأول — وما كانش وراه أي سجل ولا
+            طريقة تطلبه. الرابط ده هو المكان اللي بقى فيه رصيد حقيقي. */}
+        <Link
+          href="/dashboard/provider/payouts"
+          className="shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+        >
+          مستحقاتي وطلب السحب
+        </Link>
+      </div>
 
       {rows.length === 0 ? (
         <p className="rounded-2xl border border-slate-200 bg-white p-10 text-center font-bold text-slate-500">

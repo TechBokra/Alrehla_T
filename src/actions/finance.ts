@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';
+import { getMyProvider } from '@/data/domains/(admin)/providers/queries';
 
 /**
  * Money operations: marking a payout as paid, an instructor's withdrawal
@@ -50,10 +51,11 @@ export async function markInstructorPayoutAsPaid(payoutId: string): Promise<Payo
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from('instructor_payouts')
+    .from('payouts')
     .update({ status: 'paid', updated_at: new Date().toISOString() })
     .eq('id', payoutId)
-    .select('id, instructor_id, amount, status')
+    .eq('owner_kind', 'instructor')
+    .select('id, owner_id, amount, status')
     .maybeSingle();
 
   if (error) {
@@ -71,7 +73,7 @@ export async function markInstructorPayoutAsPaid(payoutId: string): Promise<Payo
     action: 'instructor_payout_marked_paid',
     entityType: 'instructor_payout',
     entityId: payoutId,
-    metadata: { instructorId: data.instructor_id, amount: data.amount },
+    metadata: { instructorId: data.owner_id, amount: data.amount },
   });
 
   revalidatePath('/dashboard/admin/finance/instructor-payouts');
@@ -86,10 +88,11 @@ export async function markPublisherPayoutAsPaid(payoutId: string): Promise<Payou
   const supabase = await createClient();
 
   const { data, error } = await supabase
-    .from('publisher_payouts')
+    .from('payouts')
     .update({ status: 'paid', updated_at: new Date().toISOString() })
     .eq('id', payoutId)
-    .select('id, publisher_id, amount, status')
+    .eq('owner_kind', 'publisher')
+    .select('id, owner_id, amount, status')
     .maybeSingle();
 
   if (error) {
@@ -107,7 +110,7 @@ export async function markPublisherPayoutAsPaid(payoutId: string): Promise<Payou
     action: 'publisher_payout_marked_paid',
     entityType: 'publisher_payout',
     entityId: payoutId,
-    metadata: { publisherId: data.publisher_id, amount: data.amount },
+    metadata: { publisherId: data.owner_id, amount: data.amount },
   });
 
   revalidatePath('/dashboard/admin/finance/publisher-payouts');
@@ -152,7 +155,12 @@ export async function submitWithdrawalRequest(
   payoutDetails: string,
 ): Promise<WithdrawalResult> {
   const user = await getCurrentUser();
-  if (user.role !== 'instructor' && user.role !== 'publisher') {
+  // ⚠️ **`service_provider` كان مرفوضًا هنا** — ومقدّم الخدمة المستقل
+  //    دوره ده بالظبط. فالمنصة بتحصّل فلوسه من العميل، ولوحته بتقوله
+  //    «مستحقك»، وطلب السحب بيترفض. مكانش عنده رصيد أصلًا يطلبه،
+  //    لأن `record_service_order_earning` ماكانتش بتسجّل له.
+  const OWNERS = ['instructor', 'publisher', 'service_provider'] as const;
+  if (!(OWNERS as readonly string[]).includes(user.role)) {
     return { ok: false, error: 'غير مصرح لك بتقديم طلب سحب' };
   }
 
@@ -177,17 +185,28 @@ export async function submitWithdrawalRequest(
   //
   // ⚠️ **الرقم من الحساب لا من الفورم.** الشاشة مبتبعتش «أنا فلان»،
   //    الخادم بيسأل مين الداخل ويجيب ملفه بنفسه.
-  const isPublisher = user.role === 'publisher';
+  const ownerKind =
+    user.role === 'publisher'
+      ? ('publisher' as const)
+      : user.role === 'service_provider'
+        ? ('provider' as const)
+        : ('instructor' as const);
 
-  const ownerId = isPublisher
-    ? (await getMyPublisher())?.id ?? null
-    : await getMyInstructorId();
+  const ownerId =
+    ownerKind === 'publisher'
+      ? ((await getMyPublisher())?.id ?? null)
+      : ownerKind === 'provider'
+        ? ((await getMyProvider())?.id ?? null)
+        : await getMyInstructorId();
 
   if (!ownerId) {
-    return {
-      ok: false,
-      error: isPublisher ? 'لم يتم العثور على ملف الناشر' : 'لم يتم العثور على ملف المدرب',
-    };
+    const which =
+      ownerKind === 'publisher'
+        ? 'الناشر'
+        : ownerKind === 'provider'
+          ? 'مقدّم الخدمة'
+          : 'المدرب';
+    return { ok: false, error: `لم يتم العثور على ملف ${which}` };
   }
 
   // ── الرصيد: من القاعدة لا من الشاشة ───────────────────────
@@ -195,17 +214,15 @@ export async function submitWithdrawalRequest(
   // ⚠️ الفرعان مكتوبان صراحةً مش باسم جدول متغيّر: اسم الجدول
   //    المتغيّر بيضيّع فحص الأنواع، وفحص الأنواع هو اللي بيمسك لو
   //    عمود اتسمّى غلط.
-  const { data: earnings, error: earningsError } = isPublisher
-    ? await supabase
-        .from('publisher_payouts')
-        .select('amount')
-        .eq('publisher_id', ownerId)
-        .eq('status', 'pending')
-    : await supabase
-        .from('instructor_payouts')
-        .select('amount')
-        .eq('instructor_id', ownerId)
-        .eq('status', 'pending');
+  // السجلّ واحد للتلاتة دلوقتي (ملف 20261016160000)، فالفرع اتشال:
+  // الجدولان المنفصلان هما السبب اللي خلّى محفّزًا يتكتب لواحد ويتنسى
+  // التاني — وهي ثغرة السحب اللي اتصلّحت الصبح.
+  const { data: earnings, error: earningsError } = await supabase
+    .from('payouts')
+    .select('amount')
+    .eq('owner_kind', ownerKind)
+    .eq('owner_id', ownerId)
+    .eq('status', 'pending');
 
   if (earningsError) {
     console.error('Error reading payouts', earningsError);
@@ -219,19 +236,19 @@ export async function submitWithdrawalRequest(
   }
 
   // ── طلب معلّق واحد يكفي ───────────────────────────────────
-  const { data: openRequests, error: openError } = isPublisher
-    ? await supabase
-        .from('withdrawal_requests')
-        .select('id')
-        .eq('publisher_id', ownerId)
-        .eq('status', 'pending')
-        .limit(1)
-    : await supabase
-        .from('withdrawal_requests')
-        .select('id')
-        .eq('instructor_id', ownerId)
-        .eq('status', 'pending')
-        .limit(1);
+  const ownerColumn =
+    ownerKind === 'publisher'
+      ? 'publisher_id'
+      : ownerKind === 'provider'
+        ? 'provider_id'
+        : 'instructor_id';
+
+  const { data: openRequests, error: openError } = await supabase
+    .from('withdrawal_requests')
+    .select('id')
+    .eq(ownerColumn, ownerId)
+    .eq('status', 'pending')
+    .limit(1);
 
   if (openError) {
     console.error('Error reading open withdrawal requests', openError);
@@ -248,9 +265,10 @@ export async function submitWithdrawalRequest(
   const { data, error } = await supabase
     .from('withdrawal_requests')
     .insert({
-      // القيد في القاعدة بيرفض الصف اللي فيه الاتنين أو ولا واحد.
-      instructor_id: isPublisher ? null : ownerId,
-      publisher_id: isPublisher ? ownerId : null,
+      // القيد في القاعدة بيرفض الصف اللي فيه أكتر من واحد أو ولا واحد.
+      instructor_id: ownerKind === 'instructor' ? ownerId : null,
+      publisher_id: ownerKind === 'publisher' ? ownerId : null,
+      provider_id: ownerKind === 'provider' ? ownerId : null,
       // ⚠️ المبلغ ده **بيتكتب تاني** في محفّز القاعدة من الرصيد
       //    الحقيقي (ملف 100). بنبعته عشان القيمة تبقى صح لو المحفّز
       //    اتشال يومًا، مش لأنه هو اللي بيتخزّن.
@@ -271,14 +289,15 @@ export async function submitWithdrawalRequest(
   await logAuditAction({
     actorName: user.fullName,
     actorProfileId: user.id,
-    action: isPublisher ? 'publisher_withdrawal_requested' : 'instructor_withdrawal_requested',
+    action: `${ownerKind}_withdrawal_requested`,
     entityType: 'withdrawal_request',
     entityId: data.id,
-    metadata: { ownerId, ownerKind: isPublisher ? 'publisher' : 'instructor', amount: available, method },
+    metadata: { ownerId, ownerKind, amount: available, method },
   });
 
   revalidatePath('/dashboard/instructor/payouts');
   revalidatePath('/dashboard/publisher/payouts');
+  revalidatePath('/dashboard/provider/payouts');
   revalidatePath('/dashboard/admin/finance');
 
   // ⚠️ **المبلغ المرجَّع هو اللي القاعدة كتبته، مش اللي حسبناه.**

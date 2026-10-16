@@ -416,11 +416,13 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       });
 
       const maybeSingleMock = vi.fn().mockResolvedValue({
-        data: { id: 'payout-1', instructor_id: 'inst-1', amount: 500, status: 'paid' },
+        data: { id: 'payout-1', owner_id: 'inst-1', amount: 500, status: 'paid' },
         error: null,
       });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      // السجلّ بقى موحّدًا (20261016160000)، فالتصفية على `id`
+      // و`owner_kind` — يعني ندائين لـ`eq` متسلسلين.
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
@@ -429,12 +431,13 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       const result = await markInstructorPayoutAsPaid('payout-1');
 
       expect(result).toEqual({ ok: true });
-      expect(fromMock).toHaveBeenCalledWith('instructor_payouts');
+      expect(fromMock).toHaveBeenCalledWith('payouts');
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'paid' })
       );
       expect(eqMock).toHaveBeenCalledWith('id', 'payout-1');
-      expect(selectMock).toHaveBeenCalledWith('id, instructor_id, amount, status');
+      expect(eqMock).toHaveBeenCalledWith('owner_kind', 'instructor');
+      expect(selectMock).toHaveBeenCalledWith('id, owner_id, amount, status');
       expect(mockLogAuditAction).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'instructor_payout_marked_paid',
@@ -518,11 +521,12 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       });
 
       const maybeSingleMock = vi.fn().mockResolvedValue({
-        data: { id: 'pub-payout-1', publisher_id: 'pub-1', amount: 1200, status: 'paid' },
+        data: { id: 'pub-payout-1', owner_id: 'pub-1', amount: 1200, status: 'paid' },
         error: null,
       });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      // السجلّ موحّد: التصفية على `id` و`owner_kind` — ندائين لـ`eq`.
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
@@ -531,12 +535,13 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       const result = await markPublisherPayoutAsPaid('pub-payout-1');
 
       expect(result).toEqual({ ok: true });
-      expect(fromMock).toHaveBeenCalledWith('publisher_payouts');
+      expect(fromMock).toHaveBeenCalledWith('payouts');
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'paid' })
       );
       expect(eqMock).toHaveBeenCalledWith('id', 'pub-payout-1');
-      expect(selectMock).toHaveBeenCalledWith('id, publisher_id, amount, status');
+      expect(eqMock).toHaveBeenCalledWith('owner_kind', 'publisher');
+      expect(selectMock).toHaveBeenCalledWith('id, owner_id, amount, status');
       expect(mockLogAuditAction).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'publisher_payout_marked_paid',

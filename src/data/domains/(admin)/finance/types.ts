@@ -3,16 +3,18 @@
 export type WithdrawalRequestRow = {
   id: string;
   /**
-   * صاحب الطلب — مدرب أو ناشر (ملف SQL 100).
+   * صاحب الطلب — مدرب أو ناشر أو مقدّم خدمة مستقل.
    *
-   * ⚠️ **واحد بس من الرقمين متملّي**، والقاعدة بتفرض ده بقيد. وقبل
-   *    ملف 100 كان الجدول للمدرب وحده، فالناشر مكانش يقدر يطلب سحبه
-   *    من الموقع خالص.
+   * ⚠️ **واحد بس من التلاتة متملّي**، والقاعدة بتفرض ده بقيد.
+   *
+   * ⚠️ والمقدّم المستقل اتضاف في 20261016160000: قبله كان بيشتغل
+   *    وياخد «مستحقك» على شاشته **ومفيش طريقة يسجّلها ولا يطلبها**.
    */
-  ownerKind: 'instructor' | 'publisher';
+  ownerKind: 'instructor' | 'publisher' | 'provider';
   instructorId: string | null;
   publisherId: string | null;
-  /** اسم المدرب أو الناشر — اللي الإدارة بتشوفه. */
+  providerId: string | null;
+  /** الاسم اللي الإدارة بتشوفه. */
   ownerName: string;
   amount: number;
   method: string;
@@ -26,4 +28,12 @@ export type WithdrawalRequestRow = {
   status: string;
   adminNotes: string | null;
   createdAt: string;
+};
+
+/** صف في سجلّ المستحقات الموحّد — مدرب أو ناشر أو مقدّم خدمة. */
+export type PayoutRow = {
+  id: string;
+  period: string;
+  amount: number;
+  status: 'pending' | 'paid';
 };

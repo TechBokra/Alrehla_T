@@ -3809,6 +3809,51 @@ export type Database = {
           },
         ]
       }
+      payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          owner_id: string
+          owner_kind: string
+          period: string
+          source_id: string | null
+          source_type: string | null
+          status: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at: string
+          withdrawal_request_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id: string
+          owner_kind: string
+          period: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at?: string
+          withdrawal_request_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_id?: string
+          owner_kind?: string
+          period?: string
+          source_id?: string | null
+          source_type?: string | null
+          status?: Database["public"]["Enums"]["payout_status_enum"]
+          updated_at?: string
+          withdrawal_request_id?: string | null
+        }
+        Relationships: []
+      }
       withdrawal_requests: {
         Row: {
           admin_notes: string | null
@@ -3818,6 +3863,7 @@ export type Database = {
           instructor_id: string | null
           method: string
           payout_details: string | null
+          provider_id: string | null
           publisher_id: string | null
           status: string
           updated_at: string
@@ -3830,6 +3876,7 @@ export type Database = {
           instructor_id?: string | null
           method: string
           payout_details?: string | null
+          provider_id?: string | null
           publisher_id?: string | null
           status?: string
           updated_at?: string
@@ -3842,6 +3889,7 @@ export type Database = {
           instructor_id?: string | null
           method?: string
           payout_details?: string | null
+          provider_id?: string | null
           publisher_id?: string | null
           status?: string
           updated_at?: string
@@ -3852,6 +3900,13 @@ export type Database = {
             columns: ["instructor_id"]
             isOneToOne: false
             referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
           {

@@ -77,7 +77,11 @@ export function WithdrawalsClient({ requests }: { requests: WithdrawalRequestRow
                     {/* الإدارة لازم تعرف نوع الحساب: التحويل بيروح
                         لمدرب ولا لدار نشر، والبيانات بتختلف. */}
                     <span className="mr-2 rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-500">
-                      {request.ownerKind === 'publisher' ? 'ناشر' : 'مدرب'}
+                      {request.ownerKind === 'publisher'
+                        ? 'ناشر'
+                        : request.ownerKind === 'provider'
+                          ? 'مقدّم خدمة'
+                          : 'مدرب'}
                     </span>
                   </h3>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${status.className}`}>

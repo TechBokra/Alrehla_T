@@ -14,8 +14,9 @@ import type { WithdrawalRequestRow } from '@/data/domains/(admin)/finance/types'
  */
 export const getInstructorPayouts = async (): Promise<InstructorPayout[]> => {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('instructor_payouts')
+  const { data, error } = await supabase.from('payouts')
     .select('*')
+    .eq('owner_kind', 'instructor')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -28,7 +29,7 @@ export const getInstructorPayouts = async (): Promise<InstructorPayout[]> => {
 
   return data.map((p: any) => ({
     id: p.id,
-    instructorId: p.instructor_id,
+    instructorId: p.owner_id,
     period: p.period,
     amount: p.amount,
     status: p.status
@@ -64,8 +65,9 @@ export const getMyOpenWithdrawalRequests = async (): Promise<number> => {
 /** نفس كلام `getInstructorPayouts` فوق — الخطأ بيتسجّل مابيتبلعش. */
 export const getPublisherPayouts = async (): Promise<PublisherPayout[]> => {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('publisher_payouts')
+  const { data, error } = await supabase.from('payouts')
     .select('*')
+    .eq('owner_kind', 'publisher')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -78,7 +80,7 @@ export const getPublisherPayouts = async (): Promise<PublisherPayout[]> => {
 
   return data.map((p: any) => ({
     id: p.id,
-    publisherId: p.publisher_id,
+    publisherId: p.owner_id,
     period: p.period,
     amount: p.amount,
     status: p.status
@@ -96,7 +98,7 @@ export async function getWithdrawalRequests(): Promise<WithdrawalRequestRow[]> {
   const { data, error } = await supabase
     .from('withdrawal_requests')
     .select(
-      'id, instructor_id, publisher_id, amount, method, status, payout_details, admin_notes, created_at, instructors(display_name), publishers(name)',
+      'id, instructor_id, publisher_id, provider_id, amount, method, status, payout_details, admin_notes, created_at, instructors(display_name), publishers(name), service_providers(display_name)',
     )
     .order('created_at', { ascending: false });
 
@@ -105,15 +107,24 @@ export async function getWithdrawalRequests(): Promise<WithdrawalRequestRow[]> {
   return data.map((row) => {
     const instructor = row.instructors as unknown as { display_name: string } | null;
     const publisher = row.publishers as unknown as { name: string } | null;
-    const isPublisher = row.publisher_id != null;
+    const provider = row.service_providers as unknown as { display_name: string } | null;
+    // ⚠️ **التلاتة، مش الاتنين.** مقدّم الخدمة المستقل بقى يقدر يطلب
+    //    سحبًا (ملف 20261016160000)، ولو فضل الفرع ثنائيًّا كان طلبه
+    //    هيتعرض للإدارة باسم «مدرب» — وده أسوأ من إنه مايظهرش.
+    const ownerKind: 'instructor' | 'publisher' | 'provider' =
+      row.publisher_id != null ? 'publisher' : row.provider_id != null ? 'provider' : 'instructor';
     return {
       id: row.id,
-      ownerKind: (isPublisher ? 'publisher' : 'instructor') as 'instructor' | 'publisher',
+      ownerKind,
       instructorId: row.instructor_id,
       publisherId: row.publisher_id,
-      ownerName: isPublisher
-        ? publisher?.name ?? 'ناشر'
-        : instructor?.display_name ?? 'مدرب',
+      providerId: row.provider_id ?? null,
+      ownerName:
+        ownerKind === 'publisher'
+          ? (publisher?.name ?? 'ناشر')
+          : ownerKind === 'provider'
+            ? (provider?.display_name ?? 'مقدّم خدمة')
+            : (instructor?.display_name ?? 'مدرب'),
       amount: row.amount,
       method: row.method,
       payoutDetails: row.payout_details,
