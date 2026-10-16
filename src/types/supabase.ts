@@ -3865,7 +3865,13 @@ export type Database = {
       }
       task_steps: {
         Row: {
+          abilities: string[]
+          active: boolean
+          advance_by: string
+          builtin: boolean
+          gates: string[]
           hint: string | null
+          kind: string
           label: string
           line: string
           owner_kind: string
@@ -3877,7 +3883,13 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          abilities?: string[]
+          active?: boolean
+          advance_by?: string
+          builtin?: boolean
+          gates?: string[]
           hint?: string | null
+          kind?: string
           label: string
           line: string
           owner_kind?: string
@@ -3889,7 +3901,13 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          abilities?: string[]
+          active?: boolean
+          advance_by?: string
+          builtin?: boolean
+          gates?: string[]
           hint?: string | null
+          kind?: string
           label?: string
           line?: string
           owner_kind?: string
@@ -3899,6 +3917,39 @@ export type Database = {
           step?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      task_edges: {
+        Row: {
+          created_at: string
+          from_step: string
+          line: string
+          pages_redo: boolean
+          reset_qa: boolean
+          skip_gates: boolean
+          to_step: string
+          who: string
+        }
+        Insert: {
+          created_at?: string
+          from_step: string
+          line?: string
+          pages_redo?: boolean
+          reset_qa?: boolean
+          skip_gates?: boolean
+          to_step: string
+          who?: string
+        }
+        Update: {
+          created_at?: string
+          from_step?: string
+          line?: string
+          pages_redo?: boolean
+          reset_qa?: boolean
+          skip_gates?: boolean
+          to_step?: string
+          who?: string
         }
         Relationships: []
       }
@@ -4433,6 +4484,30 @@ export type Database = {
       story_mode: { Args: never; Returns: string }
       story_start_project: { Args: { p_order_item: string }; Returns: string }
       story_studio_access: { Args: never; Returns: boolean }
+      order_studio_projects: {
+        Args: { p_order: string }
+        Returns: {
+          child_name: string | null
+          due_at: string | null
+          held_from: string | null
+          id: string
+          order_closed: boolean
+          order_item_id: string
+          status: string
+        }[]
+      }
+      studio_stage_create: {
+        Args: { p_after: string; p_hint?: string; p_label: string; p_owner?: string; p_sla?: number }
+        Returns: string
+      }
+      studio_stage_move: { Args: { p_dir: number; p_step: string }; Returns: undefined }
+      studio_stage_delete: { Args: { p_step: string }; Returns: undefined }
+      studio_stage_flow: {
+        Args: { p_abilities: string[]; p_active: boolean; p_advance_by: string; p_gates: string[]; p_step: string }
+        Returns: undefined
+      }
+      studio_edges_set: { Args: { p_edges: Json; p_from: string }; Returns: undefined }
+      task_rule_apply: { Args: { p_line: string; p_step: string }; Returns: number }
       student_sessions: {
         Args: never
         Returns: {
@@ -4459,6 +4534,7 @@ export type Database = {
           p_reference: string
           p_source: string
           p_stage: string
+          p_step?: string
           p_title: string
         }
         Returns: undefined

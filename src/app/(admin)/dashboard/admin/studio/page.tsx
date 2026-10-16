@@ -13,14 +13,14 @@ import {
 import { DeadlineChip } from '@/components/admin/DeadlineChip';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import {
-  OWNER_LABELS,
-  STUDIO_PIPELINE,
-  isStudioStatus,
-  isTerminal,
-  stageOwner,
+  flowPipeline,
+  isHold,
+  isKnownStatus,
+  isTerminalIn,
+  ownerLabelOf,
   statusLabel,
   statusTone,
-} from '@/lib/studio';
+} from '@/lib/studio-flow';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,8 +44,6 @@ export default async function StudioInboxPage({
 
   const sp = await searchParams;
   const view: View = VIEWS.some((v) => v.id === sp.view) ? (sp.view as View) : 'active';
-  const statusFilter = sp.status && isStudioStatus(sp.status) ? sp.status : null;
-
   const [mode, result, staff, stages, tasks] = await Promise.all([
     getStudioMode(),
     listStudioProjects(),
@@ -53,17 +51,21 @@ export default async function StudioInboxPage({
     getStudioStages(),
     getStudioTasks(),
   ]);
+  const flow = stages.flow;
+  const statusFilter = sp.status && isKnownStatus(flow, sp.status) ? sp.status : null;
   const label = (s: string) => statusLabel(s, stages.labels);
   const names = new Map(staff.map((s) => [s.id, s.name]));
   const all = result.success ? result.data : [];
 
-  const mine = (p: (typeof all)[number]) => p.editorId === user.id || p.artLeadId === user.id;
+  // «مشاريعي»: المسند لي مهمتها الحالية، أو أنا المحرر/المشرف الفني المعيّن عليها.
+  const mine = (p: (typeof all)[number]) =>
+    p.editorId === user.id || p.artLeadId === user.id || (tasks.get(p.id)?.assigneeIds ?? []).includes(user.id);
   const shown = all.filter((p) => {
     if (statusFilter) return p.status === statusFilter;
-    if (view === 'mine') return mine(p) && !isTerminal(p.status);
-    if (view === 'hold') return p.status === 'on_hold';
-    if (view === 'done') return isTerminal(p.status);
-    return !isTerminal(p.status) && p.status !== 'on_hold';
+    if (view === 'mine') return mine(p) && !isTerminalIn(flow, p.status);
+    if (view === 'hold') return isHold(flow, p.status);
+    if (view === 'done') return isTerminalIn(flow, p.status);
+    return !isTerminalIn(flow, p.status) && !isHold(flow, p.status);
   });
 
   const counts = new Map<string, number>();
@@ -102,10 +104,15 @@ export default async function StudioInboxPage({
 
       {/* عدّاد المراحل — كل رقم رابط فلتر */}
       <nav aria-label="المراحل" className="flex flex-wrap gap-2">
-        {STUDIO_PIPELINE.filter(
-          // التبويب المخفي من الإعدادات مابيختفيش وفيه مشاريع (عشان ماحدّش يتوه).
-          (s) => s !== 'delivered' && (!stages.hiddenTabs.includes(s) || (counts.get(s) ?? 0) > 0 || statusFilter === s),
-        ).map((s) => {
+        {flowPipeline(flow)
+          .map((st) => st.step)
+          .filter(
+            // التبويب المخفي من الإعدادات مابيختفيش وفيه مشاريع (عشان ماحدّش يتوه).
+            (s) =>
+              flow.steps.find((x) => x.step === s)?.kind !== 'done' &&
+              (!stages.hiddenTabs.includes(s) || (counts.get(s) ?? 0) > 0 || statusFilter === s),
+          )
+          .map((s) => {
           const n = counts.get(s) ?? 0;
           const active = statusFilter === s;
           return (
@@ -154,7 +161,7 @@ export default async function StudioInboxPage({
       ) : (
         <ul className="space-y-3">
           {shown.map((p) => {
-            const owner = OWNER_LABELS[stageOwner(p.status)];
+            const owner = ownerLabelOf(flow, p.status);
             const tk = tasks.get(p.id);
             return (
               <li key={p.id}>
@@ -178,12 +185,12 @@ export default async function StudioInboxPage({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:flex-col sm:items-end">
-                    <StatusBadge label={label(p.status)} type={statusTone(p.status)} />
+                    <StatusBadge label={label(p.status)} type={statusTone(p.status, flow)} />
                     {p.orderClosed && <StatusBadge label="الطلب اتلغى — محتاج قرار" type="danger" />}
-                    {!isTerminal(p.status) && p.status !== 'on_hold' && (
+                    {!isTerminalIn(flow, p.status) && !isHold(flow, p.status) && (
                       <span className="text-xs font-medium text-slate-500">عند: {owner}</span>
                     )}
-                    {tk && !isTerminal(p.status) && <DeadlineChip d={tk.deadline} dueAt={tk.dueAt} />}
+                    {tk && !isTerminalIn(flow, p.status) && <DeadlineChip d={tk.deadline} dueAt={tk.dueAt} />}
                     {p.dueAt && (
                       <span className={`text-xs font-bold ${p.overdue ? 'text-rose-700' : 'text-slate-500'}`}>
                         {p.overdue ? 'تسليم المشروع متأخر · ' : 'تسليم المشروع: '}

@@ -255,11 +255,16 @@ export function BriefPanel({
 export function TextPanel({
   project,
   versions,
+  writing,
+  clientStage,
 }: {
   project: StudioProjectDetail;
   versions: StudioVersion[];
+  /** المرحلة الحالية بتسمح بكتابة النص (قدرة «text» في سير العمل). */
+  writing: boolean;
+  /** بعد المرحلة دي مباشرة بتشترط موافقة العميل — فهنا بيتسجّل قراره. */
+  clientStage: boolean;
 }) {
-  const writing = ['text_draft', 'text_review', 'client_text_approval'].includes(project.status);
   return (
     <div className="space-y-6">
       {writing && (
@@ -329,7 +334,7 @@ export function TextPanel({
                     </ActionForm>
                   )}
 
-                  {status === 'editor_approved' && project.status === 'client_text_approval' && (
+                  {status === 'editor_approved' && clientStage && (
                       <ActionForm action={recordClientDecision} successMessage="اتسجّل القرار." className="space-y-3">
                         <Hidden projectId={project.id} />
                         <input type="hidden" name="versionId" value={v.id} />
@@ -417,12 +422,14 @@ export function PagesPanel({
   project,
   pages,
   canManage,
+  art,
 }: {
   project: StudioProjectDetail;
   pages: StudioPage[];
   canManage: boolean;
+  /** المرحلة الحالية بتسمح بتجهيز الصفحات (قدرة «pages» في سير العمل). */
+  art: boolean;
 }) {
-  const art = ['character', 'scenes', 'art_review', 'layout'].includes(project.status);
   const nextNo = pages.length === 0 ? 0 : Math.max(...pages.map((p) => p.pageNo)) + 1;
   const approvedCount = pages.filter((p) => p.status === 'approved').length;
   return (

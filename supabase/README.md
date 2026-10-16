@@ -108,12 +108,24 @@ supabase db push
 تضيف [`migrations/20261016030000_task_deadlines_stage_catalog.sql`](migrations/20261016030000_task_deadlines_stage_catalog.sql) مواعيد المهام وكتالوج المراحل وسجل المسار:
 
 - `work_tasks`: أعمدة `step` (المرحلة الدقيقة: حالة الطلب أو مرحلة الاستوديو) و`step_changed_at` و`due_at` و`priority` وعلامتا الإشعار. الموعد يُحسب تلقائيًا من مهلة المرحلة (`task_steps.sla_hours`) عند دخول المهمة المرحلة؛ تعديل المهلة لا يغيّر مهام قائمة بل ما يدخل المرحلة بعده. مهلة فارغة = بلا موعد (مثل الإيقاف المؤقت).
-- `task_steps`: كتالوج المراحل لكل خط (الاسم، الشرح، المهلة، صاحب المرحلة، ظهور التبويب). تعديله لمن له `canAssignWork`، ومراحل `studio` أيضًا لمن له `canManageStudio`. ترتيب مراحل الاستوديو وانتقالاتها ثابتة في حارس القاعدة؛ المتاح تعديل الاسم والشرح والمهلة والصاحب والظهور.
+- `task_steps`: كتالوج المراحل لكل خط (الاسم، الشرح، المهلة، صاحب المرحلة، ظهور التبويب). تعديله لمن له `canAssignWork`، ومراحل `studio` أيضًا لمن له `canManageStudio`. ترتيب مراحل الاستوديو وانتقالاتها صارت بيانات قابلة للتحرير من الشاشة بعد migration `20261016040000` (انظر أدناه).
 - `work_task_events`: سجل كل ما حدث للمهمة (إنشاء، إسناد، انتقال مرحلة، موعد، أولوية، إنجاز، تذكير، ملاحظة). تكتبه triggers تلقائيًا، وللإداري ملاحظاته فقط. فشل أي trigger يتحول لتحذير ولا يُفشل الدفع أو تغيير الحالة.
 - الإشعارات: `work_tasks_deadline_sweep()` (service_role فقط) يبعت «قرّب» (آخر ٢٥٪ من المهلة وبحد أدنى ساعتين) و«فات الموعد» مرة واحدة لكل مهمة، للمسند لهم أو للمديرين عند عدم الإسناد. يعمل من `work_tasks_sweep_if_due()` عند فتح صفحة المهام (مرة كل ١٠ دقائق) ومن cron يومي `/api/cron/task-deadlines` كشبكة أمان.
 - بأثر رجعي: المهام المفتوحة تأخذ `step` وموعدها من تاريخ إنشائها، فالمتأخرة فعلًا تظهر متأخرة وتُرسل لها إشعارات «فات الموعد» مرة واحدة.
 
 اختبار [`tests/task_deadlines.sql`](tests/task_deadlines.sql) يغطي ذلك (ويطبع `task_deadlines: OK`)، ويجب أن يمر معه `tests/story_studio_tasks_backfill.sql`. المهل الافتراضية في الـ seed تقديرية ويعدّلها المدير من «المراحل والمواعيد».
+
+تضيف [`migrations/20261016040000_workflow_engine_unified_distribution.sql`](migrations/20261016040000_workflow_engine_unified_distribution.sql) محرك سير العمل ودمج الاستوديو في توزيع المهام:
+
+- `task_steps` يصبح تعريف سير عمل الاستوديو: أعمدة `kind` (`start`/`stage`/`hold`/`done`/`cancel`) و`active` و`abilities` (`text`/`pages`) و`gates` (شروط دخول المرحلة من مفردات ثابتة) و`advance_by` (`owner`/`manager`) و`builtin`. الحركة «للأمام» تُحسب من `sort_order` (أقرب مرحلة فعّالة بعدها). مراحل الطلبات العادية بلا هيكل (قيد `task_steps_structure_line`).
+- `task_edges`: الانتقالات الاستثنائية (رجوع/قفز) ومن ينفّذها وأثرها (`skip_gates`/`pages_redo`/`reset_qa`). الكتابة من الدوال فقط.
+- الحرّاس الثلاثة (`story_project_guard` · `story_version_guard` · `story_page_guard`) تقرأ من الكتالوج بدل جداول مكتوبة في الكود؛ السلوك الأصلي محفوظ بالبذور وملف الاختبار الأصلي يمر بلا تعديل جوهري. رموز SQLSTATE كما هي (`23514` · `42501` · `55000`).
+- «صاحب المرحلة» = المسند له مهمة المشروع المفتوحة، أو المحرر/المشرف المعيّن على المشروع (استثناء)، أو مسؤول الإنتاج (`story_is_worker`). لم يعد المطلوب دورًا مخصوصًا بالاستوديو.
+- `assignment_rules.stage` يقبل مفتاح أي مرحلة في الكتالوج (محفّز `assignment_rules_valid_trg`) — مراحل الاستوديو وحالات الطلب الدقيقة (`paid`/`preparing`/…). `story_studio_access()` مشتق من التوزيع والمهام المفتوحة.
+- دوال الإدارة (بصلاحية `canManageStudio` للاستوديو): `studio_stage_create/move/delete`, `studio_stage_flow`, `studio_edges_set`؛ و`task_rule_apply` لتطبيق التوزيع على المهام المفتوحة (`canAssignWork`، وللاستوديو `canManageStudio` أيضًا).
+- `order_studio_projects(order)`: حالة مشاريع الاستوديو لرحلة الطلب لمن له `canManageOrders` أو وصول استوديو، دون النصوص ولا التكلفة.
+
+اختبار [`tests/workflow_engine.sql`](tests/workflow_engine.sql) (يطبع `workflow_engine: OK`) يغطي المحرك؛ ويجب أن تمر معه الاختبارات الثلاثة السابقة. اختبارا `task_deadlines` و`story_studio_tasks_backfill` عُدّلا قليلًا (عدّ مراحل الاستوديو الفعلية؛ وبدون `SET ROLE` في اختبار فشل المزامنة لأن سياسات RLS صارت تقرأ جدول المهام).
 
 ترتيب النشر:
 

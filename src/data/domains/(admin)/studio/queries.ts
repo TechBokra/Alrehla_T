@@ -2,7 +2,17 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { QueryResult } from '@/data/query-result';
 import type { Json } from '@/types/supabase';
-import { isStudioStatus, type StudioStatus } from '@/lib/studio';
+import {
+  DEFAULT_FLOW,
+  buildFlow,
+  isAbility,
+  isGateKey,
+  isStageKind,
+  type FlowEdge,
+  type FlowStep,
+  type StageOwnerKind,
+  type StudioFlow,
+} from '@/lib/studio-flow';
 import { getTaskSteps } from '@/data/domains/(admin)/tasks/queries';
 import { deadlineState, type DeadlineState, type TaskStep } from '@/lib/work-tasks';
 
@@ -43,7 +53,7 @@ export type StudioProjectRow = {
   orderId: string;
   orderItemId: string;
   productId: string;
-  status: StudioStatus;
+  status: string;
   ageBand: string | null;
   pageTarget: number | null;
   faceMode: 'cartoon' | 'real';
@@ -96,7 +106,7 @@ export async function listStudioProjects(): Promise<QueryResult<StudioProjectRow
       orderId: r.order_id,
       orderItemId: r.order_item_id,
       productId: r.product_id,
-      status: isStudioStatus(r.status) ? r.status : 'brief',
+      status: r.status,
       ageBand: r.age_band,
       pageTarget: r.page_target,
       faceMode: r.face_mode === 'real' ? 'real' : 'cartoon',
@@ -234,7 +244,7 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
         orderId: r.order_id,
         orderItemId: r.order_item_id,
         productId: r.product_id,
-        status: isStudioStatus(r.status) ? r.status : 'brief',
+        status: r.status,
         heldFrom: r.held_from,
         brief,
         ageBand: r.age_band,
@@ -296,25 +306,28 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
 export type StudioStaff = { id: string; name: string };
 
 /**
- * موظفو الاستوديو اللي ينفع يتعيّنوا: أي حساب دوره الإداري فيه صلاحية
- * استوديو، + مديرو النظام. لو الصلاحيات منعت القراءة بتتحول لقايمة فاضية
- * والشاشة بتقول كده بدل ما تخمّن.
+ * موظفو الاستوديو اللي ينفع يتعيّنوا على مشروع: أي حساب دوره الإداري فيه صلاحية
+ * استوديو، + المسؤولون عن مرحلة استوديو في «توزيع المهام»، + مديرو النظام. لو الصلاحيات
+ * منعت القراءة بتتحول لقايمة فاضية والشاشة بتقول كده بدل ما تخمّن.
  */
 export async function listStudioStaff(): Promise<StudioStaff[]> {
   const supabase = await createClient();
-  const { data: roles, error: rolesError } = await supabase
-    .from('admin_roles')
-    .select('id, permissions');
-  if (rolesError) {
-    console.error('listStudioStaff roles', rolesError.message);
+  const [rolesRes, rulesRes] = await Promise.all([
+    supabase.from('admin_roles').select('id, permissions'),
+    supabase.from('assignment_rules').select('profile_id').eq('line', 'studio'),
+  ]);
+  if (rolesRes.error) {
+    console.error('listStudioStaff roles', rolesRes.error.message);
     return [];
   }
-  const roleIds = (roles ?? [])
+  const roleIds = (rolesRes.data ?? [])
     .filter((r) => r.permissions.includes('canWorkStudio') || r.permissions.includes('canManageStudio'))
     .map((r) => r.id);
+  const assigned = Array.from(new Set((rulesRes.data ?? []).map((r) => r.profile_id)));
 
   const filters = ['role.eq.super_admin'];
   if (roleIds.length > 0) filters.push(`admin_role_id.in.(${roleIds.join(',')})`);
+  if (assigned.length > 0) filters.push(`id.in.(${assigned.join(',')})`);
 
   const { data, error } = await supabase
     .from('user_profiles')
@@ -329,30 +342,62 @@ export async function listStudioStaff(): Promise<StudioStaff[]> {
   return (data ?? []).map((u) => ({ id: u.id, name: u.full_name }));
 }
 
-/** مشروع القصة لبند طلب (لصفحة الطلب). */
-export async function getStudioProjectForOrder(
-  orderId: string,
-): Promise<{ id: string; status: StudioStatus; orderItemId: string }[]> {
+export type OrderStudioProject = {
+  id: string;
+  status: string;
+  heldFrom: string | null;
+  orderItemId: string;
+  dueAt: string | null;
+  orderClosed: boolean;
+  childName: string | null;
+};
+
+/**
+ * مشاريع القصة لطلب (لصفحة الطلب ورحلته). بتمشي بدالة القاعدة `order_studio_projects`:
+ * مدير الطلبات يشوف الحالة من غير صلاحية استوديو، ومن غير النصوص ولا التكلفة.
+ */
+export async function getStudioProjectForOrder(orderId: string): Promise<OrderStudioProject[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('story_projects')
-    .select('id, status, order_item_id')
-    .eq('order_id', orderId)
-    .limit(20);
+  const { data, error } = await supabase.rpc('order_studio_projects', { p_order: orderId });
   if (error) {
+    // قبل الـ migration: الدالة مش موجودة — نرجع للقراءة المباشرة (للمصرّح لهم بالاستوديو بس).
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      const legacy = await supabase
+        .from('story_projects')
+        .select('id, status, order_item_id, held_from, due_at, order_closed_at')
+        .eq('order_id', orderId)
+        .limit(20);
+      if (legacy.error) {
+        console.error('getStudioProjectForOrder', legacy.error.message);
+        return [];
+      }
+      return (legacy.data ?? []).map((r) => ({
+        id: r.id,
+        status: r.status,
+        heldFrom: r.held_from,
+        orderItemId: r.order_item_id,
+        dueAt: r.due_at,
+        orderClosed: r.order_closed_at !== null,
+        childName: null,
+      }));
+    }
     console.error('getStudioProjectForOrder', error.message);
     return [];
   }
   return (data ?? []).map((r) => ({
     id: r.id,
-    status: isStudioStatus(r.status) ? r.status : 'brief',
+    status: r.status,
+    heldFrom: r.held_from,
     orderItemId: r.order_item_id,
+    dueAt: r.due_at,
+    orderClosed: r.order_closed,
+    childName: r.child_name,
   }));
 }
 
 export type StudioOrderPanelData = {
   mode: 'off' | 'on';
-  projects: { id: string; status: StudioStatus; orderItemId: string }[];
+  projects: OrderStudioProject[];
   /** بنود فيها تخصيص وماعندهاش مشروع — ينفع تتبدأ يدويًا (القاعدة بتتحقق من النوع والدفع). */
   startable: { orderItemId: string; productId: string }[];
 };
@@ -425,16 +470,66 @@ export type StudioStages = {
   hints: Record<string, string>;
   /** مراحل تبويبها مخفي (لو مفيهاش مشاريع). */
   hiddenTabs: string[];
+  /** سير العمل الكامل (مراحل + انتقالات + شروط). */
+  flow: StudioFlow;
+  /** محرك المراحل متطبّق في القاعدة؟ لو لأ بنعرض التدفق الافتراضي للقراءة بس. */
+  engine: boolean;
 };
 
-/** مراحل الاستوديو من الكتالوج (الاسم/الشرح/ظهور التبويب). أي فشل = الأسماء الأصلية. */
+const OWNER_KINDS: readonly string[] = ['editor', 'art_lead', 'manager'];
+
+/** سير عمل الاستوديو من القاعدة (task_steps + task_edges). أي فشل/عدم تطبيق = التدفق الافتراضي. */
+export async function getStudioFlow(): Promise<{ flow: StudioFlow; engine: boolean }> {
+  const supabase = await createClient();
+  const [stepsRes, edgesRes] = await Promise.all([
+    supabase.from('task_steps').select('*').eq('line', 'studio').order('sort_order', { ascending: true }),
+    supabase.from('task_edges').select('*').eq('line', 'studio'),
+  ]);
+  if (stepsRes.error || edgesRes.error) {
+    const e = stepsRes.error ?? edgesRes.error;
+    if (e && !isMissingRelation(e.code)) console.error('getStudioFlow', e.message);
+    return { flow: DEFAULT_FLOW, engine: false };
+  }
+  const rows = stepsRes.data ?? [];
+  // قبل الـ migration مفيش عمود kind — الجدول موجود بس من غير هيكل.
+  if (rows.length === 0 || !('kind' in rows[0])) return { flow: DEFAULT_FLOW, engine: false };
+
+  const steps: FlowStep[] = rows.map((r) => ({
+    step: r.step,
+    label: r.label,
+    hint: r.hint,
+    slaHours: r.sla_hours === null ? null : Number(r.sla_hours),
+    ownerKind: (OWNER_KINDS.includes(r.owner_kind) ? r.owner_kind : 'manager') as StageOwnerKind,
+    sortOrder: r.sort_order,
+    showTab: r.show_tab,
+    kind: isStageKind(r.kind) ? r.kind : 'stage',
+    active: r.active,
+    abilities: (r.abilities ?? []).filter(isAbility),
+    gates: (r.gates ?? []).filter(isGateKey),
+    advanceBy: r.advance_by === 'manager' ? 'manager' : 'owner',
+    builtin: r.builtin,
+  }));
+  const edges: FlowEdge[] = (edgesRes.data ?? []).map((e) => ({
+    from: e.from_step,
+    to: e.to_step,
+    who: e.who === 'manager' ? 'manager' : 'owner',
+    skipGates: e.skip_gates,
+    pagesRedo: e.pages_redo,
+    resetQa: e.reset_qa,
+  }));
+  return { flow: buildFlow(steps, edges), engine: true };
+}
+
+/** مراحل الاستوديو من الكتالوج (الاسم/الشرح/ظهور التبويب + التدفق). أي فشل = الأسماء الأصلية. */
 export async function getStudioStages(): Promise<StudioStages> {
-  const steps = (await getTaskSteps('studio')) ?? [];
+  const [steps, { flow, engine }] = await Promise.all([getTaskSteps('studio').then((r) => r ?? []), getStudioFlow()]);
   return {
     steps,
     labels: Object.fromEntries(steps.map((s) => [s.step, s.label])),
     hints: Object.fromEntries(steps.filter((s) => s.hint).map((s) => [s.step, s.hint as string])),
     hiddenTabs: steps.filter((s) => !s.showTab).map((s) => s.step),
+    flow,
+    engine,
   };
 }
 

@@ -231,11 +231,11 @@ BEGIN
 
   -- ── ١١) فشل المزامنة مايفشّلش أي عملية على المشروع ولا الطلب ──────────────
   ALTER TABLE public.work_tasks RENAME TO work_tasks_broken;
+  -- (من غير SET ROLE: سياسات RLS بتقرا جدول المهام لتحديد الوصول، والمطلوب هنا اختبار
+  --  محفّزات المزامنة نفسها لا سياسات القراءة. الهوية بتفضل من الـ claim للحرّاس.)
   PERFORM set_config('request.jwt.claim.sub', v_manager::text, true);
-  EXECUTE 'SET LOCAL ROLE authenticated';
   UPDATE public.story_projects SET due_at = now() + interval '3 days', editor_id = v_editor WHERE id = p_prep;
   UPDATE public.story_projects SET status = 'text_draft' WHERE id = p_prep;
-  EXECUTE 'RESET ROLE';
   ASSERT (SELECT status FROM public.story_projects WHERE id = p_prep) = 'text_draft',
     'فشل المزامنة منع تحريك المشروع';
   ALTER TABLE public.work_tasks_broken RENAME TO work_tasks;

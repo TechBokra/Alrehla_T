@@ -58,8 +58,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         icon: 'ClipboardList',
         tabs: [
           { label: 'مهامي', href: `${A}/tasks`, permission: 'anyAdmin' },
-          { label: 'توزيع الطلبات', href: `${A}/tasks/assignments`, permission: 'canAssignWork' },
-          { label: 'المراحل والمواعيد', href: `${A}/tasks/steps`, permission: 'canAssignWork' },
+          { label: 'سير العمل والتوزيع', href: `${A}/tasks/workflow`, permission: 'canAssignWork' },
         ],
       },
     ],

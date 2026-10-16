@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { TaskBanner } from '@/components/admin/TaskBanner';
+import { OrderJourney } from '@/components/admin/OrderJourney';
 import { productOrderStatus } from '@/lib/order-status';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
@@ -75,8 +75,8 @@ export default async function Page({
         backHref="/dashboard/admin/orders"
       />
 
-      {/* مين ماسك الطلب (ملف 14). */}
-      <TaskBanner sourceId={target.id} />
+      {/* رحلة الطلب: مراحله من الدفع للتسليم + مشروع الاستوديو لبنوده المخصّصة (ملف 14 + الاستوديو). */}
+      <OrderJourney orderId={target.id} canOpenStudio={hasAdminPermission(user, 'canWorkStudio')} />
 
       <PaymentReviewPanel
         reference={target.paymentReference}

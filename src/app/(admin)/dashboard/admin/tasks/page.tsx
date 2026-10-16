@@ -46,7 +46,7 @@ export default async function Page() {
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <DashboardPageHeader
         title={isManager ? 'متابعة المهام' : 'مهامي'}
-        action={canAssign ? { label: 'المراحل والمواعيد', href: '/dashboard/admin/tasks/steps' } : undefined}
+        action={canAssign ? { label: 'سير العمل والتوزيع', href: '/dashboard/admin/tasks/workflow' } : undefined}
       />
       {tasks === null ? (
         <p className="rounded-2xl border border-amber-300 bg-amber-50 p-5 font-bold text-amber-900">
@@ -57,7 +57,7 @@ export default async function Page() {
           {steps === null && (
             <p role="status" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
               المواعيد والمراحل الدقيقة لسه مش شغّالة — محتاجة تطبيق migration «مواعيد المهام» على قاعدة البيانات.{' '}
-              <Link href="/dashboard/admin/tasks/steps" className="underline">
+              <Link href="/dashboard/admin/tasks/workflow" className="underline">
                 التفاصيل
               </Link>
             </p>
