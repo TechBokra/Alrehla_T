@@ -310,6 +310,13 @@ function AddInstructorForm({
   const [done, setDone] = useState('');
   const [code, setCode] = useState('');
   const [codeEmail, setCodeEmail] = useState('');
+  // الاسم والخطوة اللي بعدها بيتمسكوا وقت الإنشاء — النموذج بيتفضّى
+  // بعديها بسطور، والرسالة محتاجاهم.
+  const [codeName, setCodeName] = useState('');
+  const [codeNextStep, setCodeNextStep] = useState('');
+  // ⚠️ **بيتقري وقت الإنشاء، لا وقت الرسم.** `window.location` متغيّر
+  //    عام، وقراءته جوّه الرسم تخالف `react-hooks/purity`.
+  const [codeLoginUrl, setCodeLoginUrl] = useState('');
   const [providerWarning, setProviderWarning] = useState('');
 
   const err = (f: string) => (errorField === f ? error : undefined);
@@ -345,6 +352,23 @@ function AddInstructorForm({
         // البريد بيتمسح من النموذج بعد شوية سطور، فبنمسكه دلوقتي
         // عشان رسالة الواتساب تطلع كاملة.
         setCodeEmail(form.email.trim().toLowerCase());
+        setCodeName(form.displayName.trim() || form.fullName.trim());
+        setCodeLoginUrl(`${window.location.origin}/sign-in`);
+        // ⚠️ **«كمّل ملفك» بتظهر للمدرب أو لأ حسب النموذج ده.**
+        //    `isProfileComplete` بيقيس النبذة والتخصصات بس — فلو
+        //    الإدارة ملّيتهم، المدرب مايشوفش الخطوة دي خالص. فالرسالة
+        //    لازم تقول اللي هيحصل فعلًا، مش خطوة مش موجودة.
+        setCodeNextStep(
+          isProfileComplete({
+            bio: form.bio,
+            specialties: form.specialties
+              .split(/[،,]/)
+              .map((s) => s.trim())
+              .filter(Boolean),
+          })
+            ? 'وبعد الدخول تلاقي لوحتك: مواعيدك، جلساتك، ومهامك. حسابك بيبدأ «قيد التدريب» — ما يظهرش للأهالي لحد ما نفعّله بعد التدريب.'
+            : 'وبعد الدخول هتلاقي «كمّل ملفك»: صورتك، نبذة عنك، تخصصاتك، وسنين خبرتك. ابعته لنا، وبعد المراجعة والتدريب حسابك يتفعّل ويظهر للأهالي.',
+        );
       } else {
         setDone(
           'الشخص كان مسجّلاً بالفعل — اتحوّل لمدرب، وبيدخل بكلمة مروره الحالية زي ما هي.',
@@ -382,7 +406,16 @@ function AddInstructorForm({
       {done && <FormSuccess message={done} className="mb-4" />}
 
       <FormNotice message={providerWarning} className="mb-4" />
-      {code && <TempCodeBox code={code} email={codeEmail} role="المدرب" />}
+      {code && (
+        <TempCodeBox
+          code={code}
+          email={codeEmail}
+          role="المدرب"
+          loginUrl={codeLoginUrl || undefined}
+          greeting={codeName ? `أهلًا ${codeName} — نوّرت الرحلة 🌿` : undefined}
+          nextStep={codeNextStep || undefined}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="البريد الإلكتروني" name="email" required error={err('email')}>

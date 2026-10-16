@@ -67,8 +67,8 @@ export function JoinInstructorAccount({
             email={created.email}
             role="المدرب"
             loginUrl={origin ? `${origin}/sign-in` : undefined}
-            greeting={`أهلًا ${created.name}، طلب انضمامك كمدرب في الرحلة اتقبل.`}
-            nextStep="بعدها هتلاقي «كمّل ملفك»: صورتك، نبذة عنك، تخصصاتك، وسنين خبرتك. ابعته للإدارة، وبعد المراجعة والتدريب حسابك بيتفعّل."
+            greeting={`أهلًا ${created.name} — طلب انضمامك كمدرب في الرحلة اتقبل 🎉`}
+            nextStep="وبعد الدخول هتلاقي «كمّل ملفك»: صورتك، نبذة عنك، تخصصاتك، وسنين خبرتك. ابعته لنا، وبعد المراجعة والتدريب حسابك يتفعّل ويظهر للأهالي."
           />
         ) : (
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">

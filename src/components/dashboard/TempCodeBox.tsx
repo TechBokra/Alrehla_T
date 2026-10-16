@@ -15,6 +15,47 @@ import { Check, Copy, KeyRound } from 'lucide-react';
  *    الرمز مابقاش ينفع. يعني نفس ضمان رابط الدعوة القديم: **مفيش كلمة
  *    مرور دائمة بتعرفها الإدارة.**
  */
+/**
+ * نص الرسالة اللي الإدارة بتبعتها (واتساب غالبًا).
+ *
+ * ⚠️ **الرمز في سطر لوحده، ومن غير أي علامة بعده.** الرسالة عربية
+ *    (RTL) والرمز لاتيني (LTR): لو جه وسط سطر عربي أو جابت نقطة
+ *    وراه، ترتيبه البصري بيتبهدل والنقطة بتتنسخ معاه — فالمستلم
+ *    يدخل برمز غلط ويقول إن «البيانات مش شغّالة».
+ *
+ * ⚠️ **ومفيش كلام عن صلاحية بتنتهي.** الرمز هو كلمة مرور الحساب
+ *    المؤقتة ومالهاش مدة؛ اللي بيبطّلها إن صاحبه يحطّ كلمة مروره.
+ *    فالرسالة بتربط الإبطال بالخطوة دي، مش بوقت مش موجود.
+ */
+function buildMessage(parts: {
+  code: string;
+  email: string;
+  loginUrl?: string;
+  greeting?: string;
+  nextStep?: string;
+}): string {
+  return [
+    parts.greeting ?? 'أهلًا بحضرتك — نوّرت الرحلة 🌿',
+    '',
+    'حسابك على المنصة بقى جاهز، وفاضل خطوة واحدة بس.',
+    '',
+    parts.loginUrl ? `رابط الدخول: ${parts.loginUrl}` : null,
+    `البريد: ${parts.email}`,
+    '',
+    'الرمز المؤقت',
+    parts.code,
+    '',
+    'أول دخول بالرمز، الموقع هيوقفك على شاشة تحطّ فيها كلمة مرورك إنت. وبعدها الرمز مابقاش ينفع، وكلمة المرور مايعرفهاش غيرك — ولا إحنا.',
+    parts.nextStep ? '' : null,
+    parts.nextStep ?? null,
+    '',
+    'وأي حاجة تحتاجها، إحنا موجودين. مستنيينك 🌱',
+    'فريق الرحلة',
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
+}
+
 export function TempCodeBox({
   code,
   email,
@@ -35,21 +76,9 @@ export function TempCodeBox({
   nextStep?: string;
 }) {
   const [copied, setCopied] = useState<'code' | 'all' | null>(null);
+  const [showMessage, setShowMessage] = useState(false);
 
-  const message = email
-    ? [
-        greeting,
-        'بياناتك على منصة الرحلة:',
-        loginUrl ? `رابط الدخول: ${loginUrl}` : null,
-        `البريد: ${email}`,
-        `الرمز المؤقت: ${code}`,
-        '',
-        'ادخل بيه وهيطلب منك تحدد كلمة مرورك.',
-        nextStep,
-      ]
-        .filter((line) => line !== undefined && line !== null)
-        .join('\n')
-    : code;
+  const message = email ? buildMessage({ code, email, loginUrl, greeting, nextStep }) : code;
 
   const copy = async (what: 'code' | 'all') => {
     try {
@@ -104,6 +133,25 @@ export function TempCodeBox({
           </button>
         )}
       </div>
+
+      {/* الإدارة بتبعت الرسالة دي لشخص حقيقي — فالمفروض تشوفها قبل ما
+          تبعتها، مش تنسخ نصًّا على عماها. */}
+      {email && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowMessage((v) => !v)}
+            className="mt-3 text-xs font-bold text-emerald-800 underline"
+          >
+            {showMessage ? 'اخفي الرسالة' : 'شوف الرسالة قبل ما تبعتها'}
+          </button>
+          {showMessage && (
+            <div className="mt-2 whitespace-pre-wrap rounded-xl border border-emerald-200 bg-white p-4 text-xs leading-relaxed font-medium text-slate-700">
+              {message}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
