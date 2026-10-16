@@ -16,6 +16,7 @@ export const AQLAM_LIMITS = {
   bodyMax: 20000,
   penNameMin: 2,
   penNameMax: 40,
+  bioMax: 500,
   commentMax: 500,
   reportDetailsMax: 500,
   /** حدود يومية على الحساب — مفيش نظام حدود في المنصة، فبتتنفّذ في دوال القاعدة. */
@@ -190,6 +191,76 @@ export function validatePublishInput(
       sourceDocumentId,
     },
   };
+}
+
+export type EditInput = {
+  title: string;
+  body: string;
+  category: AqlamCategory;
+  allowIndexing: boolean;
+  commentsEnabled: boolean;
+};
+
+/**
+ * التحقق من تعديل نص. الاسم الظاهر مش بيتعدّل (لو عايز اسم تاني: شيل وانشر
+ * من جديد)، فمفيش حقل اسم هنا. `allowIndexing` للـ١٢+ بس زي النشر.
+ */
+export function validateEditInput(
+  raw: Record<string, unknown>,
+  group: AqlamAgeGroup,
+): ValidationResult<EditInput> {
+  const title = String(raw.title ?? '').replace(/\s+/g, ' ').trim();
+  if (title.length === 0) return { ok: false, error: 'اكتب عنوانًا للنص', field: 'title' };
+  if (title.length > AQLAM_LIMITS.titleMax) {
+    return { ok: false, error: `العنوان أطول من ${AQLAM_LIMITS.titleMax} حرف`, field: 'title' };
+  }
+  const body = cleanBody(String(raw.body ?? ''));
+  if (body.length < AQLAM_LIMITS.bodyMin) {
+    return { ok: false, error: `النص قصير جدًا — ${AQLAM_LIMITS.bodyMin} حرف على الأقل`, field: 'body' };
+  }
+  if (body.length > AQLAM_LIMITS.bodyMax) {
+    return { ok: false, error: `النص أطول من ${AQLAM_LIMITS.bodyMax} حرف`, field: 'body' };
+  }
+  if (!isAqlamCategory(raw.category)) {
+    return { ok: false, error: 'اختار تصنيف النص', field: 'category' };
+  }
+  for (const [field, text] of [['title', title], ['body', body]] as const) {
+    if (!checkContactInfo(text).ok) return { ok: false, error: CONTACT_BLOCKED_MESSAGE, field };
+  }
+  return {
+    ok: true,
+    value: {
+      title,
+      body,
+      category: raw.category,
+      allowIndexing: group === '12_plus' && raw.allowIndexing === true,
+      commentsEnabled: raw.commentsEnabled !== false,
+    },
+  };
+}
+
+export type WriterProfileInput = { penName: string | null; bio: string | null; isPublic: boolean };
+
+/** ملف الكاتب: اسم قلم (اختياري، ٢–٤٠)، نبذة (حتى ٥٠٠)، وخيار الصفحة العامة. */
+export function validateWriterProfileInput(raw: Record<string, unknown>): ValidationResult<WriterProfileInput> {
+  const penRaw = String(raw.penName ?? '').replace(/\s+/g, ' ').trim();
+  const penName = penRaw === '' ? null : penRaw;
+  if (penName && (penName.length < AQLAM_LIMITS.penNameMin || penName.length > AQLAM_LIMITS.penNameMax)) {
+    return {
+      ok: false,
+      error: `الاسم القلمي بين ${AQLAM_LIMITS.penNameMin} و${AQLAM_LIMITS.penNameMax} حرف`,
+      field: 'penName',
+    };
+  }
+  const bioRaw = cleanBody(String(raw.bio ?? ''));
+  const bio = bioRaw === '' ? null : bioRaw;
+  if (bio && bio.length > AQLAM_LIMITS.bioMax) {
+    return { ok: false, error: `النبذة أطول من ${AQLAM_LIMITS.bioMax} حرف`, field: 'bio' };
+  }
+  for (const [field, text] of [['penName', penName], ['bio', bio]] as const) {
+    if (text && !checkContactInfo(text).ok) return { ok: false, error: CONTACT_BLOCKED_MESSAGE, field };
+  }
+  return { ok: true, value: { penName, bio, isPublic: raw.isPublic === true } };
 }
 
 export function validateCommentBody(raw: unknown): ValidationResult<string> {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox, MessageSquareHeart, NotebookPen,
+  Users, ShoppingBag, Calendar, Package, HelpCircle, Bell, User, Settings, PenTool, Inbox, MessageSquareHeart, NotebookPen, Feather,
 } from 'lucide-react';
 
 /**
@@ -55,7 +55,7 @@ type NavGroup = {
  * و«أفراد العائلة» بتفضل ظاهرة للكل عن قصد: هي **مدخل** إنشاء الملف
  * العائلي، ومنها بيتحوّل العميل لولي أمر.
  */
-const groupsFor = (isGuardian: boolean): NavGroup[] => [
+const groupsFor = (isGuardian: boolean, showAqlam: boolean): NavGroup[] => [
   {
     items: [
       { href: '/account', label: 'نظرة عامة', Icon: User },
@@ -75,6 +75,8 @@ const groupsFor = (isGuardian: boolean): NavGroup[] => [
       { href: '/account/orders/creative-writing', label: 'الخدمات الإبداعية', Icon: PenTool },
       { href: '/account/bookings', label: 'المواعيد والجلسات', Icon: Calendar },
       { href: '/account/writing', label: 'مساحة الكتابة', Icon: NotebookPen },
+      // بيظهر بس لما «أقلام الرحلة» شغّالة (من كاش الإعدادات).
+      ...(showAqlam ? [{ href: '/aqlam/me', label: 'ملفي في أقلام الرحلة', Icon: Feather }] : []),
     ],
   },
   {
@@ -98,9 +100,9 @@ const groupsFor = (isGuardian: boolean): NavGroup[] => [
   },
 ];
 
-export function AccountNav({ isGuardian = false }: { isGuardian?: boolean }) {
+export function AccountNav({ isGuardian = false, showAqlam = false }: { isGuardian?: boolean; showAqlam?: boolean }) {
   const pathname = usePathname() ?? '';
-  const GROUPS = groupsFor(isGuardian);
+  const GROUPS = groupsFor(isGuardian, showAqlam);
 
   const isActive = (href: string) => {
     if (href === '/account') return pathname === '/account';

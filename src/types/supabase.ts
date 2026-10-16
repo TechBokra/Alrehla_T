@@ -410,6 +410,48 @@ export type Database = {
           },
         ]
       }
+      aqlam_post_edits: {
+        Row: {
+          created_at: string
+          id: string
+          old_body: string
+          old_title: string
+          post_id: string
+          writer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          old_body: string
+          old_title: string
+          post_id: string
+          writer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          old_body?: string
+          old_title?: string
+          post_id?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_post_edits_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "aqlam_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_post_edits_writer_id_fkey"
+            columns: ["writer_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aqlam_posts: {
         Row: {
           age_band: string | null
@@ -424,6 +466,7 @@ export type Database = {
           consent_version: string
           created_at: string
           display_name: string
+          edited_at: string | null
           featured_at: string | null
           guardian_approved_at: string | null
           guardian_approved_by: string | null
@@ -456,6 +499,7 @@ export type Database = {
           consent_version: string
           created_at?: string
           display_name: string
+          edited_at?: string | null
           featured_at?: string | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
@@ -488,6 +532,7 @@ export type Database = {
           consent_version?: string
           created_at?: string
           display_name?: string
+          edited_at?: string | null
           featured_at?: string | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
@@ -645,6 +690,8 @@ export type Database = {
           expires_at: string | null
           id: string
           kind: string
+          lifted_at: string | null
+          lifted_by: string | null
           reason: string
           user_id: string
         }
@@ -654,6 +701,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind: string
+          lifted_at?: string | null
+          lifted_by?: string | null
           reason: string
           user_id: string
         }
@@ -663,6 +712,8 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
           reason?: string
           user_id?: string
         }
@@ -690,6 +741,8 @@ export type Database = {
           birth_date: string | null
           created_at: string
           pen_name: string | null
+          public_profile: boolean
+          public_slug: string | null
           updated_at: string
           user_id: string
         }
@@ -699,6 +752,8 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           pen_name?: string | null
+          public_profile?: boolean
+          public_slug?: string | null
           updated_at?: string
           user_id: string
         }
@@ -708,6 +763,8 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           pen_name?: string | null
+          public_profile?: boolean
+          public_slug?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4158,6 +4215,7 @@ export type Database = {
           comment_count: number | null
           comments_enabled: boolean | null
           display_name: string | null
+          edited_at: string | null
           excerpt: string | null
           featured_at: string | null
           id: string | null
@@ -4165,12 +4223,46 @@ export type Database = {
           reaction_count: number | null
           share_card_url: string | null
           title: string | null
+          writer_slug: string | null
+        }
+        Relationships: []
+      }
+      aqlam_public_writers: {
+        Row: {
+          age_band: string | null
+          bio: string | null
+          name: string | null
+          posts_count: number | null
+          slug: string | null
         }
         Relationships: []
       }
     }
     Functions: {
       admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
+      aqlam_admin_find_users: {
+        Args: { p_ids?: string[]; p_query?: string }
+        Returns: Json
+      }
+      aqlam_lift_sanction: {
+        Args: { p_sanction: string }
+        Returns: Json
+      }
+      aqlam_set_writer_profile: {
+        Args: { p_bio: string | null; p_pen_name: string | null; p_public: boolean }
+        Returns: Json
+      }
+      aqlam_update_post: {
+        Args: {
+          p_allow_indexing: boolean
+          p_body: string
+          p_category: string
+          p_comments_enabled: boolean
+          p_post: string
+          p_title: string
+        }
+        Returns: Json
+      }
       aqlam_add_comment: {
         Args: { p_body: string; p_post: string }
         Returns: Json

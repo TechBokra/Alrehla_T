@@ -54,10 +54,10 @@ export function AqlamHero({ image }: { image?: string }) {
               انشر نصك
             </Link>
             <Link
-              href="/aqlam/mine"
+              href="/aqlam/me"
               className="inline-flex min-h-[44px] items-center rounded-full border border-slate-300 px-6 font-bold text-slate-800 transition-colors hover:border-slate-500 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              نصوصي
+              ملفي
             </Link>
           </div>
         </div>

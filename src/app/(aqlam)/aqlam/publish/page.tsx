@@ -57,9 +57,9 @@ export default async function PublishPage({ searchParams }: { searchParams: Prom
         <header className="space-y-2">
           <h1 className="text-3xl font-black text-slate-900 md:text-4xl">انشر نصك</h1>
           <p className="font-medium text-slate-500">
-            اللي هتنشره نسخة ثابتة من نصك. تقدر تشيله في أي وقت من{' '}
-            <Link href="/aqlam/mine" className="font-bold text-slate-900 underline underline-offset-4">
-              نصوصي
+            اللي هتنشره نسخة من نصك. تقدر تعدّلها أو تشيلها في أي وقت من{' '}
+            <Link href="/aqlam/me" className="font-bold text-slate-900 underline underline-offset-4">
+              ملفي
             </Link>
             .
           </p>

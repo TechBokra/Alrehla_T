@@ -1,17 +1,16 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { BookOpen, Star } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { AqlamHero } from '@/components/aqlam/AqlamHero';
-import { CategoryIcon } from '@/components/aqlam/CategoryBadge';
+import { PostCard } from '@/components/aqlam/PostCard';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
-import { bandBar, bandBorder, bandSoft } from '@/lib/aqlam/look';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { listPublicPosts } from '@/data/domains/(shared)/aqlam/queries';
 import { AQLAM_PAGE_SIZE } from '@/data/domains/(shared)/aqlam/types';
-import { AGE_BANDS, ageBandById, isAgeBandId, type AgeBandId } from '@/lib/age-bands';
-import { AQLAM_CATEGORIES, categoryLabel, isAqlamCategory, type AqlamCategory } from '@/lib/aqlam/post';
+import { AGE_BANDS, isAgeBandId, type AgeBandId } from '@/lib/age-bands';
+import { AQLAM_CATEGORIES, isAqlamCategory, type AqlamCategory } from '@/lib/aqlam/post';
 import { pageMetadata } from '@/lib/seo';
 import { requireAqlamReadable } from './gate';
 
@@ -129,56 +128,11 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
           </Card>
         ) : (
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => {
-              const band = post.ageBand ? ageBandById(post.ageBand) : null;
-              return (
-                <li key={post.id}>
-                  <Link
-                    href={`/aqlam/p/${post.id}`}
-                    className="group block h-full rounded-3xl focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-                  >
-                    <article
-                      className={`relative flex h-full flex-col overflow-hidden rounded-3xl border bg-gradient-to-br p-6 pt-7 transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-1 ${bandSoft(post.ageBand)} ${bandBorder(post.ageBand)}`}
-                    >
-                      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1.5 ${bandBar(post.ageBand)}`} />
-                      <div className="mb-4 flex items-center gap-3">
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-800 shadow-sm ring-1 ring-slate-200">
-                          <CategoryIcon category={post.category} className="h-5 w-5" />
-                        </span>
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          {post.category && (
-                            <span className="text-sm font-black text-slate-800">{categoryLabel(post.category)}</span>
-                          )}
-                          {band && (
-                            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${band.tone.chip}`}>
-                              {band.label}
-                            </span>
-                          )}
-                        </div>
-                        {post.featured && (
-                          <span className="mr-auto inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-black text-amber-950">
-                            <Star className="h-3.5 w-3.5" aria-hidden="true" />
-                            مميّز
-                          </span>
-                        )}
-                      </div>
-                      <h2 className="mb-2 line-clamp-2 text-xl leading-snug font-black text-slate-900">{post.title}</h2>
-                      <p className="mb-5 line-clamp-4 text-[15px] leading-loose font-medium whitespace-pre-line text-slate-700">
-                        {post.excerpt}
-                      </p>
-                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-black/5 pt-3 text-xs font-bold text-slate-600">
-                        <span className="truncate">{post.displayName}</span>
-                        <span className="shrink-0">
-                          {post.reactionCount > 0 && `${post.reactionCount.toLocaleString('ar-EG')} تشجيع`}
-                          {post.reactionCount > 0 && post.commentCount > 0 && ' · '}
-                          {post.commentCount > 0 && `${post.commentCount.toLocaleString('ar-EG')} تعليق`}
-                        </span>
-                      </div>
-                    </article>
-                  </Link>
-                </li>
-              );
-            })}
+            {posts.map((post) => (
+              <li key={post.id}>
+                <PostCard post={post} />
+              </li>
+            ))}
           </ul>
         )}
 

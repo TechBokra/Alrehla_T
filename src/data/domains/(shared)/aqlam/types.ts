@@ -21,6 +21,19 @@ export type AqlamPost = AqlamPostCard & {
   allowIndexing: boolean;
   commentsEnabled: boolean;
   shareCardUrl: string | null;
+  /** آخر تعديل بعد النشر (null = ما اتعدّلش). */
+  editedAt: string | null;
+  /** رابط صفحة الكاتب لو اختارها (غير كده null). */
+  writerSlug: string | null;
+};
+
+/** صفحة كاتب اختار يظهر. من غير أي بيانات حساب. */
+export type AqlamPublicWriter = {
+  slug: string;
+  name: string;
+  bio: string;
+  ageBand: AgeBandId | null;
+  postsCount: number;
 };
 
 export type AqlamPublicComment = {

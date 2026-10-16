@@ -3,7 +3,9 @@ import {
   allowedNameModes,
   displayNameFor,
   validateCommentBody,
+  validateEditInput,
   validatePublishInput,
+  validateWriterProfileInput,
 } from './post';
 
 const base = {
@@ -96,5 +98,64 @@ describe('التعليق', () => {
       ok: true,
       value: 'جميل جدًا، عجبتني صورة الغيم.',
     });
+  });
+});
+
+describe('تعديل نص', () => {
+  const edit = { title: ' غيمة   كبيرة ', body: base.body, category: 'poem', allowIndexing: true, commentsEnabled: true };
+
+  it('بينضّف العنوان ويقبل نصًا سليمًا', () => {
+    const r = validateEditInput(edit, '12_plus');
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.title).toBe('غيمة كبيرة');
+      expect(r.value.allowIndexing).toBe(true);
+    }
+  });
+
+  it('أقل من ١٢: جوجل مقفول حتى لو الخانة اتبعتت', () => {
+    const r = validateEditInput(edit, 'under_12');
+    expect(r.ok && r.value.allowIndexing).toBe(false);
+  });
+
+  it('التعليقات مفتوحة ما لم يتقفل صراحة', () => {
+    const r = validateEditInput({ ...edit, commentsEnabled: false }, '12_plus');
+    expect(r.ok && r.value.commentsEnabled).toBe(false);
+    const r2 = validateEditInput({ ...edit, commentsEnabled: undefined }, '12_plus');
+    expect(r2.ok && r2.value.commentsEnabled).toBe(true);
+  });
+
+  it('بيرفض عنوان فاضي ونص قصير وتصنيف غلط', () => {
+    expect(validateEditInput({ ...edit, title: '  ' }, '12_plus')).toMatchObject({ ok: false, field: 'title' });
+    expect(validateEditInput({ ...edit, body: 'قصير' }, '12_plus')).toMatchObject({ ok: false, field: 'body' });
+    expect(validateEditInput({ ...edit, category: 'x' }, '12_plus')).toMatchObject({ ok: false, field: 'category' });
+  });
+
+  it('بيرفض بيانات التواصل زي النشر بالظبط', () => {
+    const r = validateEditInput({ ...edit, body: `${base.body} كلموني على 01012345678` }, '12_plus');
+    expect(r).toMatchObject({ ok: false, field: 'body' });
+  });
+});
+
+describe('ملف الكاتب', () => {
+  it('كله اختياري، والصفحة العامة مقفولة افتراضيًا', () => {
+    const r = validateWriterProfileInput({});
+    expect(r).toEqual({ ok: true, value: { penName: null, bio: null, isPublic: false } });
+  });
+
+  it('بينضّف الاسم القلمي ويفتح الصفحة لو اتطلب', () => {
+    const r = validateWriterProfileInput({ penName: ' قمر   الليل ', bio: ' بحب الغيم ', isPublic: true });
+    expect(r).toEqual({ ok: true, value: { penName: 'قمر الليل', bio: 'بحب الغيم', isPublic: true } });
+  });
+
+  it('حدود الاسم والنبذة', () => {
+    expect(validateWriterProfileInput({ penName: 'ق' })).toMatchObject({ ok: false, field: 'penName' });
+    expect(validateWriterProfileInput({ penName: 'ق'.repeat(41) })).toMatchObject({ ok: false, field: 'penName' });
+    expect(validateWriterProfileInput({ bio: 'ب'.repeat(501) })).toMatchObject({ ok: false, field: 'bio' });
+  });
+
+  it('بيانات التواصل في النبذة أو الاسم مرفوضة', () => {
+    expect(validateWriterProfileInput({ bio: 'كلموني 01012345678' })).toMatchObject({ ok: false, field: 'bio' });
+    expect(validateWriterProfileInput({ penName: 'sara@example.com' })).toMatchObject({ ok: false, field: 'penName' });
   });
 });

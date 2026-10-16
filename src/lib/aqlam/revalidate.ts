@@ -12,7 +12,8 @@ import { revalidatePath } from 'next/cache';
  * عملية في `actions/` من تحديث مسار عام بنفسها، والقاعدة دي بتحمي بقية
  * الموقع من القايمة اللي بتتنسي. أقلام الرحلة معزولة وليها مكانها هنا.
  */
-export function refreshAqlam(postId?: string): void {
+export function refreshAqlam(postId?: string, writerSlug?: string | null): void {
   revalidatePath('/aqlam');
   if (postId) revalidatePath(`/aqlam/p/${postId}`);
+  if (writerSlug) revalidatePath(`/aqlam/w/${writerSlug}`);
 }

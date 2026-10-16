@@ -36,3 +36,17 @@ export function postedMessage(status: string | undefined): string | null {
       return null;
   }
 }
+
+/** الرسالة بعد تعديل نص (`?edited=<status>`). */
+export function editedMessage(status: string | undefined): string | null {
+  switch (status) {
+    case 'published':
+      return 'اتحفظ التعديل، والنص ظاهر بنسخته الجديدة.';
+    case 'pending_guardian':
+      return 'اتحفظ التعديل. النص اتخبّى لحد ما ولي أمرك يوافق على النسخة الجديدة.';
+    case 'pending_review':
+      return 'اتحفظ التعديل وبعتناه للمراجعة.';
+    default:
+      return null;
+  }
+}
