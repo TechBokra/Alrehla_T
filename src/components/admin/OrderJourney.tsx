@@ -21,7 +21,7 @@ export async function OrderJourney({
 }) {
   const { steps, projects } = await getOrderJourney(orderId);
   if (steps.length === 0 && projects.length === 0) return null;
-  // الطلب اتجهّز/اتشحن ولسه فيه قصة مخصّصة ماتسلّمتش — تنبيه (مش منع): قرار التجهيز بتاع الفريق.
+  // الطلب اتجهّز/اتسلّم (إلكتروني أو مطبوع) ولسه فيه قصة مخصّصة ماتسلّمتش — تنبيه (مش منع): قرار الفريق.
   const unfinished = projects.filter((p) => !p.terminal).length;
   const fulfilmentStarted = ['preparing', 'shipped', 'delivered'].includes(orderStatus);
 
@@ -38,8 +38,8 @@ export async function OrderJourney({
 
       {fulfilmentStarted && unfinished > 0 && (
         <p role="status" className="rounded-xl bg-amber-50 p-3 text-xs font-bold leading-6 text-amber-900">
-          الطلب في مرحلة التجهيز/الشحن، ولسه {unfinished.toLocaleString('ar-EG')} من القصص المخصّصة فيه ماتسلّمتش.
-          اتأكد إن الكتاب جاهز قبل ما الطلب يتشحن.
+          الطلب في مرحلة التجهيز أو التسليم، ولسه {unfinished.toLocaleString('ar-EG')} من القصص المخصّصة فيه ماتسلّمتش.
+          اتأكد إن الكتاب جاهز قبل ما يوصل للعميل (إلكترونيًا أو مطبوعًا).
         </p>
       )}
 
