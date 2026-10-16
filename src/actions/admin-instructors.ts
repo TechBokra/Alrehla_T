@@ -435,9 +435,13 @@ export async function deleteInstructor(instructorId: string): Promise<DeleteInst
     console.error('deleteInstructor rpc', error);
     // الدالة لسه ماتشغّلتش على القاعدة — رسالة واضحة بدل «حدث خطأ».
     if (error.code === 'PGRST202' || error.message?.includes('delete_instructor')) {
-      return fail('الحذف محتاج ملف القاعدة 20261015110000 يتشغّل الأول');
+      return fail('الحذف محتاج ملف القاعدة 20261016120000 يتشغّل الأول');
     }
-    return fail('تعذّر حذف المدرب');
+    // ⚠️ **كود القاعدة بيظهر للإداري عن قصد.** «تعذّر حذف المدرب» لوحدها
+    //    خبّت `42883` تمن ساعات: الدالة كانت بتفشل في كل ندائة من يوم ما
+    //    اتشحنت، والشاشة بتقول نفس الجملة اللي بتقولها لمدرب عنده سجل.
+    //    دي شاشة إدارة، والكود هنا بيوفّر دورة تشخيص كاملة.
+    return fail(`تعذّر حذف المدرب (${error.code ?? 'خطأ'}) — ابعت الكود ده للدعم الفني.`);
   }
 
   const result = (data ?? null) as
