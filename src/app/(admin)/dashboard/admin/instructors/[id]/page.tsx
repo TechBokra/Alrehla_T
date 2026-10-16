@@ -78,6 +78,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         services={services}
         serviceOffers={serviceOffers}
         formula={formula}
+        // المنقول له لازم يكون «نشط» — الدالة بترفض غير كده، فالقايمة
+        // مابتعرضش اختيارًا هيترفض.
+        transferTargets={instructors
+          .filter((i) => i.id !== target.id && i.status === 'active')
+          .map((i) => ({ id: i.id, name: i.displayName }))}
       />
 
       {/* ⚠️ **صور المدرب كانت مش ظاهرة هنا خالص** — الإداري كان لازم

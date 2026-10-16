@@ -4205,6 +4205,10 @@ export type Database = {
         Args: { p_instructor_id: string }
         Returns: Json
       }
+      transfer_instructor_work: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       cancel_course_booking: {
         Args: { p_id: string; p_reason?: string }
         Returns: Json

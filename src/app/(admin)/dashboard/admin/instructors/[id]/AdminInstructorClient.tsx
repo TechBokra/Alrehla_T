@@ -57,6 +57,7 @@ import { FormError, FormSuccess, FormNotice } from '@/components/ui/FormError';
 import { Field, TextInput, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
 import { InstructorProfileEditor } from './InstructorProfileEditor';
 import { InstructorServicesSection } from './InstructorServicesSection';
+import { TransferWorkPanel } from './TransferWorkPanel';
 
 interface AdminInstructorClientProps {
   instructor: Instructor;
@@ -68,6 +69,8 @@ interface AdminInstructorClientProps {
   services: CreativeService[];
   serviceOffers: InstructorServiceOffer[];
   formula: PricingFormulaSettings;
+  /** المدربون النشطون اللي ينفع ينتقل لهم الشغل. */
+  transferTargets: { id: string; name: string }[];
 }
 
 const ARABIC_DAYS: Record<string, string> = {
@@ -100,6 +103,7 @@ export function AdminInstructorClient({
   services,
   serviceOffers,
   formula,
+  transferTargets,
 }: AdminInstructorClientProps) {
   const router = useRouter();
 
@@ -414,11 +418,20 @@ export function AdminInstructorClient({
             {/* الفرق بين «إخفاء» و«إيقاف» مش واضح من الاسم لوحده،
                 والإداري بيختار بينهم في ثانية — فالشرح جنبهم. */}
             {(status === 'hidden' || status === 'suspended') && (
-              <p className="w-full pt-1 text-[11px] font-medium text-slate-500">
-                {status === 'hidden'
-                  ? 'مش ظاهر للزوار ومش قابل للحجز — ولوحته مفتوحة، وجلساته ومهامه الحالية ماشية عادي.'
-                  : 'موقوف: مش ظاهر للزوار ومش قابل للحجز. مستحقاته وطلبات سحبه زيّ ما هي.'}
-              </p>
+              <>
+                <p className="w-full pt-1 text-[11px] font-medium text-slate-500">
+                  {status === 'hidden'
+                    ? 'مش ظاهر للزوار ومش قابل للحجز — ولوحته مفتوحة، وجلساته ومهامه الحالية ماشية عادي.'
+                    : 'موقوف: مش ظاهر للزوار ومش قابل للحجز. مستحقاته وطلبات سحبه زيّ ما هي.'}
+                </p>
+                {/* الموقوف شغله لازم يروح لحد — والمخفي ممكن يكمّله
+                    بنفسه، فالنقل معروض للاتنين والإدارة تقرر. */}
+                <TransferWorkPanel
+                  instructorId={instructor.id}
+                  instructorName={instructor.displayName}
+                  targets={transferTargets}
+                />
+              </>
             )}
 
             <button

@@ -775,3 +775,142 @@ export async function updateInstructorProfileByAdmin(
   refreshPublicPages();
   return { ok: true };
 }
+
+/**
+ * نقل شغل مدرب لمدرب تاني.
+ *
+ * ⚠️ **الإيقاف لوحده كان بيسيب الأهالي بلا مدرب.** الجلسات المحجوزة
+ *    بتفضل مسنودة لمدرب موقوف، ومفيش أي شاشة في الموقع بتغيّر مدرب
+ *    جلسة — `updateSessionDetails` بتغيّر الرابط والموعد وبس. فالعميل
+ *    دافع، وميعاده قايم، ومفيش حد هيحضره.
+ *
+ * ⚠️ **الإشعارات هنا لا في القاعدة.** الدالة بتنقل الصفوف وبترجّع
+ *    أرقامها؛ واللي لازم يعرف (المدرب الجديد، والقديم، والإدارة) بيتبلّغ
+ *    من هنا. محفّز قاعدة مايعرفش يبعت إشعارات المنصة.
+ */
+export type TransferWorkResult =
+  | {
+      ok: true;
+      fromName: string;
+      toName: string;
+      sessions: number;
+      tasks: number;
+      serviceOrders: number;
+      blockedOrders: { id: string; status: string }[];
+      sessionsRemaining: number;
+    }
+  | { ok: false; error: string };
+
+export async function transferInstructorWork(
+  fromInstructorId: string,
+  toInstructorId: string,
+): Promise<TransferWorkResult> {
+  const admin = await requireInstructorAdmin();
+  if (!admin) return { ok: false, error: DENIED };
+
+  if (!fromInstructorId || !toInstructorId) {
+    return { ok: false, error: 'اختار المدرب اللي هينتقل له الشغل' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('transfer_instructor_work', {
+    p_from: fromInstructorId,
+    p_to: toInstructorId,
+  });
+
+  if (error) {
+    console.error('transferInstructorWork rpc', error);
+    if (error.code === 'PGRST202') {
+      return { ok: false, error: 'النقل محتاج ملف القاعدة 20261016150000 يتشغّل الأول' };
+    }
+    // ⚠️ كود القاعدة بيظهر للإداري عن قصد — «تعذّر» لوحدها خبّت
+    //    `42883` يومًا كاملًا في «حذف المدرب».
+    return { ok: false, error: `تعذّر نقل الشغل (${error.code ?? 'خطأ'}) — ابعت الكود ده للدعم.` };
+  }
+
+  const result = (data ?? null) as
+    | {
+        ok: true;
+        fromName: string;
+        toName: string;
+        toUserId: string;
+        fromUserId: string;
+        sessions: number;
+        tasks: number;
+        serviceOrders: number;
+        blockedOrders: { id: string; status: string }[];
+        sessionsRemaining: number;
+      }
+    | { ok: false; error: string; status?: string }
+    | null;
+
+  if (!result) return { ok: false, error: 'تعذّر نقل الشغل' };
+
+  if (!result.ok) {
+    if (result.error === 'denied') return { ok: false, error: DENIED };
+    if (result.error === 'same_instructor') return { ok: false, error: 'اختار مدربًا مختلفًا' };
+    if (result.error === 'from_not_found' || result.error === 'to_not_found') {
+      return { ok: false, error: 'واحد من المدربين مش موجود — حدّث الصفحة' };
+    }
+    if (result.error === 'to_not_active') {
+      return {
+        ok: false,
+        error: 'المدرب اللي هتنقل له لازم يكون «نشط» — نقل الشغل لمدرب مخفي أو موقوف بينقل المشكلة مش بيحلّها.',
+      };
+    }
+    return { ok: false, error: 'تعذّر نقل الشغل' };
+  }
+
+  const moved = result.sessions + result.tasks + result.serviceOrders;
+
+  // المدرب الجديد لازم يعرف دلوقتي — عنده مواعيد النهاردة يمكن.
+  if (moved > 0) {
+    await notifyUser({
+      event: 'session_update',
+      recipientProfileId: result.toUserId,
+      title: 'اتنقل لك شغل جديد',
+      message: `${result.sessions} جلسة و${result.tasks} مهمة من ${result.fromName}. راجع جدولك.`,
+      link: '/dashboard/instructor/sessions',
+    });
+
+    await notifyUser({
+      event: 'session_update',
+      recipientProfileId: result.fromUserId,
+      title: 'اتنقل شغلك لمدرب تاني',
+      message: `${result.sessions} جلسة و${result.tasks} مهمة اتنقلت لـ${result.toName}.`,
+      link: '/dashboard/instructor/sessions',
+    });
+  }
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'instructor_work_transferred',
+    entityType: 'Instructor',
+    entityId: fromInstructorId,
+    metadata: {
+      to: toInstructorId,
+      sessions: result.sessions,
+      tasks: result.tasks,
+      serviceOrders: result.serviceOrders,
+      blocked: result.blockedOrders.length,
+      remaining: result.sessionsRemaining,
+    },
+  });
+
+  revalidatePath(`/dashboard/admin/instructors/${fromInstructorId}`);
+  revalidatePath(`/dashboard/admin/instructors/${toInstructorId}`);
+  revalidatePath('/dashboard/admin/instructors');
+  revalidatePath('/dashboard/instructor/sessions');
+
+  return {
+    ok: true,
+    fromName: result.fromName,
+    toName: result.toName,
+    sessions: result.sessions,
+    tasks: result.tasks,
+    serviceOrders: result.serviceOrders,
+    blockedOrders: result.blockedOrders ?? [],
+    sessionsRemaining: result.sessionsRemaining,
+  };
+}
