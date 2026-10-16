@@ -6,6 +6,7 @@ import {
   type AqlamPost,
   type AqlamPostCard,
   type AqlamPublicComment,
+  type AqlamPublicWriter,
   type AqlamSort,
 } from './types';
 
@@ -89,7 +90,7 @@ export async function getPublicPost(id: string): Promise<AqlamPost | null> {
   const supabase = createPublicClient();
   const { data, error } = await supabase
     .from('aqlam_public_posts')
-    .select(`${CARD_COLUMNS},body,age_group,allow_indexing,comments_enabled,share_card_url`)
+    .select(`${CARD_COLUMNS},body,age_group,allow_indexing,comments_enabled,share_card_url,edited_at,writer_slug`)
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -106,7 +107,51 @@ export async function getPublicPost(id: string): Promise<AqlamPost | null> {
     allowIndexing: data.allow_indexing === true,
     commentsEnabled: data.comments_enabled !== false,
     shareCardUrl: data.share_card_url ?? null,
+    editedAt: data.edited_at ?? null,
+    writerSlug: data.writer_slug ?? null,
   };
+}
+
+const SLUG_RE = /^[0-9a-f]{12}$/;
+
+/** صفحة كاتب اختار يظهر، أو null (مش موجودة/مقفولة/موقوف). */
+export async function getPublicWriter(slug: string): Promise<AqlamPublicWriter | null> {
+  if (!SLUG_RE.test(slug)) return null;
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('aqlam_public_writers')
+    .select('slug,name,bio,age_band,posts_count')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) {
+    console.error('Error reading aqlam writer', error);
+    throw new Error('تعذّر تحميل الصفحة');
+  }
+  if (!data || !data.slug || !data.name) return null;
+  return {
+    slug: data.slug,
+    name: data.name,
+    bio: data.bio ?? '',
+    ageBand: isAgeBandId(data.age_band) ? data.age_band : null,
+    postsCount: data.posts_count ?? 0,
+  };
+}
+
+/** نصوص كاتب (من العرض العام بالرابط العشوائي — مفيش رقم حساب). */
+export async function listPublicWriterPosts(slug: string): Promise<AqlamPostCard[]> {
+  if (!SLUG_RE.test(slug)) return [];
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from('aqlam_public_posts')
+    .select(CARD_COLUMNS)
+    .eq('writer_slug', slug)
+    .order('published_at', { ascending: false })
+    .limit(100);
+  if (error) {
+    console.error('Error listing aqlam writer posts', error);
+    throw new Error('تعذّر تحميل النصوص');
+  }
+  return (data ?? []).map(toCard).filter((c): c is AqlamPostCard => c !== null);
 }
 
 export async function listPublicComments(postId: string): Promise<AqlamPublicComment[]> {

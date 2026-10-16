@@ -88,8 +88,19 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
               {post.title}
             </h1>
             <p className="mt-4 text-sm font-bold text-slate-600">
-              بقلم {post.displayName}
+              بقلم{' '}
+              {post.writerSlug ? (
+                <Link
+                  href={`/aqlam/w/${post.writerSlug}`}
+                  className="underline underline-offset-4 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none"
+                >
+                  {post.displayName}
+                </Link>
+              ) : (
+                post.displayName
+              )}
               {post.publishedAt && ` · ${formatDate(post.publishedAt)}`}
+              {post.editedAt && ` · عُدّل ${formatDate(post.editedAt)}`}
             </p>
           </header>
 

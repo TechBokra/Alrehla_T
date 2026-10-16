@@ -6,8 +6,16 @@ import { Field, FormActions, Select, SubmitButton, TextArea, TextInput } from '@
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
-import { listAdminPosts, listOpenReports } from '@/data/domains/(shared)/aqlam/admin';
-import { handleReport, moderatePost, sanctionUser, saveAqlamSettings } from '@/actions/aqlam';
+import {
+  findUsers,
+  labelUsers,
+  listAdminPosts,
+  listOpenReports,
+  listSanctions,
+  type AdminUserLabel,
+} from '@/data/domains/(shared)/aqlam/admin';
+import { handleReport, liftSanction, moderatePost, saveAqlamSettings } from '@/actions/aqlam';
+import { SanctionBox } from './SanctionBox';
 import { REPORT_REASONS } from '@/lib/aqlam/post';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
@@ -22,6 +30,33 @@ const MODE_OPTIONS = [
   { value: 'public', label: 'عام (ظاهر في القائمة ومفهرس بإذن الكاتب)' },
 ] as const;
 
+const KIND_LABELS = {
+  warning: 'تحذير',
+  suspension_7d: 'إيقاف ٧ أيام',
+  permanent: 'إيقاف دائم',
+} as const;
+
+/** الاسم والبريد بدل رقم الحساب. لو الاسم مش متاح بنرجع للرقم المختصر. */
+function who(id: string | null, labels: Map<string, AdminUserLabel>): { name: string; email: string | null } {
+  if (!id) return { name: 'حساب غير معروف', email: null };
+  const l = labels.get(id);
+  return { name: l?.fullName || `حساب ${id.slice(0, 8)}`, email: l?.email ?? null };
+}
+
+function Person({ id, labels }: { id: string | null; labels: Map<string, AdminUserLabel> }) {
+  const { name, email } = who(id, labels);
+  return (
+    <span className="font-bold text-slate-700">
+      {name}
+      {email && (
+        <span className="mx-1 font-medium text-slate-500" dir="ltr">
+          {email}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function Heading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <h2 id={id} className="text-xl font-black text-slate-800">
@@ -30,17 +65,30 @@ function Heading({ id, children }: { id: string; children: React.ReactNode }) {
   );
 }
 
-export default async function AqlamAdminPage() {
+export default async function AqlamAdminPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageContent')) return <Unauthorized />;
+  const { q = '' } = await searchParams;
+  const query = q.trim();
 
-  const [settings, review, reports, live] = await Promise.all([
+  const [settings, review, reports, live, sanctions, found] = await Promise.all([
     getSiteSettings(),
     listAdminPosts(['pending_review']),
     listOpenReports(),
     listAdminPosts(['published', 'hidden'], 30),
+    listSanctions(30),
+    query.length >= 2 ? findUsers(query) : Promise.resolve([] as AdminUserLabel[]),
   ]);
   const aqlam = settings.aqlam;
+
+  // أسماء الكتّاب والمبلّغ عنهم والمعاقَبين — استعلام واحد بدل رقم لكل صف.
+  const labels = await labelUsers([
+    ...review.map((p) => p.writerId),
+    ...live.map((p) => p.writerId),
+    ...reports.flatMap((r) => (r.writerId ? [r.writerId] : [])),
+    ...sanctions.map((s) => s.userId),
+  ]);
+  for (const f of found) labels.set(f.id, f);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 space-y-12 px-6 py-12">
@@ -62,7 +110,7 @@ export default async function AqlamAdminPage() {
           <Field
             label="قايمة التجربة (أرقام الحسابات)"
             name="allowlist"
-            hint="رقم الحساب الكامل، واحد في كل سطر. بتشتغل في الوضع التجريبي فقط. المسؤولون مسموح لهم دايمًا."
+            hint="رقم الحساب الكامل، واحد في كل سطر (بيظهر تحت اسم الحساب في «الحسابات» تحت). بتشتغل في الوضع التجريبي فقط. المسؤولون مسموح لهم دايمًا."
           >
             <TextArea name="allowlist" rows={4} defaultValue={aqlam.allowlist.join('\n')} dir="ltr" />
           </Field>
@@ -86,6 +134,9 @@ export default async function AqlamAdminPage() {
                   <p className="text-xs font-medium text-slate-500">
                     {p.displayName} · {p.ageGroup === 'under_12' ? 'أقل من ١٢' : '١٢+'} · {formatDate(p.createdAt)}
                   </p>
+                  <p className="text-xs">
+                    الكاتب: <Person id={p.writerId} labels={labels} />
+                  </p>
                 </div>
                 <div className="max-h-72 overflow-y-auto rounded-2xl bg-slate-50 p-4 text-sm leading-loose font-medium whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">
                   {p.body}
@@ -104,6 +155,7 @@ export default async function AqlamAdminPage() {
                     </DecisionButton>
                   </FormActions>
                 </ActionForm>
+                <SanctionBox userId={p.writerId} label={who(p.writerId, labels).name} />
               </li>
             ))}
           </ul>
@@ -125,11 +177,17 @@ export default async function AqlamAdminPage() {
                 </p>
                 <p className="text-sm font-medium whitespace-pre-wrap text-slate-800 [overflow-wrap:anywhere]">{r.preview}</p>
                 {r.details && <p className="text-sm font-medium text-slate-500">«{r.details}»</p>}
+                {r.writerId && (
+                  <p className="text-xs">
+                    {r.targetType === 'post' ? 'الكاتب' : 'كاتب التعليق'}: <Person id={r.writerId} labels={labels} />
+                  </p>
+                )}
                 {r.postId && (
                   <Link href={`/aqlam/p/${r.postId}`} className="text-sm font-bold text-slate-900 underline underline-offset-4">
                     افتح النص
                   </Link>
                 )}
+                {r.writerId && <SanctionBox userId={r.writerId} label={who(r.writerId, labels).name} />}
                 <ActionForm action={handleReport}>
                   <input type="hidden" name="reportId" value={r.id} />
                   <FormActions>
@@ -161,8 +219,8 @@ export default async function AqlamAdminPage() {
                   </Link>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${st.tone}`}>{st.label}</span>
                 </div>
-                <p className="text-xs font-medium text-slate-500" dir="ltr">
-                  {p.displayName} · writer: {p.writerId}
+                <p className="text-xs font-medium text-slate-500">
+                  يظهر باسم {p.displayName} · الكاتب: <Person id={p.writerId} labels={labels} />
                 </p>
                 <ActionForm action={moderatePost} className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="postId" value={p.id} />
@@ -184,33 +242,111 @@ export default async function AqlamAdminPage() {
                     إزالة
                   </DecisionButton>
                 </ActionForm>
+                <SanctionBox userId={p.writerId} label={who(p.writerId, labels).name} />
               </li>
             );
           })}
         </ul>
       </section>
 
-      {/* ── العقوبات ── */}
-      <section aria-labelledby="sanction" className="space-y-4">
-        <Heading id="sanction">عقوبة على حساب</Heading>
-        <ActionForm action={sanctionUser} successMessage="اتسجّلت العقوبة." className="space-y-6">
-          <Field label="رقم الحساب" name="userId" required>
-            <TextInput name="userId" dir="ltr" required />
-          </Field>
-          <Field label="النوع" name="kind" required>
-            <Select name="kind" defaultValue="warning">
-              <option value="warning">تحذير</option>
-              <option value="suspension_7d">إيقاف ٧ أيام</option>
-              <option value="permanent">إيقاف دائم</option>
-            </Select>
-          </Field>
-          <Field label="السبب" name="reason" required>
-            <TextInput name="reason" maxLength={500} required />
-          </Field>
-          <FormActions>
-            <SubmitButton>تسجيل العقوبة</SubmitButton>
-          </FormActions>
-        </ActionForm>
+      {/* ── الحسابات ── */}
+      <section aria-labelledby="users" className="space-y-4">
+        <Heading id="users">الحسابات</Heading>
+        <p className="text-sm font-medium text-slate-500">
+          ابحث بالاسم أو البريد الإلكتروني عشان توقّع عقوبة على حساب. (ومن أي نص أو بلاغ فوق تقدر تضغط «عقوبة» على كاتبه مباشرة.)
+        </p>
+        <form method="get" action="/dashboard/admin/aqlam#users" className="flex flex-wrap items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="aqlam-user-q" className="mb-1 block text-sm font-bold text-slate-700">
+              الاسم أو البريد
+            </label>
+            <input
+              id="aqlam-user-q"
+              name="q"
+              type="search"
+              defaultValue={query}
+              minLength={2}
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            className="inline-flex min-h-[48px] items-center rounded-full bg-slate-900 px-6 text-sm font-bold text-white hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            بحث
+          </button>
+        </form>
+        {query.length === 1 && <p className="text-sm font-bold text-amber-800">اكتب حرفين على الأقل.</p>}
+        {query.length >= 2 &&
+          (found.length === 0 ? (
+            <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+              مفيش حساب بالبيانات دي. جرّب جزء من الاسم أو البريد.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {found.map((u) => (
+                <li key={u.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5">
+                  <p className="font-black text-slate-900">
+                    {u.fullName || 'من غير اسم'}
+                    {u.email && (
+                      <span className="mx-2 text-sm font-medium text-slate-500" dir="ltr">
+                        {u.email}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs font-medium text-slate-400" dir="ltr">
+                    {u.id}
+                  </p>
+                  <SanctionBox userId={u.id} label={u.fullName || 'الحساب'} />
+                </li>
+              ))}
+            </ul>
+          ))}
+      </section>
+
+      {/* ── سجل العقوبات ── */}
+      <section aria-labelledby="sanctions" className="space-y-4">
+        <Heading id="sanctions">سجل العقوبات (آخر ٣٠)</Heading>
+        {sanctions.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">مفيش عقوبات.</p>
+        ) : (
+          <ul className="space-y-3">
+            {sanctions.map((s) => (
+              <li key={s.id} className="space-y-2 rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm">
+                    <Person id={s.userId} labels={labels} />
+                  </p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-bold ${
+                      s.active
+                        ? 'bg-rose-100 text-rose-900'
+                        : s.liftedAt
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    {KIND_LABELS[s.kind]}
+                    {s.active ? ' · سارٍ' : s.liftedAt ? ' · اترفع' : s.kind === 'warning' ? '' : ' · انتهى'}
+                  </span>
+                </div>
+                <p className="text-sm font-medium whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{s.reason}</p>
+                <p className="text-xs font-medium text-slate-500">
+                  {formatDate(s.createdAt)}
+                  {s.active && s.expiresAt && ` · بينتهي ${formatDate(s.expiresAt)}`}
+                </p>
+                {s.active && (
+                  <ActionForm action={liftSanction} successMessage="اترفعت العقوبة.">
+                    <input type="hidden" name="sanctionId" value={s.id} />
+                    <FormActions>
+                      <SubmitButton pendingLabel="جارٍ الرفع…">رفع العقوبة</SubmitButton>
+                    </FormActions>
+                  </ActionForm>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

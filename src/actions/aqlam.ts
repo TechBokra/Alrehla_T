@@ -13,7 +13,9 @@ import {
   isAqlamReaction,
   isReportReason,
   validateCommentBody,
+  validateEditInput,
   validatePublishInput,
+  validateWriterProfileInput,
 } from '@/lib/aqlam/post';
 import type { AqlamAgeGroup } from '@/lib/aqlam/age';
 
@@ -51,12 +53,14 @@ async function adminOnly(message: string) {
   }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const str = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v : '');
 
 // ── النشر ────────────────────────────────────────────────────────────────────
 
 /**
- * نشر نسخة ثابتة من نص. بعد النجاح بيحوّل لـ«نصوصي» (والنص بتاعك ظاهر هناك
+ * نشر نسخة ثابتة من نص. بعد النجاح بيحوّل لـ«ملفي» (والنص بتاعك ظاهر هناك
  * بحالته: منشور / بانتظار ولي الأمر).
  *
  * تاريخ الميلاد بيتطلب **مرة واحدة** لحساب مستقل جديد، والقاعدة هي اللي
@@ -140,7 +144,93 @@ export async function publishPost(formData: FormData): Promise<AqlamActionResult
   const id = String(out.data.id ?? '');
   const finalStatus = String(out.data.status ?? '');
   if (finalStatus === 'published') refreshAqlam(id);
-  redirect(`/aqlam/mine?posted=${encodeURIComponent(finalStatus)}`);
+  redirect(`/aqlam/me?posted=${encodeURIComponent(finalStatus)}`);
+}
+
+/**
+ * تعديل نص الكاتب نفسه. القاعدة هي اللي بتقرر الوضع بعد التعديل:
+ * ١٢+ منشور يفضل منشور («عُدّل»)، وأقل من ١٢ يرجع لولي الأمر.
+ */
+export async function updatePost(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const postId = str(formData.get('postId'));
+  if (!postId) return { ok: false, error: aqlamErrorMessage('invalid') };
+
+  const supabase = await createClient();
+  const { data: statusRaw, error: statusError } = await supabase.rpc('aqlam_my_status');
+  const status = statusError ? null : parseRpcResult(statusRaw);
+  if (!status || !status.ok) {
+    return { ok: false, error: status && !status.ok ? status.error : GENERIC };
+  }
+  const group: AqlamAgeGroup = status.data.age_group === '12_plus' ? '12_plus' : 'under_12';
+
+  const input = validateEditInput(
+    {
+      title: formData.get('title'),
+      body: formData.get('body'),
+      category: formData.get('category'),
+      allowIndexing: formData.get('allowIndexing') === 'on',
+      commentsEnabled: formData.get('commentsEnabled') === 'on',
+    },
+    group,
+  );
+  if (!input.ok) return { ok: false, error: input.error, field: input.field };
+  const v = input.value;
+
+  const { data, error } = await supabase.rpc('aqlam_update_post', {
+    p_post: postId,
+    p_title: v.title,
+    p_body: v.body,
+    p_category: v.category,
+    p_allow_indexing: v.allowIndexing,
+    p_comments_enabled: v.commentsEnabled,
+  });
+  if (error) {
+    console.error('aqlam_update_post failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) {
+    return { ok: false, error: out.error, field: out.code === 'contact_info' ? 'body' : undefined };
+  }
+  refreshAqlam(postId);
+  redirect(`/aqlam/me?edited=${encodeURIComponent(String(out.data.status ?? ''))}`);
+}
+
+/** اسم القلم والنبذة وصفحة الكاتب العامة (اختيارية، ١٢+). */
+export async function saveWriterProfile(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const input = validateWriterProfileInput({
+    penName: formData.get('penName'),
+    bio: formData.get('bio'),
+    isPublic: formData.get('isPublic') === 'on',
+  });
+  if (!input.ok) return { ok: false, error: input.error, field: input.field };
+  const v = input.value;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_set_writer_profile', {
+    p_pen_name: v.penName,
+    p_bio: v.bio,
+    p_public: v.isPublic,
+  });
+  if (error) {
+    console.error('aqlam_set_writer_profile failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) {
+    return {
+      ok: false,
+      error: out.error,
+      field: out.code === 'contact_info' ? 'bio' : out.code === 'pen_name_required' ? 'penName' : undefined,
+    };
+  }
+  const slug = typeof out.data.slug === 'string' ? out.data.slug : null;
+  refreshAqlam(undefined, slug);
+  return { ok: true, message: 'اتحفظ ملفك.' };
 }
 
 /** «شيل»: الكاتب يشيل نصه. */
@@ -408,8 +498,14 @@ export async function sanctionUser(formData: FormData): Promise<AqlamActionResul
   const userId = str(formData.get('userId'));
   const kind = str(formData.get('kind'));
   const reason = str(formData.get('reason')).trim();
-  if (!userId || !reason) {
+  if (!UUID_RE.test(userId)) {
+    return { ok: false, error: 'الحساب مش متحدد. ابحث عنه في «الحسابات» واختاره من النتايج.' };
+  }
+  if (!reason) {
     return { ok: false, error: 'اكتب سبب العقوبة.', field: 'reason' };
+  }
+  if (!['warning', 'suspension_7d', 'permanent'].includes(kind)) {
+    return { ok: false, error: 'اختار نوع العقوبة.', field: 'kind' };
   }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('aqlam_sanction_user', {
@@ -431,11 +527,38 @@ export async function sanctionUser(formData: FormData): Promise<AqlamActionResul
     entityId: userId,
     metadata: { kind, reason },
   });
+  // الإيقاف بيخفي رابط صفحة الكاتب من الكاش العام.
+  refreshAqlam();
   revalidatePath('/dashboard/admin/aqlam');
   return { ok: true };
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** رفع عقوبة (إيقاف) قبل موعدها. */
+export async function liftSanction(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك برفع عقوبات أقلام الرحلة');
+  if (!auth.ok) return auth;
+  const sanctionId = str(formData.get('sanctionId'));
+  if (!UUID_RE.test(sanctionId)) return { ok: false, error: aqlamErrorMessage('invalid') };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_lift_sanction', { p_sanction: sanctionId });
+  if (error) {
+    console.error('aqlam_lift_sanction failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: 'aqlam_sanction_lifted',
+    entityType: 'AqlamSanction',
+    entityId: sanctionId,
+  });
+  // رجوع صفحة الكاتب/نصوصه للعرض بعد الرفع.
+  refreshAqlam();
+  revalidatePath('/dashboard/admin/aqlam');
+  return { ok: true };
+}
 
 /**
  * تشغيل/إيقاف أقلام الرحلة: بيتكتب جوّه صف `general` (دمج مش استبدال —

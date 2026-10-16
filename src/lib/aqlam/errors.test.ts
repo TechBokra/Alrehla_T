@@ -27,4 +27,10 @@ describe('رسائل الأخطاء', () => {
     expect(parseRpcResult([]).ok).toBe(false);
     expect(parseRpcResult({ ok: 'true' }).ok).toBe(false);
   });
+
+  it('أكواد الدفعة التانية ليها رسائل عربي مش العامة', () => {
+    for (const code of ['not_editable', 'pen_name_required', 'too_young']) {
+      expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
+    }
+  });
 });

@@ -12,9 +12,44 @@ export type MyPostRow = {
   publishedAt: string | null;
   reactionCount: number;
   commentCount: number;
+  category: string;
+  editedAt: string | null;
+  /** مستند مساحة الكتابة اللي النسخة اتاخدت منه (إشارة بس). */
+  sourceDocumentId: string | null;
 };
 
-const COLUMNS = 'id,title,status,display_name,created_at,published_at,reaction_count,comment_count';
+const COLUMNS =
+  'id,title,status,display_name,created_at,published_at,reaction_count,comment_count,category,edited_at,source_document_id';
+
+type PostRowDb = {
+  id: string;
+  title: string;
+  status: string;
+  display_name: string;
+  created_at: string;
+  published_at: string | null;
+  reaction_count: number;
+  comment_count: number;
+  category: string;
+  edited_at: string | null;
+  source_document_id: string | null;
+};
+
+function toMyPostRow(p: PostRowDb): MyPostRow {
+  return {
+    id: p.id,
+    title: p.title,
+    status: p.status,
+    displayName: p.display_name,
+    createdAt: p.created_at,
+    publishedAt: p.published_at,
+    reactionCount: p.reaction_count,
+    commentCount: p.comment_count,
+    category: p.category,
+    editedAt: p.edited_at,
+    sourceDocumentId: p.source_document_id,
+  };
+}
 
 export async function listMyPosts(userId: string): Promise<MyPostRow[]> {
   const supabase = await createClient();
@@ -29,16 +64,68 @@ export async function listMyPosts(userId: string): Promise<MyPostRow[]> {
     console.error('Error listing my aqlam posts', error);
     throw new Error('تعذّر تحميل نصوصك');
   }
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    title: p.title,
-    status: p.status,
-    displayName: p.display_name,
-    createdAt: p.created_at,
-    publishedAt: p.published_at,
-    reactionCount: p.reaction_count,
-    commentCount: p.comment_count,
-  }));
+  return (data ?? []).map(toMyPostRow);
+}
+
+/** نص واحد من نصوصي للتعديل (كامل). null لو مش بتاعي أو اتشال. */
+export type MyPostDetail = MyPostRow & {
+  body: string;
+  ageGroup: 'under_12' | '12_plus';
+  allowIndexing: boolean;
+  commentsEnabled: boolean;
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function getMyPost(userId: string, postId: string): Promise<MyPostDetail | null> {
+  if (!UUID_RE.test(postId)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_posts')
+    .select(`${COLUMNS},body,age_group,allow_indexing,comments_enabled`)
+    .eq('id', postId)
+    .eq('writer_id', userId)
+    .neq('status', 'removed')
+    .maybeSingle();
+  if (error) {
+    console.error('Error reading my aqlam post', error);
+    throw new Error('تعذّر تحميل النص');
+  }
+  if (!data) return null;
+  return {
+    ...toMyPostRow(data),
+    body: data.body,
+    ageGroup: data.age_group === '12_plus' ? '12_plus' : 'under_12',
+    allowIndexing: data.allow_indexing,
+    commentsEnabled: data.comments_enabled,
+  };
+}
+
+/** ملف الكاتب (اسم القلم والنبذة وخيار الصفحة العامة). RLS: صاحبه بس. */
+export type MyWriterProfile = {
+  penName: string;
+  bio: string;
+  isPublic: boolean;
+  slug: string | null;
+};
+
+export async function getMyWriterProfile(userId: string): Promise<MyWriterProfile> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_writer_profiles')
+    .select('pen_name,bio,public_profile,public_slug')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('Error reading my aqlam writer profile', error);
+    throw new Error('تعذّر تحميل ملفك');
+  }
+  return {
+    penName: data?.pen_name ?? '',
+    bio: data?.bio ?? '',
+    isPublic: data?.public_profile === true,
+    slug: data?.public_slug ?? null,
+  };
 }
 
 export type GuardianPostRow = MyPostRow & { body: string; writerId: string };
@@ -57,14 +144,7 @@ export async function listPostsAwaitingGuardian(): Promise<GuardianPostRow[]> {
     throw new Error('تعذّر تحميل النصوص');
   }
   return (data ?? []).map((p) => ({
-    id: p.id,
-    title: p.title,
-    status: p.status,
-    displayName: p.display_name,
-    createdAt: p.created_at,
-    publishedAt: p.published_at,
-    reactionCount: p.reaction_count,
-    commentCount: p.comment_count,
+    ...toMyPostRow(p),
     body: p.body,
     writerId: p.writer_id,
   }));

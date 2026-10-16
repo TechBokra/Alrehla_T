@@ -1,6 +1,8 @@
 import { PageContainer } from '@/components/PageContainer';
 import { AccountNav } from './AccountNav';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { aqlamReadable } from '@/lib/aqlam/settings';
 
 /**
  * إطار صفحات حساب العميل.
@@ -15,11 +17,13 @@ export default async function AccountLayout({ children }: { children: React.Reac
   // تمامًا: الحقل موجود في النوع وفي القاعدة، ومستخدَم في فلتر لوحة
   // الإدارة وبس.
   const user = await getCurrentUser();
+  // رابط «أقلام الرحلة» بيظهر بس لما الميزة شغّالة (كاش الإعدادات، مش استعلام جديد).
+  const showAqlam = aqlamReadable((await getSiteSettings()).aqlam);
 
   return (
     <PageContainer className="flex-row items-start space-y-0 gap-8 py-10">
       <aside className="w-full shrink-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:w-64">
-        <AccountNav isGuardian={user.isGuardian ?? false} />
+        <AccountNav isGuardian={user.isGuardian ?? false} showAqlam={showAqlam} />
       </aside>
 
       <div className="w-full flex-1 space-y-6">{children}</div>
