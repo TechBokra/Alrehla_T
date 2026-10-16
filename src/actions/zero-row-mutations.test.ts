@@ -458,7 +458,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       // 0 rows affected -> maybeSingle returns null
       const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
@@ -501,7 +501,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         error: { message: 'Database constraint violation' },
       });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
@@ -562,7 +562,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       // 0 rows affected -> maybeSingle returns null
       const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
@@ -605,7 +605,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
         error: { message: 'Database constraint violation' },
       });
       const selectMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock });
-      const eqMock = vi.fn().mockReturnValue({ select: selectMock });
+      const eqMock: ReturnType<typeof vi.fn> = vi.fn(() => ({ eq: eqMock, select: selectMock }));
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
       const fromMock = vi.fn().mockReturnValue({ update: updateMock });
 
