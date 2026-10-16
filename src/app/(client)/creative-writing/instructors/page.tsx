@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructors } from '@/data/domains/(shared)/instructors/public';
 import { getInstructorRatingSummaries } from '@/data/domains/(shared)/reviews/queries';
 import { RatingStars } from '@/components/services/RatingStars';
 import { User, Award, CheckCircle } from 'lucide-react';
@@ -27,7 +27,7 @@ import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 
 export default async function InstructorsPage() {
   const [instructors, content] = await Promise.all([
-    getPublicInstructors(),
+    getVisibleInstructors(),
     getSiteContent(),
   ]);
   const ratings = await getInstructorRatingSummaries(instructors.map((i) => i.id));
@@ -74,7 +74,7 @@ export default async function InstructorsPage() {
                 {/*
                   الكارت كان بيرسم أيقونة الشخص الرمادية **دايمًا**، من غير
                   أي شرط — يعني حتى لو الصورة موجودة ما كانتش هتظهر هنا.
-                  دي غير عطل البيانات اللي في `getPublicInstructors`: ده
+                  دي غير عطل البيانات اللي في `getVisibleInstructors`: ده
                   عطل عرض مستقل، وكان لازم الاتنين يتصلحوا عشان الصورة
                   تبان في القايمة.
                 */}

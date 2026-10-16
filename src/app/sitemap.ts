@@ -4,7 +4,7 @@ import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
 import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
 import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructors } from '@/data/domains/(shared)/instructors/public';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
@@ -73,7 +73,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const instructors = await getPublicInstructors();
+  // خريطة الموقع بتتبعت لجوجل — المخفي والموقوف مالهمش مكان فيها.
+  const instructors = await getVisibleInstructors();
   const instructorRoutes = instructors.map((inst: any) => ({
     url: `${baseUrl}/creative-writing/instructors/${inst.id}`,
     lastModified: new Date(),

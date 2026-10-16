@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PageContainer } from '@/components/PageContainer';
 import { ArrowLeft, User, Star, Award, BookOpen, MessageCircle } from 'lucide-react';
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructorById } from '@/data/domains/(shared)/instructors/public';
 import { getPublicInstructorMedia } from '@/data/domains/(client)/instructors/media';
 import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/(shared)/reviews/queries';
 import { formatDate } from '@/lib/utils';
@@ -17,8 +17,7 @@ import { instructorSchema, breadcrumbSchema } from '@/lib/structured-data';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const instructors = await getPublicInstructors();
-  const instructor = instructors.find((i) => i.id === id);
+  const instructor = await getVisibleInstructorById(id);
   if (!instructor) return { title: 'مدرب غير موجود' };
   return pageMetadata({
     title: `${instructor.displayName} — مدرب كتابة إبداعية`,
@@ -33,8 +32,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function InstructorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const instructors = await getPublicInstructors();
-  const instructor = instructors.find(i => i.id === resolvedParams.id);
+  // ⚠️ **المخفي والموقوف بيرجّعوا `notFound()` زي المدرب اللي مش
+  //    موجود أصلًا.** الصفحة كانت بتعرض أي ملف بالرابط مهما كانت
+  //    حالته — وكانت بتجيبه بقراءة القايمة كلها عشان تلاقي صفًّا واحدًا.
+  const instructor = await getVisibleInstructorById(resolvedParams.id);
 
   if (!instructor) {
     notFound();

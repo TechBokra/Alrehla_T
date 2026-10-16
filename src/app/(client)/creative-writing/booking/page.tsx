@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import { Suspense } from 'react';
 import { PageContainer } from '@/components/PageContainer';
 import { BookingWizardClient } from '@/components/creative-writing/BookingWizardClient';
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructors } from '@/data/domains/(shared)/instructors/public';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getBookedSlotsByInstructor } from '@/data/domains/(client)/bookings/queries';
 import { fetchFamilyMembers } from '@/app/actions/family';
@@ -26,7 +26,7 @@ export default async function BookingPage({
 }) {
   const { instructor: instructorParam, child: childParam } = await searchParams;
   const [instructors, packages] = await Promise.all([
-    getPublicInstructors(),
+    getVisibleInstructors(),
     getWritingPackages(),
   ]);
 

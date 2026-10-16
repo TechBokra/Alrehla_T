@@ -90,9 +90,14 @@ export function InstructorsClient({
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const formatted = pageRows.map((inst) => {
+    // ⚠️ **الافتراضي «نشط»، فأي حالة جديدة لازم تتكتب هنا.** من غير
+    //    السطر ده المدرب المخفي كان هيتعرض للإدارة «نشط» — والإدارة
+    //    تفتكره ظاهر على الموقع وهو مش ظاهر.
     let statusDisplay = <StatusBadge type="success" label="نشط" />;
     if (inst.status === 'suspended')
       statusDisplay = <StatusBadge type="danger" label="موقوف" />;
+    if (inst.status === 'hidden')
+      statusDisplay = <StatusBadge type="neutral" label="مخفي — شغّال" />;
     if (inst.status === 'pending_approval')
       statusDisplay = <StatusBadge type="warning" label="بانتظار الاعتماد" />;
     if (inst.status === 'pending_training')

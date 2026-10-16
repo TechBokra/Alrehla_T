@@ -322,18 +322,28 @@ export function AdminInstructorClient({
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : status === 'suspended'
                       ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : status === 'hidden'
+                      ? 'bg-slate-200 text-slate-700 border border-slate-300'
                       : 'bg-amber-100 text-amber-900 border border-amber-200'
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
-                      status === 'active' ? 'bg-emerald-600' : status === 'suspended' ? 'bg-rose-600' : 'bg-amber-600'
+                      status === 'active'
+                        ? 'bg-emerald-600'
+                        : status === 'suspended'
+                          ? 'bg-rose-600'
+                          : status === 'hidden'
+                            ? 'bg-slate-500'
+                            : 'bg-amber-600'
                     }`}
                   />
                   {status === 'active'
                     ? 'نشط بالمنصة'
                     : status === 'suspended'
                     ? 'موقوف'
+                    : status === 'hidden'
+                    ? 'مخفي — شغّال'
                     : 'في انتظار الاعتماد'}
                 </span>
                 {trainingPassed && (
@@ -383,6 +393,8 @@ export function AdminInstructorClient({
             {([
               { value: 'active', label: 'نشط', tone: 'bg-emerald-600 hover:bg-emerald-700' },
               { value: 'pending_approval', label: 'بانتظار الاعتماد', tone: 'bg-amber-600 hover:bg-amber-700' },
+              // «مخفي» بين «نشط» و«إيقاف» عن قصد: دي درجة وسط، مش عقوبة.
+              { value: 'hidden', label: 'إخفاء من الموقع', tone: 'bg-slate-600 hover:bg-slate-700' },
               { value: 'suspended', label: 'إيقاف', tone: 'bg-rose-600 hover:bg-rose-700' },
             ] as const).map((opt) => (
               <button
@@ -398,6 +410,16 @@ export function AdminInstructorClient({
                 {status === opt.value ? `${opt.label} ✓` : opt.label}
               </button>
             ))}
+
+            {/* الفرق بين «إخفاء» و«إيقاف» مش واضح من الاسم لوحده،
+                والإداري بيختار بينهم في ثانية — فالشرح جنبهم. */}
+            {(status === 'hidden' || status === 'suspended') && (
+              <p className="w-full pt-1 text-[11px] font-medium text-slate-500">
+                {status === 'hidden'
+                  ? 'مش ظاهر للزوار ومش قابل للحجز — ولوحته مفتوحة، وجلساته ومهامه الحالية ماشية عادي.'
+                  : 'موقوف: مش ظاهر للزوار ومش قابل للحجز. مستحقاته وطلبات سحبه زيّ ما هي.'}
+              </p>
+            )}
 
             <button
               type="button"

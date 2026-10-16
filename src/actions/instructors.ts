@@ -1,7 +1,7 @@
 'use server';
 import { requireAdmin, requireAnyAdmin } from '@/lib/auth-guard';
 
-import { Instructor } from '@/types';
+import { Instructor, type InstructorStatus } from '@/types';
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { logAuditAction } from '@/lib/audit';
@@ -574,7 +574,7 @@ export async function setInstructorPackages(
 
 export async function setInstructorStatus(
   instructorId: string,
-  status: 'pending_training' | 'pending_approval' | 'active' | 'suspended',
+  status: InstructorStatus,
 ): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
   const currentUser = await requireInstructorAdmin();
   if (!currentUser) return fail(DENIED);
@@ -614,7 +614,15 @@ export async function setInstructorStatus(
   //    مقدّم الخدمة بيتعمل «مستني» مع المدرب، وماكانش بيتفعّل لما المدرب
   //    يتفعّل — فعروضه المعتمدة كانت بتتشال من صفحة الخدمات («قريبًا»)
   //    من غير ما حد يعرف.
-  const providerStatus = status === 'active' ? 'active' : status === 'suspended' ? 'suspended' : 'pending';
+  // ⚠️ **«مخفي» بتخفي عروضه كمقدّم خدمة كمان.** لو فضل `active` كمقدّم،
+  //    المدرب يختفي من صفحة المدربين وخدماته تفضل معروضة للبيع — يعني
+  //    الإخفاء اتعمل ونُصّه ما اتنفّذش.
+  const providerStatus =
+    status === 'active'
+      ? 'active'
+      : status === 'suspended' || status === 'hidden'
+        ? 'suspended'
+        : 'pending';
   const { error: providerError } = await supabase
     .from('service_providers')
     .update({ status: providerStatus, updated_at: new Date().toISOString() })

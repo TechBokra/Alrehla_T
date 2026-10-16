@@ -6,13 +6,23 @@ import type { WithdrawalRequestRow } from '@/data/domains/(admin)/finance/types'
 
 
 
+/**
+ * ⚠️ **الخطأ بيتسجّل، مابيتبلعش.** كانت `if (error || !data || !data.length)
+ *    return []` — فشاشة مالية بتقول «مفيش مستحقات» سواء دي الحقيقة ولا
+ *    القاعدة رفضت الاستعلام. وعلى شاشة فلوس، الفرق بين «مفيش» و«ما
+ *    عرفناش» هو الفرق بين قرار صح وقرار على بياض.
+ */
 export const getInstructorPayouts = async (): Promise<InstructorPayout[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from('instructor_payouts')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if ((error || !data || data.length === 0)) {
+  if (error) {
+    console.error('Error loading instructor payouts', error);
+    return [];
+  }
+  if (!data) {
     return [];
   }
 
@@ -51,13 +61,18 @@ export const getMyOpenWithdrawalRequests = async (): Promise<number> => {
   return count ?? 0;
 };
 
+/** نفس كلام `getInstructorPayouts` فوق — الخطأ بيتسجّل مابيتبلعش. */
 export const getPublisherPayouts = async (): Promise<PublisherPayout[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from('publisher_payouts')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if ((error || !data || data.length === 0)) {
+  if (error) {
+    console.error('Error loading publisher payouts', error);
+    return [];
+  }
+  if (!data) {
     return [];
   }
 

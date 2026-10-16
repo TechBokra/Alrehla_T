@@ -14,7 +14,7 @@ import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructors } from '@/data/domains/(shared)/instructors/public';
 import { getBookedSlotsByInstructor } from '@/data/domains/(client)/bookings/queries';
 import Link from 'next/link';
 
@@ -51,7 +51,7 @@ export default async function BookingConfirmPage({
     getSiteSettings(),
     getPaymentAvailability(),
     getWritingPackages(),
-    getPublicInstructors(),
+    getVisibleInstructors(),
     getSiteContent(),
   ]);
 

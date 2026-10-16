@@ -4595,6 +4595,7 @@ export type Database = {
         | "pending_training"
         | "pending_approval"
         | "active"
+        | "hidden"
         | "suspended"
       join_request_status_enum: "pending" | "approved" | "rejected"
       order_status_enum:
@@ -4769,6 +4770,7 @@ export const Constants = {
         "pending_training",
         "pending_approval",
         "active",
+        "hidden",
         "suspended",
       ],
       join_request_status_enum: ["pending", "approved", "rejected"],

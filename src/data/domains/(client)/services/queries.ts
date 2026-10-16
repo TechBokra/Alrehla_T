@@ -1,6 +1,6 @@
 import type { ServiceProvider, ProviderKind } from '@/types';
 import { createPublicClient } from '@/lib/supabase/public';
-import { getPublicInstructors } from '@/data/domains/(shared)/instructors/public';
+import { getVisibleInstructors } from '@/data/domains/(shared)/instructors/public';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 
 
@@ -57,7 +57,7 @@ export async function getProvidersForService(
   // سنوات الخبرة والصورة موجودتان على صف المدرب وملفه، مش على مقدّم
   // الخدمة. استعلام واحد للكل بدل واحد لكل مقدّم.
   //
-  // ── ليه `getPublicInstructors()` مش استعلامًا مباشرًا ────────
+  // ── ليه `getVisibleInstructors()` مش استعلامًا مباشرًا ────────
   //
   // ⚠️ دي كانت `supabase.from('instructors').select(...)` بمفتاح
   //    المستخدم. وبعد ملف SQL 84 بقت قراءة جدول المدربين
@@ -65,7 +65,7 @@ export async function getProvidersForService(
   //    بلا أي خطأ (قاعدة «ك»). والنتيجة إن كل مقدّم خدمة كان بيتعرض
   //    للزائر بـ«صفر سنوات خبرة»، والزائر هو بالظبط المشتري المحتمل.
   //
-  //    `getPublicInstructors()` بتمر على دالة `SECURITY DEFINER`
+  //    `getVisibleInstructors()` بتمر على دالة `SECURITY DEFINER`
   //    (ملف 83) فبترجّع نفس البيانات للزائر والمسجَّل — ومعاها
   //    `avatar_url` اللي مكانش حد بيطلبه هنا أصلًا.
   const instructorIds = new Set(
@@ -75,7 +75,7 @@ export async function getProvidersForService(
   const experience = new Map<string, number>();
   const avatars = new Map<string, string>();
   if (instructorIds.size > 0) {
-    for (const i of await getPublicInstructors()) {
+    for (const i of await getVisibleInstructors()) {
       if (!instructorIds.has(i.id)) continue;
       experience.set(i.id, i.yearsExperience ?? 0);
       if (i.avatarUrl) avatars.set(i.id, i.avatarUrl);

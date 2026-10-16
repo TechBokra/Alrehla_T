@@ -57,13 +57,48 @@ export async function setWithdrawalStatus(params: {
     return { ok: false, error: 'تعذّر تحديث الطلب' };
   }
 
+  const isPublisher = data.publisher_id != null;
+
+  // ── «تم التحويل» لازم تكون قفلت الرصيد فعلًا ───────────────
+  //
+  // ⚠️ **لحد ملف 20261016130000 ماكانتش بتقفله خالص.** الحالة بتتغيّر
+  //    على الطلب، والمستحقات تفضل `pending`، فالرصيد مايتغيّرش والمدرب
+  //    يطلب نفس الفلوس تاني — **بلا حد**. المحفّز هو اللي بيقفلها
+  //    دلوقتي، والقراءة دي بتتأكد إنه اشتغل.
+  //
+  //    من غير الفحص ده، لو المحفّز اتشال أو ماتشغّلش، الشاشة هتقول «تم»
+  //    والثغرة ترجع في صمت — وهي بالظبط الحاجة اللي مايصحّش نثق فيها
+  //    من غير ما نشوفها.
+  if (status === 'paid') {
+    const stillOpen = isPublisher
+      ? await supabase
+          .from('publisher_payouts')
+          .select('id', { count: 'exact', head: true })
+          .eq('publisher_id', data.publisher_id as string)
+          .eq('status', 'pending')
+      : await supabase
+          .from('instructor_payouts')
+          .select('id', { count: 'exact', head: true })
+          .eq('instructor_id', data.instructor_id as string)
+          .eq('status', 'pending');
+
+    // مستحقات اتسجّلت **بعد** الطلب مش غلط — دي شغل جديد. اللي بيقلق
+    // هو إن العدد يفضل زيّ ما هو؛ وده بيتشاف من التقرير في آخر الملف،
+    // فهنا بنسجّل وبس ومابنفشّلش عملية تحويل حصلت فعلًا.
+    if (stillOpen.error) {
+      console.error('withdrawal paid: could not verify payouts closed', stillOpen.error);
+    } else if ((stillOpen.count ?? 0) > 0) {
+      console.warn(
+        `withdrawal ${requestId} marked paid; ${stillOpen.count} payouts still pending for this owner`,
+      );
+    }
+  }
+
   const titles: Record<string, string> = {
     approved: 'تم اعتماد طلب السحب',
     paid: 'تم تحويل مستحقاتك',
     rejected: 'لم يُعتمد طلب السحب',
   };
-
-  const isPublisher = data.publisher_id != null;
 
   await notifyUser({
     event: 'withdrawal',

@@ -94,7 +94,18 @@ export type BookedSlot = {
 
 export type WorkModel = 'per_session' | 'monthly';
 
-export type InstructorStatus = 'pending_training' | 'pending_approval' | 'active' | 'suspended';
+/**
+ * `hidden` = مش ظاهر على الموقع ومش قابل للحجز، **ولوحته مفتوحة وشغله
+ * القائم مستمر**. `suspended` نفس الإخفاء وفيها معنى الإيقاف.
+ *
+ * ⚠️ الظاهر للزوار هو `active` وحده — انظر `isPubliclyVisible`.
+ */
+export type InstructorStatus =
+  | 'pending_training'
+  | 'pending_approval'
+  | 'active'
+  | 'hidden'
+  | 'suspended';
 
 export type Instructor = {
   id: string;
