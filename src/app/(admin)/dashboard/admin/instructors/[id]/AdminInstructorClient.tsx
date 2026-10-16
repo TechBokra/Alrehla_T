@@ -1,6 +1,7 @@
 'use client';
 
 import { SITE_URL } from '@/lib/site-url';
+import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -180,7 +181,14 @@ export function AdminInstructorClient({
   const handleCopyWhatsapp = async () => {
     if (!passwordResult) return;
     const emailToUse = passwordResult.email || accountEmail || 'بريدك الإلكتروني المسجل';
-    const msg = `مرحباً أستاذ/ة ${instructor.displayName}،\n\nإليك بيانات تسجيل الدخول الخاصة بك في منصة الرحلات:\n• البريد الإلكتروني: ${emailToUse}\n• كلمة المرور المؤقتة: ${passwordResult.tempCode}\n• رابط الدخول: ${SITE_URL}/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك وجلساتك.\n\nنتمنى لك رحلة تدريبية موفقة ومثمرة!`;
+    const msg = accountMessage({
+      code: passwordResult.tempCode,
+      email: emailToUse,
+      loginUrl: `${SITE_URL}${SIGN_IN_PATH}`,
+      greeting: greetByName(instructor.displayName),
+      nextStep:
+        'وبعد الدخول تلاقي لوحتك زي ما سيبتها: مواعيدك، جلساتك، ومهامك.',
+    });
     try {
       await navigator.clipboard.writeText(msg);
       setCopiedKey('whatsapp');

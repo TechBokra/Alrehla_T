@@ -1,6 +1,7 @@
 'use client';
 
 import { SITE_URL } from '@/lib/site-url';
+import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
 import React, { useState, useMemo } from 'react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ticketStatus } from '@/lib/ticket-status';
@@ -236,7 +237,12 @@ export function AdminUserDetailClient({
       accountEmail ||
       user.email ||
       'بريدك الإلكتروني المسجل';
-    const msg = `مرحباً أستاذ/ة ${user.fullName}،\n\nإليك بيانات تسجيل الدخول الخاصة بحسابك في منصة الرحلات:\n• البريد الإلكتروني: ${emailToUse}\n• كلمة المرور المؤقتة: ${passwordResult.tempCode}\n• رابط الدخول: ${SITE_URL}/login\n\n⚠️ ملاحظة هامة: فور تسجيل الدخول، سيطلب منك الموقع تعيين كلمة مرور شخصية خاصة بك لحماية بيانات حسابك.\n\nنتمنى لك تجربة ممتعة وموفقة في المنصة!`;
+    const msg = accountMessage({
+      code: passwordResult.tempCode,
+      email: emailToUse,
+      loginUrl: `${SITE_URL}${SIGN_IN_PATH}`,
+      greeting: greetByName(user.fullName),
+    });
     handleCopy(msg, 'whatsapp');
   };
 

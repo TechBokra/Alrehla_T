@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Check, Copy, KeyRound } from 'lucide-react';
+import { accountMessage } from '@/lib/account-message';
 
 /**
  * الرمز المؤقت اللي الإدارة بتسلّمه لصاحب الحساب الجديد.
@@ -15,47 +16,6 @@ import { Check, Copy, KeyRound } from 'lucide-react';
  *    الرمز مابقاش ينفع. يعني نفس ضمان رابط الدعوة القديم: **مفيش كلمة
  *    مرور دائمة بتعرفها الإدارة.**
  */
-/**
- * نص الرسالة اللي الإدارة بتبعتها (واتساب غالبًا).
- *
- * ⚠️ **الرمز في سطر لوحده، ومن غير أي علامة بعده.** الرسالة عربية
- *    (RTL) والرمز لاتيني (LTR): لو جه وسط سطر عربي أو جابت نقطة
- *    وراه، ترتيبه البصري بيتبهدل والنقطة بتتنسخ معاه — فالمستلم
- *    يدخل برمز غلط ويقول إن «البيانات مش شغّالة».
- *
- * ⚠️ **ومفيش كلام عن صلاحية بتنتهي.** الرمز هو كلمة مرور الحساب
- *    المؤقتة ومالهاش مدة؛ اللي بيبطّلها إن صاحبه يحطّ كلمة مروره.
- *    فالرسالة بتربط الإبطال بالخطوة دي، مش بوقت مش موجود.
- */
-function buildMessage(parts: {
-  code: string;
-  email: string;
-  loginUrl?: string;
-  greeting?: string;
-  nextStep?: string;
-}): string {
-  return [
-    parts.greeting ?? 'أهلًا بحضرتك — نوّرت الرحلة 🌿',
-    '',
-    'حسابك على المنصة بقى جاهز، وفاضل خطوة واحدة بس.',
-    '',
-    parts.loginUrl ? `رابط الدخول: ${parts.loginUrl}` : null,
-    `البريد: ${parts.email}`,
-    '',
-    'الرمز المؤقت',
-    parts.code,
-    '',
-    'أول دخول بالرمز، الموقع هيوقفك على شاشة تحطّ فيها كلمة مرورك إنت. وبعدها الرمز مابقاش ينفع، وكلمة المرور مايعرفهاش غيرك — ولا إحنا.',
-    parts.nextStep ? '' : null,
-    parts.nextStep ?? null,
-    '',
-    'وأي حاجة تحتاجها، إحنا موجودين. مستنيينك 🌱',
-    'فريق الرحلة',
-  ]
-    .filter((line) => line !== null)
-    .join('\n');
-}
-
 export function TempCodeBox({
   code,
   email,
@@ -78,7 +38,7 @@ export function TempCodeBox({
   const [copied, setCopied] = useState<'code' | 'all' | null>(null);
   const [showMessage, setShowMessage] = useState(false);
 
-  const message = email ? buildMessage({ code, email, loginUrl, greeting, nextStep }) : code;
+  const message = email ? accountMessage({ code, email, loginUrl, greeting, nextStep }) : code;
 
   const copy = async (what: 'code' | 'all') => {
     try {
