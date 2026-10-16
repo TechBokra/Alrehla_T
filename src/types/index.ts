@@ -834,6 +834,10 @@ export interface CourseSubscription {
   participantType: 'self' | 'child';
   childId?: string;
   status: CourseSubscriptionStatus;
+  /** المبلغ من القاعدة — بعد الخصم. فاضي للحجوزات القديمة قبل التسعير. */
+  amount?: number;
+  /** الرقم المرجعي اللي العميل بيكتبه في ملاحظة التحويل. */
+  paymentReference?: string;
   startedAt: string;
   createdAt: string;
 }

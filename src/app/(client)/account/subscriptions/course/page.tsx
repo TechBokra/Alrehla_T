@@ -6,6 +6,7 @@ import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getSessions } from '@/data/domains/(shared)/sessions/queries';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PendingOrderActions } from '@/components/orders/PendingOrderActions';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 
 /**
  * ⚠️ **الحالة ماكانتش بتتعرض خالص.** الحجز المعلّق (اللي ما اتدفعش)
@@ -33,10 +34,11 @@ export const dynamic = 'force-dynamic';
  */
 export default async function SubCoursePage() {
   const user = await getCurrentUser();
-  const [subscriptions, packages, sessions] = await Promise.all([
+  const [subscriptions, packages, sessions, payment] = await Promise.all([
     getCourseSubscriptions(),
     getWritingPackages(),
     getSessions(),
+    getPaymentAvailability(),
   ]);
 
   const mine = subscriptions.filter((sub) => sub.userId === user.id);
@@ -55,12 +57,14 @@ export default async function SubCoursePage() {
       // كملتش بتسيب حجزًا معلّقًا في الحساب. من غير إلغاء، بيفضل للأبد
       // (مفيش إلغاء تلقائي للحجوزات).
       //
-      // ⚠️ من غير `payHref`: مفيش صفحة لإكمال دفع حجز قائم لسه. والطريق
-      //    الطبيعي هنا إنه يلغي ويحجز من جديد — المعالج قصير، مش زيّ
-      //    تخصيص قصة بصور وبيانات.
       actions:
         sub.status === 'pending' ? (
-          <PendingOrderActions orderId={sub.id} kind="booking" gateway={false} />
+          <PendingOrderActions
+            orderId={sub.id}
+            kind="booking"
+            payHref={`/account/subscriptions/course/${sub.id}/pay`}
+            gateway={payment.mode === 'gateway'}
+          />
         ) : null,
     };
   });
