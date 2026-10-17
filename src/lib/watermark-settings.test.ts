@@ -54,7 +54,10 @@ describe('شكل العلامة ودرجة وضوحها', () => {
     expect(plain).not.toContain('b_rgb');
     expect(plain).not.toContain('bo_');
     expect(plain).not.toContain('r_16');
-    expect(plain).toMatch(/o_\d+/);
+    // ⚠️ الفاصلة قبل `o_` مش زينة: `Cairo_40_bold` فيها `o_40`،
+    //    فـ`/o_\d+/` لوحدها بتمسك حجم الخط مش الشفافية — وده خلّى
+    //    الاختبار ده يعدّي على الفاضي أول مرة.
+    expect(plain).toMatch(/,o_\d+/);
   });
 
   it('«بطاقة» لسه موجودة بخلفيتها', () => {
@@ -64,7 +67,7 @@ describe('شكل العلامة ودرجة وضوحها', () => {
   });
 
   it('كل ما الوضوح قلّ، الشفافية قلّت — والمائية أخفّ من البطاقة', () => {
-    const num = (l: string) => Number(/o_(\d+)/.exec(l)![1]);
+    const num = (l: string) => Number(/,o_(\d+)/.exec(l)![1]);
     const soft = num(watermarkLayer({ ...DEFAULT_WATERMARK, opacity: 'soft' })!);
     const strong = num(watermarkLayer({ ...DEFAULT_WATERMARK, opacity: 'strong' })!);
     expect(soft).toBeLessThan(strong);
