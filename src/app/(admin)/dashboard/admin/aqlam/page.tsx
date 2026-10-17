@@ -11,12 +11,13 @@ import {
   labelUsers,
   listAdminPosts,
   listOpenReports,
+  listPendingGuardianRequests,
   listPostEdits,
   listSanctions,
   type AdminPostEdit,
   type AdminUserLabel,
 } from '@/data/domains/(shared)/aqlam/admin';
-import { handleReport, liftSanction, moderatePost, saveAqlamSettings, setAllowlistMember } from '@/actions/aqlam';
+import { decideGuardianRequest, handleReport, liftSanction, moderatePost, saveAqlamSettings, setAllowlistMember } from '@/actions/aqlam';
 import { SanctionBox } from './SanctionBox';
 import { REPORT_REASONS } from '@/lib/aqlam/post';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
@@ -108,9 +109,10 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
   const { q = '' } = await searchParams;
   const query = q.trim();
 
-  const [settings, review, reports, live, sanctions, found] = await Promise.all([
+  const [settings, review, guardianRequests, reports, live, sanctions, found] = await Promise.all([
     getSiteSettings(),
     listAdminPosts(['pending_review']),
+    listPendingGuardianRequests(),
     listOpenReports(),
     listAdminPosts(['published', 'hidden'], 30),
     listSanctions(30),
@@ -121,6 +123,7 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
   // أسماء الكتّاب والمبلّغ عنهم والمعاقَبين — استعلام واحد بدل رقم لكل صف.
   const labels = await labelUsers([
     ...review.map((p) => p.writerId),
+    ...guardianRequests.map((g) => g.guardianId),
     ...live.map((p) => p.writerId),
     ...reports.flatMap((r) => (r.writerId ? [r.writerId] : [])),
     ...sanctions.map((s) => s.userId),
@@ -210,6 +213,50 @@ export default async function AqlamAdminPage({ searchParams }: { searchParams: P
                   </FormActions>
                 </ActionForm>
                 <SanctionBox userId={p.writerId} label={who(p.writerId, labels).name} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ── طلبات أولياء الأمور ── */}
+      <section aria-labelledby="guardian-requests" className="space-y-4">
+        <Heading id="guardian-requests">
+          طلبات قفل التعليقات ({guardianRequests.length.toLocaleString('ar-EG')})
+        </Heading>
+        <p className="text-sm font-medium text-slate-500">
+          ولي الأمر بيطلب قفل التعليقات لابنه ويكتب السبب. الموافقة بتقفلها فورًا (استقبالًا وكتابةً)، والرفض لازم
+          يتكتب له سببه. القرار بيوصله في إشعار.
+        </p>
+        {guardianRequests.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">مفيش طلبات.</p>
+        ) : (
+          <ul className="space-y-4">
+            {guardianRequests.map((g) => (
+              <li key={g.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5">
+                <p className="text-xs font-bold text-slate-500">
+                  {g.childName ? `الابن: ${g.childName}` : 'ابن'} · {formatDate(g.createdAt)}
+                </p>
+                <p className="text-xs">
+                  ولي الأمر: <Person id={g.guardianId} labels={labels} />
+                </p>
+                <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-loose font-medium whitespace-pre-wrap text-slate-800 [overflow-wrap:anywhere]">
+                  {g.reason}
+                </p>
+                <ActionForm action={decideGuardianRequest} className="space-y-3">
+                  <input type="hidden" name="requestId" value={g.id} />
+                  <Field label="ملاحظة لولي الأمر" name="note" hint="إجبارية لو هترفض، واختيارية مع الموافقة.">
+                    <TextArea name="note" rows={2} maxLength={500} />
+                  </Field>
+                  <FormActions>
+                    <DecisionButton name="decision" value="reject" variant="secondary" accentColor="enhaLak" pendingLabel="جارٍ الرفض…">
+                      رفض
+                    </DecisionButton>
+                    <DecisionButton name="decision" value="approve" accentColor="journey" pendingLabel="جارٍ الموافقة…">
+                      موافقة وقفل التعليقات
+                    </DecisionButton>
+                  </FormActions>
+                </ActionForm>
               </li>
             ))}
           </ul>

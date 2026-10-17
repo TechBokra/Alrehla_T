@@ -2,16 +2,24 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { ActionForm } from '@/components/dashboard/ActionForm';
-import { Checkbox, FormActions, SubmitButton } from '@/components/forms/Form';
+import { Checkbox, Field, FormActions, SubmitButton, TextArea } from '@/components/forms/Form';
 import { DecisionButton } from '@/components/forms/DecisionButton';
 import { fetchFamilyMembers } from '@/app/actions/family';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import {
   listChildrenPosts,
   listGuardianSettings,
+  listMyGuardianRequests,
   listPostsAwaitingGuardian,
 } from '@/data/domains/(shared)/aqlam/mine';
-import { guardianDecideForm, saveGuardianSettings } from '@/actions/aqlam';
+import {
+  cancelGuardianRequest,
+  guardianDecideForm,
+  reopenGuardianComments,
+  requestCommentsLock,
+  saveGuardianSettings,
+} from '@/actions/aqlam';
+import { AQLAM_LIMITS } from '@/lib/aqlam/post';
 import { aqlamReadable } from '@/lib/aqlam/settings';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
 import { formatDate } from '@/lib/utils';
@@ -20,16 +28,18 @@ export const dynamic = 'force-dynamic';
 
 /**
  * أقلام الرحلة — مركز ولي الأمر: يوافق على نصوص أبنائه (أقل من ١٢) قبل
- * ما توصل للمراجعة، ويقفل النشر/التعليق لكل ابن لوحده.
+ * ما توصل للمراجعة، ويقفل النشر لكل ابن لوحده. قفل التعليقات بيتم بطلب
+ * للإدارة مع السبب (فتحها تاني فوري).
  */
 export default async function FamilyAqlamPage() {
   const settings = await getSiteSettings();
   if (!aqlamReadable(settings.aqlam)) notFound();
 
-  const [children, awaiting, locks] = await Promise.all([
+  const [children, awaiting, locks, requests] = await Promise.all([
     fetchFamilyMembers(),
     listPostsAwaitingGuardian(),
     listGuardianSettings(),
+    listMyGuardianRequests(),
   ]);
   // كل نصوص الأبناء (مش بس اللي مستنية قرار): حساب كل ابن هو اللي بيربطه بنصوصه.
   const childByAccount = new Map(
@@ -42,7 +52,7 @@ export default async function FamilyAqlamPage() {
       <DashboardPageHeader title="أقلام الرحلة" backHref="/account/family" />
       <p className="text-sm font-medium text-slate-500">
         نصوص أبنائك الأصغر من ١٢ سنة بتستنى موافقتك قبل ما تروح لمراجعة فريق الرحلة. ولو محتاج، تقدر تقفل النشر
-        أو التعليق لكل ابن.
+        لكل ابن، وتطلب من الإدارة قفل التعليقات وتكتب السبب.
       </p>
 
       <section aria-labelledby="awaiting" className="space-y-4">
@@ -150,30 +160,79 @@ export default async function FamilyAqlamPage() {
           <ul className="space-y-4">
             {children.map((c) => {
               const lock = locks[c.id] ?? { publishingAllowed: true, commentsAllowed: true };
+              const req = requests[c.id];
               return (
-                <li key={c.id} className="rounded-3xl border border-slate-200 bg-white p-5">
-                  <ActionForm
-                    action={saveGuardianSettings}
-                    successMessage="اتحفظت الإعدادات."
-                    className="space-y-4"
-                  >
+                <li key={c.id} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5">
+                  <h3 className="text-base font-black text-slate-900">{c.fullName}</h3>
+
+                  <ActionForm action={saveGuardianSettings} successMessage="اتحفظت الإعدادات." className="space-y-4">
                     <input type="hidden" name="childId" value={c.id} />
-                    <h3 className="text-base font-black text-slate-900">{c.fullName}</h3>
-                    <Checkbox
-                      name="publishingAllowed"
-                      defaultChecked={lock.publishingAllowed}
-                      label="يقدر ينشر نصوصه"
-                    />
-                    <Checkbox
-                      name="commentsAllowed"
-                      defaultChecked={lock.commentsAllowed}
-                      label="يقدر يستقبل ويكتب تعليقات"
-                      hint="لو قفلتها، مش هتظهر تعليقات على نصوصه ومش هيقدر يعلّق على نصوص غيره."
-                    />
+                    <Checkbox name="publishingAllowed" defaultChecked={lock.publishingAllowed} label="يقدر ينشر نصوصه" />
                     <FormActions>
                       <SubmitButton>حفظ</SubmitButton>
                     </FormActions>
                   </ActionForm>
+
+                  <div className="space-y-3 border-t border-slate-100 pt-4">
+                    <h4 className="text-sm font-black text-slate-800">التعليقات</h4>
+                    {!lock.commentsAllowed ? (
+                      <ActionForm action={reopenGuardianComments} successMessage="اتفتحت التعليقات." className="space-y-3">
+                        <input type="hidden" name="childId" value={c.id} />
+                        <p className="text-sm font-medium text-slate-600">
+                          التعليقات مقفولة: مش هتظهر تعليقات على نصوصه ومش هيقدر يعلّق على نصوص غيره.
+                        </p>
+                        <FormActions>
+                          <SubmitButton pendingLabel="جارٍ الفتح…">افتح التعليقات</SubmitButton>
+                        </FormActions>
+                      </ActionForm>
+                    ) : req?.status === 'pending' ? (
+                      <ActionForm action={cancelGuardianRequest} successMessage="اتسحب الطلب." className="space-y-3">
+                        <input type="hidden" name="requestId" value={req.id} />
+                        <p className="text-sm font-bold text-slate-700">
+                          طلبك بيستنى قرار الإدارة ({formatDate(req.createdAt)}). هنبلّغك بالنتيجة.
+                        </p>
+                        <p className="rounded-2xl bg-slate-50 p-3 text-sm font-medium whitespace-pre-wrap text-slate-600 [overflow-wrap:anywhere]">
+                          {req.reason}
+                        </p>
+                        <FormActions>
+                          <DecisionButton
+                            name="decision"
+                            value="cancel"
+                            variant="secondary"
+                            accentColor="enhaLak"
+                            pendingLabel="جارٍ السحب…"
+                          >
+                            اسحب الطلب
+                          </DecisionButton>
+                        </FormActions>
+                      </ActionForm>
+                    ) : (
+                      <ActionForm action={requestCommentsLock} className="space-y-3">
+                        <input type="hidden" name="childId" value={c.id} />
+                        {req?.status === 'rejected' && (
+                          <p role="status" className="rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-900">
+                            الإدارة رفضت طلبك السابق{req.adminNote ? `: ${req.adminNote}` : '.'}
+                          </p>
+                        )}
+                        <p className="text-sm font-medium text-slate-600">
+                          التعليقات مفتوحة. لو عايز تقفلها (استقبالًا وكتابةً)، ابعت طلب للإدارة واكتب السبب،
+                          وهتقرر وتبلّغك.
+                        </p>
+                        <Field label="سبب الطلب" name="reason" required hint="الإدارة بتقراه، فاكتبه بوضوح.">
+                          <TextArea
+                            name="reason"
+                            rows={3}
+                            required
+                            minLength={AQLAM_LIMITS.guardianReasonMin}
+                            maxLength={AQLAM_LIMITS.guardianReasonMax}
+                          />
+                        </Field>
+                        <FormActions>
+                          <SubmitButton pendingLabel="جارٍ الإرسال…">ابعت الطلب للإدارة</SubmitButton>
+                        </FormActions>
+                      </ActionForm>
+                    )}
+                  </div>
                 </li>
               );
             })}

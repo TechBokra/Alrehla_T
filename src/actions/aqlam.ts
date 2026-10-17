@@ -10,10 +10,12 @@ import { refreshPublicPages } from '@/lib/revalidate';
 import { parseBirthDate } from '@/lib/aqlam/age';
 import { aqlamErrorMessage, parseRpcResult } from '@/lib/aqlam/errors';
 import {
+  AQLAM_LIMITS,
   isAqlamReaction,
   isReportReason,
   validateCommentBody,
   validateEditInput,
+  validateGuardianReason,
   validatePublishInput,
   validateWriterProfileInput,
 } from '@/lib/aqlam/post';
@@ -368,16 +370,35 @@ export async function guardianDecideForm(formData: FormData): Promise<AqlamActio
   return guardianDecide(str(formData.get('postId')), decision === 'approve');
 }
 
+/** الحالة الحالية لقفل ابن (غياب الصف = مفتوح). بتتقرا بصلاحية ولي الأمر (RLS). */
+async function currentLock(supabase: Awaited<ReturnType<typeof createClient>>, childId: string) {
+  const { data } = await supabase
+    .from('aqlam_guardian_settings')
+    .select('publishing_allowed,comments_allowed')
+    .eq('child_id', childId)
+    .maybeSingle();
+  return {
+    publishingAllowed: data?.publishing_allowed ?? true,
+    commentsAllowed: data?.comments_allowed ?? true,
+  };
+}
+
+/**
+ * قفل النشر (فوري). قفل التعليقات **مش من هنا**: بطلب للإدارة
+ * (`requestCommentsLock`). التعليقات بتتبعت بحالتها الحالية عشان القاعدة
+ * ماتعتبرهاش تغيير.
+ */
 export async function saveGuardianSettings(formData: FormData): Promise<AqlamActionResult> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
   const childId = str(formData.get('childId'));
   if (!childId) return { ok: false, error: aqlamErrorMessage('invalid') };
   const supabase = await createClient();
+  const lock = await currentLock(supabase, childId);
   const { data, error } = await supabase.rpc('aqlam_set_guardian_settings', {
     p_child: childId,
     p_publishing_allowed: formData.get('publishingAllowed') === 'on',
-    p_comments_allowed: formData.get('commentsAllowed') === 'on',
+    p_comments_allowed: lock.commentsAllowed,
   });
   if (error) {
     console.error('aqlam_set_guardian_settings failed', error);
@@ -386,6 +407,72 @@ export async function saveGuardianSettings(formData: FormData): Promise<AqlamAct
   const out = parseRpcResult(data);
   if (!out.ok) return { ok: false, error: out.error };
   revalidatePath('/account/family/aqlam');
+  return { ok: true };
+}
+
+/** فتح التعليقات تاني بعد القفل — فوري من غير الإدارة. */
+export async function reopenGuardianComments(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const childId = str(formData.get('childId'));
+  if (!childId) return { ok: false, error: aqlamErrorMessage('invalid') };
+  const supabase = await createClient();
+  const lock = await currentLock(supabase, childId);
+  const { data, error } = await supabase.rpc('aqlam_set_guardian_settings', {
+    p_child: childId,
+    p_publishing_allowed: lock.publishingAllowed,
+    p_comments_allowed: true,
+  });
+  if (error) {
+    console.error('aqlam_set_guardian_settings (reopen) failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  revalidatePath('/account/family/aqlam');
+  return { ok: true, message: 'اتفتحت التعليقات.' };
+}
+
+/** طلب قفل التعليقات لابن — للإدارة مع السبب. */
+export async function requestCommentsLock(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const childId = str(formData.get('childId'));
+  if (!childId) return { ok: false, error: aqlamErrorMessage('invalid') };
+  const v = validateGuardianReason(formData.get('reason'));
+  if (!v.ok) return { ok: false, error: v.error, field: 'reason' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_request_comments_lock', {
+    p_child: childId,
+    p_reason: v.reason,
+  });
+  if (error) {
+    console.error('aqlam_request_comments_lock failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  revalidatePath('/account/family/aqlam');
+  revalidatePath('/dashboard/admin/aqlam');
+  return { ok: true, message: 'اتبعت الطلب للإدارة. هنبلّغك بالقرار.' };
+}
+
+/** ولي الأمر يسحب طلبه قبل قرار الإدارة. */
+export async function cancelGuardianRequest(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await signedIn();
+  if (!auth.ok) return auth;
+  const requestId = str(formData.get('requestId'));
+  if (!UUID_RE.test(requestId)) return { ok: false, error: aqlamErrorMessage('invalid') };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_cancel_guardian_request', { p_request: requestId });
+  if (error) {
+    console.error('aqlam_cancel_guardian_request failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  revalidatePath('/account/family/aqlam');
+  revalidatePath('/dashboard/admin/aqlam');
   return { ok: true };
 }
 
@@ -489,6 +576,46 @@ export async function handleReport(formData: FormData): Promise<AqlamActionResul
     entityId: reportId,
   });
   revalidatePath('/dashboard/admin/aqlam');
+  return { ok: true };
+}
+
+/** قرار الإدارة على طلب ولي الأمر: approve | reject (الرفض بملاحظة إجبارية). */
+export async function decideGuardianRequest(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك بمراجعة طلبات أولياء الأمور');
+  if (!auth.ok) return auth;
+  const requestId = str(formData.get('requestId'));
+  const decision = str(formData.get('decision'));
+  if (!UUID_RE.test(requestId) || (decision !== 'approve' && decision !== 'reject')) {
+    return { ok: false, error: aqlamErrorMessage('invalid') };
+  }
+  const note = str(formData.get('note')).trim();
+  if (decision === 'reject' && !note) {
+    return { ok: false, error: aqlamErrorMessage('note_required'), field: 'note' };
+  }
+  if (note.length > AQLAM_LIMITS.adminNoteMax) {
+    return { ok: false, error: aqlamErrorMessage('invalid'), field: 'note' };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_decide_guardian_request', {
+    p_request: requestId,
+    p_approve: decision === 'approve',
+    p_note: note || undefined,
+  });
+  if (error) {
+    console.error('aqlam_decide_guardian_request failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: `aqlam_guardian_request_${decision}`,
+    entityType: 'AqlamGuardianRequest',
+    entityId: requestId,
+  });
+  revalidatePath('/dashboard/admin/aqlam');
+  revalidatePath('/account/family/aqlam');
   return { ok: true };
 }
 

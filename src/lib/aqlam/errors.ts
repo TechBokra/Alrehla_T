@@ -25,6 +25,12 @@ export const AQLAM_ERROR_MESSAGES: Record<string, string> = {
   not_pending: 'القرار ده اتاخد قبل كده.',
   forbidden: 'مش مسموح لك بالإجراء ده.',
   comments_closed: 'التعليقات مقفولة على النص ده.',
+  needs_admin_request:
+    'قفل التعليقات بيتم بطلب للإدارة مع السبب. اكتب السبب واضغط «ابعت الطلب».',
+  reason_required: 'اكتب السبب (١٠ حروف على الأقل) علشان الإدارة تقدر تراجع الطلب.',
+  already_pending: 'في طلب لسه بيستنى قرار الإدارة.',
+  already_locked: 'التعليقات مقفولة بالفعل.',
+  note_required: 'اكتب سبب الرفض علشان ولي الأمر يعرفه.',
   comments_restricted: 'التعليق على نصوص الأصغر من ١٢ سنة للمدربين بس.',
 };
 

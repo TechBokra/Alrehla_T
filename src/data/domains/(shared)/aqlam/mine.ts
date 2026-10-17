@@ -224,3 +224,46 @@ export async function listGuardianSettings(): Promise<
     ]),
   );
 }
+
+export type GuardianRequestRow = {
+  id: string;
+  childId: string;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reason: string;
+  adminNote: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+};
+
+/**
+ * آخر طلب قفل تعليقات لكل ابن (الأحدث بس) — بيتقرا بصلاحية ولي الأمر (RLS).
+ * بيظهر عنده «بيستنى قرار» أو «اترفض + السبب».
+ */
+export async function listMyGuardianRequests(): Promise<Record<string, GuardianRequestRow>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_guardian_requests')
+    .select('id,child_id,status,reason,admin_note,created_at,decided_at')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) {
+    console.error('Error listing aqlam guardian requests', error);
+    throw new Error('تعذّر تحميل الطلبات');
+  }
+  const out: Record<string, GuardianRequestRow> = {};
+  for (const r of data ?? []) {
+    if (out[r.child_id]) continue; // الأحدث أولًا
+    const status =
+      r.status === 'approved' || r.status === 'rejected' || r.status === 'cancelled' ? r.status : 'pending';
+    out[r.child_id] = {
+      id: r.id,
+      childId: r.child_id,
+      status,
+      reason: r.reason,
+      adminNote: r.admin_note,
+      createdAt: r.created_at,
+      decidedAt: r.decided_at,
+    };
+  }
+  return out;
+}

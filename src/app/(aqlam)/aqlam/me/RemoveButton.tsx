@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { removeMyPost } from '@/actions/aqlam';
+import { AQLAM_REMOVED_RETENTION_DAYS } from '@/lib/aqlam/post';
 
 /** «شيل» بخطوتين داخل الصفحة (من غير نافذة تأكيد المتصفح). */
 export function RemoveButton({ postId }: { postId: string }) {
@@ -30,7 +31,9 @@ export function RemoveButton({ postId }: { postId: string }) {
     <div className="flex flex-wrap items-center gap-2">
       {confirming ? (
         <>
-          <span className="text-sm font-bold text-slate-700">متأكد إنك عايز تشيله؟</span>
+          <span className="text-sm font-bold text-slate-700">
+            متأكد إنك عايز تشيله؟ هيتمسح نهائيًا بعد {AQLAM_REMOVED_RETENTION_DAYS.toLocaleString('ar-EG')} أيام.
+          </span>
           <button type="button" onClick={remove} disabled={pending} className={base + 'bg-rose-700 text-white hover:bg-rose-800'}>
             {pending ? 'جارٍ الشيل…' : 'أيوه، شيله'}
           </button>

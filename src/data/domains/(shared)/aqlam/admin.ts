@@ -106,6 +106,38 @@ export async function listOpenReports(limit = 50): Promise<AdminReportRow[]> {
   });
 }
 
+// ── طلبات أولياء الأمور (قفل التعليقات) ─────────────────────────────────────
+
+export type AdminGuardianRequest = {
+  id: string;
+  childName: string;
+  guardianId: string;
+  reason: string;
+  createdAt: string;
+};
+
+/** الطلبات اللي بتستنى قرار الإدارة (الأقدم أولًا). */
+export async function listPendingGuardianRequests(limit = 50): Promise<AdminGuardianRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_guardian_requests')
+    .select('id,child_name,guardian_id,reason,created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error('Error listing aqlam guardian requests for admin', error);
+    throw new Error('تعذّر تحميل طلبات أولياء الأمور');
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    childName: r.child_name,
+    guardianId: r.guardian_id,
+    reason: r.reason,
+    createdAt: r.created_at,
+  }));
+}
+
 // ── الحسابات والعقوبات ───────────────────────────────────────────────────────
 
 /** حساب كما تعرضه الإدارة: الاسم والبريد (من دالة بصلاحية الإدارة فقط). */

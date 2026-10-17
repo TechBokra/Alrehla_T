@@ -33,4 +33,10 @@ describe('رسائل الأخطاء', () => {
       expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
     }
   });
+
+  it('أكواد طلب ولي الأمر ليها رسائل عربي', () => {
+    for (const code of ['needs_admin_request', 'reason_required', 'already_pending', 'already_locked', 'note_required']) {
+      expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
+    }
+  });
 });

@@ -24,7 +24,16 @@ export const AQLAM_LIMITS = {
   commentsPerDay: 20,
   reactionsPerDay: 200,
   reportsPerDay: 10,
+  /** عدد الحسابات المختلفة اللي بلاغاتهم بتخفي النص تلقائيًا لحد المراجعة (القاعدة: `aqlam_report`). */
+  reportsToAutoHide: 5,
+  /** طلب ولي الأمر لقفل التعليقات: السبب إجباري (القاعدة: `aqlam_request_comments_lock`). */
+  guardianReasonMin: 10,
+  guardianReasonMax: 500,
+  adminNoteMax: 500,
 } as const;
+
+/** النص أو التعليق المشال بيتمسح نهائيًا بعد المدة دي (القاعدة: `aqlam_purge_removed`). */
+export const AQLAM_REMOVED_RETENTION_DAYS = 7;
 
 export const AQLAM_CATEGORIES = [
   { key: 'story', label: 'قصة' },
@@ -287,4 +296,17 @@ export type ReportReason = (typeof REPORT_REASONS)[number]['key'];
 
 export function isReportReason(v: unknown): v is ReportReason {
   return REPORT_REASONS.some((r) => r.key === v);
+}
+
+
+/** سبب طلب ولي الأمر لقفل التعليقات: مسافات متكررة بتتضغط، والطول بين الحدّين. */
+export function validateGuardianReason(raw: unknown): { ok: true; reason: string } | { ok: false; error: string } {
+  const reason = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (reason.length < AQLAM_LIMITS.guardianReasonMin) {
+    return { ok: false, error: `اكتب السبب (${AQLAM_LIMITS.guardianReasonMin} حروف على الأقل) علشان الإدارة تقدر تراجع الطلب.` };
+  }
+  if (reason.length > AQLAM_LIMITS.guardianReasonMax) {
+    return { ok: false, error: `السبب أطول من ${AQLAM_LIMITS.guardianReasonMax} حرف.` };
+  }
+  return { ok: true, reason };
 }
