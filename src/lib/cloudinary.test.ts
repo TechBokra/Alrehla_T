@@ -160,7 +160,7 @@ describe('العلامة المائية على صور المنتجات', () => {
 
   it('البطاقة في النص تحت، والصورة بمقاس ثابت يتصغّر بعدها', () => {
     expect(watermarkedImageUrl(CLOUD, LAYER)).toBe(
-      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v1/alrehla/site/x.jpg',
+      'https://res.cloudinary.com/dwg0hr34g/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,fl_relative,w_0.24,o_32,g_south,y_0.24/v1/alrehla/site/x.jpg',
     );
   });
 
@@ -184,11 +184,11 @@ describe('addWatermark — صور الموقع كلها', () => {
   const L = watermarkLayer(DEFAULT_WATERMARK)!;
   it('بعد تحويل المقاس، قبل رقم النسخة', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/f_auto,w_700/v12/alrehla/blog/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v12/alrehla/blog/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,w_700/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,fl_relative,w_0.24,o_32,g_south,y_0.24/v12/alrehla/blog/a.jpg`);
   });
   it('صورة خام: بتتصغّر الأول', () => {
     expect(addWatermark('https://res.cloudinary.com/d/image/upload/v12/a.jpg', L))
-      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,b_rgb:ffffffcc,bo_12px_solid_rgb:ffffffcc,r_16,fl_relative,w_0.24,g_south,y_0.24/v12/a.jpg`);
+      .toBe(`https://res.cloudinary.com/d/image/upload/f_auto,q_auto:good,c_limit,w_1600/l_text:Cairo_40_bold:%D8%A7%D9%84%D8%B1%D8%AD%D9%84%D8%A9%20%20%E2%80%A2%20%20alrehla.org,co_rgb:1e3a8a,fl_relative,w_0.24,o_32,g_south,y_0.24/v12/a.jpg`);
   });
   it('مابتتكدّسش، ومابتلمسش غير Cloudinary، ومن غير شعار = زي ما هي', () => {
     const once = addWatermark('https://res.cloudinary.com/d/image/upload/v1/a.jpg', L);

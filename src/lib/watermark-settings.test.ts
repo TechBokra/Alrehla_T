@@ -43,3 +43,44 @@ describe('إعدادات العلامة المائية', () => {
     expect(custom.split('/').length).toBe(1);
   });
 });
+
+/**
+ * ⚠️ **الشكل القديم كان بطاقة وحدها** — كتابة على خلفية مصمتة، وده
+ *    ملصق فوق الصورة مش علامة مائية. الاختبارات دي على الفرق نفسه.
+ */
+describe('شكل العلامة ودرجة وضوحها', () => {
+  it('«علامة مائية» = كتابة شفافة من غير خلفية ولا إطار', () => {
+    const plain = watermarkLayer({ ...DEFAULT_WATERMARK, look: 'plain' })!;
+    expect(plain).not.toContain('b_rgb');
+    expect(plain).not.toContain('bo_');
+    expect(plain).not.toContain('r_16');
+    expect(plain).toMatch(/o_\d+/);
+  });
+
+  it('«بطاقة» لسه موجودة بخلفيتها', () => {
+    const badge = watermarkLayer({ ...DEFAULT_WATERMARK, look: 'badge' })!;
+    expect(badge).toContain('b_rgb:ffffffcc');
+    expect(badge).toContain('r_16');
+  });
+
+  it('كل ما الوضوح قلّ، الشفافية قلّت — والمائية أخفّ من البطاقة', () => {
+    const num = (l: string) => Number(/o_(\d+)/.exec(l)![1]);
+    const soft = num(watermarkLayer({ ...DEFAULT_WATERMARK, opacity: 'soft' })!);
+    const strong = num(watermarkLayer({ ...DEFAULT_WATERMARK, opacity: 'strong' })!);
+    expect(soft).toBeLessThan(strong);
+
+    const asPlain = num(watermarkLayer({ ...DEFAULT_WATERMARK, look: 'plain' })!);
+    const asBadge = num(watermarkLayer({ ...DEFAULT_WATERMARK, look: 'badge' })!);
+    expect(asPlain).toBeLessThan(asBadge);
+  });
+
+  /**
+   * ⚠️ **ده اللي يمنع تغيير صور موقع شغّال في سكوت.** إعدادات اتحفظت
+   *    قبل الخانة دي كانت بطاقة فعلًا؛ تحويلها لشفافة من غير ما حد
+   *    يطلب بيغيّر كل الصور.
+   */
+  it('إعدادات قديمة محفوظة بتفضل بطاقة، والجديد بيبدأ مائية', () => {
+    expect(normalizeWatermark({ style: 'light', size: 'medium' }).look).toBe('badge');
+    expect(normalizeWatermark({}).look).toBe('plain');
+  });
+});
