@@ -125,6 +125,11 @@ export async function updateSiteSettings(
       style: formData.get('watermarkStyle'),
       size: formData.get('watermarkSize'),
       position: formData.get('watermarkPosition'),
+      // ⚠️ **لو الخانتين دول ما اتبعتوش، `normalizeWatermark` بترجّع
+      //    الاختيار لـ«بطاقة»** — وده بيلغي اختيار الإدارة في صمت كل
+      //    مرة تحفظ. فلازم يتبعتوا مع الباقي.
+      look: formData.get('watermarkLook'),
+      opacity: formData.get('watermarkOpacity'),
     });
   }
 

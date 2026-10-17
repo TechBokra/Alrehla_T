@@ -18,12 +18,27 @@ export type WatermarkStyle = 'light' | 'dark';
 export type WatermarkSize = 'small' | 'medium' | 'large';
 export type WatermarkPosition = 'bottom' | 'center';
 
+/**
+ * شكل العلامة.
+ *
+ * ⚠️ **`badge` هو اللي كان موجود لوحده — ودي كانت المشكلة.** كتابة على
+ *    خلفية مصمتة بحواف مدوّرة بتبان **ملصق متحطّ فوق الصورة**، مش علامة
+ *    مائية. `plain` كتابة شفافة من غير خلفية، بتندمج في الصورة —
+ *    وهي اللي الناس بتسمّيها «علامة مائية».
+ */
+export type WatermarkLook = 'plain' | 'badge';
+
+/** شفافية العلامة — المعنى الحقيقي لكلمة «مائية». */
+export type WatermarkOpacity = 'soft' | 'medium' | 'strong';
+
 export type WatermarkSettings = {
   enabled: boolean;
   text: string;
   style: WatermarkStyle;
   size: WatermarkSize;
   position: WatermarkPosition;
+  look: WatermarkLook;
+  opacity: WatermarkOpacity;
 };
 
 export const DEFAULT_WATERMARK_TEXT = `الرحلة  •  ${WATERMARK_TEXT}`;
@@ -35,6 +50,8 @@ export const DEFAULT_WATERMARK: WatermarkSettings = {
   style: 'light',
   size: 'medium',
   position: 'bottom',
+  look: 'plain',
+  opacity: 'medium',
 };
 
 export const WATERMARK_STYLES: { value: WatermarkStyle; label: string }[] = [
@@ -51,7 +68,23 @@ export const WATERMARK_POSITIONS: { value: WatermarkPosition; label: string }[] 
   { value: 'center', label: 'في نص الصورة' },
 ];
 
+export const WATERMARK_LOOKS: { value: WatermarkLook; label: string }[] = [
+  { value: 'plain', label: 'علامة مائية — كتابة شفافة من غير خلفية' },
+  { value: 'badge', label: 'بطاقة — كتابة على خلفية (الشكل القديم)' },
+];
+export const WATERMARK_OPACITIES: { value: WatermarkOpacity; label: string }[] = [
+  { value: 'soft', label: 'خفيفة جدًا' },
+  { value: 'medium', label: 'متوسطة' },
+  { value: 'strong', label: 'واضحة' },
+];
+
 const WIDTH: Record<WatermarkSize, number> = { small: 0.18, medium: 0.24, large: 0.32 };
+/** شفافية الطبقة في Cloudinary (`o_`). البطاقة بتحتاج أعلى شوية عشان تفضل مقروءة. */
+const OPACITY: Record<WatermarkOpacity, { plain: number; badge: number }> = {
+  soft: { plain: 18, badge: 45 },
+  medium: { plain: 32, badge: 70 },
+  strong: { plain: 55, badge: 100 },
+};
 const COLORS: Record<WatermarkStyle, { text: string; bg: string }> = {
   light: { text: '1e3a8a', bg: 'ffffffcc' },
   dark: { text: 'ffffff', bg: '1e3a8acc' },
@@ -86,6 +119,13 @@ export function normalizeWatermark(raw: unknown): WatermarkSettings {
     style: pick(v.style, ['light', 'dark'] as const, DEFAULT_WATERMARK.style),
     size: pick(v.size, ['small', 'medium', 'large'] as const, DEFAULT_WATERMARK.size),
     position: pick(v.position, ['bottom', 'center'] as const, DEFAULT_WATERMARK.position),
+    // ⚠️ **القيمة المحفوظة قبل الإعداد ده = `badge`**، مش الافتراضي
+    //    الجديد. الإعدادات القديمة اتحفظت والعلامة كانت بطاقة فعلًا،
+    //    فتحويلها لشفافة من غير ما حد يطلب بيغيّر صور الموقع كلها في
+    //    سكوت. الجديد بيبدأ `plain`؛ القديم بيفضل زيّ ما هو لحد ما
+    //    الإدارة تغيّره.
+    look: pick(v.look, ['plain', 'badge'] as const, v.style === undefined ? 'plain' : 'badge'),
+    opacity: pick(v.opacity, ['soft', 'medium', 'strong'] as const, DEFAULT_WATERMARK.opacity),
   };
 }
 
@@ -100,8 +140,20 @@ export function watermarkLayer(settings: WatermarkSettings): string | null {
   const text = cleanWatermarkText(settings.text) || DEFAULT_WATERMARK_TEXT;
   const { text: color, bg } = COLORS[settings.style];
   const place = settings.position === 'center' ? 'g_center' : 'g_south,y_0.24';
+  const o = OPACITY[settings.opacity][settings.look];
+
+  // ⚠️ **الشفافية بتتحط على الطبقة نفسها (`o_`)، مش على لون الخلفية.**
+  //    لو اتحطت على اللون بس، الكتابة تفضل مصمتة فوق خلفية شفافة —
+  //    وده بيبان أوحش من الاتنين.
+  const common = `co_rgb:${color},fl_relative,w_${WIDTH[settings.size]},o_${o},${place}`;
+
+  if (settings.look === 'plain') {
+    // من غير خلفية ولا إطار — كتابة شفافة بتندمج في الصورة.
+    return `l_text:Cairo_40_bold:${encodeURIComponent(text)},${common}`;
+  }
+
   return (
-    `l_text:Cairo_40_bold:${encodeURIComponent(text)},co_rgb:${color},` +
-    `b_rgb:${bg},bo_12px_solid_rgb:${bg},r_16,fl_relative,w_${WIDTH[settings.size]},${place}`
+    `l_text:Cairo_40_bold:${encodeURIComponent(text)},` +
+    `b_rgb:${bg},bo_12px_solid_rgb:${bg},r_16,${common}`
   );
 }

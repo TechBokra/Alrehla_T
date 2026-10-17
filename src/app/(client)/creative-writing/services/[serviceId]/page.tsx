@@ -11,6 +11,7 @@ import { Section } from '@/components/ui/Section';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getProvidersForService } from '@/data/domains/(client)/services/queries';
 import { fetchFamilyMembers } from '@/app/actions/family';
+import { ProviderKindBadge } from '@/components/services/ProviderKindBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { pageMetadata } from '@/lib/seo';
 import { getWatermarkLayer } from '@/lib/watermark';
@@ -233,11 +234,7 @@ export default async function ServicePage({
                 <PersonAvatar name={single.displayName} avatarUrl={single.avatarUrl} size={40} />
                 <p className="text-sm font-bold text-slate-700">
                   بيقدّمها: {single.displayName}
-                  {single.kind === 'platform' && (
-                    <span className="mr-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">
-                      فريق المنصة
-                    </span>
-                  )}
+                  <ProviderKindBadge kind={single.kind} className="mr-2" />
                 </p>
               </div>
             )}
@@ -327,11 +324,7 @@ export default async function ServicePage({
                               اختيار {presetChild.fullName}
                             </span>
                           )}
-                          {provider.kind === 'platform' && (
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
-                              فريق المنصة
-                            </span>
-                          )}
+                          <ProviderKindBadge kind={provider.kind} />
                         </div>
                         {provider.bio && (
                           <p className="mt-1 line-clamp-2 text-sm font-medium text-slate-600">{provider.bio}</p>

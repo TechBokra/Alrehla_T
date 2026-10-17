@@ -5,6 +5,8 @@ import { Checkbox, Field, Select, TextInput } from '@/components/forms/Form';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import {
   DEFAULT_WATERMARK_TEXT,
+  WATERMARK_LOOKS,
+  WATERMARK_OPACITIES,
   WATERMARK_POSITIONS,
   WATERMARK_SIZES,
   WATERMARK_STYLES,
@@ -69,7 +71,34 @@ export function WatermarkFields({
         />
       </Field>
 
-      <Field label="الشكل" name="watermarkStyle">
+      {/* ⚠️ **ده الاختيار اللي كان ناقص.** اللي كان موجود «بطاقة»
+          وحدها — كتابة على خلفية مصمتة، وده ملصق فوق الصورة مش علامة
+          مائية. */}
+      <Field
+        label="نوع العلامة"
+        name="watermarkLook"
+        hint="«علامة مائية» كتابة شفافة بتندمج في الصورة. «بطاقة» هي الشكل القديم."
+        className="md:col-span-2"
+      >
+        <Select value={value.look} onChange={(e) => set('look', e.target.value as WatermarkSettings['look'])}>
+          {WATERMARK_LOOKS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </Select>
+      </Field>
+
+      <Field label="درجة الوضوح" name="watermarkOpacity" hint="كل ما قلّت، كل ما كانت أقرب للعلامة المائية الحقيقية.">
+        <Select
+          value={value.opacity}
+          onChange={(e) => set('opacity', e.target.value as WatermarkSettings['opacity'])}
+        >
+          {WATERMARK_OPACITIES.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </Select>
+      </Field>
+
+      <Field label="اللون" name="watermarkStyle">
         <Select value={value.style} onChange={(e) => set('style', e.target.value as WatermarkSettings['style'])}>
           {WATERMARK_STYLES.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
