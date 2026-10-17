@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import {
   updateInstructorCertification,
+  setInstructorTraining,
   setInstructorStatus,
   setInstructorPackages,
 } from '@/actions/instructors';
@@ -55,6 +56,7 @@ import { getInstructorChangeItems } from '@/lib/request-summary';
 import { useAction } from '@/lib/use-action';
 import { FormError, FormSuccess, FormNotice } from '@/components/ui/FormError';
 import { Field, TextInput, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
+import { isoToCairoLocal } from '@/lib/promotions';
 import { InstructorProfileEditor } from './InstructorProfileEditor';
 import { InstructorServicesSection } from './InstructorServicesSection';
 import { TransferWorkPanel } from './TransferWorkPanel';
@@ -247,6 +249,17 @@ export function AdminInstructorClient({
   });
 
   /**
+   * موعد التدريب ورابطه والدرجة.
+   *
+   * ⚠️ منفصل عن `certify` عن قصد: ده بيحدّد الموعد، وهو بيسجّل
+   *    الاجتياز. دمجهم كان معناه إن تغيير رابط بيلمس حالة الاعتماد.
+   */
+  const training = useAction(setInstructorTraining, {
+    onSuccess: () => router.refresh(),
+    fallbackError: 'تعذّر حفظ بيانات التدريب.',
+  });
+
+  /**
    * حذف المدرب — **بس لو مالوش أي سجل**.
    *
    * الحارس في القاعدة (`delete_instructor`)، مش هنا: مدرب عنده جلسات
@@ -270,7 +283,7 @@ export function AdminInstructorClient({
     else router.refresh();
   };
 
-  const actionError = certify.error;
+  const actionError = certify.error || training.error;
 
   // Filtered packages
   const filteredPackages = useMemo(() => {
@@ -652,6 +665,68 @@ export function AdminInstructorClient({
                   disabled={certify.pending}
                   className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100/70 transition-colors text-sm"
                 />
+
+                {/* ⚠️ **الخانات التلاتة دي ماكانش فيه حاجة بتكتبها.**
+                    الأعمدة موجودة والكارت ده كان بيعرضها، والزرار فوق
+                    بيكتب الاجتياز وبس — يعني الإدارة ماكانش عندها طريقة
+                    تبعت رابط التدريب، والمدرب في لوحته بيستناه. */}
+                <form
+                  action={async (formData: FormData) => {
+                    await training.run(instructor.id, {
+                      meetingLink: String(formData.get('meetingLink') ?? ''),
+                      completedAt: String(formData.get('completedAt') ?? ''),
+                      examScore: String(formData.get('examScore') ?? ''),
+                    });
+                  }}
+                  className="space-y-2.5 rounded-xl border border-slate-200 bg-white p-3"
+                >
+                  <p className="text-xs font-bold text-slate-700">موعد التدريب ونتيجته</p>
+
+                  <label className="block text-[11px] font-bold text-slate-500">
+                    رابط اللقاء (https)
+                    <input
+                      type="url"
+                      name="meetingLink"
+                      dir="ltr"
+                      defaultValue={certification?.trainingMeetingLink ?? ''}
+                      placeholder="https://meet.google.com/..."
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <label className="block text-[11px] font-bold text-slate-500">
+                    تاريخ حضور التدريب (بتوقيت القاهرة)
+                    <input
+                      type="datetime-local"
+                      name="completedAt"
+                      defaultValue={
+                        certification?.trainingCompletedAt
+                          ? isoToCairoLocal(certification.trainingCompletedAt)
+                          : ''
+                      }
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <label className="block text-[11px] font-bold text-slate-500">
+                    درجة الاختبار (0–100)
+                    <input
+                      type="number"
+                      name="examScore"
+                      min={0}
+                      max={100}
+                      defaultValue={certification?.examScore ?? ''}
+                      className={fieldClass}
+                    />
+                  </label>
+
+                  <BusyButton type="submit" busy={training.pending} className="min-h-[44px] w-full">
+                    حفظ بيانات التدريب
+                  </BusyButton>
+                  <p className="text-[11px] font-medium text-slate-500">
+                    الرابط والتاريخ بيظهروا للمدرب في لوحته. والاجتياز بيتسجّل من المربّع فوق.
+                  </p>
+                </form>
 
                 {certification && (
                   <div className="text-xs text-slate-600 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-100">

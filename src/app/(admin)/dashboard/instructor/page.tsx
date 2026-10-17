@@ -30,6 +30,13 @@ import {
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
 import { onboardingState } from '@/lib/instructor-onboarding';
+import {
+  approvalHeadline,
+  approvalSteps,
+  isAdminHold,
+} from '@/lib/instructor-approval';
+import { ApprovalJourney } from '@/components/dashboard/ApprovalJourney';
+import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
 import { getInstructorOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +50,7 @@ export default async function InstructorDashboard() {
 
   const instructorId = await getMyInstructorId();
 
-  const [allBookings, instructor, publicRow, updateRequests, allPackages, ratingSummary, reviews] =
+  const [allBookings, instructor, publicRow, updateRequests, allPackages, ratingSummary, reviews, certification] =
     await Promise.all([
       getInstructorSessions(),
       instructorId ? getInstructorById(instructorId) : null,
@@ -52,6 +59,9 @@ export default async function InstructorDashboard() {
       getWritingPackages(),
       instructorId ? getInstructorRatingSummary(instructorId) : { average: null, count: 0 },
       instructorId ? getReviewsForInstructor(instructorId) : [],
+      // ⚠️ المدرب بيقرا صفّه بسياسة القاعدة (هجرة `20261017235000`)،
+      //    **وبيقرا بس** — الإدارة هي اللي بتكتب التدريب والنتيجة.
+      instructorId ? getInstructorCertification(instructorId) : null,
     ]);
 
   // ⚠️ المدرب الجديد ملفه فاضي: اللوحة كلها أصفار ومفيش حاجة يعملها
@@ -77,6 +87,31 @@ export default async function InstructorDashboard() {
   // أحدث تقييم للمعاينة
   const latestReview = reviews[0] || null;
 
+  /* ── طريق الاعتماد ───────────────────────────────────────────
+   *
+   * ⚠️ **الشارة فوق كانت مكتوبة «نشط» في الكود** لكل مدرب مهما كانت
+   *    حالته: مدرب `pending_training` مش ظاهر لولا عميل واحد كان
+   *    بيقرا إنه نشط. دي مش شارة غلط — دي معلومة بتمنعه إنه يسأل.
+   *
+   * ⚠️ **والحساب من الخادم**: الحالة و`trainingPassed` جايين من
+   *    `getInstructorById` (أعمدة محميّة بمحفّز في القاعدة)، لا من
+   *    أي حاجة الشاشة بتحسبها.
+   */
+  const steps = instructor
+    ? approvalSteps({
+        instructor: {
+          status: instructor.status,
+          trainingPassed: instructor.trainingPassed,
+          bio: instructor.bio,
+          specialties: instructor.specialties,
+        },
+        certification,
+        requests: updateRequests,
+      })
+    : [];
+  const headline = instructor ? approvalHeadline(instructor.status, steps) : null;
+  const hold = instructor && isAdminHold(instructor.status) ? instructor.status : null;
+
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       {/* 1. الترويسة المدمجة + شارات نظام العمل والحالة */}
@@ -87,10 +122,28 @@ export default async function InstructorDashboard() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-900">
                 مرحباً أستاذ(ة)، {user.fullName}
               </h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                نشط
-              </span>
+              {/* ⚠️ **كانت مكتوبة «نشط» ثابتة هنا** لكل مدرب مهما كانت
+                  حالته الحقيقية. الشارة دلوقتي من حالة القاعدة. */}
+              {headline && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                    headline.tone === 'ok'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : headline.tone === 'todo'
+                        ? 'border-amber-200 bg-amber-50 text-amber-800'
+                        : headline.tone === 'hold'
+                          ? 'border-slate-200 bg-slate-100 text-slate-600'
+                          : 'border-sky-200 bg-sky-50 text-sky-700'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      headline.tone === 'ok' ? 'animate-pulse bg-emerald-500' : 'bg-current'
+                    }`}
+                  />
+                  {headline.label}
+                </span>
+              )}
             </div>
             
             {/* تفاصيل العمل المختصرة */}
@@ -177,6 +230,18 @@ export default async function InstructorDashboard() {
           </div>
         )}
       </div>
+
+      {/* ⚠️ **بيظهر لما المدرب مش ظاهر للعملاء بس.** المدرب الشغّال
+          الظاهر مالوش داعي يقرا طريقًا خلص — الشارة فوق بتكفيه.
+          والمخفي/الموقوف بيشوفه عشان يعرف إن ده قرار إداري مش خطوة
+          ناقصة عليه. */}
+      {instructor && instructor.status !== 'active' && (
+        <ApprovalJourney
+          steps={steps}
+          trainingLink={certification?.trainingMeetingLink ?? null}
+          adminHold={hold === 'hidden' || hold === 'suspended' ? hold : null}
+        />
+      )}
 
       {/* 2. بطاقات الإحصاءات الموجزة المدمجة (Stats Grid) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4">

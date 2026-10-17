@@ -10,6 +10,7 @@ import type { Database } from '@/types/supabase';
 import { notifyUser, getInstructorUserId, notifyAdmins } from '@/lib/notifications';
 import { summarizeInstructorChangesText } from '@/lib/request-summary';
 import { isProfileComplete, firstProfileProblem } from '@/lib/instructor-onboarding';
+import { cairoLocalToIso } from '@/lib/promotions';
 import { isUploadedImageUrl } from '@/lib/cloudinary';
 import { cleanupReplacedImages } from '@/data/domains/(admin)/media/image-replacement';
 
@@ -443,6 +444,96 @@ export async function rejectProfileUpdateRequest(
   revalidatePath('/dashboard/admin/instructors/review');
   revalidatePath('/dashboard/instructor', 'layout');
   revalidatePath('/dashboard/instructor/settings');
+  return { ok: true };
+}
+
+/**
+ * موعد التدريب ورابطه ودرجة الاختبار.
+ *
+ * ── ليه الدالة دي اتضافت ────────────────────────────────────
+ *
+ * ⚠️ **الأعمدة التلاتة دي ماكانش فيه سطر واحد في المشروع بيكتبها.**
+ *    `training_completed_at` و`training_meeting_link` و`exam_score`
+ *    موجودين في القاعدة، وشاشة الإدارة **بتعرضهم**، وزرار الاعتماد
+ *    بيكتب `exam_passed` وبس. يعني:
+ *
+ *      • الإدارة مالهاش طريقة تبعت للمدرب رابط التدريب
+ *      • والدرجة اللي الشاشة بتعرضها عمرها ما بتتكتب
+ *
+ *    والمدرب في لوحته (شاشة «طريقك للظهور للعملاء») بيستنى الرابط
+ *    ده بالظبط. فمن غير الدالة دي، الشاشة بتقول «الإدارة هتتواصل
+ *    معاك» للأبد.
+ *
+ * ⚠️ **ومابتلمسش `exam_passed` ولا `training_passed`** — دول قرار
+ *    الاعتماد وله دالته (`updateInstructorCertification`). فصلهم
+ *    معناه إن الإدارة تقدر تجدّد موعد تدريب من غير ما تلمس حالة
+ *    الاجتياز بالغلط.
+ */
+export async function setInstructorTraining(
+  instructorId: string,
+  input: { meetingLink?: string; completedAt?: string; examScore?: string },
+): Promise<InstructorAdminResult> {
+  const currentUser = await requireInstructorAdmin();
+  if (!currentUser) return fail(DENIED);
+
+  const link = (input.meetingLink ?? '').trim();
+  // ⚠️ `https://` وبس: الرابط ده بيتحط للمدرب يدوس عليه من لوحته،
+  //    و`javascript:` أو `http://` على زرار إحنا حاطينه مش مقبول.
+  if (link && !link.startsWith('https://')) {
+    return fail('رابط اللقاء لازم يبدأ بـ https://');
+  }
+
+  const completed = (input.completedAt ?? '').trim();
+  let completedIso: string | null = null;
+  if (completed) {
+    const iso = cairoLocalToIso(completed) ?? (Number.isNaN(Date.parse(completed)) ? null : completed);
+    if (!iso) return fail('تاريخ التدريب مش مقروء.');
+    completedIso = iso;
+  }
+
+  const scoreText = (input.examScore ?? '').trim();
+  let score: number | null = null;
+  if (scoreText) {
+    const n = Number(scoreText);
+    if (!Number.isFinite(n) || n < 0 || n > 100) return fail('الدرجة لازم تكون رقم من 0 لـ 100.');
+    score = Math.round(n);
+  }
+
+  const supabase = await createClient();
+  const { data: saved, error } = await supabase
+    .from('instructor_certifications')
+    .upsert(
+      {
+        instructor_id: instructorId,
+        training_meeting_link: link || null,
+        training_completed_at: completedIso,
+        exam_score: score,
+      },
+      { onConflict: 'instructor_id' },
+    )
+    .select('id');
+
+  if (error) {
+    console.error('Error saving instructor training', error);
+    return fail(`تعذّر حفظ بيانات التدريب: ${error.message}`);
+  }
+  // صفر صفوف من غير خطأ = الصلاحيات رفضت الكتابة بصمت (قاعدة «و»).
+  if (!saved || saved.length === 0) {
+    return fail('الحفظ مروّحش للقاعدة — صلاحيات جدول الاعتماد مش سامحة بالكتابة.');
+  }
+
+  await logAuditAction({
+    actorProfileId: currentUser.id,
+    actorName: currentUser.fullName,
+    action: 'instructor_training_updated',
+    entityType: 'InstructorCertification',
+    entityId: saved[0].id as string,
+    metadata: { instructorId, hasLink: Boolean(link), completedAt: completedIso, score },
+  });
+
+  revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
+  // ولوحة المدرب بتعرض الرابط والتاريخ دول.
+  revalidatePath('/dashboard/instructor');
   return { ok: true };
 }
 
