@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_clicks: {
+        Row: {
+          ad_id: string
+          clicked_at: string
+          id: string
+          placement: string | null
+        }
+        Insert: {
+          ad_id: string
+          clicked_at?: string
+          id?: string
+          placement?: string | null
+        }
+        Update: {
+          ad_id?: string
+          clicked_at?: string
+          id?: string
+          placement?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ads: {
+        Row: {
+          advertiser_name: string | null
+          created_at: string
+          ends_at: string | null
+          id: string
+          image_url: string
+          image_url_mobile: string | null
+          is_active: boolean
+          link_url: string | null
+          placements: string[]
+          sort_order: number
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          advertiser_name?: string | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          image_url: string
+          image_url_mobile?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          placements?: string[]
+          sort_order?: number
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          advertiser_name?: string | null
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          image_url?: string
+          image_url_mobile?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          placements?: string[]
+          sort_order?: number
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
@@ -4361,6 +4438,13 @@ export type Database = {
       }
     }
     Functions: {
+      ad_click_counts: {
+        Args: never
+        Returns: {
+          ad_id: string
+          clicks: number
+        }[]
+      }
       admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
       aqlam_admin_config: {
         Args: never

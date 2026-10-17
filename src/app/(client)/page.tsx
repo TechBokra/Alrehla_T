@@ -17,6 +17,7 @@ import { RichText } from '@/components/ui/RichText';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
 import { organizationSchema, websiteSchema } from '@/lib/structured-data';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export async function generateMetadata() {
   const [settings, content] = await Promise.all([getSiteSettings(), getSiteContent()]);
@@ -113,6 +114,7 @@ export default async function Home() {
           { href: '/creative-writing', label: content['home.hero.cta2'] },
         ]}
       />
+      <AdSlot page="home" position="top" />
 
       {/* ── ترتيب الصفحة ────────────────────────────────────
           هيرو ← أقسامنا الرئيسية ← قصتنا ← رحلتنا ← الشركاء ←
@@ -376,6 +378,7 @@ export default async function Home() {
           </Button>
         </div>
       </Section>
+    <AdSlot page="home" position="bottom" />
     </div>
   );
 }

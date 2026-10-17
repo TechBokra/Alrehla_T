@@ -13,6 +13,7 @@ import { PageHero } from '@/components/PageHero';
 import { Section } from '@/components/ui/Section';
 import { ServiceSteps, type ServiceCardData } from '@/components/creative-writing/ServiceCard';
 import { ServicesBrowser } from '@/components/creative-writing/ServicesBrowser';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
@@ -86,6 +87,7 @@ export default async function ServicesPage() {
         subtitle={content['services.description']}
         bandClassName="bg-emerald-50"
       />
+      <AdSlot page="services" position="top" />
       <PageContainer className="!py-0 !space-y-0">
 
       <Section containerClassName="mx-auto w-full max-w-6xl pb-20">
@@ -109,6 +111,7 @@ export default async function ServicesPage() {
           </Link>
         </div>
       </Section>
+    <AdSlot page="services" position="bottom" />
     </PageContainer>
     </>
   );
