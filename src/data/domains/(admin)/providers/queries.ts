@@ -141,6 +141,29 @@ export async function getMyProvider(): Promise<ServiceProviderAccount | null> {
   return viaInstructor ? mapProvider(viaInstructor) : null;
 }
 
+/**
+ * نفس `getMyProvider`، وبتعمل الصف لو الحساب دوره مقدّم خدمة ومالوش صف.
+ *
+ * ⚠️ **للحسابات اللي اتعملت قبل `ensure-provider`.** الدور كان بيتحط من
+ *    شاشة المستخدمين والصف مابيتعملش، فلوحة المقدّم كانت بتفضل فاضية
+ *    للأبد. اللوحة بتنادي دي، فالحساب بيتصلّح أول ما صاحبه يفتحها —
+ *    زي نظيرتها عند الناشر بالظبط.
+ */
+export async function getMyProviderEnsured(): Promise<ServiceProviderAccount | null> {
+  const existing = await getMyProvider();
+  if (existing) return existing;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { ensureProviderRowForProvider } = await import('@/lib/ensure-provider');
+  const created = await ensureProviderRowForProvider(user.id);
+  return created ? getMyProvider() : null;
+}
+
 /** حساب صالح لإضافته كمقدّم خدمة مستقل. */
 export type ProviderCandidate = {
   userId: string;

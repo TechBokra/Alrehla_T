@@ -1878,8 +1878,36 @@ export type Database = {
           },
         ]
       }
+      join_request_messages: {
+        Row: {
+          author: string
+          author_profile_id: string | null
+          body: string
+          created_at: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          author: string
+          author_profile_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          author?: string
+          author_profile_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: []
+      }
       join_requests: {
         Row: {
+          access_token: string
           applicant_name: string
           created_at: string
           email: string | null
@@ -1892,6 +1920,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_token?: string
           applicant_name: string
           created_at?: string
           email?: string | null
@@ -1904,6 +1933,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_token?: string
           applicant_name?: string
           created_at?: string
           email?: string | null
@@ -4449,6 +4479,14 @@ export type Database = {
       }
       transfer_provider_work: {
         Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      join_request_thread: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      join_request_reply: {
+        Args: { p_token: string; p_body: string }
         Returns: Json
       }
       cancel_course_booking: {

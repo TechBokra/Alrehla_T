@@ -10,6 +10,7 @@ import { generateTempCode, MUST_SET_PASSWORD } from '@/lib/first-login';
 import { headers } from 'next/headers';
 import { SITE_URL } from '@/lib/seo';
 import { ensurePublisherRow } from '@/lib/ensure-publisher';
+import { ensureProviderRow } from '@/lib/ensure-provider';
 
 /**
  * عنوان الموقع اللي الإدارة فاتحاه دلوقتي — عشان رابط الدعوة يروح لنفس
@@ -129,6 +130,10 @@ async function writeProfile(
   );
   // الناشر من غير صف «دار نشر» لوحته كلها «غير موجود» (`ensure-publisher`).
   if (!result.error && role === 'publisher') await ensurePublisherRow(userId, fullName);
+  // ⚠️ **ونفس الكلام للمقدّم، وكان ناقص.** قبول رسّام أو معلّق صوتي
+  //    بيوصّل هنا بالدور متملّي، والصف ماكانش بيتعمل — فالشخص اتقبل
+  //    ولوحته فاضية، ومستحقاته (السجلّ الموحّد) مالهاش صاحب.
+  if (!result.error && role === 'service_provider') await ensureProviderRow(userId, fullName);
   return result;
 }
 
@@ -406,6 +411,8 @@ export async function updateUserRole(
 
   // ⚠️ «ناشر» من غير صف دار نشر = لوحة كلها «غير موجود» (`ensure-publisher`).
   if (role === 'publisher') await ensurePublisherRow(userId, data.full_name ?? '');
+  // ⚠️ ونفس الكلام لمقدّم الخدمة (`ensure-provider`).
+  if (role === 'service_provider') await ensureProviderRow(userId, data.full_name ?? '');
 
   await logAuditAction({
     actorProfileId: admin.id,

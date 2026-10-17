@@ -13,6 +13,8 @@ import { createClient } from '@/lib/supabase/server';
 
 import { JoinRequestActions } from './JoinRequestActions';
 import { JoinInstructorAccount } from './JoinInstructorAccount';
+import { JoinRequestThread, type ThreadMessage } from './JoinRequestThread';
+import { SITE_URL } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +72,33 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       .maybeSingle();
     instructorId = data?.id ?? null;
   }
+  // ── النقاش ────────────────────────────────────────────────
+  //
+  // ⚠️ **الملف ممكن يكون لسه ما اتشغّلش.** الجدول والعمود جايين من
+  //    20261017010000 — فالقراءة بتتعامل مع غيابهم كـ«مفيش نقاش»
+  //    بدل ما الصفحة كلها توقع.
+  let messages: ThreadMessage[] = [];
+  let shareUrl = '';
+  {
+    const supabase = await createClient();
+    const [{ data: msgs }, { data: tokenRow }] = await Promise.all([
+      supabase
+        .from('join_request_messages')
+        .select('author, body, created_at')
+        .eq('request_id', target.id)
+        .order('created_at', { ascending: true }),
+      supabase.from('join_requests').select('access_token').eq('id', target.id).maybeSingle(),
+    ]);
+    messages = (msgs ?? []).map((m) => ({
+      author: m.author === 'admin' ? 'admin' : 'applicant',
+      body: m.body,
+      createdAt: m.created_at,
+    }));
+    if (tokenRow?.access_token) {
+      shareUrl = `${SITE_URL}/join-us/r/${encodeURIComponent(tokenRow.access_token)}`;
+    }
+  }
+
   const next =
     target.status === 'approved'
       ? joinNextStep(
@@ -231,6 +260,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             )}
           </div>
         </div>
+      </div>
+
+      {/* النقاش تحت القرار: الإدارة بتقرا الطلب الأول، وبعدين تسأل. */}
+      <div className="mt-8">
+        <JoinRequestThread
+          requestId={target.id}
+          applicantName={target.applicantName}
+          messages={messages}
+          shareUrl={shareUrl}
+        />
       </div>
     </div>
   );

@@ -166,3 +166,56 @@ export async function submitJoinRequest(params: {
   revalidatePath('/dashboard/admin');
   return { ok: true };
 }
+
+/**
+ * رسالة من الإدارة على طلب انضمام.
+ *
+ * ⚠️ **النقاش مش قرار** — الرسالة مابتغيّرش حالة الطلب. الطلب يفضل
+ *    `pending` لحد ما الإدارة تقبل أو ترفض فعلًا.
+ */
+export async function postJoinRequestMessage(
+  requestId: string,
+  body: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let admin;
+  try {
+    admin = await requireAdmin('canManageSupport', 'غير مصرح لك بإدارة طلبات الانضمام');
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'غير مصرح لك بإدارة طلبات الانضمام',
+    };
+  }
+
+  const text = body.trim();
+  if (!text) return { ok: false, error: 'اكتب الرسالة الأول' };
+  if (text.length > 4000) return { ok: false, error: 'الرسالة طويلة أوي — اختصرها.' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('join_request_messages')
+    .insert({ request_id: requestId, author: 'admin', author_profile_id: admin.id, body: text })
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('postJoinRequestMessage', error);
+    if (error.code === '42P01') {
+      return { ok: false, error: 'النقاش محتاج ملف القاعدة 20261017010000 يتشغّل الأول' };
+    }
+    return { ok: false, error: `تعذّر إرسال الرسالة (${error.code ?? 'خطأ'})` };
+  }
+  // ⚠️ `INSERT` على صفر صفوف بينجح لو سياسة رفضت (قاعدة «و»).
+  if (!data) return { ok: false, error: 'الرسالة مروّحتش للقاعدة — راجع الصلاحيات.' };
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    actorName: admin.fullName,
+    action: 'join_request_message',
+    entityType: 'JoinRequest',
+    entityId: requestId,
+  });
+
+  revalidatePath(`/dashboard/admin/join-requests/${requestId}`);
+  return { ok: true };
+}
