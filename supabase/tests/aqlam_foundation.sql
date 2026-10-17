@@ -20,6 +20,9 @@ DECLARE
   v_reader  uuid := gen_random_uuid();
   v_r2      uuid := gen_random_uuid();
   v_r3      uuid := gen_random_uuid();
+  v_r4      uuid := gen_random_uuid();
+  v_r5      uuid := gen_random_uuid();
+  v_lockreq uuid;
   v_other   uuid := gen_random_uuid();   -- ولي أمر تاني
   v_busy    uuid := gen_random_uuid();   -- لاختبار حد النشر اليومي
   v_doc     uuid := gen_random_uuid();
@@ -46,6 +49,8 @@ BEGIN
     (v_reader,  'قارئ أول',               'customer'),
     (v_r2,      'قارئ تاني',              'customer'),
     (v_r3,      'قارئ تالت',              'customer'),
+    (v_r4,      'قارئ رابع',              'customer'),
+    (v_r5,      'قارئ خامس',              'customer'),
     (v_other,   'ولي أمر تاني',           'customer'),
     (v_busy,    'كاتب نشيط',              'customer');
 
@@ -296,8 +301,19 @@ BEGIN
   -- قفل التعليقات على الابن
   PERFORM set_config('request.jwt.claim.sub', v_guard::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
+  -- (من `20261017180000`: القفل بطلب للإدارة مش مباشر.)
   r := public.aqlam_set_guardian_settings(v_teen_child, true, false);
-  ASSERT (r->>'ok')::boolean, 'قفل التعليقات: ' || r::text;
+  ASSERT r->>'error' = 'needs_admin_request', 'قفل مباشر لازم يترفض: ' || r::text;
+  r := public.aqlam_set_guardian_settings(v_teen_child, true, true);   -- يفتح النشر اللي اتقفل فوق
+  ASSERT (r->>'ok')::boolean, 'فتح النشر: ' || r::text;
+  r := public.aqlam_request_comments_lock(v_teen_child, 'تعليقات من غرباء مش مناسبة');
+  ASSERT (r->>'ok')::boolean, 'طلب قفل التعليقات: ' || r::text;
+  v_lockreq := (r->>'id')::uuid;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub', v_admin::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_decide_guardian_request(v_lockreq, true, NULL);
+  ASSERT (r->>'ok')::boolean, 'موافقة الإدارة على القفل: ' || r::text;
   EXECUTE 'RESET ROLE';
   PERFORM set_config('request.jwt.claim.sub', v_reader::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
@@ -305,7 +321,7 @@ BEGIN
   ASSERT r->>'error' = 'guardian_locked', 'قفل التعليقات ما منعش: ' || r::text;
   EXECUTE 'RESET ROLE';
 
-  -- ── ١٠) البلاغات: ٣ حسابات = إخفاء تلقائي ───────────────────────────────
+  -- ── ١٠) البلاغات: ٥ حسابات = إخفاء تلقائي ───────────────────────────────
   PERFORM set_config('request.jwt.claim.sub', v_reader::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   r := public.aqlam_report('post', v_post, 'inappropriate', NULL);
@@ -321,7 +337,17 @@ BEGIN
   PERFORM set_config('request.jwt.claim.sub', v_r3::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   r := public.aqlam_report('post', v_post, 'other', 'تفاصيل');
-  ASSERT (r->>'auto_hidden')::boolean, 'ما اتخباش بعد 3 بلاغات: ' || r::text;
+  ASSERT NOT (r->>'auto_hidden')::boolean, 'إخفاء بعد 3 بلاغات (الحد ٥): ' || r::text;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub', v_r4::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_report('post', v_post, 'other', NULL);
+  ASSERT NOT (r->>'auto_hidden')::boolean, 'إخفاء بعد 4 بلاغات (الحد ٥): ' || r::text;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub', v_r5::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r := public.aqlam_report('post', v_post, 'other', NULL);
+  ASSERT (r->>'auto_hidden')::boolean, 'ما اتخباش بعد 5 بلاغات: ' || r::text;
   EXECUTE 'RESET ROLE';
   ASSERT (SELECT status FROM public.aqlam_posts WHERE id = v_post) = 'hidden', 'حالة النص بعد البلاغات';
 

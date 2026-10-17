@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Users, UserCheck, LayoutDashboard, Settings, BookOpen, Box, ShoppingCart,
   Calendar, LifeBuoy, FileText, DollarSign, ShieldAlert, Package, Images, Sparkles,
-  Home, Menu, X, ClipboardList, LucideIcon,
+  Home, Menu, X, ClipboardList, PenLine, LucideIcon,
 } from 'lucide-react';
 import { activeIn, type NavGroup } from '@/lib/admin-nav';
 
@@ -19,7 +19,7 @@ import { activeIn, type NavGroup } from '@/lib/admin-nav';
  */
 const ICONS: Record<string, LucideIcon> = {
   Users, UserCheck, LayoutDashboard, Settings, BookOpen, Box, ShoppingCart,
-  Calendar, LifeBuoy, FileText, DollarSign, ShieldAlert, Package, Images, Sparkles, ClipboardList,
+  Calendar, LifeBuoy, FileText, DollarSign, ShieldAlert, Package, Images, Sparkles, ClipboardList, PenLine,
 };
 
 export function AdminSidebarNav({ groups }: { groups: NavGroup[] }) {

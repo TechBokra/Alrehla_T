@@ -20,7 +20,7 @@ describe('قايمة لوحة الإدارة', () => {
 
   it('القايمة الجانبية أقسام بس — مش كل شاشة', () => {
     const sections = all.flatMap((g) => g.sections);
-    expect(sections.length).toBeLessThanOrEqual(16);
+    expect(sections.length).toBeLessThanOrEqual(17);
     // «مهامي» لأي إداري — حتى اللي صلاحيته الحجوزات بس.
     expect(navFor((p) => p === 'canManageBookings').flatMap((g) => g.sections).map((s) => s.id)).toContain('tasks');
     expect(hrefs.length).toBeGreaterThan(sections.length);
@@ -43,6 +43,16 @@ describe('قايمة لوحة الإدارة', () => {
     // الناشرون جوّه «إنها لك» — المكتبة جزء منها.
     const group = all.find((g) => g.sections.some((s) => s.id === 'publishers'));
     expect(group?.title).toBe('إنها لك');
+  });
+
+  it('أقلام الرحلة قسم مستقل بأربع شاشات', () => {
+    const s = all.flatMap((g) => g.sections).find((x) => x.id === 'aqlam');
+    expect(s?.tabs.map((t) => t.label)).toEqual(['الصندوق', 'كل النصوص', 'الحسابات', 'الإعدادات']);
+    expect(activeIn(all, '/dashboard/admin/aqlam/posts')?.tab.label).toBe('كل النصوص');
+    expect(activeIn(all, '/dashboard/admin/aqlam')?.tab.label).toBe('الصندوق');
+    // ومش جوّه «المحتوى» تاني.
+    const content = all.flatMap((g) => g.sections).find((x) => x.id === 'content');
+    expect(content?.tabs.some((t) => t.href.includes('/aqlam'))).toBe(false);
   });
 
   it('آراء العملاء كل خط في قسمه', () => {

@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AQLAM_LIMITS,
+  AQLAM_REMOVED_RETENTION_DAYS,
   allowedNameModes,
   displayNameFor,
   validateCommentBody,
   validateEditInput,
+  validateGuardianReason,
   validatePublishInput,
   validateWriterProfileInput,
 } from './post';
@@ -157,5 +160,24 @@ describe('ملف الكاتب', () => {
   it('بيانات التواصل في النبذة أو الاسم مرفوضة', () => {
     expect(validateWriterProfileInput({ bio: 'كلموني 01012345678' })).toMatchObject({ ok: false, field: 'bio' });
     expect(validateWriterProfileInput({ penName: 'sara@example.com' })).toMatchObject({ ok: false, field: 'penName' });
+  });
+});
+
+describe('قرارات السياسة', () => {
+  it('الأرقام المعتمدة: ٥ بلاغات للإخفاء و٧ أيام للمشال', () => {
+    expect(AQLAM_LIMITS.reportsToAutoHide).toBe(5);
+    expect(AQLAM_REMOVED_RETENTION_DAYS).toBe(7);
+    expect(AQLAM_LIMITS.maxPinned).toBe(6);
+  });
+
+  it('سبب طلب ولي الأمر إجباري وبين الحدّين', () => {
+    expect(validateGuardianReason('')).toMatchObject({ ok: false });
+    expect(validateGuardianReason(undefined)).toMatchObject({ ok: false });
+    expect(validateGuardianReason('قصير')).toMatchObject({ ok: false });
+    expect(validateGuardianReason('ب'.repeat(AQLAM_LIMITS.guardianReasonMax + 1))).toMatchObject({ ok: false });
+    expect(validateGuardianReason('  تعليقات   من غرباء مضايقة  ')).toEqual({
+      ok: true,
+      reason: 'تعليقات من غرباء مضايقة',
+    });
   });
 });

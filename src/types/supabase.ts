@@ -332,6 +332,7 @@ export type Database = {
           id: string
           is_instructor: boolean
           post_id: string
+          removed_at: string | null
           status: string
         }
         Insert: {
@@ -342,6 +343,7 @@ export type Database = {
           id?: string
           is_instructor?: boolean
           post_id: string
+          removed_at?: string | null
           status?: string
         }
         Update: {
@@ -352,6 +354,7 @@ export type Database = {
           id?: string
           is_instructor?: boolean
           post_id?: string
+          removed_at?: string | null
           status?: string
         }
         Relationships: [
@@ -367,6 +370,70 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "aqlam_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aqlam_guardian_requests: {
+        Row: {
+          admin_note: string | null
+          child_id: string
+          child_name: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          guardian_id: string
+          id: string
+          kind: string
+          reason: string
+          status: string
+        }
+        Insert: {
+          admin_note?: string | null
+          child_id: string
+          child_name?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          guardian_id: string
+          id?: string
+          kind?: string
+          reason: string
+          status?: string
+        }
+        Update: {
+          admin_note?: string | null
+          child_id?: string
+          child_name?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          guardian_id?: string
+          id?: string
+          kind?: string
+          reason?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aqlam_guardian_requests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_guardian_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aqlam_guardian_requests_guardian_id_fkey"
+            columns: ["guardian_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -468,6 +535,7 @@ export type Database = {
           display_name: string
           edited_at: string | null
           featured_at: string | null
+          featured_rank: number | null
           guardian_approved_at: string | null
           guardian_approved_by: string | null
           id: string
@@ -501,6 +569,7 @@ export type Database = {
           display_name: string
           edited_at?: string | null
           featured_at?: string | null
+          featured_rank?: number | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
           id?: string
@@ -534,6 +603,7 @@ export type Database = {
           display_name?: string
           edited_at?: string | null
           featured_at?: string | null
+          featured_rank?: number | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
           id?: string
@@ -4218,6 +4288,7 @@ export type Database = {
           edited_at: string | null
           excerpt: string | null
           featured_at: string | null
+          featured_rank: number | null
           id: string | null
           published_at: string | null
           reaction_count: number | null
@@ -4265,6 +4336,26 @@ export type Database = {
       }
       aqlam_add_comment: {
         Args: { p_body: string; p_post: string }
+        Returns: Json
+      }
+      aqlam_cancel_guardian_request: {
+        Args: { p_request: string }
+        Returns: Json
+      }
+      aqlam_decide_guardian_request: {
+        Args: { p_approve: boolean; p_note?: string; p_request: string }
+        Returns: Json
+      }
+      aqlam_set_pin: {
+        Args: { p_op: string; p_post: string }
+        Returns: Json
+      }
+      aqlam_purge_removed: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      aqlam_request_comments_lock: {
+        Args: { p_child: string; p_reason: string }
         Returns: Json
       }
       aqlam_guardian_decide: {
