@@ -3,7 +3,7 @@
 import React, { Suspense, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import { Book, Search, ArrowUpDown, X, Building2, Sparkles } from 'lucide-react';
+import { ArrowUpDown, Book, Building2, Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
@@ -126,6 +126,11 @@ function LibraryView({
   texts: LibraryTexts;
 }) {
   const [f, setF] = useState<Filters>(initial);
+  // ⚠️ بتتفتح لوحدها لو الفلتر جاي من الرابط — اللينك المتفلتر لازم
+  //    يبان متفلتر.
+  const [more, setMore] = useState(
+    initial.source !== 'all' || initial.publisherSlug !== 'all',
+  );
 
   const update = (next: Partial<Filters>) => {
     const merged = { ...f, ...next };
@@ -157,6 +162,8 @@ function LibraryView({
   );
 
   const filtering = hasActiveFilter(filterOptions);
+  // عدد المفعَّل من الفلاتر المطويّة — عشان المطويّ مايبقاش مخفيًّا.
+  const extraActive = (f.source !== 'all' ? 1 : 0) + (f.publisherSlug !== 'all' ? 1 : 0);
   const count = resultLabel(visible.length, initialProducts.length);
   const clear = () => update({ query: '', source: 'all', publisherSlug: 'all', ageBand: 'all' });
 
@@ -238,113 +245,6 @@ function LibraryView({
           </div>
         )}
 
-        {/* ══ المصدر: المنصة / دور النشر ════════════════════════ */}
-        {showSource && (
-          <div role="group" aria-label="مصدر الكتاب">
-            <p className="mb-2 text-sm font-bold text-slate-700">من إصدارات</p>
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
-              {(
-                [
-                  ['all', 'الكل', initialProducts.length],
-                  ['platform', 'منصة الرحلة', platformCount],
-                  ['publisher', 'دور النشر', publisherCount],
-                ] as const
-              ).map(([value, label, n]) => {
-                const active = f.source === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    // اختيار «المنصة» بيلغي اختيار دار نشر بعينها — الاتنين
-                    // مع بعض = صفر نتايج دايمًا.
-                    onClick={() =>
-                      update(
-                        value === 'platform'
-                          ? { source: value, publisherSlug: 'all' }
-                          : { source: value },
-                      )
-                    }
-                    aria-pressed={active}
-                    className={cn(
-                      chipBase,
-                      active
-                        ? 'border-rose-700 bg-rose-700 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
-                    )}
-                  >
-                    {label}
-                    <span className="text-xs opacity-80">({n.toLocaleString('ar-EG')})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ══ دور النشر ════════════════════════════════════════
-            ⚠️ كانت قايمة منسدلة — الاختيار مستخبي ورا ضغطة، والأب
-            مايعرفش إن فيه دور نشر أصلًا لحد ما يفتحها. بقت أزرار
-            ظاهرة بشعار كل دار. */}
-        {usablePublishers.length > 0 && f.source !== 'platform' && (
-          <div role="group" aria-label="دار النشر">
-            <p className="mb-2 text-sm font-bold text-slate-700">دار النشر</p>
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
-              <button
-                type="button"
-                onClick={() => update({ publisherSlug: 'all' })}
-                aria-pressed={f.publisherSlug === 'all'}
-                className={cn(
-                  chipBase,
-                  f.publisherSlug === 'all'
-                    ? 'border-rose-700 bg-rose-700 text-white'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
-                )}
-              >
-                كل دور النشر
-              </button>
-              {usablePublishers.map((pub) => {
-                const active = f.publisherSlug === pub.slug;
-                return (
-                  <button
-                    key={pub.id}
-                    type="button"
-                    onClick={() => update({ publisherSlug: active ? 'all' : pub.slug })}
-                    aria-pressed={active}
-                    className={cn(
-                      chipBase,
-                      'pr-1.5',
-                      active
-                        ? 'border-rose-700 bg-rose-700 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
-                    )}
-                  >
-                    {/* الشعار لو موجود، وإلا أيقونة — مش أول حرف من
-                        الاسم: «ا» لوحدها مابتقولش حاجة. */}
-                    <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-100">
-                      {/* ⚠️ Cloudinary بس: `next/image` بيرفض أي مصدر مش في
-                          `remotePatterns` **بخطأ يوقع الشاشة كلها** — والشعار
-                          بيتكتب من ملف الناشر، يعني ممكن يكون أي رابط. */}
-                      {pub.logoUrl?.startsWith('https://res.cloudinary.com/') ? (
-                        <Image
-                          src={optimizedImageUrl(pub.logoUrl, 64)}
-                          alt=""
-                          fill
-                          sizes="32px"
-                          className="object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <Building2 className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </span>
-                    {pub.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* ══ البحث والترتيب ════════════════════════════════════ */}
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative flex-1">
@@ -377,6 +277,147 @@ function LibraryView({
             </select>
           </div>
         </div>
+        {/* ══ فلاتر أكتر — مطويّة ══════════════════════════════
+
+            ⚠️ **البطاقة كانت بتاخد شاشة كاملة قبل أول كتاب.** أربع
+               مجموعات فوق بعض: السنّ، والمصدر، ودور النشر، والبحث.
+               والأب داخل يشوف كتب لطفله — مش يملا استمارة.
+
+            اللي فضل ظاهر: البحث (أسرع طريق) والسنّ (أهم فلتر في مكتبة
+            أطفال). والمصدر ودور النشر وراء الزرار ده.
+
+            ⚠️ **والزرار بيعدّ المفعَّل جوّاه**، والقايمة بتتفتح لوحدها لو
+               الفلتر جاي من الرابط — من غير كده الأب يفتح لينك متفلتر
+               ويشوف نتايج مقصوصة من غير ما يعرف ليه. */}
+        {(showSource || usablePublishers.length > 0) && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setMore((v) => !v)}
+              aria-expanded={more}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-slate-400"
+            >
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              {more ? 'إخفاء الفلاتر الإضافية' : 'فلاتر أكتر'}
+              {extraActive > 0 && (
+                <span className="rounded-full bg-rose-700 px-2 py-0.5 text-xs text-white">
+                  {extraActive.toLocaleString('ar-EG')}
+                </span>
+              )}
+            </button>
+
+            {more && (
+              <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+        {/* ══ المصدر: المنصة / دور النشر ════════════════════════ */}
+            {showSource && (
+              <div role="group" aria-label="مصدر الكتاب">
+                <p className="mb-2 text-sm font-bold text-slate-700">من إصدارات</p>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+                  {(
+                    [
+                      ['all', 'الكل', initialProducts.length],
+                      ['platform', 'منصة الرحلة', platformCount],
+                      ['publisher', 'دور النشر', publisherCount],
+                    ] as const
+                  ).map(([value, label, n]) => {
+                    const active = f.source === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        // اختيار «المنصة» بيلغي اختيار دار نشر بعينها — الاتنين
+                        // مع بعض = صفر نتايج دايمًا.
+                        onClick={() =>
+                          update(
+                            value === 'platform'
+                              ? { source: value, publisherSlug: 'all' }
+                              : { source: value },
+                          )
+                        }
+                        aria-pressed={active}
+                        className={cn(
+                          chipBase,
+                          active
+                            ? 'border-rose-700 bg-rose-700 text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
+                        )}
+                      >
+                        {label}
+                        <span className="text-xs opacity-80">({n.toLocaleString('ar-EG')})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+        {/* ══ دور النشر ════════════════════════════════════════
+                ⚠️ كانت قايمة منسدلة — الاختيار مستخبي ورا ضغطة، والأب
+                مايعرفش إن فيه دور نشر أصلًا لحد ما يفتحها. بقت أزرار
+                ظاهرة بشعار كل دار. */}
+            {usablePublishers.length > 0 && f.source !== 'platform' && (
+              <div role="group" aria-label="دار النشر">
+                <p className="mb-2 text-sm font-bold text-slate-700">دار النشر</p>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+                  <button
+                    type="button"
+                    onClick={() => update({ publisherSlug: 'all' })}
+                    aria-pressed={f.publisherSlug === 'all'}
+                    className={cn(
+                      chipBase,
+                      f.publisherSlug === 'all'
+                        ? 'border-rose-700 bg-rose-700 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
+                    )}
+                  >
+                    كل دور النشر
+                  </button>
+                  {usablePublishers.map((pub) => {
+                    const active = f.publisherSlug === pub.slug;
+                    return (
+                      <button
+                        key={pub.id}
+                        type="button"
+                        onClick={() => update({ publisherSlug: active ? 'all' : pub.slug })}
+                        aria-pressed={active}
+                        className={cn(
+                          chipBase,
+                          'pr-1.5',
+                          active
+                            ? 'border-rose-700 bg-rose-700 text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-rose-300',
+                        )}
+                      >
+                        {/* الشعار لو موجود، وإلا أيقونة — مش أول حرف من
+                            الاسم: «ا» لوحدها مابتقولش حاجة. */}
+                        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-rose-50 text-rose-700 ring-1 ring-rose-100">
+                          {/* ⚠️ Cloudinary بس: `next/image` بيرفض أي مصدر مش في
+                              `remotePatterns` **بخطأ يوقع الشاشة كلها** — والشعار
+                              بيتكتب من ملف الناشر، يعني ممكن يكون أي رابط. */}
+                          {pub.logoUrl?.startsWith('https://res.cloudinary.com/') ? (
+                            <Image
+                              src={optimizedImageUrl(pub.logoUrl, 64)}
+                              alt=""
+                              fill
+                              sizes="32px"
+                              className="object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Building2 className="h-4 w-4" aria-hidden="true" />
+                          )}
+                        </span>
+                        {pub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+              </div>
+            )}
+          </div>
+        )}
+
       </Card>
 
       {/* ⚠️ العدد مش زينة: من غيره العميل اللي فلتر مايعرفش هو بيبصّ
