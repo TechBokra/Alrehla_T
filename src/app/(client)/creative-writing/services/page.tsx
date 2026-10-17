@@ -39,11 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *    (`getProvidersForService`). سعر الكتالوج بيظهر بس لو مفيش مقدّم.
  */
 async function buildCards(): Promise<(ServiceCardData & { sortKey: number })[]> {
-  const [services, wm, settings] = await Promise.all([
-    getStandaloneServices(),
-    getWatermarkLayer(),
-    getSiteSettings(),
-  ]);
+  const [services, wm] = await Promise.all([getStandaloneServices(), getWatermarkLayer()]);
   return Promise.all(
     services.map(async (service, index) => {
       const providers = await getProvidersForService(service.id);
@@ -68,7 +64,12 @@ async function buildCards(): Promise<(ServiceCardData & { sortKey: number })[]> 
 }
 
 export default async function ServicesPage() {
-  const [cards, content] = await Promise.all([buildCards(), getSiteContent()]);
+  const [cards, content, settings, wm] = await Promise.all([
+    buildCards(),
+    getSiteContent(),
+    getSiteSettings(),
+    getWatermarkLayer(),
+  ]);
 
   // المتاح الأول، و«قريبًا» في الآخر — بنفس ترتيب الإدارة جوّه كل مجموعة.
   const sorted = [...cards]
