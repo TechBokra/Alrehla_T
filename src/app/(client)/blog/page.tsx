@@ -1,4 +1,5 @@
 import { getWatermarkLayer } from '@/lib/watermark';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -6,6 +7,7 @@ import { getBlogPosts } from '@/data/domains/(shared)/content/blog';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { BookOpen, Calendar, ArrowLeft } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Reveal } from '@/components/ui/Reveal';
@@ -32,24 +34,22 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BlogPage() {
-  const [posts, wm, content] = await Promise.all([
+  const [posts, wm, content, settings] = await Promise.all([
     getBlogPosts(),
     getWatermarkLayer(), // «على الكل»
     getSiteContent(),
+    getSiteSettings(),
   ]);
 
   return (
-    <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
-      <Section containerClassName="max-w-4xl space-y-6 text-center">
-        <h1 className="text-4xl leading-tight font-black text-slate-900 md:text-6xl">
-          {content['blog.title']}
-        </h1>
-        <p className="mx-auto max-w-2xl text-lg leading-relaxed font-medium text-slate-500 md:text-xl">
-          {content['blog.subtitle']}
-        </p>
-
-      </Section>
+    <>
+      <PageHero
+        image={settings.images.blogHero}
+        watermark={wm}
+        title={content['blog.title']}
+        subtitle={content['blog.subtitle']}
+      />
+      <PageContainer className="!py-0 !space-y-0">
 
       {/* Blog Grid */}
       <Section containerClassName="max-w-6xl">
@@ -117,5 +117,6 @@ export default async function BlogPage() {
       </Section>
 
     </PageContainer>
+    </>
   );
 }

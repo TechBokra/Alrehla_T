@@ -78,14 +78,9 @@ export default function SupportClient({
 
   return (
     <PageContainer className="!py-0 !space-y-0">
-      {/* Hero Section */}
+      {/* العنوان والسطر التعريفي بقوا في البانر (`PageHero`) في صفحة
+          الخادم — فاللي باقي هنا هو البحث والتبويبات. */}
       <Section containerClassName="max-w-4xl space-y-6 text-center">
-        <h1 className="text-4xl leading-tight font-black text-slate-900 md:text-6xl">
-          {text['support.title']}
-        </h1>
-        <p className="mx-auto max-w-2xl text-lg leading-relaxed font-medium text-slate-500 md:text-xl">
-          {text['support.subtitle']}
-        </p>
         <div className="relative mx-auto mt-8 max-w-xl">
           <input
             type="search"

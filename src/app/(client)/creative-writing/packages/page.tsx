@@ -15,14 +15,23 @@ import { PackageCard } from '@/components/creative-writing/PackageCard';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
+import { SectionTabs } from '@/components/SectionTabs';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getWatermarkLayer } from '@/lib/watermark';
 
 
 export default async function PackagesPage() {
-  const [packages, content] = await Promise.all([getWritingPackages(), getSiteContent()]);
+  const [packages, content, settings, wm] = await Promise.all([
+    getWritingPackages(),
+    getSiteContent(),
+    getSiteSettings(),
+    getWatermarkLayer(),
+  ]);
 
   // حساب الطفل التابع بيشوف «اطلب من ولي أمرك» بدل زرار الحجز.
   // الفشل هنا بيتعامل معاه كـ«مش تابع» — صفحة عرض، والحارس الحقيقي
@@ -68,21 +77,29 @@ export default async function PackagesPage() {
 
   const untracked = activePackages.filter((p) => !p.track);
 
-  return (
-    <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
-      <Section containerClassName="pt-8 pb-12">
-        <SectionHeader
-          title={content['packages.title']}
-          description={content['packages.description']}
-        />
+  // التبويبات بتتبنى من المسارات اللي **فيها باقات فعلًا** — تبويب
+  // بيودّي على قسم فاضي أسوأ من إنه مايظهرش.
+  const tabItems = [
+    ...tracks.filter((t) => t.items.length > 0).map((t) => ({ id: t.key, label: t.title })),
+    ...(untracked.length > 0 ? [{ id: 'other', label: content['packages.otherTitle'] }] : []),
+  ];
 
-      </Section>
+  return (
+    <>
+      <PageHero
+        image={settings.images.packagesHero}
+        watermark={wm}
+        title={content['packages.title']}
+        subtitle={content['packages.description']}
+        bandClassName="bg-emerald-50"
+      />
+      <PageContainer className="!py-0 !space-y-0">
+        <SectionTabs items={tabItems} />
 
       <div className="mx-auto w-full max-w-6xl space-y-20 pb-20">
         {tracks.map((track) =>
           track.items.length === 0 ? null : (
-            <Section key={track.key}>
+            <Section key={track.key} id={track.key} className="scroll-mt-24">
               <div className="mb-10 text-center md:text-right">
                 <h2 className="text-3xl font-black text-slate-800">{track.title}</h2>
                 <p className="mt-2 font-medium text-slate-500">{track.subtitle}</p>
@@ -97,7 +114,7 @@ export default async function PackagesPage() {
         )}
 
         {untracked.length > 0 && (
-          <Section>
+          <Section id="other" className="scroll-mt-24">
             <div className="mb-10 text-center md:text-right">
               <h2 className="text-3xl font-black text-slate-800">{content['packages.otherTitle']}</h2>
               <p className="mt-2 font-medium text-slate-500">
@@ -130,5 +147,6 @@ export default async function PackagesPage() {
 
 
     </PageContainer>
+    </>
   );
 }

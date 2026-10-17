@@ -23,7 +23,13 @@ export type SiteImageKey =
   | 'aboutTeam'
   | 'creativeSlide1'
   | 'enhaLakSlide1'
-  | 'aqlamHero';
+  | 'aqlamHero'
+  // بانرات الصفحات الداخلية — نفس ستايل البانر الموحّد (`PageHero`).
+  | 'servicesHero'
+  | 'packagesHero'
+  | 'blogHero'
+  | 'supportHero'
+  | 'aboutHero';
 
 /**
  * إزاي الصورة تتظبط على المقاس:
@@ -170,6 +176,56 @@ export const SITE_IMAGE_SLOTS: SiteImageSlot[] = [
     key: 'aqlamHero',
     label: 'بانر «أقلام الرحلة»',
     location: 'أعلى صفحة أقلام الرحلة — صورة واحدة عريضة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'servicesHero',
+    label: 'بانر «الخدمات الإبداعية»',
+    location: 'أعلى صفحة الخدمات الإبداعية — صورة واحدة عريضة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'packagesHero',
+    label: 'بانر «الباقات»',
+    location: 'أعلى صفحة باقات بداية الرحلة — صورة واحدة عريضة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'blogHero',
+    label: 'بانر «المدونة»',
+    location: 'أعلى صفحة المدونة — صورة واحدة عريضة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'supportHero',
+    label: 'بانر «الدعم والمساعدة»',
+    location: 'أعلى صفحة الدعم والمساعدة — صورة واحدة عريضة',
+    ratio: 'عريضة (16:9) — 1600×900',
+    ar: '16:9',
+    w: 1600,
+    fit: 'pad',
+    group: 'pages',
+  },
+  {
+    key: 'aboutHero',
+    label: 'بانر «رحلتنا»',
+    location: 'أعلى صفحة رحلتنا — صورة واحدة عريضة (غير صورة الفريق)',
     ratio: 'عريضة (16:9) — 1600×900',
     ar: '16:9',
     w: 1600,

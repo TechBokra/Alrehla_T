@@ -14,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { addWatermark, slotImageUrl, blurPlaceholder } from '@/lib/cloudinary';
@@ -48,15 +49,20 @@ export default async function AboutPage() {
   }));
 
   return (
-    <PageContainer className="!py-0 !space-y-0">
-      {/* Header */}
+    <>
+      <PageHero
+        image={settings.images.aboutHero}
+        watermark={wm}
+        badge={
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold tracking-widest text-slate-600 uppercase">
+            {content['about.badge']}
+          </div>
+        }
+        title={content['about.title']}
+      />
+      <PageContainer className="!py-0 !space-y-0">
+      {/* صورة الفريق — دي غير البانر: البانر صورة القسم، ودي الناس. */}
       <Section containerClassName="max-w-4xl space-y-6 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold tracking-widest text-slate-600 uppercase">
-          {content['about.badge']}
-        </div>
-        <h1 className="text-4xl leading-tight font-black text-slate-900 md:text-6xl">
-          {content['about.title']}
-        </h1>
         <div className="relative mt-12 h-64 w-full overflow-hidden rounded-[2.5rem] md:h-96">
           {settings.images.aboutTeam ? (
             <Image
@@ -154,5 +160,6 @@ export default async function AboutPage() {
         </div>
       </Section>
     </PageContainer>
+    </>
   );
 }

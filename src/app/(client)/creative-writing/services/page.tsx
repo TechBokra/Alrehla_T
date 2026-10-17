@@ -6,8 +6,10 @@ import { getStandaloneServices } from '@/data/domains/(shared)/services/queries'
 import { getProvidersForService } from '@/data/domains/(client)/services/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getWatermarkLayer } from '@/lib/watermark';
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
 import { Section } from '@/components/ui/Section';
 import { ServiceSteps, type ServiceCardData } from '@/components/creative-writing/ServiceCard';
 import { ServicesBrowser } from '@/components/creative-writing/ServicesBrowser';
@@ -37,7 +39,11 @@ export async function generateMetadata(): Promise<Metadata> {
  *    (`getProvidersForService`). سعر الكتالوج بيظهر بس لو مفيش مقدّم.
  */
 async function buildCards(): Promise<(ServiceCardData & { sortKey: number })[]> {
-  const [services, wm] = await Promise.all([getStandaloneServices(), getWatermarkLayer()]);
+  const [services, wm, settings] = await Promise.all([
+    getStandaloneServices(),
+    getWatermarkLayer(),
+    getSiteSettings(),
+  ]);
   return Promise.all(
     services.map(async (service, index) => {
       const providers = await getProvidersForService(service.id);
@@ -71,15 +77,15 @@ export default async function ServicesPage() {
   const categories = [...new Set(sorted.map((c) => c.category).filter((c): c is string => Boolean(c)))];
 
   return (
-    <PageContainer className="!py-0 !space-y-0">
-      <Section containerClassName="mx-auto max-w-3xl pt-16 pb-8 text-center">
-        <h1 className="mb-5 text-4xl font-black tracking-tight text-slate-900 md:text-5xl">
-          {content['services.title']}
-        </h1>
-        <p className="text-lg leading-relaxed font-medium text-slate-600 md:text-xl">
-          {content['services.description']}
-        </p>
-      </Section>
+    <>
+      <PageHero
+        image={settings.images.servicesHero}
+        watermark={wm}
+        title={content['services.title']}
+        subtitle={content['services.description']}
+        bandClassName="bg-emerald-50"
+      />
+      <PageContainer className="!py-0 !space-y-0">
 
       <Section containerClassName="mx-auto w-full max-w-6xl pb-20">
         <ServicesBrowser cards={sorted} categories={categories} />
@@ -103,5 +109,6 @@ export default async function ServicesPage() {
         </div>
       </Section>
     </PageContainer>
+    </>
   );
 }
