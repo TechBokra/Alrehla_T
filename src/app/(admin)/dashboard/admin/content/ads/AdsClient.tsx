@@ -77,7 +77,8 @@ export function AdsClient({ ads, countsFailed }: { ads: AdWithStats[]; countsFai
             {countsFailed && ' · تعذّر تحميل عدد النقرات'}
           </p>
         </div>
-        <BusyButton onClick={() => setEditing('new')} className="min-h-[44px]">
+        {/* الزرار ده بيفتح الفورم بس — مفيش انتظار، فـ`busy` دايمًا false. */}
+        <BusyButton busy={false} onClick={() => setEditing('new')} className="min-h-[44px]">
           <Plus className="h-4 w-4" />
           إعلان جديد
         </BusyButton>
