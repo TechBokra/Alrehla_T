@@ -179,6 +179,8 @@ export type AdminPostFilter = {
   sort?: AdminPostSort;
   q?: string;
   page?: number;
+  /** عدد الصفوف في الصفحة (من إعدادات الإدارة). */
+  pageSize?: number;
 };
 
 /** كل النصوص بفلاتر الحالة والنوع والسن والترتيب والبحث في العنوان — صفحة بصفحة. */
@@ -186,7 +188,8 @@ export async function listAdminPostsPage(
   filter: AdminPostFilter,
 ): Promise<{ rows: AdminPostListRow[]; total: number }> {
   const page = Math.max(1, Math.floor(filter.page ?? 1));
-  const from = (page - 1) * ADMIN_POSTS_PAGE_SIZE;
+  const pageSize = Math.min(Math.max(Math.floor(filter.pageSize ?? ADMIN_POSTS_PAGE_SIZE), 1), 200);
+  const from = (page - 1) * pageSize;
   const supabase = await createClient();
   let query = supabase.from('aqlam_posts').select(LIST_COLUMNS, { count: 'exact' });
   if (filter.status) query = query.eq('status', filter.status);
@@ -198,7 +201,7 @@ export async function listAdminPostsPage(
     filter.sort === 'top'
       ? query.order('reaction_count', { ascending: false }).order('created_at', { ascending: false })
       : query.order('created_at', { ascending: filter.sort === 'old' });
-  const { data, error, count } = await query.range(from, from + ADMIN_POSTS_PAGE_SIZE - 1);
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) {
     console.error('Error listing aqlam posts (admin page)', error);
     throw new Error('تعذّر تحميل النصوص');

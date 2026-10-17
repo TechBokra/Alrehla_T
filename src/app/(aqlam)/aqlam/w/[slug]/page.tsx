@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { PostCard } from '@/components/aqlam/PostCard';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { getPublicWriter, listPublicWriterPosts } from '@/data/domains/(shared)/aqlam/queries';
 import { ageBandById } from '@/lib/age-bands';
 import { pageMetadata } from '@/lib/seo';
@@ -22,8 +23,8 @@ type Params = Promise<{ slug: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   await requireAqlamReadable();
   const { slug } = await params;
-  const writer = await getPublicWriter(slug);
-  if (!writer) return { title: 'الصفحة غير موجودة', robots: { index: false, follow: false } };
+  const [writer, cfg] = await Promise.all([getPublicWriter(slug), getAqlamConfig()]);
+  if (!writer || !cfg.features.writerPages) return { title: 'الصفحة غير موجودة', robots: { index: false, follow: false } };
   const meta = await pageMetadata({
     title: `${writer.name} · أقلام الرحلة`,
     description: writer.bio || `نصوص ${writer.name} في أقلام الرحلة`,
@@ -36,8 +37,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function WriterPage({ params }: { params: Params }) {
   await requireAqlamReadable();
   const { slug } = await params;
-  const writer = await getPublicWriter(slug);
-  if (!writer) notFound();
+  const [writer, cfg] = await Promise.all([getPublicWriter(slug), getAqlamConfig()]);
+  // الإدارة قفلت صفحات الكتّاب العامة ← كأنها مش موجودة.
+  if (!writer || !cfg.features.writerPages) notFound();
   const posts = await listPublicWriterPosts(slug);
   const band = writer.ageBand ? ageBandById(writer.ageBand) : null;
 
@@ -73,7 +75,7 @@ export default async function WriterPage({ params }: { params: Params }) {
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
               <li key={post.id}>
-                <PostCard post={post} />
+                <PostCard post={post} cfg={cfg} />
               </li>
             ))}
           </ul>

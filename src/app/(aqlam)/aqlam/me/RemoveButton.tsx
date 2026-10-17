@@ -3,10 +3,17 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { removeMyPost } from '@/actions/aqlam';
-import { AQLAM_REMOVED_RETENTION_DAYS } from '@/lib/aqlam/post';
+
+/** «٧ أيام» / «يوم» / «يومين» — الرقم بيتغيّر من الإعداد. */
+function daysLabel(n: number): string {
+  if (n === 1) return 'يوم';
+  if (n === 2) return 'يومين';
+  if (n <= 10) return `${n.toLocaleString('ar-EG')} أيام`;
+  return `${n.toLocaleString('ar-EG')} يومًا`;
+}
 
 /** «شيل» بخطوتين داخل الصفحة (من غير نافذة تأكيد المتصفح). */
-export function RemoveButton({ postId }: { postId: string }) {
+export function RemoveButton({ postId, retentionDays }: { postId: string; retentionDays: number }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +39,7 @@ export function RemoveButton({ postId }: { postId: string }) {
       {confirming ? (
         <>
           <span className="text-sm font-bold text-slate-700">
-            متأكد إنك عايز تشيله؟ هيتمسح نهائيًا بعد {AQLAM_REMOVED_RETENTION_DAYS.toLocaleString('ar-EG')} أيام.
+            متأكد إنك عايز تشيله؟ هيتمسح نهائيًا بعد {daysLabel(retentionDays)}.
           </span>
           <button type="button" onClick={remove} disabled={pending} className={base + 'bg-rose-700 text-white hover:bg-rose-800'}>
             {pending ? 'جارٍ الشيل…' : 'أيوه، شيله'}

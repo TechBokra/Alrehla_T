@@ -4,9 +4,10 @@ import type { Metadata } from 'next';
 import { ArrowRight } from 'lucide-react';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { getPublicPost, listPublicComments } from '@/data/domains/(shared)/aqlam/queries';
 import { ageBandById } from '@/lib/age-bands';
-import { categoryLabel } from '@/lib/aqlam/post';
+import { categoryMeta, enabledReactions, enabledReportReasons } from '@/lib/aqlam/config';
 import { bandBar, bandBorder, bandSoft, readingLook } from '@/lib/aqlam/look';
 import { CategoryIcon } from '@/components/aqlam/CategoryBadge';
 import { pageMetadata } from '@/lib/seo';
@@ -28,10 +29,10 @@ type Params = Promise<{ id: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const aqlam = await requireAqlamReadable();
   const { id } = await params;
-  const post = await getPublicPost(id);
+  const [post, cfg] = await Promise.all([getPublicPost(id), getAqlamConfig()]);
   if (!post) return { title: 'النص غير موجود', robots: { index: false, follow: false } };
 
-  const indexable = post.allowIndexing && post.ageGroup === '12_plus';
+  const indexable = cfg.features.googleIndexing && post.allowIndexing && post.ageGroup === '12_plus';
   const meta = await pageMetadata({
     title: post.title,
     description: post.excerpt,
@@ -48,8 +49,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 export default async function AqlamPostPage({ params }: { params: Params }) {
   await requireAqlamReadable();
   const { id } = await params;
-  const post = await getPublicPost(id);
+  const [post, cfg] = await Promise.all([getPublicPost(id), getAqlamConfig()]);
   if (!post) notFound();
+  const meta = categoryMeta(cfg, post.category);
 
   const comments = post.commentsEnabled ? await listPublicComments(post.id) : [];
   const band = post.ageBand ? ageBandById(post.ageBand) : null;
@@ -72,12 +74,10 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
           >
             <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-2 ${bandBar(post.ageBand)}`} />
             <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white text-slate-800 shadow-sm ring-1 ring-slate-200">
-              <CategoryIcon category={post.category} className="h-7 w-7" />
+              <CategoryIcon icon={meta?.icon} className="h-7 w-7" />
             </span>
             <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
-              {post.category && (
-                <span className="text-sm font-black text-slate-800">{categoryLabel(post.category)}</span>
-              )}
+              {meta && <span className="text-sm font-black text-slate-800">{meta.label}</span>}
               {band && (
                 <span className={`rounded-full border px-3 py-1 text-xs font-bold ${band.tone.chip}`}>
                   {band.label}
@@ -89,7 +89,7 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
             </h1>
             <p className="mt-4 text-sm font-bold text-slate-600">
               بقلم{' '}
-              {post.writerSlug ? (
+              {post.writerSlug && cfg.features.writerPages ? (
                 <Link
                   href={`/aqlam/w/${post.writerSlug}`}
                   className="underline underline-offset-4 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none"
@@ -116,6 +116,12 @@ export default async function AqlamPostPage({ params }: { params: Params }) {
           title={post.title}
           reactionCount={post.reactionCount}
           commentsEnabled={post.commentsEnabled}
+          commentsOpen={cfg.features.comments}
+          reactions={enabledReactions(cfg).map((r) => ({ key: r.key, label: r.label, emoji: r.emoji }))}
+          reportReasons={enabledReportReasons(cfg).map((r) => ({ key: r.key, label: r.label }))}
+          commentMax={cfg.limits.commentMax}
+          reportDetailsMax={cfg.limits.reportDetailsMax}
+          showShare={cfg.features.share}
           comments={comments.map((c) => ({
             id: c.id,
             author: c.authorDisplayName,

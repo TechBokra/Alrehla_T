@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin, requireUser } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
-import { refreshAqlam } from '@/lib/aqlam/revalidate';
+import { refreshAqlam, refreshAqlamAll } from '@/lib/aqlam/revalidate';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { parseBirthDate } from '@/lib/aqlam/age';
 import { aqlamErrorMessage, parseRpcResult } from '@/lib/aqlam/errors';
@@ -20,6 +20,27 @@ import {
   validateWriterProfileInput,
 } from '@/lib/aqlam/post';
 import type { AqlamAgeGroup } from '@/lib/aqlam/age';
+import { AGE_BANDS } from '@/lib/age-bands';
+import {
+  AQLAM_FIELDS,
+  AQLAM_REACTION_KEYS,
+  AQLAM_REPORT_REASON_KEYS,
+  AQLAM_SECTIONS,
+  AQLAM_SORT_KEYS,
+  DEFAULT_AQLAM_CONFIG,
+  cloneConfig,
+  getAtPath,
+  parseBlockedWords,
+  parseCategories,
+  parseFieldValue,
+  parseReactions,
+  parseReportReasons,
+  validateConfigRelations,
+  withValueAt,
+  type AqlamConfig,
+} from '@/lib/aqlam/config';
+import { getAqlamAdminConfig, getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
+import type { Json } from '@/types/supabase';
 
 /**
  * عمليات «أقلام الرحلة».
@@ -100,6 +121,9 @@ export async function publishPost(formData: FormData): Promise<AqlamActionResult
     return { ok: false, error: 'لازم توافق على شروط النشر الأول.', field: 'consent' };
   }
 
+  const cfg = await getAqlamConfig();
+  if (!cfg.features.publishing) return { ok: false, error: aqlamErrorMessage('publishing_closed') };
+
   const input = validatePublishInput(
     {
       title: formData.get('title'),
@@ -112,6 +136,7 @@ export async function publishPost(formData: FormData): Promise<AqlamActionResult
       sourceDocumentId: formData.get('sourceDocumentId'),
     },
     group,
+    cfg,
   );
   if (!input.ok) return { ok: false, error: input.error, field: input.field };
   const v = input.value;
@@ -167,6 +192,8 @@ export async function updatePost(formData: FormData): Promise<AqlamActionResult>
   }
   const group: AqlamAgeGroup = status.data.age_group === '12_plus' ? '12_plus' : 'under_12';
 
+  const cfg = await getAqlamConfig();
+  if (!cfg.features.selfEdit) return { ok: false, error: aqlamErrorMessage('editing_closed') };
   const input = validateEditInput(
     {
       title: formData.get('title'),
@@ -176,6 +203,7 @@ export async function updatePost(formData: FormData): Promise<AqlamActionResult>
       commentsEnabled: formData.get('commentsEnabled') === 'on',
     },
     group,
+    cfg,
   );
   if (!input.ok) return { ok: false, error: input.error, field: input.field };
   const v = input.value;
@@ -204,11 +232,15 @@ export async function updatePost(formData: FormData): Promise<AqlamActionResult>
 export async function saveWriterProfile(formData: FormData): Promise<AqlamActionResult> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
-  const input = validateWriterProfileInput({
-    penName: formData.get('penName'),
-    bio: formData.get('bio'),
-    isPublic: formData.get('isPublic') === 'on',
-  });
+  const cfg = await getAqlamConfig();
+  const input = validateWriterProfileInput(
+    {
+      penName: formData.get('penName'),
+      bio: formData.get('bio'),
+      isPublic: formData.get('isPublic') === 'on',
+    },
+    cfg,
+  );
   if (!input.ok) return { ok: false, error: input.error, field: input.field };
   const v = input.value;
 
@@ -298,7 +330,9 @@ export async function getMyReactions(postId: string): Promise<string[]> {
 export async function addComment(postId: string, body: string): Promise<AqlamActionResult> {
   const auth = await signedIn();
   if (!auth.ok) return auth;
-  const text = validateCommentBody(body);
+  const cfg = await getAqlamConfig();
+  if (!cfg.features.comments) return { ok: false, error: aqlamErrorMessage('comments_off') };
+  const text = validateCommentBody(body, cfg);
   if (!text.ok) return { ok: false, error: text.error, field: text.field };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('aqlam_add_comment', { p_post: postId, p_body: text.value });
@@ -323,12 +357,16 @@ export async function reportContent(
   }
   const auth = await signedIn();
   if (!auth.ok) return auth;
+  const cfg = await getAqlamConfig();
+  if (!cfg.reportReasons.some((r) => r.key === reason && r.enabled)) {
+    return { ok: false, error: aqlamErrorMessage('invalid') };
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('aqlam_report', {
     p_target_type: targetType,
     p_target_id: targetId,
     p_reason: reason,
-    p_details: details?.trim() ? details.trim().slice(0, 500) : undefined,
+    p_details: details?.trim() ? details.trim().slice(0, cfg.limits.reportDetailsMax) : undefined,
   });
   if (error) {
     console.error('aqlam_report failed', error);
@@ -439,7 +477,7 @@ export async function requestCommentsLock(formData: FormData): Promise<AqlamActi
   if (!auth.ok) return auth;
   const childId = str(formData.get('childId'));
   if (!childId) return { ok: false, error: aqlamErrorMessage('invalid') };
-  const v = validateGuardianReason(formData.get('reason'));
+  const v = validateGuardianReason(formData.get('reason'), await getAqlamConfig());
   if (!v.ok) return { ok: false, error: v.error, field: 'reason' };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('aqlam_request_comments_lock', {
@@ -809,4 +847,198 @@ export async function setAllowlistMember(formData: FormData): Promise<AqlamActio
   const list = currentAllowlist(existing?.value);
   const next = op === 'add' ? [...list, userId] : list.filter((id) => id !== userId);
   return writeAqlamSettings({ allowlist: next }, auth.user, `aqlam_allowlist_${op}`);
+}
+
+// ── لوحة ضبط الإعدادات (كل التفاصيل والفلاتر) ─────────────────────────────────
+
+const LIST_SECTIONS = ['categories', 'reactions', 'reportReasons', 'blockedWords'] as const;
+
+/** رسالة عربي لخطأ `config_invalid` مع اسم الخانة لو معروفة. */
+function configInvalidMessage(field: unknown): string {
+  const f = typeof field === 'string' ? field : '';
+  const known = AQLAM_FIELDS.find((x) => x.path === f);
+  if (known) return `القيمة في «${known.label}» مش مظبوطة.`;
+  const lists: Record<string, string> = {
+    'filters.sorts': 'اختار ترتيبًا واحدًا على الأقل.',
+    'filters.defaultSort': 'الترتيب الافتراضي لازم يكون من الترتيبات المفعّلة.',
+    'filters.ageBands': 'شرايح السن مش مظبوطة.',
+    blockedWords: 'الكلمات الممنوعة مش مظبوطة (٢–٤٠ حرف للكلمة، وحتى ٣٠٠ كلمة).',
+  };
+  if (lists[f]) return lists[f];
+  if (f.startsWith('categories')) return 'التصنيفات مش مظبوطة. راجع الأكواد والأسماء.';
+  if (f.startsWith('reactions')) return 'الملصقات مش مظبوطة.';
+  if (f.startsWith('reportReasons')) return 'أسباب البلاغ مش مظبوطة.';
+  return aqlamErrorMessage('config_invalid');
+}
+
+/** صفوف التصنيفات من النموذج (الموجود + الجديد)، مرتبة بحقل الترتيب ثم بالموضع. */
+function readCategoryRows(formData: FormData) {
+  const n = Math.min(Math.max(Number(str(formData.get('rowCount'))) || 0, 0), 40);
+  const rows: { key: string; label: string; icon: string; enabled: boolean; order: number; idx: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    if (formData.get(`cat_delete_${i}`) === 'on') continue;
+    const key = str(formData.get(`cat_key_${i}`)).trim();
+    const label = str(formData.get(`cat_label_${i}`)).trim();
+    // صف جديد فاضي بيتتجاهل.
+    if (!key && !label) continue;
+    const order = Number(str(formData.get(`cat_order_${i}`)));
+    rows.push({
+      key,
+      label,
+      icon: str(formData.get(`cat_icon_${i}`)),
+      enabled: formData.get(`cat_enabled_${i}`) === 'on',
+      order: Number.isFinite(order) ? order : i + 1,
+      idx: i,
+    });
+  }
+  rows.sort((a, b) => a.order - b.order || a.idx - b.idx);
+  return rows;
+}
+
+/**
+ * حفظ قسم من إعدادات أقلام الرحلة (أو رجوعه للافتراضي بـ `intent=reset`).
+ *
+ * بنقرا الإعداد الحالي كامل، نغيّر القسم المطلوب بس، ونبعته لدالة القاعدة
+ * `aqlam_save_config` اللي بتتحقق من كل حاجة تاني (هي الحارس الفعلي).
+ */
+export async function saveAqlamConfigSection(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك بتعديل إعدادات أقلام الرحلة');
+  if (!auth.ok) return auth;
+
+  const section = str(formData.get('section'));
+  const reset = str(formData.get('intent')) === 'reset';
+  const scalarSection = AQLAM_SECTIONS.find((s) => s.id === section);
+  const isList = (LIST_SECTIONS as readonly string[]).includes(section);
+  if (!scalarSection && !isList) return { ok: false, error: aqlamErrorMessage('invalid') };
+
+  let current;
+  try {
+    current = await getAqlamAdminConfig();
+  } catch (e) {
+    console.error('aqlam config load failed', e);
+    return { ok: false, error: GENERIC };
+  }
+
+  const D = DEFAULT_AQLAM_CONFIG;
+  let next: AqlamConfig = cloneConfig(current.config);
+  let words: string[] | undefined;
+  const changed: string[] = [];
+
+  if (scalarSection) {
+    for (const f of scalarSection.fields) {
+      let value: unknown;
+      if (reset) {
+        value = getAtPath(D, f.path);
+      } else {
+        const p = parseFieldValue(f, formData.get(f.path));
+        if (!p.ok) return { ok: false, error: p.error, field: f.path };
+        value = p.value;
+      }
+      if (getAtPath(next, f.path) !== value) changed.push(f.path);
+      next = withValueAt(next, f.path, value);
+    }
+
+    // قوايم الفلاتر (الترتيبات وشرايح السن) بتتحفظ مع قسم الفلاتر.
+    if (section === 'filters') {
+      const sorts = reset ? [...D.filters.sorts] : AQLAM_SORT_KEYS.filter((k) => formData.getAll('sorts').includes(k));
+      const ageBands = reset
+        ? [...D.filters.ageBands]
+        : AGE_BANDS.map((b) => b.id).filter((id) => formData.getAll('ageBands').includes(id));
+      if (sorts.length === 0) return { ok: false, error: 'اختار ترتيبًا واحدًا على الأقل.', field: 'sorts' };
+      if (JSON.stringify(sorts) !== JSON.stringify(next.filters.sorts)) changed.push('filters.sorts');
+      if (JSON.stringify(ageBands) !== JSON.stringify(next.filters.ageBands)) changed.push('filters.ageBands');
+      next = { ...next, filters: { ...next.filters, sorts, ageBands } };
+    }
+
+    const relation = validateConfigRelations(next);
+    if (relation) return { ok: false, error: relation };
+  } else if (section === 'categories') {
+    if (reset) {
+      next = { ...next, categories: cloneConfig(D).categories };
+    } else {
+      const parsed = parseCategories(readCategoryRows(formData));
+      if (!parsed.ok) return { ok: false, error: parsed.error };
+      next = { ...next, categories: parsed.value };
+    }
+    changed.push('categories');
+  } else if (section === 'reactions') {
+    if (reset) {
+      next = { ...next, reactions: cloneConfig(D).reactions };
+    } else {
+      const parsed = parseReactions(
+        AQLAM_REACTION_KEYS.map((key) => ({
+          key,
+          label: str(formData.get(`rx_label_${key}`)),
+          emoji: str(formData.get(`rx_emoji_${key}`)),
+          enabled: formData.get(`rx_enabled_${key}`) === 'on',
+        })),
+      );
+      if (!parsed.ok) return { ok: false, error: parsed.error };
+      next = { ...next, reactions: parsed.value };
+    }
+    changed.push('reactions');
+  } else if (section === 'reportReasons') {
+    if (reset) {
+      next = { ...next, reportReasons: cloneConfig(D).reportReasons };
+    } else {
+      const parsed = parseReportReasons(
+        AQLAM_REPORT_REASON_KEYS.map((key) => ({
+          key,
+          label: str(formData.get(`rr_label_${key}`)),
+          enabled: formData.get(`rr_enabled_${key}`) === 'on',
+        })),
+      );
+      if (!parsed.ok) return { ok: false, error: parsed.error };
+      next = { ...next, reportReasons: parsed.value };
+    }
+    changed.push('reportReasons');
+  } else {
+    // blockedWords
+    const parsed: { ok: true; value: string[] } | { ok: false; error: string } = reset
+      ? { ok: true, value: [] }
+      : parseBlockedWords(str(formData.get('blockedWords')));
+    if (!parsed.ok) return { ok: false, error: parsed.error, field: 'blockedWords' };
+    words = parsed.value;
+    changed.push('blockedWords');
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_save_config', {
+    p_value: next as unknown as Json,
+    p_private: words ? ({ blockedWords: words } as Json) : undefined,
+  });
+  if (error) {
+    console.error('aqlam_save_config failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) {
+    const field = typeof (data as { field?: unknown } | null)?.field === 'string' ? String((data as { field: string }).field) : undefined;
+    return {
+      ok: false,
+      error: out.code === 'config_invalid' ? configInvalidMessage(field) : out.error,
+      field,
+    };
+  }
+
+  await logAuditAction({
+    actorProfileId: auth.user.id,
+    actorName: auth.user.fullName,
+    action: 'aqlam_config_updated',
+    entityType: 'AqlamConfig',
+    entityId: 'main',
+    metadata: {
+      section,
+      intent: reset ? 'reset' : 'save',
+      changed,
+      // عدد الكلمات بس — الكلمات نفسها ما بتتسجّلش في السجل.
+      ...(words ? { blockedWordsCount: words.length } : {}),
+    },
+  });
+  revalidatePath('/dashboard/admin/aqlam');
+  revalidatePath('/dashboard/admin/aqlam/settings');
+  revalidatePath('/dashboard/admin/aqlam/posts');
+  // الإعداد بيأثر على كل صفحات /aqlam (الفلاتر، النصوص، التصنيفات…).
+  refreshAqlamAll();
+  return { ok: true, message: reset ? 'رجع للافتراضي.' : 'اتحفظ.' };
 }

@@ -7,7 +7,6 @@ import { TextInput } from '@/components/forms/Form';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import {
-  ADMIN_POSTS_PAGE_SIZE,
   labelUsers,
   listAdminPostsPage,
   listPinnedAdminPosts,
@@ -24,13 +23,8 @@ import {
   type AdminPostSort,
 } from '@/lib/aqlam/admin-list';
 import { AGE_BANDS, ageBandById, isAgeBandId } from '@/lib/age-bands';
-import {
-  AQLAM_CATEGORIES,
-  AQLAM_LIMITS,
-  AQLAM_REMOVED_RETENTION_DAYS,
-  categoryLabel,
-  isAqlamCategory,
-} from '@/lib/aqlam/post';
+import { categoryMeta } from '@/lib/aqlam/config';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 
@@ -51,10 +45,20 @@ const SORTS: { key: AdminPostSort; label: string }[] = [
 ];
 
 /** إجراءات نص واحد: تثبيت/إخفاء/استرجاع/إزالة (والسبب اختياري ويوصل لسجل المراجعة). */
-function PostActions({ p, pinnedCount }: { p: AdminPostListRow; pinnedCount: number }) {
+function PostActions({
+  p,
+  pinnedCount,
+  maxPinned,
+  retentionDays,
+}: {
+  p: AdminPostListRow;
+  pinnedCount: number;
+  maxPinned: number;
+  retentionDays: number;
+}) {
   if (p.status === 'removed') {
     const purgeAt = p.removedAt
-      ? formatDate(new Date(Date.parse(p.removedAt) + AQLAM_REMOVED_RETENTION_DAYS * 86_400_000).toISOString())
+      ? formatDate(new Date(Date.parse(p.removedAt) + retentionDays * 86_400_000).toISOString())
       : null;
     return (
       <p className="text-xs font-bold text-slate-500">
@@ -75,7 +79,7 @@ function PostActions({ p, pinnedCount }: { p: AdminPostListRow; pinnedCount: num
   }
   return (
     <div className="flex flex-wrap items-end gap-3">
-      {p.status === 'published' && !p.pinned && pinnedCount >= AQLAM_LIMITS.maxPinned && (
+      {p.status === 'published' && !p.pinned && pinnedCount >= maxPinned && (
         <p className="text-xs font-bold text-amber-800">وصلت للحد الأقصى للمثبّت — فُكّ تثبيت نص الأول.</p>
       )}
       {p.status === 'published' && (
@@ -92,7 +96,7 @@ function PostActions({ p, pinnedCount }: { p: AdminPostListRow; pinnedCount: num
               value="pin"
               variant="secondary"
               pendingLabel="جارٍ…"
-              disabled={pinnedCount >= AQLAM_LIMITS.maxPinned}
+              disabled={pinnedCount >= maxPinned}
             >
               <Pin className="ml-1.5 h-4 w-4" aria-hidden="true" />
               تثبيت
@@ -127,16 +131,18 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageContent')) return <Unauthorized />;
   const sp = await searchParams;
+  const cfg = await getAqlamConfig();
 
   const status = isAdminPostStatus(sp.st) ? sp.st : null;
-  const category = isAqlamCategory(sp.c) ? sp.c : null;
+  // الإدارة بتفلتر بكل التصنيفات حتى المعطّلة (نصوصها القديمة لسه موجودة).
+  const category = cfg.categories.some((c) => c.key === sp.c) ? (sp.c ?? null) : null;
   const band = isAgeBandId(sp.a) ? sp.a : null;
   const sort: AdminPostSort = isAdminPostSort(sp.s) ? sp.s : 'new';
   const q = (sp.q ?? '').trim().slice(0, 80);
   const page = Math.max(1, Math.min(500, Number.parseInt(sp.p ?? '1', 10) || 1));
 
   const [{ rows, total }, pinned] = await Promise.all([
-    listAdminPostsPage({ status, category, band, sort, q, page }),
+    listAdminPostsPage({ status, category, band, sort, q, page, pageSize: cfg.admin.pageSize }),
     listPinnedAdminPosts(),
   ]);
   const labels: Map<string, AdminUserLabel> = await labelUsers([
@@ -145,7 +151,7 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
   ]);
 
   const cur = { st: status, c: category, a: band, s: sort, q };
-  const hasNext = page * ADMIN_POSTS_PAGE_SIZE < total;
+  const hasNext = page * cfg.admin.pageSize < total;
   const filtered = Boolean(status || category || band || q.length >= 2 || sort !== 'new');
 
   return (
@@ -155,7 +161,7 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
       {/* ── المختارات المثبّتة ── */}
       <section aria-labelledby="pinned" className="space-y-4">
         <Heading id="pinned">
-          المختارات المثبّتة ({pinned.length.toLocaleString('ar-EG')} من {AQLAM_LIMITS.maxPinned.toLocaleString('ar-EG')})
+          المختارات المثبّتة ({pinned.length.toLocaleString('ar-EG')} من {cfg.moderation.maxPinned.toLocaleString('ar-EG')})
         </Heading>
         <p className="text-sm font-medium text-slate-500">
           بتظهر في أول صفحة «أقلام الرحلة» في شريط «مختارات الرحلة» بالترتيب ده. لتثبيت نص منشور استخدم «تثبيت» من القايمة
@@ -239,7 +245,7 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
               <Link href={adminPostsHref({ ...cur, c: null })} className={chip + (!category ? chipOn : chipOff)} aria-current={!category ? 'true' : undefined}>
                 الكل
               </Link>
-              {AQLAM_CATEGORIES.map((c) => (
+              {cfg.categories.map((c) => (
                 <Link
                   key={c.key}
                   href={adminPostsHref({ ...cur, c: c.key })}
@@ -247,6 +253,7 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
                   aria-current={category === c.key ? 'true' : undefined}
                 >
                   {c.label}
+                  {!c.enabled && ' (معطّل)'}
                 </Link>
               ))}
             </div>
@@ -349,7 +356,7 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
                     </span>
                   </div>
                   <p className="text-xs font-medium text-slate-500">
-                    {categoryLabel(p.category) || 'نص'}
+                    {categoryMeta(cfg, p.category)?.label || 'نص'}
                     {b && ` · ${b.label}`} · يظهر باسم {p.displayName} · {formatDate(p.publishedAt ?? p.createdAt)}
                     {p.status === 'published' &&
                       ` · ${p.reactionCount.toLocaleString('ar-EG')} تشجيع · ${p.commentCount.toLocaleString('ar-EG')} تعليق`}
@@ -357,7 +364,12 @@ export default async function AqlamPostsAdminPage({ searchParams }: { searchPara
                   <p className="text-xs">
                     الكاتب: <Person id={p.writerId} labels={labels} />
                   </p>
-                  <PostActions p={p} pinnedCount={pinned.length} />
+                  <PostActions
+                    p={p}
+                    pinnedCount={pinned.length}
+                    maxPinned={cfg.moderation.maxPinned}
+                    retentionDays={cfg.moderation.removedRetentionDays}
+                  />
                 </li>
               );
             })}

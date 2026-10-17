@@ -19,7 +19,7 @@ import {
   requestCommentsLock,
   saveGuardianSettings,
 } from '@/actions/aqlam';
-import { AQLAM_LIMITS } from '@/lib/aqlam/post';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { aqlamReadable } from '@/lib/aqlam/settings';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
 import { formatDate } from '@/lib/utils';
@@ -35,7 +35,8 @@ export default async function FamilyAqlamPage() {
   const settings = await getSiteSettings();
   if (!aqlamReadable(settings.aqlam)) notFound();
 
-  const [children, awaiting, locks, requests] = await Promise.all([
+  const [cfg, children, awaiting, locks, requests] = await Promise.all([
+    getAqlamConfig(),
     fetchFamilyMembers(),
     listPostsAwaitingGuardian(),
     listGuardianSettings(),
@@ -223,8 +224,8 @@ export default async function FamilyAqlamPage() {
                             name="reason"
                             rows={3}
                             required
-                            minLength={AQLAM_LIMITS.guardianReasonMin}
-                            maxLength={AQLAM_LIMITS.guardianReasonMax}
+                            minLength={cfg.limits.guardianReasonMin}
+                            maxLength={cfg.limits.guardianReasonMax}
                           />
                         </Field>
                         <FormActions>

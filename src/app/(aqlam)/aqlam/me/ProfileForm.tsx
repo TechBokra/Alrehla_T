@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { saveWriterProfile } from '@/actions/aqlam';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Checkbox, Field, FormActions, FormSection, SubmitButton, TextArea, TextInput } from '@/components/forms/Form';
-import { AQLAM_LIMITS } from '@/lib/aqlam/post';
 
 /**
  * ملف الكاتب: اسم القلم والنبذة، وخيار «صفحتي العامة» (مقفول افتراضيًا).
@@ -14,10 +13,12 @@ import { AQLAM_LIMITS } from '@/lib/aqlam/post';
  */
 export function ProfileForm({
   initial,
+  limits,
   publicAllowed,
   publicBlockedReason,
 }: {
   initial: { penName: string; bio: string; isPublic: boolean; slug: string | null };
+  limits: { penNameMin: number; penNameMax: number; bioMax: number };
   publicAllowed: boolean;
   publicBlockedReason: string;
 }) {
@@ -27,16 +28,16 @@ export function ProfileForm({
         <Field
           label="اسم القلم"
           name="penName"
-          hint={`اختياري · من ${AQLAM_LIMITS.penNameMin.toLocaleString('ar-EG')} لـ${AQLAM_LIMITS.penNameMax.toLocaleString('ar-EG')} حرف. النصوص المنشورة قبل كده بتفضل باسمها.`}
+          hint={`اختياري · من ${limits.penNameMin.toLocaleString('ar-EG')} لـ${limits.penNameMax.toLocaleString('ar-EG')} حرف. النصوص المنشورة قبل كده بتفضل باسمها.`}
         >
-          <TextInput name="penName" defaultValue={initial.penName} maxLength={AQLAM_LIMITS.penNameMax} />
+          <TextInput name="penName" defaultValue={initial.penName} maxLength={limits.penNameMax} />
         </Field>
         <Field
           label="نبذة عنك"
           name="bio"
-          hint={`اختياري · حتى ${AQLAM_LIMITS.bioMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
+          hint={`اختياري · حتى ${limits.bioMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
         >
-          <TextArea name="bio" rows={4} defaultValue={initial.bio} maxLength={AQLAM_LIMITS.bioMax} />
+          <TextArea name="bio" rows={4} defaultValue={initial.bio} maxLength={limits.bioMax} />
         </Field>
       </FormSection>
 

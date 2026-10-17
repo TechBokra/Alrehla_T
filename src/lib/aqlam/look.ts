@@ -1,6 +1,5 @@
 import type { AgeBandId } from '@/lib/age-bands';
 import { AGE_BANDS } from '@/lib/age-bands';
-import type { AqlamCategory } from '@/lib/aqlam/post';
 
 /**
  * الشكل المناسب للمحتوى والسن — **حساب نقي بلا شاشة**.
@@ -62,7 +61,7 @@ export function readingLook(
         ? 'text-lg leading-[2.05] md:text-xl md:leading-[2.05]'
         : 'text-lg leading-loose';
   const wrap =
-    (category as AqlamCategory) === 'poem'
+    category === 'poem'
       ? 'mx-auto max-w-xl text-center'
       : 'mx-auto max-w-2xl';
   return { text, wrap };

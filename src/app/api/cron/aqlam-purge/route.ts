@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
-import { AQLAM_REMOVED_RETENTION_DAYS } from '@/lib/aqlam/post';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -8,7 +7,7 @@ export const maxDuration = 60;
 
 /**
  * المهمة اليومية: مسح نصوص وتعليقات أقلام الرحلة اللي اتشالت من أكتر من
- * `AQLAM_REMOVED_RETENTION_DAYS` يوم (٧)، ومعاها تشجيعاتها ونسخ تعديلها وبلاغاتها.
+ * مدة الاحتفاظ المضبوطة من إعدادات أقلام الرحلة (الافتراضي ٧ أيام)، ومعاها تشجيعاتها ونسخ تعديلها وبلاغاتها.
  * سجل العقوبات مابيتمسحش. المخفي (مش مشال) مابيتمسحش.
  *
  * نفس حراسة باقي المهام: من غير `CRON_SECRET` المهمة **بتقف**.
@@ -28,7 +27,8 @@ export async function GET(request: Request) {
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc('aqlam_purge_removed', { p_days: AQLAM_REMOVED_RETENTION_DAYS });
+  const { data, error } = await admin.rpc('aqlam_purge_removed');
+  // من غير `p_days`: الدالة بتقرا المدة من إعدادات الإدارة.
   if (error) {
     console.error('aqlam-purge cron failed', error);
     return NextResponse.json({ error: 'تعذّر مسح المحذوف' }, { status: 500 });

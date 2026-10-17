@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { updatePost } from '@/actions/aqlam';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Checkbox, Field, FormActions, FormSection, Select, SubmitButton, TextArea, TextInput } from '@/components/forms/Form';
-import { AQLAM_CATEGORIES, AQLAM_LIMITS } from '@/lib/aqlam/post';
 
 /**
  * تعديل نص. الاسم الظاهر ثابت (لو عايز اسم تاني: شيل وانشر من جديد).
@@ -12,9 +11,15 @@ import { AQLAM_CATEGORIES, AQLAM_LIMITS } from '@/lib/aqlam/post';
  */
 export function EditForm({
   post,
+  limits,
+  categories,
+  canIndex,
   ageGroup,
   warning,
 }: {
+  limits: { titleMax: number; bodyMax: number };
+  categories: { key: string; label: string }[];
+  canIndex: boolean;
   post: {
     id: string;
     title: string;
@@ -41,12 +46,12 @@ export function EditForm({
 
       <FormSection>
         <Field label="العنوان" name="title" required>
-          <TextInput name="title" defaultValue={post.title} maxLength={AQLAM_LIMITS.titleMax} required />
+          <TextInput name="title" defaultValue={post.title} maxLength={limits.titleMax} required />
         </Field>
 
         <Field label="النوع" name="category" required>
           <Select name="category" defaultValue={post.category}>
-            {AQLAM_CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c.key} value={c.key}>
                 {c.label}
               </option>
@@ -58,14 +63,14 @@ export function EditForm({
           label="النص"
           name="body"
           required
-          hint={`${body.length.toLocaleString('ar-EG')} / ${AQLAM_LIMITS.bodyMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
+          hint={`${body.length.toLocaleString('ar-EG')} / ${limits.bodyMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
         >
           <TextArea
             name="body"
             rows={14}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            maxLength={AQLAM_LIMITS.bodyMax}
+            maxLength={limits.bodyMax}
             required
           />
         </Field>
@@ -77,7 +82,7 @@ export function EditForm({
           defaultChecked={post.commentsEnabled}
           label="اسمح بالتعليقات"
         />
-        {ageGroup === '12_plus' && (
+        {ageGroup === '12_plus' && canIndex && (
           <Checkbox
             name="allowIndexing"
             defaultChecked={post.allowIndexing}

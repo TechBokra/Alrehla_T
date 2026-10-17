@@ -9,6 +9,7 @@ import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { aqlamNavVisible } from '@/lib/aqlam/settings';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { listIndexablePostIds } from '@/data/domains/(shared)/aqlam/queries';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -107,7 +108,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let aqlamRoutes: MetadataRoute.Sitemap = [];
   try {
     if (aqlamNavVisible((await getSiteSettings()).aqlam)) {
-      const ids = await listIndexablePostIds();
+      // الإدارة ممكن تقفل الفهرسة عمومًا: ساعتها القايمة بس من غير نصوص.
+      const ids = (await getAqlamConfig()).features.googleIndexing ? await listIndexablePostIds() : [];
       aqlamRoutes = [
         { url: `${baseUrl}/aqlam`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.6 },
         ...ids.map((p) => ({

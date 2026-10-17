@@ -1,8 +1,7 @@
 import { createPublicClient } from '@/lib/supabase/public';
 import { isAgeBandId, type AgeBandId } from '@/lib/age-bands';
-import { isAqlamCategory, type AqlamCategory } from '@/lib/aqlam/post';
+import { AQLAM_CATEGORY_KEY_RE, DEFAULT_AQLAM_CONFIG } from '@/lib/aqlam/config';
 import {
-  AQLAM_PAGE_SIZE,
   type AqlamPost,
   type AqlamPostCard,
   type AqlamPublicComment,
@@ -54,33 +53,46 @@ function toCard(row: CardRow): AqlamPostCard | null {
   };
 }
 
+/**
+ * ⚠️ مفتاح التصنيف بيتحقق منه المنادي من التصنيفات الحالية في الإعداد؛ هنا بس شكله
+ *    (حروف إنجليزي صغيرة وأرقام و_) قبل ما يدخل الاستعلام.
+ */
+const isCategoryKey = (v: unknown): v is string => typeof v === 'string' && AQLAM_CATEGORY_KEY_RE.test(v);
+
 export async function listPublicPosts(opts: {
-  category?: AqlamCategory | null;
+  category?: string | null;
   band?: AgeBandId | null;
   sort?: AqlamSort;
   page?: number;
+  pageSize?: number;
+  /** لو شريط المختارات مقفول، المثبّت لازم يظهر في القائمة نفسها بدل ما يختفي. */
+  includePinned?: boolean;
 }): Promise<{ posts: AqlamPostCard[]; hasMore: boolean }> {
+  const pageSize = Math.min(Math.max(Math.floor(opts.pageSize ?? DEFAULT_AQLAM_CONFIG.filters.pageSize), 1), 100);
   const page = Math.max(1, Math.floor(opts.page ?? 1));
-  const from = (page - 1) * AQLAM_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
   const supabase = createPublicClient();
 
   // المثبّت بيظهر في شريط «مختارات الرحلة» فوق القائمة (`listPinnedPosts`)، فمش بيتكرر هنا.
-  let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS).is('featured_at', null);
-  if (opts.category && isAqlamCategory(opts.category)) query = query.eq('category', opts.category);
+  let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS);
+  if (!opts.includePinned) query = query.is('featured_at', null);
+  if (isCategoryKey(opts.category)) query = query.eq('category', opts.category);
   if (opts.band && isAgeBandId(opts.band)) query = query.eq('age_band', opts.band);
   query =
     opts.sort === 'top'
       ? query.order('reaction_count', { ascending: false }).order('published_at', { ascending: false })
-      : query.order('published_at', { ascending: false });
+      : opts.sort === 'old'
+        ? query.order('published_at', { ascending: true })
+        : query.order('published_at', { ascending: false });
 
   // استعلام واحد، وصف زيادة نعرف منه فيه صفحة بعدها (من غير count منفصل).
-  const { data, error } = await query.range(from, from + AQLAM_PAGE_SIZE);
+  const { data, error } = await query.range(from, from + pageSize);
   if (error) {
     console.error('Error listing aqlam posts', error);
     throw new Error('تعذّر تحميل النصوص');
   }
   const cards = (data ?? []).map(toCard).filter((c): c is AqlamPostCard => c !== null);
-  return { posts: cards.slice(0, AQLAM_PAGE_SIZE), hasMore: (data ?? []).length > AQLAM_PAGE_SIZE };
+  return { posts: cards.slice(0, pageSize), hasMore: (data ?? []).length > pageSize };
 }
 
 /**
@@ -89,12 +101,12 @@ export async function listPublicPosts(opts: {
  * بتثبّت ٦ بس، والزيادة أمان).
  */
 export async function listPinnedPosts(opts: {
-  category?: AqlamCategory | null;
+  category?: string | null;
   band?: AgeBandId | null;
 }): Promise<AqlamPostCard[]> {
   const supabase = createPublicClient();
   let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS).not('featured_at', 'is', null);
-  if (opts.category && isAqlamCategory(opts.category)) query = query.eq('category', opts.category);
+  if (isCategoryKey(opts.category)) query = query.eq('category', opts.category);
   if (opts.band && isAgeBandId(opts.band)) query = query.eq('age_band', opts.band);
   const { data, error } = await query
     .order('featured_rank', { ascending: true, nullsFirst: false })

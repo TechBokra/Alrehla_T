@@ -16,6 +16,7 @@ import { decideGuardianRequest, handleReport, moderatePost } from '@/actions/aql
 import { SanctionBox } from './SanctionBox';
 import { Heading, Person, PostEdits, REASON_LABELS, who } from './_shared';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,8 @@ export default async function AqlamInboxPage() {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageContent')) return <Unauthorized />;
 
-  const [review, guardianRequests, reports] = await Promise.all([
+  const [cfg, review, guardianRequests, reports] = await Promise.all([
+    getAqlamConfig(),
     listAdminPosts(['pending_review']),
     listPendingGuardianRequests(),
     listOpenReports(),
@@ -165,7 +167,7 @@ export default async function AqlamInboxPage() {
             {reports.map((r) => (
               <li key={r.id} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5">
                 <p className="text-xs font-bold text-slate-500">
-                  {r.targetType === 'post' ? 'نص' : 'تعليق'} · {REASON_LABELS[r.reason] ?? r.reason} · {formatDate(r.createdAt)}
+                  {r.targetType === 'post' ? 'نص' : 'تعليق'} · {cfg.reportReasons.find((x) => x.key === r.reason)?.label ?? REASON_LABELS[r.reason] ?? r.reason} · {formatDate(r.createdAt)}
                   {r.targetStatus && ` · حالته: ${postStatusLabel(r.targetStatus).label}`}
                 </p>
                 <p className="text-sm font-medium whitespace-pre-wrap text-slate-800 [overflow-wrap:anywhere]">{r.preview}</p>

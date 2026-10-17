@@ -374,6 +374,27 @@ export type Database = {
           },
         ]
       }
+      aqlam_config: {
+        Row: {
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       aqlam_guardian_requests: {
         Row: {
           admin_note: string | null
@@ -4341,6 +4362,10 @@ export type Database = {
     }
     Functions: {
       admin_has_permission: { Args: { p_permission: string }; Returns: boolean }
+      aqlam_admin_config: {
+        Args: never
+        Returns: Json
+      }
       aqlam_admin_find_users: {
         Args: { p_ids?: string[]; p_query?: string }
         Returns: Json
@@ -4438,6 +4463,10 @@ export type Database = {
       }
       aqlam_sanction_user: {
         Args: { p_kind: string; p_reason: string; p_user: string }
+        Returns: Json
+      }
+      aqlam_save_config: {
+        Args: { p_private?: Json; p_value: Json }
         Returns: Json
       }
       aqlam_set_guardian_settings: {
