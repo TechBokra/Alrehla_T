@@ -1,6 +1,5 @@
 import { getWatermarkLayer } from '@/lib/watermark';
 import { Metadata } from 'next';
-import Image from 'next/image';
 import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
@@ -15,8 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
-import { addWatermark, slotImageUrl } from '@/lib/cloudinary';
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -66,6 +65,22 @@ export default async function CreativeWritingPage() {
   }));
 
   return (
+    <>
+      {/* ⚠️ **البانر برّه `PageContainer` عن قصد** — الإطار بيحط
+          `px-6 md:px-12`، والصورة المفروض بعرض الشاشة كامل زي
+          الرئيسية وأقلام الرحلة. */}
+      <PageHero
+        image={settings.images.creativeSlide1}
+        watermark={wm}
+        title={content['cw.hero.title']}
+        subtitle={content['cw.hero.subtitle']}
+        bandClassName="bg-emerald-50"
+        links={[
+          { href: '/creative-writing/packages', label: content['cw.pathway1.title'] },
+          { href: '/creative-writing/services', label: content['cw.pathway2.title'], look: 'outline' },
+          { href: '/creative-writing/instructors', label: 'المدربون', look: 'outline' },
+        ]}
+      />
     <PageContainer className="!py-0 !space-y-0">
       {/*
         بانر القسم — صورة واحدة ساكنة بدل السلايدر.
@@ -93,32 +108,6 @@ export default async function CreativeWritingPage() {
         الكبيرة. و`alt=""` عن قصد: دي صورة زينة، والمعنى في الـh1 اللي
         تحتها؛ قارئ الشاشة يعدّيها بدل ما يقرا وصفًا مكرّرًا.
       */}
-      {settings.images.creativeSlide1 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 md:px-8">
-          <div className="rounded-card relative aspect-[4/3] w-full overflow-hidden shadow-sm sm:aspect-[16/9] lg:aspect-[21/9]">
-            <Image
-              src={addWatermark(slotImageUrl(settings.images.creativeSlide1, 'creativeSlide1'), wm)}
-              alt=""
-              fill
-              sizes="(max-width: 1280px) 100vw, 1280px"
-              className="object-cover"
-              priority
-            />
-          </div>
-        </section>
-      )}
-
-      {/* Hero Section */}
-      <Section containerClassName="mx-auto max-w-4xl text-center pt-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
-          {content['cw.hero.title']}
-        </h1>
-        <p className="text-xl md:text-2xl font-medium text-slate-600 mb-8 leading-relaxed">
-          {content['cw.hero.subtitle']}
-        </p>
-
-      </Section>
-
       {/* Suitable For */}
       <Section containerClassName="mx-auto w-full max-w-6xl">
         <div className="rounded-3xl border border-slate-100 bg-slate-50/50 p-8 md:p-16">
@@ -296,5 +285,6 @@ export default async function CreativeWritingPage() {
 
 
     </PageContainer>
+    </>
   );
 }

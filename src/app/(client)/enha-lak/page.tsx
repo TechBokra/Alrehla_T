@@ -1,6 +1,5 @@
 import { getWatermarkLayer } from '@/lib/watermark';
 import { Metadata } from 'next';
-import Image from 'next/image';
 import { pageMetadata } from '@/lib/seo';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
@@ -19,9 +18,9 @@ import Link from 'next/link';
 import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
-import { addWatermark, slotImageUrl } from '@/lib/cloudinary';
 
 import { PageContainer } from '@/components/PageContainer';
+import { PageHero } from '@/components/PageHero';
 import { SectionHeader } from '@/components/SectionHeader';
 
 
@@ -79,60 +78,23 @@ export default async function EnhaLakPage() {
   }));
 
   return (
+    <>
+      {/* ⚠️ **البانر برّه `PageContainer` عن قصد** — الإطار بيحط
+          `px-6 md:px-12`، والصورة المفروض بعرض الشاشة كامل زي
+          الرئيسية وأقلام الرحلة. */}
+      <PageHero
+        image={settings.images.enhaLakSlide1}
+        watermark={wm}
+        title={content['enhaLak.hero.title']}
+        subtitle={content['enhaLak.hero.subtitle']}
+        bandClassName="bg-rose-50"
+        links={[
+          { href: '/enha-lak/custom', label: content['enhaLak.path1.title'] },
+          { href: '/enha-lak/library', label: content['enhaLak.path2.title'], look: 'outline' },
+          { href: '/enha-lak/subscription', label: content['enhaLak.path3.title'], look: 'outline' },
+        ]}
+      />
     <PageContainer className="!py-0 !space-y-0">
-      {/*
-        بانر القسم — صورة واحدة ساكنة بدل السلايدر.
-
-        ── ليه السلايدر اتشال ───────────────────────────────────
-
-        السلايدر كان بيعرض **تلات شرايح بنفس التلات وجهات بالظبط** اللي
-        القسم اللي تحته بيعرضها كلها مرة واحدة: التخصيص والمكتبة والاشتراك.
-        يعني تكرار كامل، بس بيوريك واحدة في المرة بدل التلاتة.
-
-        وكان معاه كمان:
-          • **عنوان h1 تاني في نفس الصفحة** — كل شريحة فيها h1، وتحتها
-            h1 الصفحة الحقيقي. ده يضر الفهرسة وقارئ الشاشة
-          • `<img>` خام مش `next/image` — أتقل صورة في الصفحة بتتحمّل
-            بحجمها الكامل على كل موبايل
-          • ارتفاع ثابت 450px موبايل / 650px ديسكتوب = ~55٪ من شاشة
-            الهاتف قبل ما المستخدم يقرا كلمة
-          • تقدّم تلقائي مبيقفش لو المستخدم بيتفرج
-          • خمس ألوان سمة زيادة (violet · teal) بتوسّع اللوحة بلا داعي
-
-        ── والبديل ──────────────────────────────────────────────
-
-        صورة واحدة **بنسبة أبعاد** مش بارتفاع ثابت، فبتتناسب مع الشاشة
-        بدل ما تُقص عشوائيًا: 4:3 على الموبايل ← 16:9 ← 21:9 على الشاشة
-        الكبيرة. و`alt=""` عن قصد: دي صورة زينة، والمعنى في الـh1 اللي
-        تحتها؛ قارئ الشاشة يعدّيها بدل ما يقرا وصفًا مكرّرًا.
-      */}
-      {settings.images.enhaLakSlide1 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 md:px-8">
-          <div className="rounded-card relative aspect-[4/3] w-full overflow-hidden shadow-sm sm:aspect-[16/9] lg:aspect-[21/9]">
-            <Image
-              src={addWatermark(slotImageUrl(settings.images.enhaLakSlide1, 'enhaLakSlide1'), wm)}
-              alt=""
-              fill
-              sizes="(max-width: 1280px) 100vw, 1280px"
-              className="object-cover"
-              priority
-            />
-          </div>
-        </section>
-      )}
-
-            {/* Hero Section */}
-      <Section containerClassName="max-w-4xl text-center py-12 md:py-20">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-6 leading-tight">
-          {content['enhaLak.hero.title']}
-        </h1>
-        <p className="text-xl md:text-2xl font-medium text-slate-600 mb-8 leading-relaxed">
-          {content['enhaLak.hero.subtitle']}
-        </p>
-
-      </Section>
-      
-
       {/* Path Selection */}
       <Section containerClassName="max-w-5xl">
         <div className="grid gap-8 md:grid-cols-3">
@@ -296,5 +258,6 @@ export default async function EnhaLakPage() {
         </div>
       </Section>
     </PageContainer>
+    </>
   );
 }
