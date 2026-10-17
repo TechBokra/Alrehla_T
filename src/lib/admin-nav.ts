@@ -203,6 +203,7 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'محتوى الصفحات', href: `${A}/content/pages`, permission: 'canManageContent' },
           { label: 'المدونة', href: `${A}/content/blog`, permission: 'canManageContent' },
           { label: 'آراء العملاء', href: `${A}/content/testimonials`, permission: 'canManageContent' },
+          { label: 'الإعلانات', href: `${A}/content/ads`, permission: 'canManageContent' },
           { label: 'التقييمات', href: `${A}/reviews`, permission: 'canManageContent' },
         ],
       },

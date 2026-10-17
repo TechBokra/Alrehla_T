@@ -29,6 +29,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export default async function AboutPage() {
   const settings = await getSiteSettings();
@@ -60,6 +61,7 @@ export default async function AboutPage() {
         }
         title={content['about.title']}
       />
+      <AdSlot page="about" position="top" />
       <PageContainer className="!py-0 !space-y-0">
       {/* صورة الفريق — دي غير البانر: البانر صورة القسم، ودي الناس. */}
       <Section containerClassName="max-w-4xl space-y-6 text-center">
@@ -159,6 +161,7 @@ export default async function AboutPage() {
           })}
         </div>
       </Section>
+    <AdSlot page="about" position="bottom" />
     </PageContainer>
     </>
   );

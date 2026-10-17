@@ -23,6 +23,7 @@ import { Card } from '@/components/ui/Card';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getWatermarkLayer } from '@/lib/watermark';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 
 export default async function PackagesPage() {
@@ -93,6 +94,7 @@ export default async function PackagesPage() {
         subtitle={content['packages.description']}
         bandClassName="bg-emerald-50"
       />
+      <AdSlot page="packages" position="top" />
       <PageContainer className="!py-0 !space-y-0">
         <SectionTabs items={tabItems} />
 
@@ -146,6 +148,7 @@ export default async function PackagesPage() {
       </Section>
 
 
+    <AdSlot page="packages" position="bottom" />
     </PageContainer>
     </>
   );

@@ -16,6 +16,7 @@ import { getPersonalizedProducts } from '@/data/domains/(client)/products/querie
 import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { LibraryClient } from './LibraryClient';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 
 export default async function LibraryPage() {
@@ -25,6 +26,7 @@ export default async function LibraryPage() {
 
   return (
     <PageContainer className="!py-0 !space-y-0">
+    <AdSlot page="library" position="top" />
       {/* ⚠️ **نفس رأس «أنت البطل هنا»** (`ShelfHeader`) — الطلب: المكتبة
           بنفس الشكل. والعنوان الفرعي من المصفوفة التنفيذية §3.3: «قصة
           جاهزة… وغلاف يحمل اسم طفلك» — أوضح فرق عن «أنت البطل هنا». */}
@@ -45,6 +47,7 @@ export default async function LibraryPage() {
           emptyText: content['library.empty.text'],
         }}
       />
+    <AdSlot page="library" position="bottom" />
     </PageContainer>
   );
 }

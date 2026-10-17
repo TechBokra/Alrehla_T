@@ -16,6 +16,7 @@ import { enabledCategories, resolveSort, visibleAgeBands } from '@/lib/aqlam/con
 import { aqlamListHref } from '@/lib/aqlam/list-url';
 import { pageMetadata } from '@/lib/seo';
 import { requireAqlamReadable } from './gate';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 /**
  * قائمة النصوص. بتتفلتر بالتصنيف والفئة والترتيب من الرابط، فالصفحة
@@ -72,6 +73,7 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
   return (
     <>
       <AqlamHero image={settings.images.aqlamHero} title={cfg.texts.heroTitle} subtitle={cfg.texts.heroSubtitle} />
+      <AdSlot page="aqlam" position="top" />
       <PageContainer>
       <Section containerClassName="max-w-6xl space-y-8">
         <AqlamFilters cfg={cfg} category={category} band={band} sort={sort} />
@@ -139,6 +141,7 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
           </nav>
         )}
       </Section>
+      <AdSlot page="aqlam" position="bottom" />
       </PageContainer>
     </>
   );

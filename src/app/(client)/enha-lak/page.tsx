@@ -40,6 +40,7 @@ import {
   Package,
   Quote,
 } from 'lucide-react';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 
 
@@ -94,6 +95,7 @@ export default async function EnhaLakPage() {
           { href: '/enha-lak/subscription', label: content['enhaLak.path3.title'], look: 'outline' },
         ]}
       />
+      <AdSlot page="enha-lak" position="top" />
     <PageContainer className="!py-0 !space-y-0">
       {/* Path Selection */}
       <Section containerClassName="max-w-5xl">
@@ -257,6 +259,7 @@ export default async function EnhaLakPage() {
           </Button>
         </div>
       </Section>
+    <AdSlot page="enha-lak" position="bottom" />
     </PageContainer>
     </>
   );

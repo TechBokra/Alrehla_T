@@ -15,6 +15,7 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 
 
@@ -49,6 +50,7 @@ export default async function BlogPage() {
         title={content['blog.title']}
         subtitle={content['blog.subtitle']}
       />
+      <AdSlot page="blog" position="top" />
       <PageContainer className="!py-0 !space-y-0">
 
       {/* Blog Grid */}
@@ -121,6 +123,7 @@ export default async function BlogPage() {
         </div>
       </Section>
 
+    <AdSlot page="blog" position="bottom" />
     </PageContainer>
     </>
   );

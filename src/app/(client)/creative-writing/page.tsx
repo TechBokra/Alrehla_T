@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   Quote,
 } from 'lucide-react';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export default async function CreativeWritingPage() {
   // ⚠️ كان بيفلتر بالبحث عن كلمة «ولي» في صفة صاحب الرأي: رأي ولي أمر
@@ -81,6 +82,7 @@ export default async function CreativeWritingPage() {
           { href: '/creative-writing/instructors', label: 'المدربون', look: 'outline' },
         ]}
       />
+      <AdSlot page="creative-writing" position="top" />
     <PageContainer className="!py-0 !space-y-0">
       {/*
         بانر القسم — صورة واحدة ساكنة بدل السلايدر.
@@ -284,6 +286,7 @@ export default async function CreativeWritingPage() {
       </Section>
 
 
+    <AdSlot page="creative-writing" position="bottom" />
     </PageContainer>
     </>
   );

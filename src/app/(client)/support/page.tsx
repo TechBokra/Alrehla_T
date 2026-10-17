@@ -8,6 +8,7 @@ import { PageHero } from '@/components/PageHero';
 import { getWatermarkLayer } from '@/lib/watermark';
 import { parseFaqText } from '@/lib/support-faqs';
 import { CONTENT_DEFAULTS } from '@/lib/site-content';
+import { AdSlot } from '@/components/ads/AdSlot';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,7 @@ export default async function SupportPage() {
         subtitle={content['support.subtitle']}
         bandClassName="bg-sky-50"
       />
+      <AdSlot page="support" position="top" />
       <SupportClient
       isSignedIn={user.role !== 'visitor'}
       whatsappNumber={settings.whatsappNumber}
@@ -62,6 +64,7 @@ export default async function SupportPage() {
       faqs={faqs}
       text={text}
       />
+    <AdSlot page="support" position="bottom" />
     </>
   );
 }
