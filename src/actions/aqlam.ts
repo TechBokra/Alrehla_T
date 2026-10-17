@@ -513,6 +513,7 @@ export async function moderatePost(formData: FormData): Promise<AqlamActionResul
   });
   refreshAqlam(postId);
   revalidatePath('/dashboard/admin/aqlam');
+  revalidatePath('/dashboard/admin/aqlam/posts');
   return { ok: true };
 }
 
@@ -546,6 +547,37 @@ export async function moderateComment(formData: FormData): Promise<AqlamActionRe
   });
   refreshAqlam(postId || undefined);
   revalidatePath('/dashboard/admin/aqlam');
+  return { ok: true };
+}
+
+/** تثبيت نص في «مختارات الرحلة» أو فكّه أو تحريكه: pin | unpin | up | down. */
+export async function pinPost(formData: FormData): Promise<AqlamActionResult> {
+  const auth = await adminOnly('غير مصرح لك بمراجعة أقلام الرحلة');
+  if (!auth.ok) return auth;
+  const postId = str(formData.get('postId'));
+  const op = str(formData.get('op'));
+  if (!UUID_RE.test(postId) || !['pin', 'unpin', 'up', 'down'].includes(op)) {
+    return { ok: false, error: aqlamErrorMessage('invalid') };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('aqlam_set_pin', { p_post: postId, p_op: op });
+  if (error) {
+    console.error('aqlam_set_pin failed', error);
+    return { ok: false, error: GENERIC };
+  }
+  const out = parseRpcResult(data);
+  if (!out.ok) return { ok: false, error: out.error };
+  if (op === 'pin' || op === 'unpin') {
+    await logAuditAction({
+      actorProfileId: auth.user.id,
+      actorName: auth.user.fullName,
+      action: `aqlam_post_${op}`,
+      entityType: 'AqlamPost',
+      entityId: postId,
+    });
+  }
+  refreshAqlam(postId);
+  revalidatePath('/dashboard/admin/aqlam/posts');
   return { ok: true };
 }
 

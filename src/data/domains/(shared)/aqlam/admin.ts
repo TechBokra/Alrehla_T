@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { parseRpcResult } from '@/lib/aqlam/errors';
+import { likePattern, type AdminPostSort, type AdminPostStatus } from '@/lib/aqlam/admin-list';
 
 /**
  * قراءات شاشة الإدارة — بصلاحية المسؤول نفسه (سياسات RLS للإدارة).
@@ -104,6 +105,123 @@ export async function listOpenReports(limit = 50): Promise<AdminReportRow[]> {
       writerId: isPost ? (post?.writer_id ?? null) : (comment?.author_id ?? null),
     };
   });
+}
+
+// ── كل النصوص (إدارة) ────────────────────────────────────────────────────────
+
+export const ADMIN_POSTS_PAGE_SIZE = 20;
+
+/** نص كما تعرضه إدارة «كل النصوص». */
+export type AdminPostListRow = {
+  id: string;
+  title: string;
+  status: string;
+  displayName: string;
+  writerId: string;
+  ageGroup: string;
+  ageBand: string | null;
+  category: string;
+  createdAt: string;
+  publishedAt: string | null;
+  removedAt: string | null;
+  reactionCount: number;
+  commentCount: number;
+  /** مثبّت في «مختارات الرحلة»؟ والترتيب (١ = الأول). */
+  pinned: boolean;
+  pinRank: number | null;
+};
+
+const LIST_COLUMNS =
+  'id,title,status,display_name,writer_id,age_group,age_band,category,created_at,published_at,removed_at,reaction_count,comment_count,featured_at,featured_rank';
+
+type ListSource = {
+  id: string;
+  title: string;
+  status: string;
+  display_name: string;
+  writer_id: string;
+  age_group: string;
+  age_band: string | null;
+  category: string;
+  created_at: string;
+  published_at: string | null;
+  removed_at: string | null;
+  reaction_count: number;
+  comment_count: number;
+  featured_at: string | null;
+  featured_rank: number | null;
+};
+
+function toListRow(p: ListSource): AdminPostListRow {
+  return {
+    id: p.id,
+    title: p.title,
+    status: p.status,
+    displayName: p.display_name,
+    writerId: p.writer_id,
+    ageGroup: p.age_group,
+    ageBand: p.age_band,
+    category: p.category,
+    createdAt: p.created_at,
+    publishedAt: p.published_at,
+    removedAt: p.removed_at,
+    reactionCount: p.reaction_count,
+    commentCount: p.comment_count,
+    pinned: !!p.featured_at,
+    pinRank: p.featured_rank,
+  };
+}
+
+export type AdminPostFilter = {
+  status?: AdminPostStatus | null;
+  category?: string | null;
+  band?: string | null;
+  sort?: AdminPostSort;
+  q?: string;
+  page?: number;
+};
+
+/** كل النصوص بفلاتر الحالة والنوع والسن والترتيب والبحث في العنوان — صفحة بصفحة. */
+export async function listAdminPostsPage(
+  filter: AdminPostFilter,
+): Promise<{ rows: AdminPostListRow[]; total: number }> {
+  const page = Math.max(1, Math.floor(filter.page ?? 1));
+  const from = (page - 1) * ADMIN_POSTS_PAGE_SIZE;
+  const supabase = await createClient();
+  let query = supabase.from('aqlam_posts').select(LIST_COLUMNS, { count: 'exact' });
+  if (filter.status) query = query.eq('status', filter.status);
+  if (filter.category) query = query.eq('category', filter.category);
+  if (filter.band) query = query.eq('age_band', filter.band);
+  const q = (filter.q ?? '').trim();
+  if (q.length >= 2) query = query.ilike('title', likePattern(q.slice(0, 80)));
+  query =
+    filter.sort === 'top'
+      ? query.order('reaction_count', { ascending: false }).order('created_at', { ascending: false })
+      : query.order('created_at', { ascending: filter.sort === 'old' });
+  const { data, error, count } = await query.range(from, from + ADMIN_POSTS_PAGE_SIZE - 1);
+  if (error) {
+    console.error('Error listing aqlam posts (admin page)', error);
+    throw new Error('تعذّر تحميل النصوص');
+  }
+  return { rows: (data ?? []).map(toListRow), total: count ?? 0 };
+}
+
+/** النصوص المثبّتة بترتيبها. */
+export async function listPinnedAdminPosts(): Promise<AdminPostListRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('aqlam_posts')
+    .select(LIST_COLUMNS)
+    .not('featured_at', 'is', null)
+    .eq('status', 'published')
+    .order('featured_rank', { ascending: true, nullsFirst: false })
+    .order('featured_at', { ascending: false })
+    .limit(12);
+  if (error) {
+    console.error('Error listing pinned aqlam posts (admin)', error);
+    throw new Error('تعذّر تحميل النصوص المثبّتة');
+  }
+  return (data ?? []).map(toListRow);
 }
 
 // ── طلبات أولياء الأمور (قفل التعليقات) ─────────────────────────────────────

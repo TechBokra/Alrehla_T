@@ -204,7 +204,18 @@ export const ADMIN_NAV: AdminGroup[] = [
           { label: 'المدونة', href: `${A}/content/blog`, permission: 'canManageContent' },
           { label: 'آراء العملاء', href: `${A}/content/testimonials`, permission: 'canManageContent' },
           { label: 'التقييمات', href: `${A}/reviews`, permission: 'canManageContent' },
-          { label: 'أقلام الرحلة', href: `${A}/aqlam`, permission: 'canManageContent' },
+        ],
+      },
+      {
+        // أقلام الرحلة: قسم لوحده (صندوق · كل النصوص · الحسابات · الإعدادات) عشان حجمه وتكرار الدخول عليه.
+        id: 'aqlam',
+        label: 'أقلام الرحلة',
+        icon: 'PenLine',
+        tabs: [
+          { label: 'الصندوق', href: `${A}/aqlam`, permission: 'canManageContent' },
+          { label: 'كل النصوص', href: `${A}/aqlam/posts`, permission: 'canManageContent' },
+          { label: 'الحسابات', href: `${A}/aqlam/people`, permission: 'canManageContent' },
+          { label: 'الإعدادات', href: `${A}/aqlam/settings`, permission: 'canManageContent' },
         ],
       },
       {

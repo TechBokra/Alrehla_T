@@ -535,6 +535,7 @@ export type Database = {
           display_name: string
           edited_at: string | null
           featured_at: string | null
+          featured_rank: number | null
           guardian_approved_at: string | null
           guardian_approved_by: string | null
           id: string
@@ -568,6 +569,7 @@ export type Database = {
           display_name: string
           edited_at?: string | null
           featured_at?: string | null
+          featured_rank?: number | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
           id?: string
@@ -601,6 +603,7 @@ export type Database = {
           display_name?: string
           edited_at?: string | null
           featured_at?: string | null
+          featured_rank?: number | null
           guardian_approved_at?: string | null
           guardian_approved_by?: string | null
           id?: string
@@ -4285,6 +4288,7 @@ export type Database = {
           edited_at: string | null
           excerpt: string | null
           featured_at: string | null
+          featured_rank: number | null
           id: string | null
           published_at: string | null
           reaction_count: number | null
@@ -4340,6 +4344,10 @@ export type Database = {
       }
       aqlam_decide_guardian_request: {
         Args: { p_approve: boolean; p_note?: string; p_request: string }
+        Returns: Json
+      }
+      aqlam_set_pin: {
+        Args: { p_op: string; p_post: string }
         Returns: Json
       }
       aqlam_purge_removed: {

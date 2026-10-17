@@ -31,6 +31,9 @@ export const AQLAM_ERROR_MESSAGES: Record<string, string> = {
   already_pending: 'في طلب لسه بيستنى قرار الإدارة.',
   already_locked: 'التعليقات مقفولة بالفعل.',
   note_required: 'اكتب سبب الرفض علشان ولي الأمر يعرفه.',
+  pin_limit: 'وصلت للحد الأقصى من النصوص المثبّتة. شيل تثبيت نص الأول.',
+  not_published: 'التثبيت للنصوص المنشورة بس.',
+  not_pinned: 'النص ده مش مثبّت.',
   comments_restricted: 'التعليق على نصوص الأصغر من ١٢ سنة للمدربين بس.',
 };
 

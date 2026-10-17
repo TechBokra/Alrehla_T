@@ -39,4 +39,10 @@ describe('رسائل الأخطاء', () => {
       expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
     }
   });
+
+  it('أكواد التثبيت ليها رسائل عربي', () => {
+    for (const code of ['pin_limit', 'not_published', 'not_pinned']) {
+      expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
+    }
+  });
 });

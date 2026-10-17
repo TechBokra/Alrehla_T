@@ -167,6 +167,7 @@ describe('قرارات السياسة', () => {
   it('الأرقام المعتمدة: ٥ بلاغات للإخفاء و٧ أيام للمشال', () => {
     expect(AQLAM_LIMITS.reportsToAutoHide).toBe(5);
     expect(AQLAM_REMOVED_RETENTION_DAYS).toBe(7);
+    expect(AQLAM_LIMITS.maxPinned).toBe(6);
   });
 
   it('سبب طلب ولي الأمر إجباري وبين الحدّين', () => {

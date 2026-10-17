@@ -30,6 +30,8 @@ export const AQLAM_LIMITS = {
   guardianReasonMin: 10,
   guardianReasonMax: 500,
   adminNoteMax: 500,
+  /** أقصى عدد نصوص مثبّتة في «مختارات الرحلة» (القاعدة: `aqlam_set_pin`). */
+  maxPinned: 6,
 } as const;
 
 /** النص أو التعليق المشال بيتمسح نهائيًا بعد المدة دي (القاعدة: `aqlam_purge_removed`). */

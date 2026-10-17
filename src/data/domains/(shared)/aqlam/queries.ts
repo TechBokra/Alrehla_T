@@ -64,7 +64,8 @@ export async function listPublicPosts(opts: {
   const from = (page - 1) * AQLAM_PAGE_SIZE;
   const supabase = createPublicClient();
 
-  let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS);
+  // المثبّت بيظهر في شريط «مختارات الرحلة» فوق القائمة (`listPinnedPosts`)، فمش بيتكرر هنا.
+  let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS).is('featured_at', null);
   if (opts.category && isAqlamCategory(opts.category)) query = query.eq('category', opts.category);
   if (opts.band && isAgeBandId(opts.band)) query = query.eq('age_band', opts.band);
   query =
@@ -80,6 +81,30 @@ export async function listPublicPosts(opts: {
   }
   const cards = (data ?? []).map(toCard).filter((c): c is AqlamPostCard => c !== null);
   return { posts: cards.slice(0, AQLAM_PAGE_SIZE), hasMore: (data ?? []).length > AQLAM_PAGE_SIZE };
+}
+
+/**
+ * النصوص المثبّتة («مختارات الرحلة») بترتيب الإدارة — بنفس فلتر النوع والفئة عشان
+ * الشريط ماييجيش بنص مالوش علاقة باللي الزائر بيدوّر عليه. بحد أقصى ١٢ (الإدارة
+ * بتثبّت ٦ بس، والزيادة أمان).
+ */
+export async function listPinnedPosts(opts: {
+  category?: AqlamCategory | null;
+  band?: AgeBandId | null;
+}): Promise<AqlamPostCard[]> {
+  const supabase = createPublicClient();
+  let query = supabase.from('aqlam_public_posts').select(CARD_COLUMNS).not('featured_at', 'is', null);
+  if (opts.category && isAqlamCategory(opts.category)) query = query.eq('category', opts.category);
+  if (opts.band && isAgeBandId(opts.band)) query = query.eq('age_band', opts.band);
+  const { data, error } = await query
+    .order('featured_rank', { ascending: true, nullsFirst: false })
+    .order('featured_at', { ascending: false })
+    .limit(12);
+  if (error) {
+    console.error('Error listing pinned aqlam posts', error);
+    throw new Error('تعذّر تحميل النصوص المثبّتة');
+  }
+  return (data ?? []).map(toCard).filter((c): c is AqlamPostCard => c !== null);
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
