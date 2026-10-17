@@ -36,6 +36,7 @@ export default async function SupportPage() {
   const faqs = {
     'enha-lak': read('support.faq.enhaLak'),
     'creative-writing': read('support.faq.creativeWriting'),
+    aqlam: read('support.faq.aqlam'),
     partners: read('support.faq.partners'),
     general: read('support.faq.general'),
   };

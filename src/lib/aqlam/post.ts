@@ -28,7 +28,16 @@ export const AQLAM_LIMITS = {
 export const AQLAM_REMOVED_RETENTION_DAYS = DEFAULT_AQLAM_CONFIG.moderation.removedRetentionDays;
 
 /** التصنيفات الافتراضية. الفعلية من الإعداد (`cfg.categories`) — ممكن تتعدّل وتتزوّد. */
-export const AQLAM_CATEGORIES = DEFAULT_AQLAM_CONFIG.categories;
+/*
+ * ⚠️ **كان فيه هنا `AQLAM_CATEGORIES = DEFAULT_AQLAM_CONFIG.categories`**
+ *    — اسم مختصر للقايمة الافتراضية، وماكانش حد بينادي عليه.
+ *
+ *    واتشال عن قصد مش تنظيفًا بس: التصنيفات **بتتعدّل من لوحة
+ *    الإدارة**، فأي شاشة تقرا من اسم زي ده بتعرض الافتراضي وتتجاهل
+ *    اللي الإدارة ظبطته — من غير ما حد يلاحظ. اللي محتاج التصنيفات
+ *    بياخدها من الإعداد (`getAqlamConfig`)، واللي محتاج الافتراضي
+ *    بيكتب `DEFAULT_AQLAM_CONFIG.categories` صريحة.
+ */
 
 /** مفتاح تصنيف: نص. صلاحيته (موجود/مفعّل) بتتحدد من قايمة الإعداد. */
 export type AqlamCategory = string;

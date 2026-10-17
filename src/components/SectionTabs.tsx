@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SCROLL_ROW, SCROLL_ROW_MD_OFF } from '@/lib/scroll-row';
 
 /**
  * تبويبات أقسام الصفحة — **روابط لمواضع، مش تبديل محتوى**.
@@ -39,14 +40,7 @@ export function SectionTabs({
       className={`sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-white/90 px-4 py-2 backdrop-blur-sm md:py-3 ${className}`}
     >
       <ul
-        className={
-          'mx-auto flex w-full max-w-6xl flex-nowrap justify-start gap-2 overflow-x-auto whitespace-nowrap ' +
-          '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
-          // التلاشي على الطرفين بيقول «فيه تبويبات كمان» — الـscrollbar مخفي.
-          '[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)] ' +
-          // من التابلت وفوق التبويبات بتسع في سطر، فالقناع والزحليق بيتشالوا.
-          'md:flex-wrap md:overflow-visible md:[mask-image:none]'
-        }
+        className={`mx-auto w-full max-w-6xl justify-start gap-2 whitespace-nowrap ${SCROLL_ROW} ${SCROLL_ROW_MD_OFF}`}
       >
         {items.map((t) => (
           <li key={t.id}>

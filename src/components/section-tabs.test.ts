@@ -28,26 +28,52 @@ const read = (p: string) => readFileSync(join(process.cwd(), 'src', p), 'utf8');
 const codeOnly = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 
-describe('شكل الموبايل — التبويبات', () => {
-  const src = codeOnly(read('components/SectionTabs.tsx'));
+describe('شكل الموبايل — الصف اللي بيتزحلق', () => {
+  const row = codeOnly(read('lib/scroll-row.ts'));
 
   it('التعليقات اتشالت فعلًا قبل الفحص', () => {
     // الحارس بيتأكد من نفسه: لو الشيل مابيشيلش، الفحص اللي تحت بلا معنى.
     expect(codeOnly('/* `flex-wrap` في الشرح */ const a = 1;')).not.toContain('flex-wrap');
     expect(codeOnly('// `flex-wrap` في الشرح\nconst a = 1;')).not.toContain('flex-wrap');
-    expect(src).toContain('className'); // ومافضلش ملف فاضي
+    expect(row).toContain('SCROLL_ROW'); // ومافضلش ملف فاضي
   });
 
-  it('سطر واحد بيتزحلق على الموبايل، مش سطور بتتلفّ', () => {
-    expect(src).toContain('flex-nowrap');
-    expect(src).toContain('overflow-x-auto');
+  it('سطر واحد بيتزحلق، مش سطور بتتلفّ', () => {
+    expect(row).toContain('flex-nowrap');
+    expect(row).toContain('overflow-x-auto');
     // ⚠️ `flex-wrap` من غير بادئة مقاس = السطور بترجع تتلفّ على الموبايل.
-    expect(src).not.toMatch(/(?<![a-z:-])flex-wrap/);
-    expect(src).toContain('md:flex-wrap');
+    expect(row).not.toMatch(/(?<![a-z:-])flex-wrap/);
+    expect(row).toContain('md:flex-wrap');
   });
 
   it('وفيه تلاشي على الطرفين عشان الزائر يعرف إن فيه كمان', () => {
-    expect(src).toContain('mask-image:linear-gradient');
+    expect(row).toContain('mask-image:linear-gradient');
+  });
+
+  /**
+   * ⚠️ **الكلاس لازم يكون نص كامل.** Tailwind بيقرا الملفات كنصوص؛
+   *    لو الكلاس اتجمّع من قطع، مش هيلاقيه ومش هيطلّعه في الـCSS —
+   *    والتلاشي يختفي في النسخة المنشورة بس.
+   */
+  it('الكلاس مكتوب كامل عشان Tailwind يلاقيه', () => {
+    expect(row).toContain(
+      '[mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%-16px),transparent)]',
+    );
+  });
+
+  it('الشاشات الأربعة بتستعمل نفس المصدر، مش نسخة لكل واحدة', () => {
+    const users = [
+      'components/SectionTabs.tsx',
+      'components/SectionSubNav.tsx',
+      'components/layout/NavLinks.tsx',
+      'app/(client)/support/SupportClient.tsx',
+    ];
+    for (const file of users) {
+      const src = codeOnly(read(file));
+      expect(src, `${file} مابيستوردش SCROLL_ROW`).toContain('SCROLL_ROW');
+      // ولا بيكتب القناع لنفسه تاني.
+      expect(src, `${file} فيه نسخة من القناع`).not.toContain('mask-image:linear-gradient');
+    }
   });
 });
 

@@ -27,7 +27,10 @@ export function getSupabasePublicKey(): string {
   );
 }
 
-/** @deprecated اسم قديم — `getSupabasePublicKey`. */
-export function getSupabaseAnonKey(): string {
-  return getSupabasePublicKey();
-}
+/*
+ * ⚠️ **كان فيه هنا `getSupabaseAnonKey()`** — غلاف قديم على
+ *    `getSupabasePublicKey` موسوم `@deprecated`، وماكانش حد بينادي
+ *    عليه. اتشال: الاسم القديم بيخلّي حد يفتكر إن فيه مفتاحين.
+ *    ومتغيّر البيئة القديم (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) لسه
+ *    مقبول جوّه `getSupabasePublicKey` فوق — ده اللي يهم.
+ */

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useActiveIntoView } from '@/lib/use-active-into-view';
+import { SCROLL_ROW } from '@/lib/scroll-row';
 
 interface Tab {
   name: string;
@@ -58,9 +59,8 @@ export function SectionSubNav({
         <div
           ref={scroller}
           className={cn(
-            'hide-scrollbar flex w-full overflow-x-auto py-3 md:justify-start md:py-4',
-            // التلاشي على الطرفين — بديل الـscrollbar المخفي.
-            '[mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]',
+            SCROLL_ROW, // الزحليق وإخفاء الـscrollbar والتلاشي — `lib/scroll-row`
+            'w-full py-3 md:justify-start md:py-4',
             'md:[mask-image:none]',
           )}
         >

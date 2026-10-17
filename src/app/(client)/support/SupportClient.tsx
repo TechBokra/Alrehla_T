@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SupportTicketForm } from './SupportTicketForm';
 import type { Faq } from '@/lib/support-faqs';
+import { SCROLL_ROW, SCROLL_ROW_MD_OFF } from '@/lib/scroll-row';
 import {
   Search,
   MessageCircle,
@@ -57,6 +58,7 @@ export default function SupportClient({
   const tabs = [
     { id: 'enha-lak', label: 'إنها لك' },
     { id: 'creative-writing', label: 'بداية الرحلة' },
+    { id: 'aqlam', label: 'أقلام الرحلة' },
     { id: 'partners', label: 'الشركاء' },
     { id: 'general', label: 'عامة' },
   ];
@@ -120,9 +122,16 @@ export default function SupportClient({
 
       {/* FAQs Section */}
       <Section containerClassName="max-w-4xl">
-        {/* Tabs — بتختفي وقت البحث (النتايج من كل الأقسام). */}
+        {/* Tabs — بتختفي وقت البحث (النتايج من كل الأقسام).
+
+            ⚠️ **سطر واحد بيتزحلق على الموبايل.** الأقسام بقت خمسة، وبـ
+            `flex-wrap` كانوا بيتلفّوا سطرين أو تلاتة جوّه الصندوق على
+            ٣٧٥ بكسل — صندوق بيقرب من ١٥٠ بكسل قبل أول سؤال. نفس حلّ
+            شريط التنقل وتبويبات الأقسام. */}
         {results === null && (
-        <div className="mb-10 flex flex-wrap justify-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-2">
+        <div
+          className={`mb-10 gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-2 md:justify-center ${SCROLL_ROW} ${SCROLL_ROW_MD_OFF}`}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -130,7 +139,7 @@ export default function SupportClient({
                 setActiveTab(tab.id);
                 setOpenFaqIndex(null);
               }}
-              className={`flex-1 rounded-xl px-6 py-3 text-sm font-bold whitespace-nowrap transition-all md:flex-none ${
+              className={`shrink-0 rounded-xl px-6 py-3 text-sm font-bold whitespace-nowrap transition-all md:flex-none ${
                 activeTab === tab.id
                   ? 'bg-white text-amber-600 shadow-sm'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'

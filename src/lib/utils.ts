@@ -38,16 +38,17 @@ export function formatPrice(amount: number): string {
   return `${amount.toLocaleString('ar-EG')} ج.م`;
 }
 
-export function calculateAge(birthDate: string | null | undefined): number | null {
-  if (!birthDate) return null;
-  const dob = new Date(birthDate);
-  if (isNaN(dob.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age < 0 ? null : age;
-}
+/*
+ * ⚠️ **كان فيه هنا `calculateAge(birthDate)`** — اتشالت، وماكانش حد
+ *    بينادي عليها.
+ *
+ *    ومهم إنها تفضل مشيلة: كانت بتحسب السنّ بـ`new Date()` يعني
+ *    **بتوقيت السيرفر**، والسنّ في المنصة بيتحسب **بتوقيت القاهرة**
+ *    (`lib/aqlam/age.ts`، ونفس الحساب مكرّر في القاعدة كحارس فعلي).
+ *    يعني الدالة دي كانت تقدر تدّي يومًا فارقًا عن القاعدة — وقواعد
+ *    حماية الأطفال (نشر مباشر ١٢+، موافقة ولي أمر لأقل من ١٢) مبنية
+ *    على الرقم ده. حاسب واحد للسنّ، في `lib/aqlam/age.ts`.
+ */
 
 /**
  * فك تشفير الاسم اللي في الرابط.

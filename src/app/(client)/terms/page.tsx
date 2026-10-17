@@ -24,9 +24,16 @@ export default async function TermsPage() {
     <PageContainer className="!py-0 !space-y-0">
       <Section containerClassName="max-w-3xl py-20">
         <Card accentColor="amber" className="p-8 shadow-sm md:p-12">
-          <h1 className="mb-8 text-center text-3xl font-black text-slate-900 md:text-4xl">
+          <h1 className="mb-2 text-center text-3xl font-black text-slate-900 md:text-4xl">
             {content['terms.title']}
           </h1>
+          {/* ⚠️ التاريخ ده مش زينة: الشروط من غير تاريخ القارئ مايعرفش
+              هو بيقرا نسخة النهارده ولا نسخة من سنة. */}
+          {content['terms.updated'] && (
+            <p className="mb-8 text-center text-sm font-bold text-slate-500">
+              آخر تحديث: {content['terms.updated']}
+            </p>
+          )}
           <div className="prose prose-slate max-w-none leading-relaxed text-slate-700">
             <RichText value={content['terms.body']} className="space-y-6" />
             <p className="mt-8 border-t border-slate-100 pt-6">

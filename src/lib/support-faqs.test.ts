@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_FAQ_AQLAM,
   DEFAULT_FAQ_CREATIVE_WRITING,
   DEFAULT_FAQ_ENHA_LAK,
   DEFAULT_FAQ_GENERAL,
@@ -35,10 +36,37 @@ describe('parseFaqText', () => {
 
   it('the shipped defaults all parse', () => {
     expect(parseFaqText(DEFAULT_FAQ_ENHA_LAK)).toHaveLength(3);
-    expect(parseFaqText(DEFAULT_FAQ_CREATIVE_WRITING)).toHaveLength(5);
-    expect(parseFaqText(DEFAULT_FAQ_PARTNERS)).toHaveLength(3);
+    expect(parseFaqText(DEFAULT_FAQ_CREATIVE_WRITING)).toHaveLength(7);
+    expect(parseFaqText(DEFAULT_FAQ_AQLAM)).toHaveLength(6);
+    expect(parseFaqText(DEFAULT_FAQ_PARTNERS)).toHaveLength(6);
     const general = parseFaqText(DEFAULT_FAQ_GENERAL, { مدة_الملفات: 30 });
-    expect(general).toHaveLength(6);
+    expect(general).toHaveLength(7);
     expect(general.some((f) => f.a.includes('30 يومًا'))).toBe(true);
+  });
+
+  /**
+   * ⚠️ **الحارس ده موجود بسبب غلطة حقيقية**: وأنا بزوّد أسئلة النهارده
+   *    شِلت الـbacktick اللي بيقفل نص «بداية الرحلة»، فالـbacktick اللي
+   *    بعده (بداية «أقلام الرحلة») قفله — والملف كله بقى مش بيتترجم.
+   *    السؤال الفاضي بيمسك نفس النوع من الغلط لو الترجمة نجحت.
+   */
+  it('مفيش سؤال أو إجابة فاضية في أي قسم', () => {
+    const all = [
+      DEFAULT_FAQ_ENHA_LAK,
+      DEFAULT_FAQ_CREATIVE_WRITING,
+      DEFAULT_FAQ_AQLAM,
+      DEFAULT_FAQ_PARTNERS,
+      DEFAULT_FAQ_GENERAL,
+    ];
+    for (const text of all) {
+      const list = parseFaqText(text, { مدة_الملفات: 30 });
+      expect(list.length).toBeGreaterThan(0);
+      for (const f of list) {
+        expect(f.q.trim()).not.toBe('');
+        expect(f.a.trim()).not.toBe('');
+        // «س:» جوّه إجابة = سؤال اندمج في اللي قبله.
+        expect(f.a).not.toMatch(/^\s*س\s*[:：]/m);
+      }
+    }
   });
 });
