@@ -1,12 +1,12 @@
 import type { AgeBandId } from '@/lib/age-bands';
-import type { AqlamCategory } from '@/lib/aqlam/post';
+import type { AqlamSortKey } from '@/lib/aqlam/config';
 
 /** كارت نص في القوائم — من غير النص الكامل. */
 export type AqlamPostCard = {
   id: string;
   title: string;
   excerpt: string;
-  category: AqlamCategory | string;
+  category: string;
   displayName: string;
   ageBand: AgeBandId | null;
   publishedAt: string | null;
@@ -44,6 +44,4 @@ export type AqlamPublicComment = {
   createdAt: string;
 };
 
-export type AqlamSort = 'new' | 'top';
-
-export const AQLAM_PAGE_SIZE = 12;
+export type AqlamSort = AqlamSortKey;

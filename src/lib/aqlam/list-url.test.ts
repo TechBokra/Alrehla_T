@@ -16,4 +16,10 @@ describe('رابط قائمة أقلام الرحلة', () => {
     const current = { c: 'story', a: '6-9', s: 'top' };
     expect(aqlamListHref({ ...current, c: undefined })).toBe('/aqlam?a=6-9&s=top');
   });
+
+  it('الترتيب الافتراضي من الإعداد مابيتكتبش في الرابط', () => {
+    expect(aqlamListHref({ s: 'top' }, 'top')).toBe('/aqlam');
+    expect(aqlamListHref({ s: 'new' }, 'top')).toBe('/aqlam?s=new');
+    expect(aqlamListHref({ s: 'old' })).toBe('/aqlam?s=old');
+  });
 });

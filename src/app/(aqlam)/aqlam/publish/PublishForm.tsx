@@ -6,23 +6,26 @@ import { ActionForm } from '@/components/dashboard/ActionForm';
 import { Checkbox, Field, FormActions, FormSection, Select, SubmitButton, TextArea, TextInput } from '@/components/forms/Form';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
 import {
-  AQLAM_CATEGORIES,
-  AQLAM_LIMITS,
   NAME_MODE_LABELS,
   allowedNameModes,
   displayNameFor,
   type NameMode,
 } from '@/lib/aqlam/post';
 import type { AqlamAgeGroup } from '@/lib/aqlam/age';
+import type { AqlamConfig } from '@/lib/aqlam/config';
 
 const CONSENT_VERSION = 'v1';
 
 export function PublishForm({
+  cfg,
+  categories,
   ageGroup: statusGroup,
   needsBirthdate,
   fullName,
   initial,
 }: {
+  cfg: AqlamConfig;
+  categories: { key: string; label: string }[];
   ageGroup: AqlamAgeGroup;
   needsBirthdate: boolean;
   fullName: string;
@@ -30,7 +33,8 @@ export function PublishForm({
 }) {
   // حساب مستقل جديد بيحدد الفئة من تاريخ الميلاد اللي هيكتبه (مقبول ١٢+ بس).
   const ageGroup: AqlamAgeGroup = needsBirthdate ? '12_plus' : statusGroup;
-  const modes = allowedNameModes(ageGroup);
+  const L = cfg.limits;
+  const modes = allowedNameModes(ageGroup, cfg.features);
   const [nameMode, setNameMode] = useState<NameMode>(modes[0]);
   const [penName, setPenName] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -40,7 +44,7 @@ export function PublishForm({
   const preview = displayNameFor({ mode: nameMode, fullName, penName });
   // تاريخ الميلاد بيحدد الفئة لحساب جديد: تحت ١٢ مش هيقدر ينشر مستقل.
   // (القاعدة هي اللي بتتحقق؛ هنا بس نعرض ١٢+ كاحتمال لحد ما يتحدد.)
-  const canIndex = ageGroup === '12_plus';
+  const canIndex = ageGroup === '12_plus' && cfg.features.googleIndexing;
 
   return (
     <ActionForm action={publishPost} className="space-y-8">
@@ -52,14 +56,14 @@ export function PublishForm({
           <TextInput
             name="title"
             defaultValue={initial?.title ?? ''}
-            maxLength={AQLAM_LIMITS.titleMax}
+            maxLength={L.titleMax}
             required
           />
         </Field>
 
         <Field label="النوع" name="category" required>
-          <Select name="category" defaultValue="story">
-            {AQLAM_CATEGORIES.map((c) => (
+          <Select name="category" defaultValue={categories[0]?.key}>
+            {categories.map((c) => (
               <option key={c.key} value={c.key}>
                 {c.label}
               </option>
@@ -71,14 +75,14 @@ export function PublishForm({
           label="النص"
           name="body"
           required
-          hint={`${body.length.toLocaleString('ar-EG')} / ${AQLAM_LIMITS.bodyMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
+          hint={`${body.length.toLocaleString('ar-EG')} / ${L.bodyMax.toLocaleString('ar-EG')} حرف · من غير أرقام تليفون أو روابط أو حسابات تواصل.`}
         >
           <TextArea
             name="body"
             rows={14}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            maxLength={AQLAM_LIMITS.bodyMax}
+            maxLength={L.bodyMax}
             required
           />
         </Field>
@@ -112,13 +116,13 @@ export function PublishForm({
             label="الاسم القلمي"
             name="penName"
             required
-            hint={`من ${AQLAM_LIMITS.penNameMin.toLocaleString('ar-EG')} لـ${AQLAM_LIMITS.penNameMax.toLocaleString('ar-EG')} حرف.`}
+            hint={`من ${L.penNameMin.toLocaleString('ar-EG')} لـ${L.penNameMax.toLocaleString('ar-EG')} حرف.`}
           >
             <TextInput
               name="penName"
               value={penName}
               onChange={(e) => setPenName(e.target.value)}
-              maxLength={AQLAM_LIMITS.penNameMax}
+              maxLength={L.penNameMax}
             />
           </Field>
         )}

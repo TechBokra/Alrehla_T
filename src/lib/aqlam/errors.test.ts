@@ -45,4 +45,29 @@ describe('رسائل الأخطاء', () => {
       expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
     }
   });
+
+  it('أكواد لوحة الضبط ليها رسائل عربي', () => {
+    for (const code of [
+      'publishing_closed',
+      'comments_off',
+      'reactions_off',
+      'reaction_disabled',
+      'editing_closed',
+      'removal_closed',
+      'category_disabled',
+      'name_mode_disabled',
+      'blocked_word',
+      'writer_pages_closed',
+      'config_invalid',
+      'category_in_use',
+    ]) {
+      expect(aqlamErrorMessage(code)).not.toBe(AQLAM_GENERIC_ERROR);
+    }
+  });
+
+  it('رسائل الحدود مابتحطش أرقام ثابتة (الحد بيتغيّر من الإعداد)', () => {
+    for (const code of ['rate_limited', 'reason_required']) {
+      expect(aqlamErrorMessage(code)).not.toMatch(/[0-9٠-٩]/);
+    }
+  });
 });

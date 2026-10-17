@@ -13,7 +13,8 @@ import {
   listMyPosts,
   type MyPostRow,
 } from '@/data/domains/(shared)/aqlam/mine';
-import { categoryLabel } from '@/lib/aqlam/post';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
+import { categoryMeta } from '@/lib/aqlam/config';
 import { editedMessage, postStatusLabel, postedMessage } from '@/lib/aqlam/status-labels';
 import { formatDate } from '@/lib/utils';
 import { requireAqlamReadable } from '../gate';
@@ -48,7 +49,8 @@ export default async function MePage({
   const user = await getCurrentUser();
   if (user.role === 'visitor') redirect('/sign-in?next=/aqlam/me');
 
-  const [posts, status, profile, documents] = await Promise.all([
+  const [cfg, posts, status, profile, documents] = await Promise.all([
+    getAqlamConfig(),
     listMyPosts(user.id),
     getMyAqlamStatus(),
     getMyWriterProfile(user.id),
@@ -94,12 +96,14 @@ export default async function MePage({
                 </p>
               )}
             </div>
-            <Link
-              href="/aqlam/publish"
-              className="inline-flex min-h-[44px] items-center rounded-full bg-slate-900 px-6 text-sm font-bold text-white hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-              نص جديد
-            </Link>
+            {cfg.features.publishing && (
+              <Link
+                href="/aqlam/publish"
+                className="inline-flex min-h-[44px] items-center rounded-full bg-slate-900 px-6 text-sm font-bold text-white hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                نص جديد
+              </Link>
+            )}
           </div>
           <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm font-bold text-slate-700">
             <div className="flex items-center gap-2">
@@ -153,7 +157,7 @@ export default async function MePage({
             <ul className="space-y-4">
               {posts.map((p) => {
                 const st = postStatusLabel(p.status);
-                const editable = p.status !== 'hidden' && p.status !== 'removed';
+                const editable = cfg.features.selfEdit && p.status !== 'hidden' && p.status !== 'removed';
                 return (
                   <li key={p.id}>
                     <Card className="space-y-3 p-5">
@@ -161,7 +165,7 @@ export default async function MePage({
                         <div className="min-w-0">
                           <h2 className="text-lg font-black text-slate-900 [overflow-wrap:anywhere]">{p.title}</h2>
                           <p className="text-xs font-medium text-slate-500">
-                            {categoryLabel(p.category)} · {formatDate(p.publishedAt ?? p.createdAt)} · يظهر باسم{' '}
+                            {categoryMeta(cfg, p.category)?.label ?? 'نص'} · {formatDate(p.publishedAt ?? p.createdAt)} · يظهر باسم{' '}
                             {p.displayName}
                             {p.editedAt && ` · عُدّل ${formatDate(p.editedAt)}`}
                           </p>
@@ -186,7 +190,9 @@ export default async function MePage({
                             تعديل
                           </Link>
                         )}
-                        <RemoveButton postId={p.id} />
+                        {cfg.features.selfRemove && (
+                          <RemoveButton postId={p.id} retentionDays={cfg.moderation.removedRetentionDays} />
+                        )}
                       </div>
                     </Card>
                   </li>
@@ -226,12 +232,12 @@ export default async function MePage({
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          {!post && (
+                          {!post && cfg.features.publishing && (
                             <Link href={`/aqlam/publish?doc=${d.id}`} className={linkBtn}>
                               انشر
                             </Link>
                           )}
-                          {post && changedSince && post.status !== 'hidden' && (
+                          {post && cfg.features.selfEdit && changedSince && post.status !== 'hidden' && (
                             <Link href={`/aqlam/edit/${post.id}?doc=1`} className={linkBtn}>
                               حدّث المنشور
                             </Link>
@@ -254,8 +260,9 @@ export default async function MePage({
         {tab === 'profile' && (
           <ProfileForm
             initial={profile}
-            publicAllowed={publicAllowed}
-            publicBlockedReason={publicBlockedReason}
+            limits={{ penNameMin: cfg.limits.penNameMin, penNameMax: cfg.limits.penNameMax, bioMax: cfg.limits.bioMax }}
+            publicAllowed={publicAllowed && cfg.features.writerPages}
+            publicBlockedReason={cfg.features.writerPages ? publicBlockedReason : 'صفحات الكتّاب العامة متوقفة حاليًا.'}
           />
         )}
       </Section>

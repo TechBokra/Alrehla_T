@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDocumentById } from '@/data/domains/(shared)/portfolio/queries';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
 import { getMyAqlamStatus, getMyPost } from '@/data/domains/(shared)/aqlam/mine';
 import { aqlamErrorMessage } from '@/lib/aqlam/errors';
 import { postStatusLabel } from '@/lib/aqlam/status-labels';
@@ -52,11 +53,12 @@ export default async function EditPostPage({
   const user = await getCurrentUser();
   if (user.role === 'visitor') redirect(`/sign-in?next=${encodeURIComponent(`/aqlam/edit/${id}`)}`);
 
-  const [post, status] = await Promise.all([getMyPost(user.id, id), getMyAqlamStatus()]);
+  const [post, status, cfg] = await Promise.all([getMyPost(user.id, id), getMyAqlamStatus(), getAqlamConfig()]);
   if (!post) notFound();
 
   let blocked: string | null = null;
   if (!status) blocked = aqlamErrorMessage(undefined);
+  else if (!cfg.features.selfEdit) blocked = aqlamErrorMessage('editing_closed');
   else if (!status.enabled) blocked = aqlamErrorMessage('disabled');
   else if (status.suspended) blocked = aqlamErrorMessage('suspended');
   else if (status.publishingLocked) blocked = aqlamErrorMessage('guardian_locked');
@@ -76,6 +78,10 @@ export default async function EditPostPage({
   }
 
   const st = postStatusLabel(post.status);
+  // التصنيفات المفعّلة + تصنيف النص الحالي لو اتعطّل (عشان يفضل مختار).
+  const editCategories = cfg.categories
+    .filter((c) => c.enabled || c.key === post.category)
+    .map((c) => ({ key: c.key, label: c.label }));
 
   return (
     <PageContainer>
@@ -103,6 +109,9 @@ export default async function EditPostPage({
         ) : (
           <EditForm
             key={fromDoc ? 'doc' : 'post'}
+            limits={{ titleMax: cfg.limits.titleMax, bodyMax: cfg.limits.bodyMax }}
+            categories={editCategories}
+            canIndex={cfg.features.googleIndexing}
             post={{
               id: post.id,
               title,

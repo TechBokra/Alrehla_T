@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Flag, Share2 } from 'lucide-react';
 import { addComment, getMyReactions, reportContent, setReaction } from '@/actions/aqlam';
-import { AQLAM_LIMITS, AQLAM_REACTIONS, REPORT_REASONS } from '@/lib/aqlam/post';
 
 /**
  * جزيرة التفاعل — الجزء الوحيد في الصفحة اللي بيحتاج JavaScript.
@@ -15,20 +14,36 @@ import { AQLAM_LIMITS, AQLAM_REACTIONS, REPORT_REASONS } from '@/lib/aqlam/post'
 
 type CommentView = { id: string; author: string; isInstructor: boolean; body: string; date: string };
 
-const REACTION_EMOJI: Record<string, string> = { heart: '❤️', star: '⭐', spark: '✨' };
+type ReactionView = { key: string; label: string; emoji: string };
+type ReasonView = { key: string; label: string };
 
 export function PostActions({
   postId,
   title,
   reactionCount,
   commentsEnabled,
+  commentsOpen,
   comments,
+  reactions,
+  reportReasons,
+  commentMax,
+  reportDetailsMax,
+  showShare,
 }: {
   postId: string;
   title: string;
   reactionCount: number;
+  /** التعليقات مفعّلة على النص ده (بتحدد ظهور القايمة). */
   commentsEnabled: boolean;
+  /** وكمان الإدارة مفتّحة التعليقات الجديدة عمومًا (بتحدد ظهور نموذج الكتابة). */
+  commentsOpen: boolean;
   comments: CommentView[];
+  /** الملصقات المفعّلة (فاضية = الملصقات متوقفة). */
+  reactions: ReactionView[];
+  reportReasons: ReasonView[];
+  commentMax: number;
+  reportDetailsMax: number;
+  showShare: boolean;
 }) {
   const router = useRouter();
   const [mine, setMine] = useState<string[]>([]);
@@ -119,7 +134,7 @@ export function PostActions({
   return (
     <div className="space-y-8 border-t border-slate-200 pt-6">
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="التشجيع">
-        {AQLAM_REACTIONS.map((r) => {
+        {reactions.map((r) => {
           const active = mine.includes(r.key);
           return (
             <button
@@ -135,19 +150,23 @@ export function PostActions({
                   : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400')
               }
             >
-              <span aria-hidden="true">{REACTION_EMOJI[r.key]}</span>
+              <span aria-hidden="true">{r.emoji}</span>
               {r.label}
             </button>
           );
         })}
-        <span className="text-sm font-bold text-slate-500">
-          {count > 0 ? `${count.toLocaleString('ar-EG')} تشجيع` : 'كن أول من يشجّع'}
-        </span>
+        {(count > 0 || reactions.length > 0) && (
+          <span className="text-sm font-bold text-slate-500">
+            {count > 0 ? `${count.toLocaleString('ar-EG')} تشجيع` : 'كن أول من يشجّع'}
+          </span>
+        )}
         <span className="flex-1" />
-        <button type="button" onClick={share} className={btn + 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}>
-          <Share2 className="h-4 w-4" aria-hidden="true" />
-          مشاركة
-        </button>
+        {showShare && (
+          <button type="button" onClick={share} className={btn + 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}>
+            <Share2 className="h-4 w-4" aria-hidden="true" />
+            مشاركة
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setReporting((v) => !v)}
@@ -183,7 +202,7 @@ export function PostActions({
         <form onSubmit={submitReport} className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-5">
           <fieldset className="space-y-2">
             <legend className="mb-2 text-sm font-black text-slate-900">إيه المشكلة في النص ده؟</legend>
-            {REPORT_REASONS.map((r, i) => (
+            {reportReasons.map((r, i) => (
               <label key={r.key} className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm font-medium text-slate-700">
                 <input type="radio" name="reason" value={r.key} defaultChecked={i === 0} className="h-4 w-4" />
                 {r.label}
@@ -194,7 +213,7 @@ export function PostActions({
             تفاصيل (اختياري)
             <textarea
               name="details"
-              maxLength={500}
+              maxLength={reportDetailsMax}
               rows={2}
               className="w-full rounded-2xl border border-slate-300 bg-white p-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none"
             />
@@ -238,6 +257,7 @@ export function PostActions({
             </ul>
           )}
 
+          {commentsOpen ? (
           <form onSubmit={submitComment} className="space-y-3">
             <label htmlFor="aqlam-comment" className="block text-sm font-bold text-slate-700">
               اكتب تعليقًا طيّبًا
@@ -246,7 +266,7 @@ export function PostActions({
               id="aqlam-comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              maxLength={AQLAM_LIMITS.commentMax}
+              maxLength={commentMax}
               rows={3}
               required
               className="w-full rounded-2xl border border-slate-300 bg-white p-3 text-base font-medium focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none"
@@ -262,6 +282,9 @@ export function PostActions({
               أضف التعليق
             </button>
           </form>
+          ) : (
+            <p className="text-sm font-medium text-slate-500">التعليقات الجديدة متوقفة مؤقتًا.</p>
+          )}
         </section>
       ) : (
         <p className="text-sm font-medium text-slate-500">التعليقات مقفولة على النص ده.</p>

@@ -12,12 +12,12 @@ import { PageHero } from '@/components/PageHero';
  * ⚠️ **ومفيش علامة مائية على البانر ده** — زيّ ما كان. ده بانر القسم
  *    مش عمل منشور، والعلامة بتتحط على أعمال الأطفال.
  */
-export function AqlamHero({ image }: { image?: string }) {
+export function AqlamHero({ image, title, subtitle }: { image?: string; title: string; subtitle: string }) {
   return (
     <PageHero
       image={image}
-      title="أقلام الرحلة"
-      subtitle="قصص وقصائد وخواطر كتبها صغار ويافعون. اقرا، وشجّع بملصق أو تعليق طيّب، وانشر نصك لما تحب."
+      title={title}
+      subtitle={subtitle}
       bandClassName="bg-amber-50"
       links={[
         {

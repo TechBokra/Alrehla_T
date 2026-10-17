@@ -9,9 +9,10 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { listPinnedPosts, listPublicPosts } from '@/data/domains/(shared)/aqlam/queries';
-import { AQLAM_PAGE_SIZE, type AqlamPostCard } from '@/data/domains/(shared)/aqlam/types';
+import { getAqlamConfig } from '@/data/domains/(shared)/aqlam/config';
+import type { AqlamPostCard } from '@/data/domains/(shared)/aqlam/types';
 import { isAgeBandId, type AgeBandId } from '@/lib/age-bands';
-import { isAqlamCategory, type AqlamCategory } from '@/lib/aqlam/post';
+import { enabledCategories, resolveSort, visibleAgeBands } from '@/lib/aqlam/config';
 import { aqlamListHref } from '@/lib/aqlam/list-url';
 import { pageMetadata } from '@/lib/seo';
 import { requireAqlamReadable } from './gate';
@@ -38,19 +39,25 @@ type SearchParams = Promise<{ c?: string; a?: string; s?: string; p?: string }>;
 
 export default async function AqlamPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAqlamReadable();
-  const settings = await getSiteSettings();
+  const [settings, cfg] = await Promise.all([getSiteSettings(), getAqlamConfig()]);
   const sp = await searchParams;
 
-  const category: AqlamCategory | null = isAqlamCategory(sp.c) ? sp.c : null;
-  const band: AgeBandId | null = isAgeBandId(sp.a) ? sp.a : null;
-  const sort = sp.s === 'top' ? 'top' : 'new';
+  // فلتر مخفي أو قيمة مش مسموحة في الرابط ← بتتجاهل (الاعتماد على الإعداد الحالي).
+  const category: string | null =
+    cfg.filters.showCategory && enabledCategories(cfg).some((c) => c.key === sp.c) ? (sp.c ?? null) : null;
+  const band: AgeBandId | null =
+    cfg.filters.showAge && isAgeBandId(sp.a) && visibleAgeBands(cfg).some((b) => b.id === sp.a) ? sp.a : null;
+  const sort = cfg.filters.showSort ? resolveSort(cfg, sp.s) : cfg.filters.defaultSort;
+  const pageSize = cfg.filters.pageSize;
+  const stripOn = cfg.featured.enabled;
+  const stripFilters = cfg.featured.respectFilters ? { category, band } : {};
   const page = Math.max(1, Math.min(200, Number.parseInt(sp.p ?? '1', 10) || 1));
 
   const [{ posts, hasMore }, pinned] = await Promise.all([
-    listPublicPosts({ category, band, sort, page }),
+    listPublicPosts({ category, band, sort, page, pageSize, includePinned: !stripOn }),
     // «مختارات الرحلة» في أول صفحة بس. لو فشلت ماتوقّفش القائمة كلها.
-    page === 1
-      ? listPinnedPosts({ category, band }).catch((e): AqlamPostCard[] => {
+    stripOn && page === 1
+      ? listPinnedPosts(stripFilters).catch((e): AqlamPostCard[] => {
           console.error('aqlam pinned strip failed', e);
           return [];
         })
@@ -64,21 +71,21 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
 
   return (
     <>
-      <AqlamHero image={settings.images.aqlamHero} />
+      <AqlamHero image={settings.images.aqlamHero} title={cfg.texts.heroTitle} subtitle={cfg.texts.heroSubtitle} />
       <PageContainer>
       <Section containerClassName="max-w-6xl space-y-8">
-        <AqlamFilters category={category} band={band} sort={sort} />
+        <AqlamFilters cfg={cfg} category={category} band={band} sort={sort} />
 
         {pinned.length > 0 && (
           <section aria-labelledby="pinned" className="space-y-4 rounded-3xl bg-gradient-to-br from-amber-50 via-white to-amber-50/60 p-4 ring-1 ring-amber-200 md:p-6">
             <h2 id="pinned" className="flex items-center gap-2 text-lg font-black text-slate-900">
               <Pin className="h-5 w-5 text-amber-600" aria-hidden="true" />
-              مختارات الرحلة
+              {cfg.featured.title}
             </h2>
             <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {pinned.map((post) => (
                 <li key={post.id}>
-                  <PostCard post={post} />
+                  <PostCard post={post} cfg={cfg} />
                 </li>
               ))}
             </ul>
@@ -89,9 +96,9 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
           <Card accentColor="amber" className="flex flex-col items-center justify-center py-16 text-center">
             <BookOpen className="mb-4 h-12 w-12 text-slate-300" aria-hidden="true" />
             <p className="font-bold text-slate-600">
-              {category || band ? 'مفيش نصوص بالاختيار ده لسه.' : 'لسه مفيش نصوص منشورة. كن أول من ينشر.'}
+              {category || band ? 'مفيش نصوص بالاختيار ده لسه.' : cfg.texts.emptyMessage}
             </p>
-            {!category && !band && (
+            {!category && !band && cfg.features.publishing && (
               <Link
                 href="/aqlam/publish"
                 className="mt-4 inline-flex min-h-[44px] items-center rounded-full bg-slate-900 px-6 text-sm font-bold text-white hover:bg-slate-800 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -104,7 +111,7 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
               <li key={post.id}>
-                <PostCard post={post} />
+                <PostCard post={post} cfg={cfg} />
               </li>
             ))}
           </ul>
@@ -113,17 +120,17 @@ export default async function AqlamPage({ searchParams }: { searchParams: Search
         {(page > 1 || hasMore) && (
           <nav aria-label="الصفحات" className="flex items-center justify-between">
             {page > 1 ? (
-              <Link href={aqlamListHref({ ...current, p: page - 1 })} className={chip + chipOff}>
+              <Link href={aqlamListHref({ ...current, p: page - 1 }, cfg.filters.defaultSort)} className={chip + chipOff}>
                 السابق
               </Link>
             ) : (
               <span />
             )}
             <span className="text-sm font-bold text-slate-500">
-              صفحة {page.toLocaleString('ar-EG')} · {AQLAM_PAGE_SIZE.toLocaleString('ar-EG')} نص في الصفحة
+              صفحة {page.toLocaleString('ar-EG')} · {pageSize.toLocaleString('ar-EG')} نص في الصفحة
             </span>
             {hasMore ? (
-              <Link href={aqlamListHref({ ...current, p: page + 1 })} className={chip + chipOff}>
+              <Link href={aqlamListHref({ ...current, p: page + 1 }, cfg.filters.defaultSort)} className={chip + chipOff}>
                 التالي
               </Link>
             ) : (

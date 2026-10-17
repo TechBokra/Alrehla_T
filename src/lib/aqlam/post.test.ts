@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_AQLAM_CONFIG, type AqlamConfig } from './config';
 import {
   AQLAM_LIMITS,
   AQLAM_REMOVED_RETENTION_DAYS,
@@ -179,5 +180,73 @@ describe('قرارات السياسة', () => {
       ok: true,
       reason: 'تعليقات من غرباء مضايقة',
     });
+  });
+});
+
+describe('الإعداد بيغيّر التحقق', () => {
+  const cfg = (patch: Partial<AqlamConfig>): AqlamConfig => ({ ...DEFAULT_AQLAM_CONFIG, ...patch });
+
+  it('حدود العنوان والنص من الإعداد', () => {
+    const tight = cfg({ limits: { ...DEFAULT_AQLAM_CONFIG.limits, titleMax: 20, bodyMin: 5, bodyMax: 300 } });
+    expect(validatePublishInput({ ...base, title: 'ع'.repeat(21) }, '12_plus', tight)).toMatchObject({ ok: false, field: 'title' });
+    expect(validatePublishInput({ ...base, body: 'نص قصير' }, '12_plus', tight).ok).toBe(true);
+    expect(validatePublishInput({ ...base, body: 'ع'.repeat(301) }, '12_plus', tight)).toMatchObject({ ok: false, field: 'body' });
+    // والافتراضي لسه زي الأول
+    expect(validatePublishInput({ ...base, body: 'نص قصير' }, '12_plus')).toMatchObject({ ok: false, field: 'body' });
+  });
+
+  it('التصنيف المتعطّل مرفوض في النشر، ومقبول في التعديل (النص القديم عليه)', () => {
+    const c = cfg({
+      categories: DEFAULT_AQLAM_CONFIG.categories.map((x) => ({ ...x, enabled: x.key !== 'poem' })),
+    });
+    expect(validatePublishInput({ ...base, category: 'poem' }, '12_plus', c)).toMatchObject({ ok: false, field: 'category' });
+    expect(validatePublishInput({ ...base, category: 'story' }, '12_plus', c).ok).toBe(true);
+    const edit = { title: 'عنوان', body: base.body, category: 'poem' };
+    expect(validateEditInput(edit, '12_plus', c).ok).toBe(true);
+    expect(validateEditInput({ ...edit, category: 'nope' }, '12_plus', c)).toMatchObject({ ok: false, field: 'category' });
+  });
+
+  it('تصنيف مضاف من الإدارة بيتقبل', () => {
+    const c = cfg({
+      categories: [...DEFAULT_AQLAM_CONFIG.categories, { key: 'drama', label: 'دراما', icon: 'star', enabled: true }],
+    });
+    expect(validatePublishInput({ ...base, category: 'drama' }, '12_plus', c).ok).toBe(true);
+    expect(validatePublishInput({ ...base, category: 'drama' }, '12_plus').ok).toBe(false);
+  });
+
+  it('طرق عرض الاسم حسب المفاتيح (١٢+ بس)', () => {
+    const features = { ...DEFAULT_AQLAM_CONFIG.features, fullName: false, penName: false };
+    expect(allowedNameModes('12_plus', features)).toEqual(['first_name']);
+    expect(allowedNameModes('12_plus', { ...features, penName: true })).toEqual(['first_name', 'pen_name']);
+    const c = cfg({ features });
+    expect(validatePublishInput({ ...base, nameMode: 'full_name' }, '12_plus', c)).toMatchObject({ ok: false, field: 'nameMode' });
+    expect(validatePublishInput({ ...base, nameMode: 'pen_name', penName: 'قمر' }, '12_plus', c)).toMatchObject({ ok: false, field: 'nameMode' });
+    expect(validatePublishInput(base, '12_plus', c).ok).toBe(true);
+  });
+
+  it('الاسم القلمي بحدود الإعداد', () => {
+    const c = cfg({ limits: { ...DEFAULT_AQLAM_CONFIG.limits, penNameMin: 4, penNameMax: 10 } });
+    expect(validatePublishInput({ ...base, nameMode: 'pen_name', penName: 'قمر' }, '12_plus', c)).toMatchObject({ ok: false, field: 'penName' });
+    expect(validatePublishInput({ ...base, nameMode: 'pen_name', penName: 'قمر الليل' }, '12_plus', c).ok).toBe(true);
+    expect(validateWriterProfileInput({ penName: 'قمر' }, c)).toMatchObject({ ok: false, field: 'penName' });
+  });
+
+  it('الفهرسة في جوجل بتقفل بالمفتاح العام', () => {
+    const c = cfg({ features: { ...DEFAULT_AQLAM_CONFIG.features, googleIndexing: false } });
+    const pub = validatePublishInput({ ...base, allowIndexing: true }, '12_plus', c);
+    expect(pub.ok && pub.value.allowIndexing).toBe(false);
+    const ed = validateEditInput({ title: 'عنوان', body: base.body, category: 'story', allowIndexing: true }, '12_plus', c);
+    expect(ed.ok && ed.value.allowIndexing).toBe(false);
+  });
+
+  it('حد التعليق والنبذة وسبب ولي الأمر', () => {
+    const c = cfg({
+      limits: { ...DEFAULT_AQLAM_CONFIG.limits, commentMax: 30, bioMax: 50, guardianReasonMin: 3, guardianReasonMax: 60 },
+    });
+    expect(validateCommentBody('ع'.repeat(31), c).ok).toBe(false);
+    expect(validateCommentBody('ع'.repeat(30), c).ok).toBe(true);
+    expect(validateWriterProfileInput({ bio: 'ب'.repeat(51) }, c)).toMatchObject({ ok: false, field: 'bio' });
+    expect(validateGuardianReason('سبب', c)).toEqual({ ok: true, reason: 'سبب' });
+    expect(validateGuardianReason('س'.repeat(61), c).ok).toBe(false);
   });
 });

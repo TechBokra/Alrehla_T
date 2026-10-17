@@ -4,10 +4,11 @@ import { CategoryIcon } from '@/components/aqlam/CategoryBadge';
 import type { AqlamPostCard } from '@/data/domains/(shared)/aqlam/types';
 import { ageBandById } from '@/lib/age-bands';
 import { bandBar, bandBorder, bandSoft } from '@/lib/aqlam/look';
-import { categoryLabel } from '@/lib/aqlam/post';
+import { categoryMeta, type AqlamConfig } from '@/lib/aqlam/config';
 
 /** كارت نص في القوائم (الرئيسية وصفحة الكاتب) — لون حسب الفئة وأيقونة حسب النوع. */
-export function PostCard({ post }: { post: AqlamPostCard }) {
+export function PostCard({ post, cfg }: { post: AqlamPostCard; cfg: AqlamConfig }) {
+  const meta = categoryMeta(cfg, post.category);
   const band = post.ageBand ? ageBandById(post.ageBand) : null;
   return (
     <Link
@@ -20,10 +21,10 @@ export function PostCard({ post }: { post: AqlamPostCard }) {
         <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1.5 ${bandBar(post.ageBand)}`} />
         <div className="mb-4 flex items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-800 shadow-sm ring-1 ring-slate-200">
-            <CategoryIcon category={post.category} className="h-5 w-5" />
+            <CategoryIcon icon={meta?.icon} className="h-5 w-5" />
           </span>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {post.category && <span className="text-sm font-black text-slate-800">{categoryLabel(post.category)}</span>}
+            {meta && <span className="text-sm font-black text-slate-800">{meta.label}</span>}
             {band && (
               <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${band.tone.chip}`}>{band.label}</span>
             )}
