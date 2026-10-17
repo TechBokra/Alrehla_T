@@ -94,9 +94,14 @@ export default async function BlogPage() {
                     <Calendar className="h-4 w-4" />
                     {formatDate(post.publishedAt)}
                   </div>
+                  {/* ⚠️ `min-h-[44px]`: الرابط ده كان **١٦ بكسل طولًا** على
+                      الموبايل (بالقياس على ٣٧٥ بكسل) — ودي مش مساحة لمس،
+                      دي سطر كتابة. وهو زرار الدعوة الأساسي في كل كارت
+                      مقال. الهامش السالب (`-me-2`) بيخلّي المساحة تكبر
+                      من غير ما الرابط يبعد عن حرف الكارت. */}
                   <Link
                     href={`/blog/${post.slug}`}
-                    className="text-brand-strong flex items-center gap-1.5 font-bold"
+                    className="text-brand-strong -me-2 flex min-h-[44px] items-center gap-1.5 rounded-lg px-2 font-bold"
                   >
                     {content['blog.readMore']}
                     {/* ⚠️ كان `transition-all group-hover:gap-2` —

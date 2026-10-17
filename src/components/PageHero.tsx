@@ -109,16 +109,21 @@ export function PageHero({
             العربي — بدل ما تمتد بعرض الصفحة. */}
         <div className="rounded-card relative -mt-16 bg-white/90 p-6 shadow-lg backdrop-blur-sm md:-mt-24 md:p-10 lg:max-w-2xl">
           {badge}
-          <h1 className="mb-4 text-3xl leading-tight font-black text-slate-800 md:text-5xl">
+          <h1 className="mb-3 text-3xl leading-tight font-black text-slate-800 md:mb-4 md:text-5xl">
             {title}
           </h1>
+          {/* ⚠️ **المقاسات أصغر على الموبايل عن قصد.** بالقياس على ٣٧٥
+              بكسل، البطاقة في «بداية الرحلة» كانت ٥٢٩ بكسل و«إنها لك»
+              ٥٢١ — يعني المحتوى الحقيقي كان بيبدأ بعد ١٠٥٥ بكسل، **شاشة
+              وتلت**. السطر التعريفي لوحده كان ١٤٦ بكسل (خمس سطور بمقاس
+              `text-lg`). المقاس الكبير فضل من التابلت وفوق. */}
           {subtitle && (
-            <p className="mb-8 max-w-lg text-lg leading-relaxed font-medium text-slate-600">
+            <p className="mb-6 max-w-lg leading-relaxed font-medium text-slate-600 md:mb-8 md:text-lg">
               {subtitle}
             </p>
           )}
           {links.length > 0 && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
               {links.map((l) => (
                 <Button
                   key={l.href}

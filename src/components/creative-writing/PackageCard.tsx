@@ -119,7 +119,9 @@ export function PackageCard({ pkg, isDependent }: { pkg: WritingPackage; isDepen
         <PackageBookButton pkg={pkg} isDependent={isDependent} className="w-full" />
         <Link
           href={href}
-          className="inline-flex items-center justify-center gap-1 rounded-xl py-2 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-50"
+          /* ⚠️ `min-h-[44px]` مش `py-2`: بالـpadding بس كان بيطلع ٣٦ بكسل —
+             أقل من الحد اللي الموقع كله ماشي عليه للمس على الموبايل. */
+          className="inline-flex min-h-[44px] items-center justify-center gap-1 rounded-xl text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-50"
         >
           تفاصيل الباقة
           <ArrowLeft className="h-4 w-4" />
