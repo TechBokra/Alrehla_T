@@ -42,6 +42,30 @@ import { ServiceSamples } from '@/components/creative-writing/ServiceSamples';
  * ⚠️ والتحديث بيوصل لها من `refreshPublicPages()` زي باقي الصفحات
  *    العامة — أي تعديل إداري بيحدّثها فورًا.
  */
+/**
+ * ⚠️ **قايمة فاضية عن قصد — ودي اللي بتخلّي الصفحة تتخزّن.**
+ *
+ * مقيس على الموقع المنشور: المسار المتغيّر اللي **مالوش**
+ * `generateStaticParams` بيرجع `x-vercel-cache: MISS` في **كل**
+ * زيارة ومابيتخزّنش أبدًا. واللي عنده بيعمل MISS أول مرة وبعدها
+ * HIT. تلات نقاط قياس:
+ *
+ *     /blog/[slug]            عنده  → MISS ثم HIT (٨٢ مللي)
+ *     /enha-lak/product/[slug] عنده → MISS ثم HIT (٧٣ مللي)
+ *     الصفحة دي               ماكانش عندها → MISS دايمًا
+ *
+ * والقايمة فاضية لأننا مش عايزين نبني كل الصفحات وقت النشر —
+ * عايزين الصفحة تتبني أول مرة حد يفتحها وتتخزّن بعدها.
+ *
+ * ⚠️ **وماينفعش تتحط على صفحة بتعرض حاجة خاصة بمستخدم.** صفحتا
+ *    `enha-lak/custom/[productSlug]` و`custom-library` بيقروا خصم
+ *    المشترك (`getMyAddonDiscount`)، فتخزينهم بيعرض خصم عميل
+ *    لعميل تاني — سيبناهم بلا تخزين بقصد.
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ serviceId: string }> }) {

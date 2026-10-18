@@ -3,6 +3,15 @@ import { pageMetadata } from '@/lib/seo';
 
 // صفحة داخل مسار الشراء: مالهاش لازمة في نتايج البحث، والرابط القانوني
 // بيوجّه للصفحة العامة اللي المفروض تتفهرس.
+/**
+ * ⚠️ قايمة فاضية عن قصد — الشرح في
+ *    `creative-writing/services/[serviceId]/page.tsx`: المسار
+ *    المتغيّر من غيرها مابيتخزّنش ولا مرة (مقيس على المنشور).
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: 'تخصيص اشتراك صندوق الرحلة',

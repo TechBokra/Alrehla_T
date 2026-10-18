@@ -35,6 +35,15 @@ async function findPackage(param: string): Promise<WritingPackage | null> {
   return all.find((p) => p.isActive && (p.slug === key || p.id === key)) ?? null;
 }
 
+/**
+ * ⚠️ قايمة فاضية عن قصد — الشرح في
+ *    `creative-writing/services/[serviceId]/page.tsx`: المسار
+ *    المتغيّر من غيرها مابيتخزّنش ولا مرة (مقيس على المنشور).
+ */
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const pkg = await findPackage(slug);
