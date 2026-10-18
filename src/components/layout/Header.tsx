@@ -40,6 +40,7 @@ export default async function Header() {
         <div className="flex items-center gap-8">
           <Link
             href="/"
+            prefetch={false}
             className="flex min-h-[44px] items-center gap-2 text-2xl font-black tracking-tighter text-amber-800 transition-colors hover:text-amber-900 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
             {/* ⚠️ لون الاسم كان `amber-500` على خلفية فاتحة = 2.1:1 (المطلوب

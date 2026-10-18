@@ -40,6 +40,20 @@ const LINK_CLASS =
  * مكان** — الفوتر ما كانش فيه صورة أصلًا، اسم نصي بس. دلوقتي بيستخدمه،
  * وبيرجع للشعار العادي لو النسخة الداكنة مترفعتش.
  */
+/* ⚠️ **`prefetch={false}` مقصودة — دي أكبر فرصة سرعة في الموقع.**
+ *
+ * بالقياس على «إنها لك» المنشورة: **٣١ طلب `?_rsc=` استباقي،
+ * ٩٠ كيلوبايت، و٦٫٦ ثانية زمن شبكة تراكمي** — لكل عرض للصفحة.
+ * و١٥ مسار منهم بيتطلب **مرتين** (نفس اللينك في الهيدر والفوتر
+ * والقائمة الفرعية). والزائر بيدوس واحدًا منهم على الأكثر.
+ *
+ * والأسوأ إن نص المسارات دي صفحات `force-dynamic` (السلة، الدخول،
+ * الدعم) — يعني الاستباق **مابيتخزّنش**، فكل prefetch رسمة كاملة على
+ * الخادم لصفحة محدش طلبها.
+ *
+ * لينكات المحتوى (كروت المنتجات، أزرار الدعوة) **سايبينها بالاستباق**:
+ * دي اللي الزائر فعلًا رايح لها.
+ */
 export default async function Footer() {
   const [settings, content, year] = await Promise.all([getSiteSettings(), getSiteContent(), getCopyrightYear()]);
   const logo = settings.images.logoDark || settings.images.logo;
@@ -49,7 +63,7 @@ export default async function Footer() {
     <footer className="mt-auto border-t border-slate-200 bg-white px-6 py-8 md:px-12 md:py-12">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row md:items-start">
         <div className="space-y-4 text-center md:text-right">
-          <Link href="/" className="inline-block">
+          <Link href="/" prefetch={false} className="inline-block">
             {logo ? (
               <span className="relative block h-12 w-36">
                 <Image
@@ -154,7 +168,7 @@ export default async function Footer() {
             </h4>
             <div className="flex flex-col gap-2 text-sm font-medium text-slate-600">
               {QUICK_LINKS.map((l) => (
-                <Link key={l.key} href={l.href} className={LINK_CLASS}>
+                <Link key={l.key} href={l.href} prefetch={false} className={LINK_CLASS}>
                   {content[`footer.link.${l.key}`]}
                 </Link>
               ))}
@@ -167,7 +181,7 @@ export default async function Footer() {
             </h4>
             <div className="flex flex-col gap-2 text-sm font-medium text-slate-600">
               {LEGAL_LINKS.map((l) => (
-                <Link key={l.key} href={l.href} className={LINK_CLASS}>
+                <Link key={l.key} href={l.href} prefetch={false} className={LINK_CLASS}>
                   {content[`footer.link.${l.key}`]}
                 </Link>
               ))}

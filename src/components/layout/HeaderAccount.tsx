@@ -83,6 +83,7 @@ export function HeaderAccount() {
     return (
       <Link
         href="/sign-in"
+        prefetch={false}
         className="flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-500 hover:shadow-lg hover:shadow-amber-500/20 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <User className="h-4 w-4" />
@@ -95,6 +96,7 @@ export function HeaderAccount() {
     <>
       <Link
         href="/notifications"
+        prefetch={false}
         aria-label={
           session.unreadCount > 0
             ? `الإشعارات، ${session.unreadCount} غير مقروء`

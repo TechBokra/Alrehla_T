@@ -9,6 +9,7 @@ export function CartHeaderButton() {
   return (
     <Link
       href="/cart"
+      prefetch={false}
       aria-label="سلة المشتريات"
       className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 relative flex h-11 w-11 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-brand-strong"
     >

@@ -58,6 +58,8 @@ export function NavLinks({ showAqlam = false }: { showAqlam?: boolean }) {
           <Link
             key={link.href}
             href={link.href}
+            /* الاستباق مقفول — الشرح في `components/layout/Footer.tsx`. */
+            prefetch={false}
             aria-current={active ? 'page' : undefined}
             className={
               active

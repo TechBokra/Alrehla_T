@@ -71,6 +71,8 @@ export function SectionSubNav({
                 <Link
                   key={tab.href}
                   href={tab.href}
+                  /* الاستباق مقفول — الشرح في `components/layout/Footer.tsx`. */
+                  prefetch={false}
                   data-active={isActive || undefined}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
