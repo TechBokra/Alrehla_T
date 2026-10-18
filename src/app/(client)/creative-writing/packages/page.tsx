@@ -12,8 +12,6 @@ export async function generateMetadata(): Promise<Metadata> {
 import Link from 'next/link';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { PackageCard } from '@/components/creative-writing/PackageCard';
-import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getDependentGuardian } from '@/lib/auth-guard';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
 import { SectionTabs } from '@/components/SectionTabs';
@@ -34,18 +32,15 @@ export default async function PackagesPage() {
     getWatermarkLayer(),
   ]);
 
-  // حساب الطفل التابع بيشوف «اطلب من ولي أمرك» بدل زرار الحجز.
-  // الفشل هنا بيتعامل معاه كـ«مش تابع» — صفحة عرض، والحارس الحقيقي
-  // في `createCourseBooking`.
-  const user = await getCurrentUser();
-  let isDependent = false;
-  if (user.role !== 'visitor') {
-    try {
-      isDependent = Boolean(await getDependentGuardian());
-    } catch {
-      isDependent = false;
-    }
-  }
+  /* ⚠️ **فحص الطفل التابع اتنقل لصفحة الحجز** (`booking/page.tsx`).
+   *
+   *    كان هنا، والصفحة بتقرا المستخدم عشانه فبتتبني لكل زيارة:
+   *    **٨٨٨ مللي** بالقياس على المنشور، مقابل **١٢٠** للصفحة
+   *    المتخزّنة. والفحص بيخص أقلية من الزوّار.
+   *
+   *    وصفحة الحجز بتتبني لكل زيارة أصلًا، والفحص هناك بيوقف الطفل
+   *    **قبل** المعالج — نفس الحماية، وبلا تكلفة على الباقي.
+   */
 
   const activePackages = packages.filter((p) => p.isActive);
 
@@ -108,7 +103,7 @@ export default async function PackagesPage() {
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {track.items.map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} isDependent={isDependent} />
+                  <PackageCard key={pkg.id} pkg={pkg} />
                 ))}
               </div>
             </Section>
@@ -125,7 +120,7 @@ export default async function PackagesPage() {
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {untracked.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} isDependent={isDependent} />
+                <PackageCard key={pkg.id} pkg={pkg} />
               ))}
             </div>
           </Section>

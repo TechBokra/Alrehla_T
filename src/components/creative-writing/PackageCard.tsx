@@ -24,20 +24,11 @@ export function ageGroupLabel(ageGroup: WritingPackage['ageGroup']): string {
  */
 export function PackageBookButton({
   pkg,
-  isDependent,
   className = '',
 }: {
   pkg: WritingPackage;
-  isDependent: boolean;
   className?: string;
 }) {
-  if (isDependent) {
-    return (
-      <div className={className}>
-        <DependentRequestButton kind="package" packageId={pkg.id} label="اطلب الباقة من ولي أمرك" />
-      </div>
-    );
-  }
   return (
     <Button
       // الباقة بتتبعت في الرابط: قبل كده كان اللي بيختار باقة معيّنة
@@ -85,7 +76,7 @@ export function PackageStats({ pkg, size = 'sm' }: { pkg: WritingPackage; size?:
  *    بيظهر خالص. (ملاحظة فريق العمل: الوصف تحت الاسم والسن، والكارت أصغر،
  *    وصفحة تفاصيل فيها الوصف الكامل.)
  */
-export function PackageCard({ pkg, isDependent }: { pkg: WritingPackage; isDependent: boolean }) {
+export function PackageCard({ pkg }: { pkg: WritingPackage }) {
   const href = packageHref(pkg);
   return (
     <Card accentColor="emerald" className="flex flex-col gap-4 p-6">
@@ -116,7 +107,7 @@ export function PackageCard({ pkg, isDependent }: { pkg: WritingPackage; isDepen
       <PackageStats pkg={pkg} />
 
       <div className="mt-auto flex flex-col gap-2 pt-2">
-        <PackageBookButton pkg={pkg} isDependent={isDependent} className="w-full" />
+        <PackageBookButton pkg={pkg} className="w-full" />
         <Link
           href={href}
           /* ⚠️ `min-h-[44px]` مش `py-2`: بالـpadding بس كان بيطلع ٣٦ بكسل —

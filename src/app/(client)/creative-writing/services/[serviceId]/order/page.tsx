@@ -22,6 +22,8 @@ import { Section } from '@/components/ui/Section';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getProvidersForService } from '@/data/domains/(client)/services/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getDependentGuardian } from '@/lib/auth-guard';
+import { DependentRequestButton } from '@/components/services/DependentRequestButton';
 import { OrderServiceClient } from './OrderServiceClient';
 
 import { kindsLabel } from '@/lib/private-files';
@@ -57,6 +59,30 @@ export default async function OrderServicePage({
     // بيرجع لنفس الطلب بعد الدخول — كان بيرجع للرئيسية ويدوّر من الأول.
     const back = `/creative-writing/services/${serviceId}/order${providerParam ? `?provider=${providerParam}` : ''}`;
     redirect(`/sign-in?next=${encodeURIComponent(back)}`);
+  }
+
+  /* ── الطفل التابع ─────────────────────────────────────────────
+   *
+   * ⚠️ **الفحص ده مكانه هنا، لا في صفحة الخدمة.**
+   *
+   *    كان في صفحة الخدمة العامة: الصفحة بتقرا المستخدم عشان تعرف
+   *    لو هو طفل تابع، وده بيخلّيها **تتبني لكل زيارة**. وبالقياس
+   *    على المنشور: صفحة بتتبني لكل زيارة = ٩٠٥ مللي، والمتخزّنة =
+   *    ١٢٠. يعني فحص بيخص أقلية بسيطة كان بيكلّف **كل** زائر سبعة
+   *    أضعاف الزمن على أهم صفحة بيع.
+   *
+   *    وهنا الصفحة بتتبني لكل زيارة أصلًا (فيها دخول ودفع وسعر)،
+   *    فالفحص مجاني. والطفل بيشوف الرسالة الصح **قبل** الفورم، مش
+   *    بعد ما يملاه.
+   *
+   * ⚠️ والفشل = «مش تابع»: الحارس الحقيقي في `createServiceOrder`،
+   *    وده نفس اللي كان في صفحة الخدمة بالظبط.
+   */
+  let dependentOf = null;
+  try {
+    dependentOf = await getDependentGuardian();
+  } catch {
+    dependentOf = null;
   }
 
   // The price shown must be the one the server will actually charge, so it is
@@ -96,8 +122,40 @@ export default async function OrderServicePage({
           رجوع
         </Link>
 
-        <h1 className="mb-8 text-3xl font-black tracking-tight text-slate-900">تأكيد الطلب</h1>
+        <h1 className="mb-8 text-3xl font-black tracking-tight text-slate-900">
+          {dependentOf ? 'طلب الخدمة' : 'تأكيد الطلب'}
+        </h1>
 
+        {/* الطفل التابع مابيدفعش — بيبعت الطلب لولي أمره. */}
+        {dependentOf ? (
+          <div className="rounded-card border border-amber-200 bg-amber-50 p-6">
+            <h2 className="mb-2 font-black text-amber-900">محتاج موافقة ولي أمرك</h2>
+            <p className="mb-5 text-sm font-medium text-amber-900">
+              الطلب ده بيتم من حساب ولي أمرك. ابعتله الطلب من هنا، وهو يكمّله وتوصلك الخدمة بعد
+              التأكيد.
+            </p>
+            <dl className="mb-5 space-y-1 text-sm font-bold text-amber-900">
+              <div className="flex justify-between gap-4">
+                <dt>الخدمة</dt>
+                <dd>{service.name}</dd>
+              </div>
+              {providerName && (
+                <div className="flex justify-between gap-4">
+                  <dt>مقدّم الخدمة</dt>
+                  <dd>{providerName}</dd>
+                </div>
+              )}
+            </dl>
+            {providerId && (
+              <DependentRequestButton
+                kind="service"
+                serviceId={serviceId}
+                providerId={providerId}
+                label="اطلب من ولي أمرك"
+              />
+            )}
+          </div>
+        ) : (
         <OrderServiceClient
           payment={payment}
           paymentWalletNumber={settings.paymentWalletNumber}
@@ -116,6 +174,7 @@ export default async function OrderServicePage({
               : undefined
           }
         />
+        )}
       </Section>
     </PageContainer>
   );

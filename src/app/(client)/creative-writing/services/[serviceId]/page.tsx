@@ -2,15 +2,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Award, CheckCircle2, Clock, ClipboardList } from 'lucide-react';
-import { DependentRequestButton } from '@/components/services/DependentRequestButton';
-import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getDependentGuardian } from '@/lib/auth-guard';
+import { ChildChoiceTag, GuardianPreset, OrderLink } from '@/components/services/GuardianPreset';
 import { formatPrice } from '@/lib/utils';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getProvidersForService } from '@/data/domains/(client)/services/queries';
-import { fetchFamilyMembers } from '@/app/actions/family';
 import { ProviderKindBadge } from '@/components/services/ProviderKindBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { pageMetadata } from '@/lib/seo';
@@ -27,7 +24,25 @@ import {
 } from '@/components/creative-writing/ServiceCard';
 import { ServiceSamples } from '@/components/creative-writing/ServiceSamples';
 
-export const dynamic = 'force-dynamic';
+/**
+ * ⚠️ **الصفحة دي كانت `force-dynamic`** — بتتبني من الأول لكل زيارة.
+ *
+ *    بالقياس على الموقع المنشور: **٩٠٥ مللي** للزيارة، والصفحات
+ *    المتخزّنة **٨٥–١٣٥ مللي**. يعني سبعة أضعاف الزمن على أهم صفحة
+ *    بيع في الموقع.
+ *
+ *    والسبب كان حاجتين صغيرتين: قراءة المستخدم (عشان الطفل التابع)
+ *    وقراءة `?child=` (عشان موافقة ولي الأمر). الاتنين اتنقلوا:
+ *      • الطفل التابع ← صفحة الطلب (بتتبني لكل زيارة أصلًا، والفحص
+ *        هناك بيمنعه **قبل** الفورم مش بعده)
+ *      • `?child=` ← مكوّن عميل (`GuardianPreset`)
+ *
+ *    والمحتوى نفسه عام بالكامل: خدمة وأسعار ومقدّمين ونماذج.
+ *
+ * ⚠️ والتحديث بيوصل لها من `refreshPublicPages()` زي باقي الصفحات
+ *    العامة — أي تعديل إداري بيحدّثها فورًا.
+ */
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ serviceId: string }> }) {
   const { serviceId } = await params;
@@ -61,19 +76,14 @@ export async function generateMetadata({ params }: { params: Promise<{ serviceId
  *
  * ⚠️ السعر من المقدّم المعتمد — نفس مصدر الخادم (`getProvidersForService`).
  */
-export default async function ServicePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ serviceId: string }>;
-  /**
-   * بييجي من موافقة ولي الأمر على طلب ابنه: الطفل متحدد، واختياره للمقدّم
-   * متعلَّم — وولي الأمر يقدر يغيّره قبل ما يكمّل.
-   */
-  searchParams: Promise<{ child?: string; provider?: string }>;
-}) {
+/**
+ * ⚠️ **مفيش `searchParams` هنا عن قصد.** قراءة الرابط على الخادم
+ *    بتمنع تخزين الصفحة زيّ قراءة المستخدم بالظبط. حالة موافقة ولي
+ *    الأمر (`?child=` و`?provider=`) بتتقرا في المتصفح من
+ *    `GuardianPreset` و`ChildChoiceTag` و`OrderLink`.
+ */
+export default async function ServicePage({ params }: { params: Promise<{ serviceId: string }> }) {
   const { serviceId } = await params;
-  const { child: childParam, provider: requestedProviderId } = await searchParams;
 
   const services = await getStandaloneServices();
   const service = services.find((s) => s.id === serviceId);
@@ -85,21 +95,6 @@ export default async function ServicePage({
   ]);
 
   // ⚠️ الاسم بيتحلّ من قايمة أبناء الداخل، فرقم طفل حد تاني بيتجاهل.
-  const family = childParam ? await fetchFamilyMembers() : [];
-  const presetChild = family.find((c) => c.id === childParam) ?? null;
-
-  // حساب الطفل التابع بيشوف «اطلب من ولي أمرك» بدل زرار الشراء. الفشل =
-  // «مش تابع»: صفحة عرض، والحارس الحقيقي في `createServiceOrder`.
-  const user = await getCurrentUser();
-  let isDependent = false;
-  if (user.role !== 'visitor') {
-    try {
-      isDependent = Boolean(await getDependentGuardian());
-    } catch {
-      isDependent = false;
-    }
-  }
-
   const style = categoryStyle(service.category);
   const Icon = style.icon;
   const cover = service.coverImageUrl
@@ -117,9 +112,7 @@ export default async function ServicePage({
   const price = available ? Math.min(...prices) : service.price;
 
   const orderHref = (providerId: string) =>
-    `/creative-writing/services/${encodeURIComponent(serviceId)}/order?provider=${encodeURIComponent(providerId)}${
-      presetChild ? `&child=${encodeURIComponent(presetChild.id)}` : ''
-    }`;
+    `/creative-writing/services/${encodeURIComponent(serviceId)}/order?provider=${encodeURIComponent(providerId)}`;
 
   /** زرار الطلب الأساسي — نفس المنطق فوق وفي الشريط المثبّت تحت. */
   const primaryAction = (className = '') => {
@@ -130,27 +123,15 @@ export default async function ServicePage({
         </span>
       );
     }
-    if (single && isDependent) {
-      return (
-        <div className={className}>
-          <DependentRequestButton
-            kind="service"
-            serviceId={serviceId}
-            providerId={single.providerId}
-            label="اطلب من ولي أمرك"
-          />
-        </div>
-      );
-    }
     if (single) {
       return (
-        <Link
+        <OrderLink
           href={orderHref(single.providerId)}
           className={`flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 font-black text-white shadow-md transition-colors hover:bg-emerald-800 ${className}`}
         >
           اطلب الخدمة
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        </OrderLink>
       );
     }
     return (
@@ -239,15 +220,8 @@ export default async function ServicePage({
               </div>
             )}
 
-            {/* ولي الأمر لازم يعرف إنه بيكمّل طلب ابنه، ولمين الخدمة. */}
-            {presetChild && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <p className="font-bold text-amber-900">بتكمّل طلب {presetChild.fullName}</p>
-                <p className="mt-1 text-sm font-medium text-amber-800">
-                  الخدمة هتتسجّل باسمه، وتقدر تغيّر مقدّم الخدمة قبل ما تكمّل.
-                </p>
-              </div>
-            )}
+            {/* ولي الأمر لازم يعرف إنه بيكمّل طلب ابنه — في المتصفح. */}
+            <GuardianPreset />
 
             <div className="flex flex-col gap-3 sm:flex-row">
               {primaryAction('w-full sm:flex-1')}
@@ -309,21 +283,13 @@ export default async function ServicePage({
                   {providers.map((provider) => (
                     <li
                       key={provider.offerId}
-                      className={`flex flex-wrap items-center gap-4 rounded-2xl border-2 bg-white p-5 ${
-                        presetChild && provider.providerId === requestedProviderId
-                          ? 'border-amber-300'
-                          : 'border-slate-100'
-                      }`}
+                      className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-slate-100 bg-white p-5"
                     >
                       <PersonAvatar name={provider.displayName} avatarUrl={provider.avatarUrl} size={56} />
                       <div className="min-w-[180px] flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-lg font-black text-slate-800">{provider.displayName}</h3>
-                          {presetChild && provider.providerId === requestedProviderId && (
-                            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
-                              اختيار {presetChild.fullName}
-                            </span>
-                          )}
+                          <ChildChoiceTag providerId={provider.providerId} />
                           <ProviderKindBadge kind={provider.kind} />
                         </div>
                         {provider.bio && (
@@ -337,22 +303,13 @@ export default async function ServicePage({
                         )}
                       </div>
                       <span className="text-2xl font-black text-slate-900">{formatPrice(provider.price)}</span>
-                      {isDependent ? (
-                        <DependentRequestButton
-                          kind="service"
-                          serviceId={serviceId}
-                          providerId={provider.providerId}
-                          label="اطلب من ولي أمرك"
-                        />
-                      ) : (
-                        <Link
-                          href={orderHref(provider.providerId)}
-                          className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 font-bold text-white transition-colors hover:bg-emerald-800"
-                        >
-                          اطلب
-                          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-                        </Link>
-                      )}
+                      <OrderLink
+                        href={orderHref(provider.providerId)}
+                        className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-emerald-700 px-6 font-bold text-white transition-colors hover:bg-emerald-800"
+                      >
+                        اطلب
+                        <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                      </OrderLink>
                     </li>
                   ))}
                 </ul>

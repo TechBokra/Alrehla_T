@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight, CheckCircle2, Info } from 'lucide-react';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
-import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
-import { getDependentGuardian } from '@/lib/auth-guard';
 import { formatPrice } from '@/lib/utils';
 import { pageMetadata } from '@/lib/seo';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -55,17 +53,9 @@ export default async function PackageDetailsPage({ params }: { params: Promise<{
   const pkg = await findPackage(slug);
   if (!pkg) notFound();
 
-  // حساب الطفل التابع بيشوف «اطلب من ولي أمرك» بدل زرار الحجز. الفشل هنا
-  // = «مش تابع»: صفحة عرض، والحارس الحقيقي في `createCourseBooking`.
-  const user = await getCurrentUser();
-  let isDependent = false;
-  if (user.role !== 'visitor') {
-    try {
-      isDependent = Boolean(await getDependentGuardian());
-    } catch {
-      isDependent = false;
-    }
-  }
+  /* ⚠️ فحص الطفل التابع اتنقل لصفحة الحجز — الشرح في
+   *    `creative-writing/packages/page.tsx`. الصفحة دي عامة
+   *    بالكامل دلوقتي فبتتخزّن. */
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -135,7 +125,7 @@ export default async function PackageDetailsPage({ params }: { params: Promise<{
             )}
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <PackageBookButton pkg={pkg} isDependent={isDependent} className="w-full md:w-auto md:px-10" />
+              <PackageBookButton pkg={pkg} className="w-full md:w-auto md:px-10" />
               <ShareButton
                 variant="subtle"
                 theme="emerald"
