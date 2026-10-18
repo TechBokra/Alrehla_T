@@ -43,7 +43,7 @@ export default async function CreativeWritingOrdersPage() {
       serviceName: (
         <Link
           href={`/account/orders/creative-writing/${order.id}`}
-          className="font-bold text-amber-600 hover:underline"
+          className="font-bold text-brand-strong hover:underline"
         >
           {order.serviceName}
         </Link>

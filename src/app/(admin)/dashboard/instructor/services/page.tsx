@@ -62,7 +62,7 @@ export default async function InstructorServicesPage() {
       serviceName: (
         <Link
           href={`/dashboard/instructor/services/orders/${order.id}`}
-          className="font-bold text-amber-600 hover:underline"
+          className="font-bold text-brand-strong hover:underline"
         >
           {order.serviceName}
         </Link>

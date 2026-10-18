@@ -207,7 +207,7 @@ function LibraryView({
         {/* ══ السنّ ══════════════════════════════════════════════ */}
         {ageCounts.length > 0 && (
           <div role="group" aria-label="السنّ">
-            <p className="mb-2 text-sm font-bold text-slate-700">لسنّ كام؟</p>
+            <p className="mb-2 text-sm font-bold text-slate-700">لأي سنّ؟</p>
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
               <button
                 type="button"
@@ -298,7 +298,7 @@ function LibraryView({
               className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-slate-400"
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              {more ? 'إخفاء الفلاتر الإضافية' : 'فلاتر أكتر'}
+              {more ? 'إخفاء الفلاتر الإضافية' : 'فلاتر إضافية'}
               {extraActive > 0 && (
                 <span className="rounded-full bg-rose-700 px-2 py-0.5 text-xs text-white">
                   {extraActive.toLocaleString('ar-EG')}

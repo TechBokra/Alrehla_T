@@ -197,7 +197,7 @@ export default function SupportClient({
                 {faq.q.includes('الخصوصية') && (
                   <Link
                     href="/privacy"
-                    className="mt-2 inline-flex items-center gap-1 font-bold text-amber-600 hover:underline"
+                    className="mt-2 inline-flex items-center gap-1 font-bold text-brand-strong hover:underline"
                   >
                     اقرأ سياسة الخصوصية <ArrowLeft className="h-4 w-4" />
                   </Link>
@@ -282,7 +282,7 @@ export default function SupportClient({
           {text['support.join.text']}{' '}
           <Link
             href="/join-us"
-            className="flex items-center gap-1 font-bold text-amber-600 hover:underline"
+            className="flex items-center gap-1 font-bold text-brand-strong hover:underline"
           >
             {text['support.join.link']} <ArrowLeft className="h-4 w-4" />
           </Link>

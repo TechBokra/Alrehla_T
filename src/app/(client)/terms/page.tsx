@@ -40,7 +40,7 @@ export default async function TermsPage() {
               {content['terms.footer']}{' '}
               <Link
                 href="/support"
-                className="font-bold text-amber-600 hover:underline"
+                className="font-bold text-brand-strong hover:underline"
               >
                 مركز الدعم
               </Link>

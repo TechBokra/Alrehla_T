@@ -111,7 +111,7 @@ export function ForgotPasswordForm() {
 
       <p className="text-center text-sm font-medium text-slate-500">
         فاكرها؟{' '}
-        <Link href="/sign-in" className="font-bold text-amber-600 hover:underline">
+        <Link href="/sign-in" className="font-bold text-brand-strong hover:underline">
           تسجيل الدخول
         </Link>
       </p>
