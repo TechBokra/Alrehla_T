@@ -1,11 +1,12 @@
 import { formatPrice } from '@/lib/utils';
 import React from 'react';
 import Image from 'next/image';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Truck } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
 import { addonCustomerPrice, customizedAddonIdsFor } from '@/lib/item-format';
+import { PAUSED_MESSAGE } from '@/lib/delivery';
 
 /**
  * الإضافات بتيجي من قاعدة البيانات (جدول `addon_products`) عن طريق
@@ -27,15 +28,40 @@ export function Step3Addons({
   onNext,
   onPrev,
   addons,
+  deliveryPaused = false,
+  pauseMessage = '',
 }: {
   onNext: () => void;
   onPrev: () => void;
   addons: AddonProduct[];
+  /**
+   * التوصيل مقفول؟ ساعتها **مفيش إضافة تتطلب خالص**.
+   *
+   * ⚠️ كل إضافة حاجة ملموسة بتتشحن — القاعدة نفسها بتقول
+   *    «الشحن لو فيه مطبوع **أو إضافة**». فالشاشة كانت بتسيبه
+   *    يختار بوسترًا والتوصيل مقفول، وبعدين يموت في الدفع.
+   */
+  deliveryPaused?: boolean;
+  pauseMessage?: string;
 }) {
   const { watch, setValue } = useFormContext();
   const selectedAddons: string[] = watch('selectedAddonIds') || [];
 
+  /**
+   * ⚠️ **تنضيف الاختيار القديم.** العميل ممكن يكون اختار إضافات
+   *    قبل ما الإدارة توقف التوصيل، والنموذج محفوظ في المتصفح.
+   *    من غير السطر ده بيرجع للخطوة ويلاقي بوستر متعلّم والزرار
+   *    مقفول — وبيدوّر على سبب مش ظاهر.
+   */
+  React.useEffect(() => {
+    if (deliveryPaused && selectedAddons.length > 0) {
+      setValue('selectedAddonIds', []);
+      setValue('customizedAddonIds', []);
+    }
+  }, [deliveryPaused, selectedAddons.length, setValue]);
+
   const toggleAddon = (id: string) => {
+    if (deliveryPaused) return;
     const next = selectedAddons.includes(id)
       ? selectedAddons.filter((a) => a !== id)
       : [...selectedAddons, id];
@@ -52,6 +78,28 @@ export function Step3Addons({
         شامل التخصيص.
       </p>
 
+      {/* ══ التوصيل مقفول ═══════════════════════════════════════
+          كل إضافة حاجة ملموسة بتتشحن — فمفيش ولا واحدة تتطلب
+          دلوقتي. والعميل لازم يعرف ده **هنا**، مش في آخر خطوة. */}
+      {deliveryPaused && (
+        <div
+          role="status"
+          className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900"
+        >
+          <Truck className="mt-0.5 h-6 w-6 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-black">الإضافات مش متاحة دلوقتي</p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">
+              {pauseMessage.trim() || PAUSED_MESSAGE}
+            </p>
+            <p className="mt-2 text-sm font-medium leading-relaxed">
+              كل إضافة حاجة ملموسة بتتشحن لحد عندك — فمش هينفع تتطلب والتوصيل
+              متوقف. كمّل بالنسخة الإلكترونية دلوقتي، والإضافات هتفضل مستنياك.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4 mt-6">
         {addons.length === 0 && (
           <p className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm font-medium text-slate-500">
@@ -59,19 +107,26 @@ export function Step3Addons({
           </p>
         )}
         {addons.map((addon) => {
-          const isSelected = selectedAddons.includes(addon.id);
+          const isSelected = selectedAddons.includes(addon.id) && !deliveryPaused;
           // السعر شامل التخصيص — كل الإضافات بتتخصص (ملف 08).
           const shownPrice = addonCustomerPrice(addon);
 
           return (
             <div
               key={addon.id}
-              className={`rounded-2xl border-2 transition-colors ${isSelected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+              className={`rounded-2xl border-2 transition-colors ${
+                deliveryPaused
+                  ? 'border-slate-200 bg-slate-50 opacity-60'
+                  : isSelected
+                    ? 'border-emerald-600 bg-emerald-50'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+              }`}
             >
               <div
                 role="checkbox"
                 aria-checked={isSelected}
-                tabIndex={0}
+                aria-disabled={deliveryPaused || undefined}
+                tabIndex={deliveryPaused ? -1 : 0}
                 onClick={() => toggleAddon(addon.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -79,7 +134,7 @@ export function Step3Addons({
                     toggleAddon(addon.id);
                   }
                 }}
-                className="flex cursor-pointer items-start gap-4 p-5"
+                className={`flex items-start gap-4 p-5 ${deliveryPaused ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div
                   className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${isSelected ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white'}`}
@@ -110,6 +165,11 @@ export function Step3Addons({
                   <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
                     مخصصة بالاسم والصورة
                   </p>
+                  {deliveryPaused && (
+                    <p className="mt-2 text-xs font-bold text-amber-800">
+                      غير متاحة — التوصيل متوقف مؤقتًا
+                    </p>
+                  )}
                 </div>
                 <div className="shrink-0 font-black text-emerald-700">
                   +{formatPrice(shownPrice)}

@@ -149,14 +149,46 @@ export function Step4Review({
 
         <FormatChooser product={product} deliveryPaused={deliveryPaused} />
 
-        {/* إلكتروني من غير إضافات = مفيش شحن (ملف 138). */}
-        <div className="rounded-2xl border border-blue-200 p-4 bg-blue-50 text-blue-800 text-sm font-bold text-center">
-          {subscriptionMonths
-            ? `صندوق كل شهر لمدة ${subscriptionMonths.toLocaleString('ar-EG')} شهور — مصاريف الشحن = سعر منطقتك × عدد الشهور، وبتتحسب في خطوة الدفع`
-            : cartNeedsShipping([{ format: values.format, addonIds: values.selectedAddonIds }])
-              ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
-              : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
-        </div>
+        {/* ══ الشحن ═══════════════════════════════════════════
+            إلكتروني من غير إضافات = مفيش شحن (ملف 138).
+
+            ⚠️ **والسطر ده كان بيكدب بهدوء.** لما التوصيل يكون
+               متوقف وفي الطلب إضافة، كان بيقول «سيتم إدخال بيانات
+               الشحن في خطوة الدفع التالية» — والعميل بيضيف للسلة
+               ويروح الدفع ويلاقي الطلب مرفوض. السطر كان بيوعد
+               بخطوة مش هتحصل. */}
+        {(() => {
+          const needs = cartNeedsShipping([
+            { format: values.format, addonIds: values.selectedAddonIds },
+          ]);
+          if (subscriptionMonths) {
+            return (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
+                صندوق كل شهر لمدة {subscriptionMonths.toLocaleString('ar-EG')} شهور — مصاريف الشحن
+                = سعر منطقتك × عدد الشهور، وبتتحسب في خطوة الدفع
+              </div>
+            );
+          }
+          if (needs && deliveryPaused) {
+            return (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+                <p>الطلب ده محتاج شحن، والتوصيل متوقف مؤقتًا — فمش هينفع يتطلب دلوقتي.</p>
+                <p className="mt-1 font-medium leading-relaxed">
+                  {(values.selectedAddonIds?.length ?? 0) > 0
+                    ? 'الإضافات اللي اخترتها بتتشحن. ارجع لخطوة الإضافات وشيلها، وكمّل بالنسخة الإلكترونية.'
+                    : 'اختار النسخة الإلكترونية فوق وهتقدر تكمّل عادي.'}
+                </p>
+              </div>
+            );
+          }
+          return (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
+              {needs
+                ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
+                : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
+            </div>
+          );
+        })()}
       </div>
       <div className="flex justify-between pt-6 border-t border-slate-100">
         <button

@@ -5,7 +5,7 @@ import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
-import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, type ItemFormat } from '@/lib/item-format';
+import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -429,11 +429,30 @@ export function PersonalizationWizard({
     // اختيار في النموذج (جلسة قديمة كان ممكن يكون فيها «بدون تخصيص»).
     const customizedAddonIds = customizedAddonIdsFor(addons, data.selectedAddonIds);
 
-    // ⚠️ حارس أخير: لو التوصيل اتوقف والعميل لسه فاتح الصفحة من قبلها،
-    //    الاختيار المطبوع مايعدّيش. (القاعدة بترفضه كمان وقت الطلب.)
-    if (deliveryPaused && format !== 'electronic') {
-      setUploadError(`${pauseText} — اختر النسخة الإلكترونية للمتابعة.`);
-      router.push(stepHref(4));
+    /* ⚠️ **الحارس ده كان بيفحص النوع وبس — وده كان العطل.**
+     *
+     *    بلاغ تامر (١٨ أكتوبر): «الطلب أصلًا كان مقفول على نسخة
+     *    إلكترونية فقط، وبرضه وقف في الطلب».
+     *
+     *    وهو كان صح: اختار «نسخة إلكترونية — من غير شحن» ومعاها
+     *    **بوستر مطبوع** كإضافة. الشرط `format !== 'electronic'`
+     *    بيعدّيه، والبند بينزل السلة، وبيموت في الدفع — لأن قاعدة
+     *    الشحن الحقيقية هي «مطبوع **أو إضافة**».
+     *
+     *    يعني المعالج باعله تناقض: كارت بيقول «من غير شحن» وبند
+     *    محتاج شحن. والحارس الأخير مامسكهوش.
+     *
+     *    دلوقتي بيستعمل `itemNeedsShipping` — نفس الدالة اللي
+     *    الدفع والقاعدة بيحسبوا بيها. فمفيش تعريفين للشحن.
+     */
+    if (deliveryPaused && itemNeedsShipping({ format, addonIds: data.selectedAddonIds })) {
+      const becauseAddons = (data.selectedAddonIds?.length ?? 0) > 0;
+      setUploadError(
+        becauseAddons
+          ? `${pauseText} — والإضافات اللي اخترتها بتتشحن. شيلها من خطوة الإضافات وكمّل بالنسخة الإلكترونية.`
+          : `${pauseText} — اختر النسخة الإلكترونية للمتابعة.`,
+      );
+      router.push(stepHref(becauseAddons ? 3 : 4));
       return;
     }
 
@@ -556,7 +575,7 @@ export function PersonalizationWizard({
                   onPrev={handlePrev}
                 />
               )}
-              {currentStep === 3 && !subscription && <Step3Addons addons={addons} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
+              {currentStep === 3 && !subscription && <Step3Addons addons={addons} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
               {(currentStep === 4 || (subscription && currentStep === 3)) && (
                 <Step4Review
                   onPrev={handlePrev}

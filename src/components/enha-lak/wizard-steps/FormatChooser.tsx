@@ -31,8 +31,21 @@ export function FormatChooser({
   deliveryPaused?: boolean;
 }) {
   const { watch, setValue } = useFormContext();
+  const selectedAddonIds: string[] = watch('selectedAddonIds') || [];
   if (!electronicAvailable(product)) return null;
   const current: ItemFormat = watch('format') ?? 'printed';
+
+  /**
+   * ⚠️ **«من غير شحن» كانت بتتقال وهي مش صحيحة.**
+   *
+   *    الكارت بيقول «ملف بيوصلك على الإيميل — من غير شحن» حتى لو
+   *    العميل مختار بوسترًا مطبوعًا كإضافة. والبوستر بيتشحن، فالبند
+   *    كله محتاج شحن (قاعدة القاعدة: «مطبوع **أو إضافة**»).
+   *
+   *    فالعميل بيقرا وعدًا بمفيش شحن، وبيترفض في الدفع. دلوقتي
+   *    الكارت بيقول الحقيقة لما يكون فيه إضافة.
+   */
+  const addonsForceShipping = selectedAddonIds.length > 0;
 
   return (
     <fieldset className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -67,7 +80,11 @@ export function FormatChooser({
                 <Icon className="h-4 w-4" aria-hidden /> {FORMAT_LABELS[f]}
               </span>
               <span className="text-xs text-slate-600">
-                {blocked ? 'غير متاح — التوصيل متوقف مؤقتًا' : HINTS[f]}
+                {blocked
+                  ? 'غير متاح — التوصيل متوقف مؤقتًا'
+                  : f === 'electronic' && addonsForceShipping
+                    ? 'ملف بيوصلك على الإيميل — والإضافات بتتشحن لعنوانك'
+                    : HINTS[f]}
               </span>
               <span className="mt-1 font-black text-emerald-800">
                 {formatPrice(basePriceForFormat(product, f))}
