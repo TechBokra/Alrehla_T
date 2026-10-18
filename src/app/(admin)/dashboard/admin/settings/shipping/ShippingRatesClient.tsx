@@ -79,10 +79,31 @@ export function ShippingRatesClient({ config }: { config: AdminDeliveryConfig })
 
 /* ───────────── إيقاف التوصيل العام ───────────── */
 
+/**
+ * إيقاف التوصيل العام.
+ *
+ * ── الفخ اللي اتصلّح هنا ────────────────────────────────────
+ *
+ * ⚠️ **المربّع المعلَّم مش معناه التوصيل متوقف.**
+ *
+ *    تامر بلّغ (١٨ أكتوبر) إن «الشحن معطّل ومع ذلك الطلب عدّى
+ *    بالشحن». وسجل التدقيق بيقول إن التوصيل اتوقف ١٥ أكتوبر
+ *    ٢:٤٠ ص و**رجع** نفس اليوم ٢:٣٩ م — ومفيش أي تغيير بعدها.
+ *
+ *    السبب الأرجح: علّم المربّع ومادسّش «حفظ». الشاشة بتفضل
+ *    مورّية مربّعًا معلَّمًا — شكلها بيقول «متوقف» والموقع شغّال.
+ *    وزرار «حفظ» بيبقى مقفول لو مفيش تغيير، فمافيش فرق بصري
+ *    بين «محفوظ» و«لسه مش محفوظ».
+ *
+ *    دلوقتي: الحالة **المحفوظة** مكتوبة فوق صريحة، وأي تغيير
+ *    مش محفوظ بيطلّع تنبيه أحمر فوق الزرار.
+ */
 function PauseCard({ pause }: { pause: AdminDeliveryConfig['pause'] }) {
   const { run, busyKey, busy, error } = useAction();
   const [paused, setPaused] = useState(pause.paused);
   const [message, setMessage] = useState(pause.message);
+
+  const dirty = paused !== pause.paused || message !== pause.message;
 
   return (
     <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5">
@@ -92,6 +113,20 @@ function PauseCard({ pause }: { pause: AdminDeliveryConfig['pause'] }) {
           يوقف طلب المنتجات المطبوعة والإضافات والصندوق في كل الدول. النسخة الإلكترونية تبقى متاحة.
         </p>
       </header>
+
+      {/* الحالة **المحفوظة** — مش اللي المربّع مورّيه. */}
+      <p
+        className={`rounded-2xl border p-3 text-sm font-black ${
+          pause.paused
+            ? 'border-amber-300 bg-amber-50 text-amber-900'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+        }`}
+      >
+        {pause.paused
+          ? 'الوضع الحالي على الموقع: التوصيل متوقف — العملاء مش بيقدروا يطلبوا حاجة محتاجة شحن.'
+          : 'الوضع الحالي على الموقع: التوصيل شغّال — الطلبات بتعدّي بالشحن عادي.'}
+      </p>
+
       <FormError message={error} />
       <Checkbox
         label="التوصيل متوقف حاليًا"
@@ -102,10 +137,22 @@ function PauseCard({ pause }: { pause: AdminDeliveryConfig['pause'] }) {
       <Field label="رسالة للعميل (اختيارية)" hint="لو تُركت فارغة: «التوصيل متوقف مؤقتًا — يمكنك طلب النسخة الإلكترونية».">
         <TextInput maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} />
       </Field>
+      {/* ⚠️ **ودي السطر اللي كان ناقص.** من غيره، المربّع المعلَّم
+          واللي مادسّش عليه «حفظ» شكله زيّ المحفوظ بالظبط. */}
+      {dirty && (
+        <p
+          role="status"
+          className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm font-black text-red-800"
+        >
+          لسه مش محفوظ — دوس «حفظ» عشان التغيير ده يتطبّق على الموقع. لو خرجت دلوقتي،
+          الوضع هيفضل زيّ ما هو فوق.
+        </p>
+      )}
+
       <div className="flex justify-end">
         <BusyButton
           busy={busyKey === 'pause'}
-          disabled={busy || (paused === pause.paused && message === pause.message)}
+          disabled={busy || !dirty}
           onClick={() => run('pause', () => setDeliveryPaused({ paused, message }))}
         >
           <Check className="h-4 w-4" /> حفظ

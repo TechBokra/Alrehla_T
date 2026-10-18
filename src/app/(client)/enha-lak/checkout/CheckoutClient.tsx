@@ -10,7 +10,7 @@ import { useCart, type CartItem } from '@/context/CartContext';
 import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
-import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -701,25 +701,17 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   البيانات وشاف الإجمالي من غير خصمه. ودلوقتي هو جنب
                   الأرقام اللي بيأثّر عليها، وظاهر من أول الصفحة. */}
 
-              {mixedBox && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-                  <p>
-                    اشتراك صندوق الرحلة بيتطلب لوحده. باقي المنتجات تستنى وترجع
-                    لسلتك بعد ما تخلص الاشتراك — وساعتها تاخد خصم المشترك على الإضافات.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const others = items.filter((i: CartItem) => !i.boxPlanId);
-                      saveDeferredItems(others);
-                      others.forEach((i: CartItem) => removeItem(i.id));
-                    }}
-                    className="mt-3 rounded-lg bg-amber-800 px-4 py-2 text-xs font-bold text-white hover:bg-amber-900"
-                  >
-                    اطلب الاشتراك الأول
-                  </button>
-                </div>
-              )}
+              {/* ⚠️ **تنبيه «الصندوق بيتطلب لوحده» اتنقل لملخّص الطلب**
+                  (ملاحظة تامر، ١٨ أكتوبر: «ده مش مكانه»).
+
+                  كان هنا — جوّه **خطوة الدفع**. والكلام اللي فيه عن
+                  **محتويات السلة**: شيل المنتجات التانية واطلب
+                  الاشتراك لوحده. فالعميل بيقرا في خانة «طريقة الدفع»
+                  كلامًا عن سلّته، والزرار اللي بيحلّ المشكلة بيغيّر
+                  حاجة هو شايفها في الناحية التانية من الشاشة.
+
+                  دلوقتي التنبيه فوق البنود نفسها في الملخّص، وبيبان
+                  من **الخطوة الأولى** مش بعد ما يملا بياناته كلها. */}
 
               <div className="pt-2">
                 <button
@@ -727,8 +719,23 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   disabled={isProcessing || !canContinue || mixedBox}
                   className="w-full flex justify-center items-center gap-2 rounded-xl bg-rose-600 px-8 py-4 font-black text-white hover:bg-rose-700 transition-colors shadow-lg disabled:opacity-70"
                 >
-                  {isPending || isProcessing ? 'جارٍ تسجيل الطلب…' : 'سجّل الطلب واعرض بيانات التحويل'}
+                  {/* ⚠️ **النص كان ثابتًا «واعرض بيانات التحويل»** حتى
+                      والبوابة شغّالة — والسطر الأزرق فوقه بالظبط بيقول
+                      إنه هيتحوّل لصفحة دفع. الزرار كان بيناقض الكلام
+                      اللي فوقه بسطرين. */}
+                  {isPending || isProcessing
+                    ? 'جارٍ تسجيل الطلب…'
+                    : gateway
+                      ? 'سجّل الطلب وكمّل الدفع'
+                      : 'سجّل الطلب واعرض بيانات التحويل'}
                 </button>
+
+                {/* الزرار المقفول لازم يقول هو مقفول ليه. */}
+                {mixedBox && (
+                  <p role="status" className="mt-2 text-center text-sm font-bold text-amber-800">
+                    شيل المنتجات التانية من الملخّص عشان تكمّل الاشتراك — التفاصيل جنبها.
+                  </p>
+                )}
               </div>
             </form>
           )}
@@ -740,12 +747,47 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       <div>
         <Card accentColor="rose" className="p-6 sticky top-8">
           <h3 className="text-lg font-black text-slate-800 mb-6">ملخص الطلب</h3>
-          
+
+          {/* ══ الصندوق بيتطلب لوحده ═══════════════════════════
+              مكانه هنا فوق البنود: الكلام عن محتويات السلة،
+              والزرار بيغيّر البنود اللي تحته على طول. */}
+          {mixedBox && (
+            <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+              <p className="leading-relaxed">
+                اشتراك صندوق الرحلة بيتطلب لوحده. باقي المنتجات تستنى وترجع
+                لسلتك بعد ما تخلص الاشتراك — وساعتها تاخد خصم المشترك على الإضافات.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const others = items.filter((i: CartItem) => !i.boxPlanId);
+                  saveDeferredItems(others);
+                  others.forEach((i: CartItem) => removeItem(i.id));
+                }}
+                className="mt-3 min-h-[44px] rounded-lg bg-amber-800 px-4 text-xs font-bold text-white hover:bg-amber-900"
+              >
+                اطلب الاشتراك الأول
+              </button>
+            </div>
+          )}
+
           <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {items.map((item: any) => (
               <div key={item.id} className="flex gap-4 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
-                  <Image src={optimizedImageUrl(item.imageUrl, 160)} alt={item.name} fill sizes="96px" className="object-cover" />
+                {/* ⚠️ **البند من غير صورة كان بيطلّع أيقونة مكسورة.**
+                    `optimizedImageUrl(undefined)` بترجّع `''`، و`<Image src="">`
+                    بيرسم علامة الصورة المكسورة. واشتراك الصندوق تحديدًا
+                    مالوش صورة منتج — فأول حاجة العميل بيشوفها في ملخّص
+                    طلبه بـ٤١٩٠ جنيه صورة مكسورة.
+
+                    صفحة السلة كانت بتتعامل مع الحالة دي صح من الأول
+                    (`item.imageUrl ? … : <Package/>`) — والدفع لأ. */}
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-100 text-slate-400">
+                  {item.imageUrl ? (
+                    <Image src={optimizedImageUrl(item.imageUrl, 160)} alt={item.name} fill sizes="96px" className="object-cover" />
+                  ) : (
+                    <Package className="h-7 w-7" aria-hidden="true" />
+                  )}
                 </div>
                 <div className="flex-1">
                   
