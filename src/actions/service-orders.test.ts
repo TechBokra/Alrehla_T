@@ -29,6 +29,15 @@ vi.mock('@/lib/auth-guard', () => ({
   getDependentGuardian: (...args: unknown[]) => mockGetDependentGuardian(...args),
 }));
 
+/**
+ * الدور بيتقرا من القاعدة عشان حساب الشغل مايطلبش (ملاحظة تامر ١٨
+ * أكتوبر). الافتراضي هنا «عميل» — والاختبار بيغيّره لما يكون هو الموضوع.
+ */
+const mockGetCurrentUser = vi.fn();
+vi.mock('@/data/domains/(shared)/auth/queries', () => ({
+  getCurrentUser: (...args: unknown[]) => mockGetCurrentUser(...args),
+}));
+
 const mockNotifyUser = vi.fn();
 const mockNotifyAdmins = vi.fn();
 const mockGetInstructorUserId = vi.fn();
@@ -112,6 +121,7 @@ const noSideEffects = () => {
 describe('service-orders: الفشل المتوقَّع بيرجع نتيجة مش استثناء', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetCurrentUser.mockResolvedValue({ id: 'u-1', role: 'customer' });
   });
 
   describe('createServiceOrder', () => {
@@ -150,6 +160,45 @@ describe('service-orders: الفشل المتوقَّع بيرجع نتيجة م
       await expect(
         createServiceOrder({ serviceId: 'svc-1', participantType: 'child', childId: null }),
       ).resolves.toEqual({ ok: false, error: 'اختار المستفيد من الخدمة', field: 'childId' });
+    });
+
+    /**
+     * ⚠️ قرار تامر (١٨ أكتوبر): حساب الشغل مايطلبش بنفس الحساب.
+     *    وأهم حالة: **مقدّم الخدمة بيطلب خدمة** — كان بيقدر يطلبها
+     *    من نفسه، فيدفع لنفسه والعمولة تتحسب على معاملة مالهاش وجود.
+     */
+    it.each([
+      ['service_provider', 'مقدّم خدمة'],
+      ['instructor', 'مدرب'],
+      ['general_supervisor', 'إداري'],
+      ['super_admin', 'مدير نظام'],
+      ['publisher', 'دار نشر'],
+    ])('حساب %s ← { ok:false } ومفيش طلب', async (role, label) => {
+      const { db, insert } = fakeDb();
+      mockSupabase = db;
+      mockGetDependentGuardian.mockResolvedValue(null);
+      mockGetCurrentUser.mockResolvedValue({ id: 'u-1', role });
+
+      const result = await createServiceOrder({ serviceId: 'svc-1' });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toContain(label);
+      // الرسالة بتقول الحل، مش «غير مصرح» وبس.
+      expect(result.error).toContain('حساب جديد بإيميل تاني');
+      expect(insert).not.toHaveBeenCalled();
+      expect(mockNotifyUser).not.toHaveBeenCalled();
+      expect(mockLogAuditAction).not.toHaveBeenCalled();
+    });
+
+    it('العميل والطالب مابيتأثروش', async () => {
+      for (const role of ['customer', 'student']) {
+        mockSupabase = fakeDb().db;
+        mockGetDependentGuardian.mockResolvedValue(null);
+        mockGetCurrentUser.mockResolvedValue({ id: 'u-1', role });
+        const result = await createServiceOrder({ serviceId: 'svc-1' });
+        // بيفشل لأسباب تانية (قاعدة وهمية) — المهم إنه مش رفض الدور.
+        if (!result.ok) expect(result.error).not.toContain('حساب جديد بإيميل تاني');
+      }
     });
   });
 

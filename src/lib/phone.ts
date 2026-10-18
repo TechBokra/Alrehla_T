@@ -54,11 +54,135 @@ export function isValidPhone(value: string | null | undefined): boolean {
   const raw = toLatinDigits(value.trim());
   if (!/^\+?[0-9\s().-]+$/.test(raw)) return false;
   const digits = normalizePhone(raw).replace('+', '');
+  // «٠٠٠٠٠٠٠٠٠٠» بتعدّي فحص الطول وهي مش رقم — ودي الحاجة الوحيدة
+  // اللي بنضيفها على الحد الأدنى، لأنها مستحيلة في أي بلد.
+  if (new Set(digits).size === 1) return false;
   return digits.length >= 7 && digits.length <= 15;
 }
 
 /** الرسالة الموحّدة — نفس النص في كل شاشة. */
 export const PHONE_ERROR = 'اكتب رقم تليفون صحيح — أرقام بس، من 7 لـ15 رقم.';
+
+/* ════════════════════════════════════════════════════════════
+   رقم **كامل**، مش مجرد أرقام
+   ════════════════════════════════════════════════════════════
+
+   ملاحظة تامر (١٨ أكتوبر): «اتأكد إنه بيكتب رقم تليفون كامل، مش مجرد
+   أرقام ومش كلام».
+
+   ── الفرق بين `isValidPhone` واللي تحت ──────────────────────
+
+   `isValidPhone` فوق هي **الحد الأدنى**: أرقام بس، وطول معقول. وهي
+   كفاية لنموذج الدعم وطلب الانضمام — مانعرفش دولة الشخص هناك، وأي
+   قاعدة أضيق هترفض أرقامًا صحيحة.
+
+   لكن في **الطلب** إحنا عارفين الدولة (العميل مختارها فوق الخانة
+   بالظبط). وساعتها «١٢٣٤٥٦٧» بتعدّي الحد الأدنى وهي مش رقم: ١١ رقم
+   هو طول الموبايل المصري، و٠١٠/٠١١/٠١٢/٠١٥ هي البدايات الموجودة
+   فعلًا. فبنفحص الدولة اللي العميل اختارها — ولما نرفض، بنقول **السبب
+   والشكل الصح**، مش «رقم غير صحيح».
+
+   ⚠️ **ومافيش تضييق على الدول التانية عن قصد.** المنصة بتستقبل من ٢٢
+      دولة عربية، وجدول أطوال لكل واحدة فيهم من غير بيانات حقيقية
+      بيوقّع أرقامًا صحيحة. مصر وحدها اللي الشحن مفتوح فيها، وأغلب
+      الطلبات منها — فهي اللي ليها قاعدة دقيقة، والباقي الحد الأدنى
+      + رفض الرقم المكرّر.
+
+   ⚠️ **وده كله مش بديل عن المحاولة التانية.** الرقم الصحيح شكلًا
+      ممكن يبقى غلط فعلًا — الإدارة بتتصل وتكتشف. الهدف إننا ما
+      نستقبلش حاجة **مستحيل** تكون رقم. */
+
+export type PhoneProblem =
+  | 'empty'
+  | 'letters'
+  | 'too_short'
+  | 'too_long'
+  | 'repeated'
+  | 'eg_mobile'
+  | 'eg_length';
+
+/** رقم من نوع «٠٠٠٠٠٠٠٠٠٠» أو «١١١١١١١١١١١» — بيعدّي أي فحص طول. */
+function isSingleDigitRepeated(digits: string): boolean {
+  return digits.length > 0 && new Set(digits).size === 1;
+}
+
+/**
+ * الرقم الوطني المصري بعد شيل كود الدولة والصفر.
+ *
+ * بيتعامل مع التلات صور اللي العميل بيكتب بيهم: `01012345678`
+ * و`+201012345678` و`00201012345678` و`1012345678`.
+ */
+function egyptNationalNumber(digits: string): string {
+  let d = digits;
+  if (d.startsWith('0020')) d = d.slice(4);
+  // ⚠️ الشرط على الطول مقصود: رقم أرضي القاهرة بيبدأ بـ«2» كمان
+  //    (`201234567` = ٢-٠١٢٣-٤٥٦٧)، فشيل «20» من غير فحص طول كان
+  //    هيبهدل رقمًا صحيحًا.
+  else if (d.startsWith('20') && (d.length === 11 || d.length === 12)) d = d.slice(2);
+  if (d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+
+/**
+ * إيه المشكلة في الرقم ده؟ `null` = مفيش.
+ *
+ * `countryCode` رمز الدولة اللي العميل اختارها (`EG`, `SA`…). من غيرها
+ * بيتطبّق الحد الأدنى بس.
+ */
+export function phoneProblem(
+  value: string | null | undefined,
+  countryCode?: string | null,
+): PhoneProblem | null {
+  if (typeof value !== 'string' || !value.trim()) return 'empty';
+  const raw = toLatinDigits(value.trim());
+  if (!/^\+?[0-9\s().-]+$/.test(raw)) return 'letters';
+
+  const digits = normalizePhone(raw).replace('+', '');
+  if (!digits) return 'empty';
+  if (isSingleDigitRepeated(digits)) return 'repeated';
+
+  if ((countryCode ?? '').trim().toUpperCase() === 'EG') {
+    const nsn = egyptNationalNumber(digits);
+    if (isSingleDigitRepeated(nsn)) return 'repeated';
+    // ⚠️ شرط الطول قبل فرع الموبايل مقصود: «1234567» بيبدأ بـ«1» بس
+    //    مش محاولة موبايل ناقصة — هو أقصر من الأرضي كمان. رسالة
+    //    «الرقم ناقص» اللي بتذكر الاتنين أنفع من رسالة موبايل بحتة.
+    if (nsn.startsWith('1') && nsn.length >= 9) {
+      // موبايل: ١٠ أرقام وطنية، والتانية من ٠/١/٢/٥ (فودافون/اتصالات/
+      // أورنج/WE). أي حاجة تانية مش شبكة موجودة.
+      if (nsn.length !== 10 || !/^1[0125]/.test(nsn)) return 'eg_mobile';
+      return null;
+    }
+    // أرضي: ٩ أرقام وطنية (كود المحافظة + الرقم).
+    if (nsn.length !== 9) return 'eg_length';
+    return null;
+  }
+
+  if (digits.length < 7) return 'too_short';
+  if (digits.length > 15) return 'too_long';
+  return null;
+}
+
+const PHONE_PROBLEM_MESSAGES: Record<PhoneProblem, string> = {
+  empty: 'اكتب رقم تليفونك — محتاجينه نتواصل معاك على الطلب.',
+  letters: 'الرقم فيه حروف أو رموز — اكتب أرقام بس.',
+  too_short: 'الرقم ناقص — اكتب الرقم بالكامل بكود الدولة.',
+  too_long: 'الرقم أطول من أي رقم تليفون — راجعه.',
+  repeated: 'ده مش رقم تليفون — اكتب رقمك الحقيقي، إحنا هنتواصل معاك عليه.',
+  eg_mobile:
+    'رقم الموبايل المصري ١١ رقم ويبدأ بـ ٠١٠ أو ٠١١ أو ٠١٢ أو ٠١٥ — زي ٠١٠١٢٣٤٥٦٧٨.',
+  eg_length:
+    'الرقم ناقص. موبايل؟ ١١ رقم يبدأ بـ٠١. أرضي؟ كود المحافظة والرقم — زي ٠٢٢٣٤٥٦٧٨٩.',
+};
+
+/** رسالة الخطأ المناسبة للمشكلة، أو `''` لو الرقم سليم. */
+export function phoneErrorFor(
+  value: string | null | undefined,
+  countryCode?: string | null,
+): string {
+  const problem = phoneProblem(value, countryCode);
+  return problem ? PHONE_PROBLEM_MESSAGES[problem] : '';
+}
 
 /**
  * خصائص خانة التليفون في الواجهة.

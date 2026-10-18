@@ -8,6 +8,7 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
 import { getProvidersForService } from '@/data/domains/(client)/services/queries';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { ProviderKindBadge } from '@/components/services/ProviderKindBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { pageMetadata } from '@/lib/seo';
@@ -113,9 +114,11 @@ export default async function ServicePage({ params }: { params: Promise<{ servic
   const service = services.find((s) => s.id === serviceId);
   if (!service) notFound();
 
-  const [providers, wm] = await Promise.all([
+  const [providers, wm, payment] = await Promise.all([
     getProvidersForService(serviceId),
     getWatermarkLayer(),
+    // ⚠️ `createPublicClient` جوّاها — مابتقراش كوكيز، فالصفحة تفضل متخزّنة.
+    getPaymentAvailability(),
   ]);
 
   // ⚠️ الاسم بيتحلّ من قايمة أبناء الداخل، فرقم طفل حد تاني بيتجاهل.
@@ -355,7 +358,7 @@ export default async function ServicePage({ params }: { params: Promise<{ servic
             )}
             <section>
               <h2 className="mb-3 text-lg font-black text-slate-800">إزاي بتشتغل؟</h2>
-              <ServiceSteps compact />
+              <ServiceSteps payment={payment} compact />
             </section>
           </aside>
         </div>

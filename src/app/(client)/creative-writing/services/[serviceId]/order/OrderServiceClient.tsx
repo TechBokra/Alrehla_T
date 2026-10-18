@@ -13,6 +13,7 @@ import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
 import type { PaymentAvailability } from '@/lib/payments/settings';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
+import { requiredFieldProps, focusField } from '@/lib/form-validation';
 
 interface Props {
   /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
@@ -62,6 +63,8 @@ export function OrderServiceClient({
   const gateway = payment.mode === 'gateway' ? payment : null;
   const manualNotice = payment.mode === 'manual' ? payment.notice : '';
   const [error, setError] = useState<string | null>(null);
+  /** الغلط اللي مكانه خانة معيّنة — بيتعرض جنبها، مش في شريط فوق. */
+  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [placed, setPlaced] = useState<{ id: string; reference: string; amount: number } | null>(null);
   // كود الخصم (ملف 13) — للعرض، والقاعدة بتحسبه وقت تسجيل الطلب.
@@ -91,10 +94,25 @@ export function OrderServiceClient({
       .catch(() => setFamily([]));
   }, []);
 
-  /** الخطوة الأولى: تسجيل الطلب — منه بييجي الرقم المرجعي. */
+  /**
+   * الخطوة الأولى: تسجيل الطلب — منه بييجي الرقم المرجعي.
+   *
+   * ⚠️ **الزر كان `disabled` لحد ما المستفيد يتحدّد.** العميل بيختار
+   *    «لأحد أفراد العائلة» وينسى يختار الاسم، ويدوس الزر — ومافيش
+   *    حاجة بتحصل. مافيش رسالة، مافيش سطر أحمر، ولا حتى علامة على
+   *    القايمة. الزر بقى شغّال، والضغطة بتقول الناقص وبتوصّله له.
+   */
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldError(null);
+
+    if (participantType === 'child' && !childId) {
+      setFieldError({ field: 'childId', message: 'اختار المستفيد من الخدمة — مقدّم الخدمة محتاج يعرف الشغل لمين.' });
+      focusField('service-participant');
+      return;
+    }
+
     startTransition(async () => {
       const result = await createServiceOrder({
         serviceId,
@@ -105,6 +123,15 @@ export function OrderServiceClient({
         discountCode: discount?.code,
       });
       if (!result.ok) {
+        // ⚠️ الأكشن بيرجّع `field` من الأول، والشاشة كانت بتهمله
+        //    وتحط كل غلط في شريط أحمر فوق — حتى «اختار المستفيد»،
+        //    واللي سببه قايمة تحت على بعد شاشة. دلوقتي بيروح جنب
+        //    خانته، والصفحة بتتحرّك لها.
+        if (result.field) {
+          setFieldError({ field: result.field, message: result.error });
+          focusField(result.field === 'childId' ? 'service-participant' : 'service-brief');
+          return;
+        }
         setError(result.error);
         return;
       }
@@ -306,10 +333,18 @@ export function OrderServiceClient({
 
               {participantType === 'child' && family.length > 0 && (
                 <select
-                  required
+                  id="service-participant"
+                  {...requiredFieldProps('المستفيد من الخدمة')}
+                  aria-invalid={fieldError?.field === 'childId' ? true : undefined}
+                  aria-describedby={fieldError?.field === 'childId' ? 'service-participant-error' : undefined}
                   value={childId}
-                  onChange={(e) => setChildId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none focus:border-emerald-500"
+                  onChange={(e) => {
+                    setChildId(e.target.value);
+                    if (fieldError?.field === 'childId') setFieldError(null);
+                  }}
+                  className={`w-full rounded-xl border bg-slate-50 px-4 py-3 font-medium outline-none focus:border-emerald-500 ${
+                    fieldError?.field === 'childId' ? 'border-red-500' : 'border-slate-200'
+                  }`}
                 >
                   <option value="">اختار المستفيد</option>
                   {family.map((member) => (
@@ -318,6 +353,16 @@ export function OrderServiceClient({
                     </option>
                   ))}
                 </select>
+              )}
+
+              {fieldError?.field === 'childId' && (
+                <p
+                  id="service-participant-error"
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700"
+                >
+                  {fieldError.message}
+                </p>
               )}
             </div>
           </div>
@@ -364,9 +409,12 @@ export function OrderServiceClient({
               : 'الدفع بالتحويل (إنستاباي أو فودافون كاش). سجّل الطلب الأول، وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع صورة الإيصال.'}
           </div>
 
+          {/* ⚠️ `disabled` على `isPending` **بس**. كان كمان على
+              «المستفيد مش محدّد» — فالزر بيبقى ميّت والعميل مش عارف
+              ليه. دلوقتي الضغطة بتشتغل وبتقول الناقص (`handleRegister`). */}
           <button
             type="submit"
-            disabled={isPending || (participantType === 'child' && !childId)}
+            disabled={isPending}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 font-black text-white shadow-lg transition-colors hover:bg-emerald-700 disabled:opacity-70"
           >
             <CheckCircle2 className="h-5 w-5" />

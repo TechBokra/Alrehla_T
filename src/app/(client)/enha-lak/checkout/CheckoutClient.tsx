@@ -1,5 +1,6 @@
 'use client';
-import { PHONE_INPUT_PROPS, PHONE_ERROR, isValidPhone } from '@/lib/phone';
+import { PHONE_INPUT_PROPS, phoneErrorFor } from '@/lib/phone';
+import { requiredFieldProps, clearCustomValidity, focusField } from '@/lib/form-validation';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
 import { formatPrice } from '@/lib/utils';
@@ -124,6 +125,29 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   const areaBlockedMessage =
     verdict && !verdict.available && !countryClosed.closed && shippingInfo.gov ? verdict.message : '';
   const canContinue = shippingKnown && !electronicBlocked;
+
+  /* ══ الشحن مقفول من اللوحة ═════════════════════════════════
+     ملاحظة تامر (١٨ أكتوبر): «لما يكون الشحن مش مفعّل من لوحة
+     التحكم، يظهر للعميل اعتذار إن الشحن غير متاح، ويخلّي الجزء
+     بتاع الشحن معطّل».
+
+     ⚠️ **كان العميل بيملا عنوانه بالكامل وبعدين يلاقي الزر ميّت.**
+        خانة العنوان كانت بره شرط الإغلاق (المحافظة والمنطقة بس
+        كانوا بيختفوا)، فبيكتب الشارع ورقم العمارة والشقة، ويدوس
+        «المتابعة للدفع»، ومافيش حاجة بتحصل — وفوق سطر أصفر
+        صغير. المجهود كله بيروح هدر، والعميل مش عارف إن القرار
+        إداري ومش غلطة منه.
+
+     دلوقتي: اعتذار صريح فوق الجزء، والخانات **معطّلة** (شكلها
+     بيقول إنها مقفولة)، و`disabled` كمان بيخرّجها من فحص
+     المتصفح — فمافيش «الخانة دي مطلوبة» على خانة مقفولة.
+
+     ⚠️ والإغلاق ده ليه تلات أسباب من اللوحة، والرسالة بتفرّق
+        بينهم: إيقاف التوصيل العام (`delivery.paused`)، أو الدولة
+        مقفولة (`countries.physical_enabled`)، أو المحافظة
+        (`governorates.physical_enabled`). `physicalVerdict` هي
+        اللي بتحدّد، ونفس قواعدها في `shipping_quote` في القاعدة. */
+  const shippingOff = needsShipping && countryClosed.closed;
   // الصندوق: سعر المنطقة × عدد الشهور (قرار تامر) — نفس حساب القاعدة.
   const shipping = needsShipping ? (matchedFee ?? 0) * boxMonths : 0;
   // الخصم على المنتجات بس، مش الشحن — نفس حساب القاعدة (ملف 13).
@@ -154,15 +178,18 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canContinue) return;
-    if (!isValidPhone(shippingInfo.phone)) {
-      setPhoneError(PHONE_ERROR);
-      document.getElementById('shipping-phone')?.focus();
+    // الفحص **بالدولة المختارة**: رقم مصري ناقص بيتقال له إنه ١١ رقم
+    // ويبدأ بـ٠١، مش «رقم غير صحيح».
+    const phoneProblemMessage = phoneErrorFor(shippingInfo.phone, country);
+    if (phoneProblemMessage) {
+      setPhoneError(phoneProblemMessage);
+      focusField('shipping-phone');
       return;
     }
     setPhoneError('');
     if (hasElectronic && !isValidDeliveryEmail(shippingInfo.email)) {
-      setEmailError('اكتب إيميل صحيح — النسخة الإلكترونية هتوصلك عليه');
-      document.getElementById('delivery-email')?.focus();
+      setEmailError('اكتب إيميل صحيح — النسخة الإلكترونية هتوصلك عليه. زي name@example.com');
+      focusField('delivery-email');
       return;
     }
     setEmailError('');
@@ -231,9 +258,14 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       if (!result.ok) {
         // العربة ما بتتفضّاش عند الفشل: العميل يصحّح ويعيد المحاولة.
         // غلط في الرقم ← نرجّعه لصفحة البيانات وتحت الخانة، مش هنا.
-        if (result.error === PHONE_ERROR) {
-          setPhoneError(PHONE_ERROR);
+        //
+        // ⚠️ بالاسم مش بمقارنة نص الرسالة: المقارنة القديمة
+        //    (`result.error === PHONE_ERROR`) كانت بتنكسر بالسكوت أول
+        //    تعديل في كلمة، والغلط يرجع لشريط عام فوق.
+        if (result.field === 'recipientPhone') {
+          setPhoneError(result.error);
           setStep(1);
+          focusField('shipping-phone');
           return;
         }
         setOrderError(result.error ?? 'تعذّر إرسال الإيصال');
@@ -345,8 +377,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
             <form onSubmit={handleShippingSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">الاسم بالكامل</label>
-                  <input type="text" required value={shippingInfo.name} onChange={e => setShippingInfo({...shippingInfo, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
+                  <label htmlFor="shipping-name" className="block text-sm font-bold text-slate-700 mb-2">الاسم بالكامل</label>
+                  <input id="shipping-name" type="text" {...requiredFieldProps('الاسم بالكامل')} value={shippingInfo.name} onChange={e => setShippingInfo({...shippingInfo, name: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
                 </div>
                 <div>
                   <label htmlFor="shipping-phone" className="block text-sm font-bold text-slate-700 mb-2">رقم الهاتف</label>
@@ -354,7 +386,10 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                     inputMode="tel"
                     aria-invalid={phoneError ? true : undefined}
                     aria-describedby={phoneError ? 'shipping-phone-error' : undefined}
-                    pattern={PHONE_INPUT_PROPS.pattern} required value={shippingInfo.phone}
+                    pattern={PHONE_INPUT_PROPS.pattern}
+                    {...requiredFieldProps('رقم الهاتف')}
+                    placeholder="٠١٠١٢٣٤٥٦٧٨"
+                    value={shippingInfo.phone}
                     onChange={e => { setShippingInfo({...shippingInfo, phone: e.target.value}); if (phoneError) setPhoneError(''); }}
                     dir="ltr" className={`w-full rounded-xl border bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white text-right ${phoneError ? 'border-red-500' : 'border-slate-200'}`} />
                   {phoneError && <p id="shipping-phone-error" role="alert" className="mt-2 text-xs font-bold text-red-700">{phoneError}</p>}
@@ -387,10 +422,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                     تعذّر تحميل الدول المتاحة — حدّث الصفحة أو تواصل مع الإدارة.
                   </p>
                 )}
-                {countryClosed.closed && (
+                {countryClosed.closed && !needsShipping && (
                   <p role="status" className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900">
                     {countryClosed.message || COUNTRY_CLOSED_MESSAGE}
-                    {hasElectronic && ' — لو عايز النسخة الإلكترونية بس، عدّل السلة وسيب المطبوع والإضافات.'}
                   </p>
                 )}
                 {electronicBlocked && electronicCheck && !electronicCheck.allowed && (
@@ -408,23 +442,80 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   <input
                     id="delivery-email"
                     type="email"
-                    required
+                    {...requiredFieldProps('إيميل استلام النسخة الإلكترونية')}
                     dir="ltr"
+                    aria-invalid={emailError ? true : undefined}
+                    aria-describedby={emailError ? 'delivery-email-error' : undefined}
                     value={shippingInfo.email}
-                    onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-right outline-none focus:border-rose-500 focus:bg-white"
+                    onChange={(e) => {
+                      setShippingInfo({ ...shippingInfo, email: e.target.value });
+                      if (emailError) setEmailError('');
+                    }}
+                    className={`w-full rounded-xl border bg-slate-50 px-4 py-3 text-right outline-none focus:border-rose-500 focus:bg-white ${emailError ? 'border-red-500' : 'border-slate-200'}`}
                   />
-                  {emailError && <p className="mt-2 text-xs font-bold text-red-700">{emailError}</p>}
+                  {emailError && (
+                    <p id="delivery-email-error" role="alert" className="mt-2 text-xs font-bold text-red-700">
+                      {emailError}
+                    </p>
+                  )}
                 </div>
               )}
 
               {needsShipping && (<>
+              {/* ══ اعتذار الشحن المقفول ════════════════════════
+                  فوق الخانات، مش تحتها: العميل بيقرا قبل ما يكتب. */}
+              {shippingOff && (
+                <div
+                  role="status"
+                  className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900"
+                >
+                  <Truck className="mt-0.5 h-6 w-6 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-black">نعتذر — الشحن غير متاح حاليًا</p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed">
+                      {countryClosed.closed ? countryClosed.message || COUNTRY_CLOSED_MESSAGE : ''}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-relaxed">
+                      خانات التوصيل تحت مقفولة لحد ما يرجع، ومش محتاج تملاها.
+                      {hasElectronic
+                        ? ' تقدر تعدّل السلة وتسيب النسخة الإلكترونية بس وتكمّل الطلب عادي.'
+                        : ' سلتك محفوظة — ارجع لها لما الشحن يفتح.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">العنوان بالتفصيل (الشارع، رقم العمارة، الشقة)</label>
-                <input type="text" required value={shippingInfo.address} onChange={e => setShippingInfo({...shippingInfo, address: e.target.value})} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white" />
+                <label htmlFor="shipping-address" className="block text-sm font-bold text-slate-700 mb-2">
+                  العنوان بالتفصيل (الشارع، رقم العمارة، الشقة)
+                </label>
+                <input
+                  id="shipping-address"
+                  type="text"
+                  {...requiredFieldProps('العنوان بالتفصيل')}
+                  // ⚠️ `disabled` مش `readOnly`: المعطّلة بتخرج من فحص
+                  //    المتصفح، فمافيش «الخانة دي مطلوبة» على خانة مقفولة.
+                  disabled={shippingOff}
+                  value={shippingInfo.address}
+                  onChange={e => setShippingInfo({...shippingInfo, address: e.target.value})}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                />
               </div>
 
-              {!countryClosed.closed && (
+              {shippingOff ? (
+                /* الجزء المعطّل — شكله موجود عشان العميل يفهم إن ده
+                   مكان الشحن ومقفول، مش إن الصفحة ناقصة. */
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2" aria-hidden="true">
+                  {['المحافظة', 'المنطقة / المدينة'].map((label) => (
+                    <div key={label}>
+                      <label className="mb-2 block text-sm font-bold text-slate-400">{label}</label>
+                      <div className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 font-medium text-slate-400">
+                        غير متاح الآن
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label htmlFor="delivery-governorate" className="mb-2 block text-sm font-bold text-slate-700">
@@ -432,7 +523,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   </label>
                   <select
                     id="delivery-governorate"
-                    required
+                    {...requiredFieldProps('المحافظة')}
                     value={shippingInfo.gov}
                     onChange={(e) => setShippingInfo({ ...shippingInfo, gov: e.target.value, city: '' })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white"
@@ -453,13 +544,15 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   </label>
                   <select
                     id="delivery-area"
-                    required
+                    {...requiredFieldProps('المنطقة / المدينة')}
                     disabled={!shippingInfo.gov}
                     value={shippingInfo.city}
                     onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white disabled:opacity-60"
                   >
-                    <option value="">اختر المنطقة...</option>
+                    <option value="">
+                      {shippingInfo.gov ? 'اختر المنطقة...' : 'اختر المحافظة الأول'}
+                    </option>
                     {areasOf(delivery, country, shippingInfo.gov).map((area) => (
                       <option key={area.city} value={area.city}>
                         {area.city} — {formatPrice(area.fee)}
@@ -487,19 +580,39 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   </label>
                   <input
                     type="text"
+                    disabled={shippingOff}
                     value={shippingInfo.notes}
                     onChange={(e) => setShippingInfo({ ...shippingInfo, notes: e.target.value })}
                     placeholder="علامة مميزة، أفضل وقت للتسليم…"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-rose-500 focus:bg-white disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                   />
                 </div>
               </div>
               </>)}
 
-              <div className="pt-4 flex justify-end">
+              {/* ⚠️ **الزر المقفول لازم يقول هو مقفول ليه.** كان باهتًا
+                  وبس، والعميل بيدوس ويدوس ومافيش حاجة بتحصل ولا سطر
+                  بيشرح — وأغلب الناس بتفترض إن الموقع باظ، مش إن فيه
+                  قرار إداري. السطر ده بيقول السبب والحل. */}
+              <div className="pt-4 flex flex-col items-end gap-2">
                 <button type="submit" disabled={!canContinue} className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 transition-colors disabled:opacity-60">
                   المتابعة للدفع <ChevronRight className="h-5 w-5 rotate-180" />
                 </button>
+                {!canContinue && (
+                  <p role="status" className="text-sm font-bold text-amber-800">
+                    {shippingOff
+                      ? hasElectronic
+                        ? 'الشحن مقفول — عدّل السلة وسيب النسخة الإلكترونية بس للمتابعة.'
+                        : 'الشحن مقفول دلوقتي، فمش هينفع نكمّل الطلب ده.'
+                      : electronicBlocked && electronicCheck && !electronicCheck.allowed
+                        ? electronicCheck.message
+                        : !shippingInfo.gov
+                          ? 'اختار المحافظة والمنطقة الأول — سعر الشحن بيتحدّد منهم.'
+                          : !shippingInfo.city
+                            ? 'اختار المنطقة الأول — سعر الشحن بيتحدّد منها.'
+                            : areaBlockedMessage || 'التوصيل للمكان ده غير متاح الآن — اختار منطقة تانية.'}
+                  </p>
+                )}
               </div>
             </form>
           )}

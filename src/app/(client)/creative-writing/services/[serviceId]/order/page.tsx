@@ -24,6 +24,8 @@ import { getProvidersForService } from '@/data/domains/(client)/services/queries
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { DependentRequestButton } from '@/components/services/DependentRequestButton';
+import { StaffAccountNotice } from '@/components/account/StaffAccountNotice';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
 import { OrderServiceClient } from './OrderServiceClient';
 
 import { kindsLabel } from '@/lib/private-files';
@@ -126,8 +128,12 @@ export default async function OrderServicePage({
           {dependentOf ? 'طلب الخدمة' : 'تأكيد الطلب'}
         </h1>
 
-        {/* الطفل التابع مابيدفعش — بيبعت الطلب لولي أمره. */}
-        {dependentOf ? (
+        {/* حساب الشغل (مدرب/مقدّم خدمة/إداري) مايطلبش بنفس الحساب —
+            قبل النموذج، مش بعد ما يملاه. */}
+        {staffPurchaseBlock(user.role) ? (
+          <StaffAccountNotice role={user.role} what="الطلب" />
+        ) : /* الطفل التابع مابيدفعش — بيبعت الطلب لولي أمره. */
+        dependentOf ? (
           <div className="rounded-card border border-amber-200 bg-amber-50 p-6">
             <h2 className="mb-2 font-black text-amber-900">محتاج موافقة ولي أمرك</h2>
             <p className="mb-5 text-sm font-medium text-amber-900">

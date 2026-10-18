@@ -19,6 +19,9 @@ import { getBookedSlotsByInstructor } from '@/data/domains/(client)/bookings/que
 import { fetchFamilyMembers } from '@/app/actions/family';
 import { getDependentGuardian } from '@/lib/auth-guard';
 import { DependentRequestButton } from '@/components/services/DependentRequestButton';
+import { StaffAccountNotice } from '@/components/account/StaffAccountNotice';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { Section } from '@/components/ui/Section';
 
 export default async function BookingPage({
@@ -66,6 +69,24 @@ export default async function BookingPage({
   }
 
   const packageParam = (await searchParams).package;
+
+  /* ── حساب الشغل ───────────────────────────────────────────────
+   *
+   * ⚠️ **وأخطر حالة هنا هي المدرب.** الحجز بيختار مدربًا، ومافيش
+   *    حاجة كانت بتمنع إن الحاجز هو نفس المدرب — فتطلع جلسة بين
+   *    الشخص ونفسه، ومستحقاتها بتتحسب عليها. الفحص قبل المعالج
+   *    زي الطفل التابع بالظبط.
+   */
+  const viewer = await getCurrentUser();
+  if (staffPurchaseBlock(viewer.role)) {
+    return (
+      <PageContainer className="!py-0 !space-y-0">
+        <Section containerClassName="mx-auto w-full max-w-2xl pt-16 pb-24">
+          <StaffAccountNotice role={viewer.role} what="الحجز" />
+        </Section>
+      </PageContainer>
+    );
+  }
 
   if (dependentOf) {
     return (

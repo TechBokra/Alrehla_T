@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { deliveryLabel } from '@/lib/service-details';
+import { serviceSteps, type ServiceStep } from '@/lib/service-steps';
 
 /**
  * شكل التصنيف (أيقونة ولون) — **العرض بس**؛ الخدمات نفسها من القاعدة.
@@ -127,13 +128,30 @@ export function ServiceCard({ service }: { service: ServiceCardData }) {
   );
 }
 
-/** «إزاي بتشتغل» — تلات خطوات، في صفحة الخدمات وصفحة كل خدمة. */
-export function ServiceSteps({ compact = false }: { compact?: boolean }) {
-  const steps = [
-    { icon: PenLine, title: 'اختار الخدمة واكتب تفاصيلك', text: 'قولنا عايز إيه بالظبط ولمين.' },
-    { icon: CreditCard, title: 'ادفع بالتحويل', text: 'إنستاباي أو فودافون كاش، وارفع صورة الإيصال.' },
-    { icon: PackageCheck, title: 'استلم في حسابك', text: 'الشغل والرسايل في «طلباتي»، وتقدر تسأل في أي وقت.' },
-  ];
+const STEP_ICONS: Record<ServiceStep['icon'], LucideIcon> = {
+  pen: PenLine,
+  pay: CreditCard,
+  deliver: PackageCheck,
+};
+
+/**
+ * «إزاي بتشتغل» — تلات خطوات، في صفحة الخدمات وصفحة كل خدمة.
+ *
+ * ⚠️ **النص مابيتكتبش هنا** — بييجي من `serviceSteps()` اللي بتقرا إعداد
+ *    الدفع الحقيقي. الخطوة التانية كانت مكتوبة بالإيد «ادفع بالتحويل»
+ *    وفضلت كده بعد ما البوابة اتفتحت، فالصفحة كانت بتوصف نظامًا اتغيّر.
+ *
+ * ⚠️ و`payment` **مطلوب**: لو كان اختياريًا بقيمة افتراضية، أي صفحة
+ *    جديدة تنسى تبعته هتعرض نصًا ممكن يكون غلط من غير ما حد ياخد باله.
+ */
+export function ServiceSteps({
+  payment,
+  compact = false,
+}: {
+  payment: Parameters<typeof serviceSteps>[0];
+  compact?: boolean;
+}) {
+  const steps = serviceSteps(payment).map((s) => ({ ...s, icon: STEP_ICONS[s.icon] }));
   return (
     <ol className={`grid gap-4 ${compact ? '' : 'md:grid-cols-3'}`}>
       {steps.map((s, i) => (

@@ -7,6 +7,7 @@ import { getProvidersForService } from '@/data/domains/(client)/services/queries
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getWatermarkLayer } from '@/lib/watermark';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
@@ -65,11 +66,13 @@ async function buildCards(): Promise<(ServiceCardData & { sortKey: number })[]> 
 }
 
 export default async function ServicesPage() {
-  const [cards, content, settings, wm] = await Promise.all([
+  const [cards, content, settings, wm, payment] = await Promise.all([
     buildCards(),
     getSiteContent(),
     getSiteSettings(),
     getWatermarkLayer(),
+    // «إزاي بتشتغل» بتوصف الدفع — فلازم تقرا الإعداد، مش تفترضه.
+    getPaymentAvailability(),
   ]);
 
   // المتاح الأول، و«قريبًا» في الآخر — بنفس ترتيب الإدارة جوّه كل مجموعة.
@@ -96,7 +99,7 @@ export default async function ServicesPage() {
 
       <Section containerClassName="mx-auto w-full max-w-6xl pb-16">
         <h2 className="mb-6 text-center text-2xl font-black text-slate-800">إزاي بتشتغل؟</h2>
-        <ServiceSteps />
+        <ServiceSteps payment={payment} />
       </Section>
 
       <Section containerClassName="pb-16">

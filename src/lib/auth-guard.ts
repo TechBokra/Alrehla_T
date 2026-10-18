@@ -1,6 +1,7 @@
 import 'server-only';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
 import type { AdminPermission, UserProfile } from '@/types';
 
 /**
@@ -66,10 +67,27 @@ export function blockIfSuspended(user: UserProfile) {
   }
 }
 
+/**
+ * الدور ده دور شغل (مدرب/مقدّم خدمة/إداري)؟
+ *
+ * ⚠️ **المنع الحقيقي محفّز في القاعدة** (`block_suspended_purchase`)
+ *    على `orders` و`course_subscriptions` و`service_orders` — زي
+ *    الإيقاف والطفل التابع بالظبط. ده بيدّي الرسالة العربية **قبل**
+ *    ما الطلب يوصل للقاعدة، مش بديلًا عن المحفّز، لأن الأكشن بيتنادى
+ *    من غير الشاشة (قاعدة «ع»).
+ *
+ * السبب والتفاصيل في `@/lib/buying-roles`.
+ */
+export function blockIfStaffAccount(user: UserProfile) {
+  const block = staffPurchaseBlock(user.role);
+  if (block) throw new Error(block.message);
+}
+
 /** مستخدم مسجَّل **ومسموح له يشتري**. */
 export async function requireBuyer(): Promise<UserProfile> {
   const user = await requireUser();
   blockIfSuspended(user);
+  blockIfStaffAccount(user);
   return user;
 }
 

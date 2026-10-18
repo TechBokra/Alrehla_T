@@ -2,6 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getDependentGuardian } from '@/lib/auth-guard';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
 
 /**
  * صفحات الشراء (معالجات التخصيص + الدفع): **الزائر يسجّل دخوله الأول**،
@@ -17,6 +18,17 @@ export async function requireShopper(returnPath: string): Promise<void> {
   const user = await getCurrentUser();
   if (user.role === 'visitor') {
     redirect(`/sign-in?next=${encodeURIComponent(returnPath)}`);
+  }
+
+  // ⚠️ **وحساب الشغل كمان** (قرار تامر، ١٨ أكتوبر): المدرب ومقدّم
+  //    الخدمة والإداري بيطلبوا من حساب عميل منفصل. والفحص هنا
+  //    بيغطّي الخمس صفحات اللي بتنادي الحارس ده — الدفع وتلات
+  //    معالجات تخصيص واشتراك الصندوق.
+  //
+  //    السبب في `@/lib/buying-roles`، والحارس الحقيقي في
+  //    `requireBuyer` ومحفّز `block_suspended_purchase`.
+  if (staffPurchaseBlock(user.role)) {
+    redirect('/enha-lak/staff-account');
   }
 
   // ⚠️ **وحساب الطفل التابع كمان من الأول** — كان بيعدّي المعالج كله

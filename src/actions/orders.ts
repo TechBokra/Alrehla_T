@@ -8,7 +8,7 @@ import { notifyAdmins } from '@/lib/notifications';
 
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/types/supabase';
-import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
+import { normalizePhone, phoneErrorFor } from '@/lib/phone';
 import { isItemFormat, type ItemFormat } from '@/lib/item-format';
 import { isValidReceiptRef } from '@/lib/receipt-ref';
 
@@ -65,7 +65,15 @@ export type NewOrderItem = {
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; paymentReference: string; totalAmount: number | null }
-  | { ok: false; error: string };
+  /**
+   * `field` = اسم الخانة اللي فيها المشكلة.
+   *
+   * ⚠️ كانت الشاشة بتقارن نص الرسالة بثابت (`result.error === PHONE_ERROR`)
+   *    عشان تعرف ترجّع العميل لخانة التليفون. ودي بتفضل شغّالة لحد أول
+   *    مرة حد يعدّل كلمة في الرسالة — وبعدين الغلط بيظهر في شريط عام
+   *    فوق، والعميل مش عارف يصلّح إيه. الاسم مابيتغيّرش بتعديل نص.
+   */
+  | { ok: false; error: string; field?: 'recipientPhone' };
 
 /** وسائل الدفع المتاحة — نفس القيم المسموح بيها في قاعدة البيانات. */
 export type PaymentMethod = 'instapay' | 'vodafone_cash';
@@ -92,8 +100,13 @@ export async function createOrder(
 
   // ⚠️ **`type="tel"` مش بيمنع الحروف** — والرقم ده بيروح لشركة
   //    الشحن. الفحص على الخادم لأن الواجهة مش دليل (قاعدة «ع»).
-  if (shipping && !isValidPhone(shipping.recipientPhone)) {
-    return { ok: false as const, error: PHONE_ERROR };
+  //
+  // والفحص **بالدولة اللي العميل اختارها**: «1234567» بتعدّي أي فحص
+  // عام وهي مش رقم مصري (ملاحظة تامر ١٨ أكتوبر). والرسالة بتقول
+  // الشكل الصح، مش «رقم غير صحيح».
+  if (shipping) {
+    const phoneError = phoneErrorFor(shipping.recipientPhone, shipping.country);
+    if (phoneError) return { ok: false as const, error: phoneError, field: 'recipientPhone' };
   }
 
   const { data, error } = await supabase.rpc('create_customer_order', {
@@ -198,9 +211,8 @@ export async function createBoxSubscriptionOrder(
     return { ok: false, error: err instanceof Error ? err.message : 'غير مصرح' };
   }
   if (!planId) return { ok: false, error: 'اختار خطة الأول' };
-  if (!isValidPhone(shipping.recipientPhone)) {
-    return { ok: false, error: PHONE_ERROR };
-  }
+  const phoneError = phoneErrorFor(shipping.recipientPhone, shipping.country);
+  if (phoneError) return { ok: false, error: phoneError, field: 'recipientPhone' };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('create_box_subscription_order', {

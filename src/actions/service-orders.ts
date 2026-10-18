@@ -11,6 +11,7 @@ import { SERVICE_DUE_DAYS } from '@/lib/service-delivery';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { briefMessage } from '@/lib/service-details';
 import { isValidReceiptRef } from '@/lib/receipt-ref';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
 
 /**
  * Ordering a standalone creative service.
@@ -102,6 +103,20 @@ async function createServiceOrderInner(params: CreateServiceOrderParams): Promis
   if (dependent) {
     return fail('طلب الخدمة محتاج موافقة ولي أمرك. كلّمه يعمله من حسابه.');
   }
+
+  // ⚠️ حساب الشغل (مدرب/مقدّم خدمة/إداري) مايطلبش بنفس الحساب —
+  //    قرار تامر (١٨ أكتوبر)، والسبب في `@/lib/buying-roles`.
+  //
+  //    والفحص هنا **بالدور من القاعدة** مش من اللي الشاشة بعتته
+  //    (قاعدة «ف»). والمنع الحقيقي محفّز `block_suspended_purchase`
+  //    على `service_orders`.
+  //
+  // ⚠️ ومقدّم الخدمة اللي يطلب خدمة لنفسه كان بيقدر يطلبها من نفسه:
+  //    بيدفع لنفسه، والعمولة تتحسب، والسجل المالي يطلع صفًا لمعاملة
+  //    مالهاش وجود.
+  const buyer = await getCurrentUser();
+  const staffBlock = staffPurchaseBlock(buyer.role);
+  if (staffBlock) return fail(staffBlock.message);
 
   const { serviceId } = params;
   let providerId = params.providerId ?? null;
