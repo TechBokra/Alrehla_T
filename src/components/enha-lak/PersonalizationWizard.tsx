@@ -29,6 +29,7 @@ import { Step2Details } from './wizard-steps/Step2Details';
 import { Step3Addons } from './wizard-steps/Step3Addons';
 import { Step4Review } from './wizard-steps/Step4Review';
 import { useCart, type CartItem } from '@/context/CartContext';
+import { clearProductPhotos, loadPhoto, photoKey, savePhoto } from '@/lib/wizard-photo-store';
 import { resolveWizardChild } from '@/app/actions/family';
 import {
   checkExtraAnswers,
@@ -62,6 +63,9 @@ import {
  * ولسه هي المخزن، بس بقت مش خطوة إجبارية.
  */
 const CHECKOUT_PATH = '/enha-lak/checkout';
+
+/** خانات الصور في المعالج — اللي بتتحفظ في المتصفح. */
+const PHOTO_FIELDS = ['facePhotoFile', 'secondPhotoFile'] as const;
 
 const FIELD_STEP: Record<string, { step: number; label: string }> = {
   familyMemberId: { step: 1, label: 'البيانات / اختيار المستفيد' },
@@ -221,13 +225,33 @@ export function PersonalizationWizard({
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          // Exclude file objects from restoring
+          // الملفات مش في `sessionStorage` — بتترجع من `IndexedDB` تحت.
           const { facePhotoFile, secondPhotoFile, ...rest } = parsed;
           reset({ ...methods.getValues(), ...rest });
         } catch (e) {
           console.error("Failed to parse saved form state", e);
         }
       }
+
+      /* ══ الصور ══════════════════════════════════════════════
+         ⚠️ **ودي كانت بتضيع مع كل تحديث للصفحة.** `sessionStorage`
+            بيشيل نصوص بس، فالصور كانت مستثناة بسطرين فوق — والعميل
+            اللي بيرجع للمعالج (من رابط «عدّلها» في الدفع مثلًا)
+            بيلاقي كل بياناته موجودة والصورة راحت، فيرفعها تاني.
+
+            `IndexedDB` بيشيل `File` زي ما هو. والصورة بتفضل في
+            متصفحه وحده — مش بترتفع قبل الطلب (السبب في
+            `lib/wizard-photo-store`). */
+      void (async () => {
+        for (const field of PHOTO_FIELDS) {
+          const file = await loadPhoto(photoKey(product.id, field));
+          // ⚠️ مابنكتبش فوق صورة العميل لو كان اختار واحدة جديدة
+          //    بالفعل وإحنا بنقرا (القراءة غير متزامنة).
+          if (file && !methods.getValues(field)) {
+            methods.setValue(field, file as never, { shouldValidate: false });
+          }
+        }
+      })();
     }
     // ⚠️ نداء واحد بس لـ`setIsLoaded` في نهاية التأثير — كان فيه نداء
     //    تاني في فرع التعديل من غير الاستثناء ده، والقاعدة بترفضه.
@@ -267,6 +291,18 @@ export function PersonalizationWizard({
     const values = getValues();
     const { facePhotoFile, secondPhotoFile, ...rest } = values;
     sessionStorage.setItem(`wizard_state_${product.id}`, JSON.stringify(rest));
+
+    /* ⚠️ **والصور في مخزن تاني.** `JSON.stringify(File)` بيطلّع `{}`،
+       فالصور كانت بتتشال من الحفظ خالص — وأي تحديث للصفحة بيضيّعها.
+       `IndexedDB` بيشيلها زي ما هي. وبنحفظ عند كل خطوة مش عند
+       الاختيار: ساعتها الصورة تكون عدّت تحقق المخطّط (الحجم والنوع)،
+       فمابنخزّنش ملفًا هيترفض. */
+    for (const [field, file] of [
+      ['facePhotoFile', facePhotoFile],
+      ['secondPhotoFile', secondPhotoFile],
+    ] as const) {
+      if (file instanceof File) void savePhoto(photoKey(product.id, field), file);
+    }
     // الاشتراك مالوش خطوة إضافات: من ٢ على ٤ على طول.
     const next = subscription && currentStep === 2 ? 4 : currentStep + 1;
     router.push(stepHref(next));
@@ -418,6 +454,8 @@ export function PersonalizationWizard({
         },
       });
       sessionStorage.removeItem(`wizard_state_${product.id}`);
+      // البند دخل السلة بصورته المرفوعة — النسخة اللي في المتصفح بقت زيادة.
+      void clearProductPhotos(product.id, [...PHOTO_FIELDS]);
       router.push(CHECKOUT_PATH);
       return;
     }
@@ -513,6 +551,7 @@ export function PersonalizationWizard({
 
     // Clear session storage
     sessionStorage.removeItem(`wizard_state_${product.id}`);
+    void clearProductPhotos(product.id, [...PHOTO_FIELDS]);
 
     router.push(CHECKOUT_PATH);
   };
