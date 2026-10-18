@@ -594,3 +594,25 @@ export async function addStudioCost(formData: FormData): Promise<StudioActionRes
   refresh(id);
   return { ok: true, message: 'اتسجّلت التكلفة.' };
 }
+
+/**
+ * ابعت نسخة النص لولي الأمر يعاينها — غلاف `FormData` لشاشة الاستوديو.
+ *
+ * ⚠️ **المنطق مش هنا.** `sendStoryVersionToClient` في
+ *    `@/actions/story-preview` هو اللي بينادي القاعدة ويبعت
+ *    الإشعار ويكتب التدقيق — ودي بتترجم `FormData` بس وبتفرّغ
+ *    كاش شاشة المشروع. نسختين من المنطق كانت هتخلّي الإشعار
+ *    يتبعت من مكان ومايتبعتش من التاني.
+ */
+export async function sendVersionToClient(formData: FormData): Promise<StudioActionResult> {
+  const versionId = str(formData.get('versionId'));
+  const projectId = projectIdOf(formData);
+  if (!isUuid(versionId) || !projectId) return { ok: false, error: 'النسخة غير معروفة.' };
+
+  const { sendStoryVersionToClient } = await import('@/actions/story-preview');
+  const result = await sendStoryVersionToClient(versionId);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  refresh(projectId);
+  return { ok: true, message: 'اتبعتت لولي الأمر.' };
+}

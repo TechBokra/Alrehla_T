@@ -25,6 +25,7 @@ import {
   approveStudioVersion,
   assignStudioProject,
   deleteStudioPage,
+  sendVersionToClient,
   recordClientDecision,
   recordPhotoConsent,
   reviewStudioPage,
@@ -326,6 +327,13 @@ export function TextPanel({
                     </p>
                   )}
 
+                  {v.sentToClientAt && (
+                    <p className="rounded-2xl bg-sky-50 p-3 text-xs font-bold text-sky-900">
+                      اتبعتت لولي الأمر {formatDate(v.sentToClientAt)}
+                      {v.clientDecisionAt ? '' : ' — مستنيين قراره'}
+                    </p>
+                  )}
+
                   {status === 'draft' && writing && (
                     <ActionForm action={approveStudioVersion} successMessage="اتعتمد النص." className="flex justify-end">
                       <Hidden projectId={project.id} />
@@ -334,8 +342,44 @@ export function TextPanel({
                     </ActionForm>
                   )}
 
+                  {/* ══ ابعتها لولي الأمر ═══════════════════════
+                      ⚠️ **الخطوة دي ما كانتش موجودة خالص.** اعتماد
+                         المحرّر كان بيخلّي النسخة «جاهزة» ومحدش
+                         بيقول لولي الأمر — فالفريق كان بيكلّمه
+                         على الواتساب، أو بيحطّ العلامة بنفسه
+                         وخلاص. ولي الأمر دافع ٨٥٠ جنيه وما شافش
+                         نص قصة ابنه. */}
+                  {status === 'editor_approved' && clientStage && !v.sentToClientAt && (
+                    <ActionForm
+                      action={sendVersionToClient}
+                      successMessage="اتبعتت لولي الأمر، ووصله إشعار."
+                      className="space-y-3"
+                    >
+                      <Hidden projectId={project.id} />
+                      <input type="hidden" name="versionId" value={v.id} />
+                      <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900">
+                        ولي الأمر هيشوف النص في «طلباتي» ويوافق أو يطلب تعديل بنفسه.
+                        والرسم مش هيفتح قبل موافقته.
+                      </p>
+                      <FormActions>
+                        <SubmitButton pendingLabel="جارٍ الإرسال…">ابعتها لولي الأمر</SubmitButton>
+                      </FormActions>
+                    </ActionForm>
+                  )}
+
+                  {/* ══ التسجيل بالنيابة ════════════════════════
+                      ⚠️ **بقى الطريق التاني مش الأول.** القرار
+                         المفروض يجي من حساب ولي الأمر؛ ده
+                         للحالات اللي بيرد فيها على التليفون أو
+                         الواتساب. والحارس في القاعدة بيطلب تكتب
+                         إزاي ومتى — عشان «وافق العميل» ماتبقاش
+                         علامة بلا أثر. */}
                   {status === 'editor_approved' && clientStage && (
-                      <ActionForm action={recordClientDecision} successMessage="اتسجّل القرار." className="space-y-3">
+                      <details className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                        <summary className="cursor-pointer text-xs font-bold text-slate-600">
+                          سجّل قراره بالنيابة (رد على تليفون أو واتساب)
+                        </summary>
+                        <ActionForm action={recordClientDecision} successMessage="اتسجّل القرار." className="mt-3 space-y-3">
                         <Hidden projectId={project.id} />
                         <input type="hidden" name="versionId" value={v.id} />
                         <Field
@@ -353,7 +397,8 @@ export function TextPanel({
                             العميل وافق
                           </DecisionButton>
                         </FormActions>
-                      </ActionForm>
+                        </ActionForm>
+                      </details>
                     )}
                 </li>
               );

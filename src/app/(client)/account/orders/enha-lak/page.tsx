@@ -1,4 +1,8 @@
+import Link from 'next/link';
+import { BookOpenCheck } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { productOrderStatus } from '@/lib/order-status';
+import { countAwaitingPreviews } from '@/data/domains/(client)/story-preview/queries';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
 import { getProductNamesFor } from '@/data/domains/(shared)/products/queries';
@@ -14,20 +18,17 @@ import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries
 
 export const dynamic = 'force-dynamic';
 
-// The order used to stop at "مدفوع" with nothing after it, so a customer who
-// paid for a printed book was never told it had been sent.
-const ORDER_STATUS: Record<string, { label: string; type: 'success' | 'warning' | 'neutral' | 'danger' }> = {
-  pending: { label: 'بانتظار الدفع', type: 'warning' },
-  awaiting_verification: { label: 'جارٍ مراجعة الدفع', type: 'warning' },
-  paid: { label: 'مدفوع', type: 'success' },
-  preparing: { label: 'قيد التجهيز', type: 'warning' },
-  shipped: { label: 'تم الشحن', type: 'success' },
-  delivered: { label: 'تم التسليم', type: 'success' },
-  cancelled: { label: 'ملغي', type: 'neutral' },
-  refunded: { label: 'مسترجع', type: 'neutral' },
-  failed: { label: 'فشل الدفع', type: 'danger' },
-};
+/* ⚠️ **كانت فيه خريطة حالات تالتة هنا.**
 
+   `order-status.ts` اتكتب عشان يبقى «مصدر واحد للاسم واللون»،
+   وفيه بالحرف إن `preparing` بقى `info` مش `warning` لأن
+   «التحذير معناه فيه حاجة غلط» — ولو التقدّم الطبيعي برتقالي،
+   العين بتتعلّم تتجاهل البرتقالي، **وساعتها بتتجاهل الطلب اللي
+   فيه مشكلة حقيقية**.
+
+   والنسخة اللي كانت هنا كانت لسه بتقول `preparing: warning` —
+   يعني نفس العطل اللي الملف ده اتكتب يقفله، في الشاشة اللي
+   العميل بيشوفها. اتشالت، والخريطة بقت من المصدر الواحد. */
 
 
 export default async function EnhaLakOrdersPage() {
@@ -39,6 +40,17 @@ export default async function EnhaLakOrdersPage() {
     getPaymentAvailability(),
   ]);
   const cancelDays = settings.pendingOrderCancelDays;
+
+  /* ⚠️ **الطلبات اللي لسه بتتجهّز وبس.** عدّ المعاينات بيناديها
+     القاعدة لكل طلب، والعميل عنده طلبات مقفولة من شهور — فالطلب
+     الملغي والمسلّم والمستني دفع مفيش فيهم نص مستني قرار، وسؤال
+     القاعدة عنهم شغل زيادة على كل زيارة بلا نتيجة. */
+  const liveOrders = allOrders.filter((o) => o.status === 'paid' || o.status === 'preparing');
+  const awaitingByOrder: Record<string, number> = Object.fromEntries(
+    await Promise.all(
+      liveOrders.map(async (o) => [o.id, await countAwaitingPreviews(o.id)] as const),
+    ),
+  );
   const names: Record<string, string> = Object.fromEntries(products.map((p) => [p.id, p.name]));
   // المنتجات اللي اتخفت بعد ما العميل طلبها — اسمها بيفضل ظاهر في طلباته (4.4).
   const missing = allOrders.flatMap((o) => o.items.map((i) => i.productId)).filter((id) => id && !names[id]);
@@ -54,10 +66,26 @@ export default async function EnhaLakOrdersPage() {
     date: new Date(order.createdAt).toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE }),
     statusDisplay: (
       <div className="flex flex-col items-start gap-2">
-        <StatusBadge
-          type={ORDER_STATUS[order.status]?.type ?? 'warning'}
-          label={ORDER_STATUS[order.status]?.label ?? order.status}
-        />
+        <StatusBadge {...productOrderStatus(order.status)} />
+
+        {/* ══ معاينة مستنية موافقته ═══════════════════════════
+            ⚠️ **ودي أهم سطر في الشاشة.** الطلب بيقول «قيد
+               التجهيز» وهو في الحقيقة واقف مستني **هو**. من
+               غير السطر ده، ولي الأمر بيستنى وإحنا مستنيين،
+               والشغل واقف والفلوس مدفوعة.
+
+               وبنعرضه فوق الحالة عشان يبان قبلها، ومش بنغيّر
+               الحالة نفسها: الحالة بتوصف فين الطلب في الشغل،
+               والسطر ده بيوصف المطلوب منه. */}
+        {(awaitingByOrder[order.id] ?? 0) > 0 && (
+          <Link
+            href={`/account/orders/enha-lak/${order.id}/preview`}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 font-black text-amber-900 transition-colors hover:bg-amber-100"
+          >
+            <BookOpenCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+            النص جاهز — اقراه ووافق
+          </Link>
+        )}
         {/* الطلب اتسجّل والدفع ما كملش — يكمّله أو يلغيه بنفسه.
             `failed` كمان: محاولة دفع رجعت بالفشل، والطلب لسه قابل للدفع. */}
         {(order.status === 'pending' || order.status === 'failed') && (

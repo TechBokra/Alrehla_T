@@ -154,6 +154,8 @@ export type StudioVersion = {
   approvedAt: string | null;
   clientDecisionAt: string | null;
   clientDecisionNote: string | null;
+  /** إمتى اتبعتت لولي الأمر يعاينها — `null` = لسه. */
+  sentToClientAt: string | null;
 };
 
 export type StudioPage = {
@@ -205,7 +207,7 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
       .maybeSingle(),
     supabase
       .from('story_versions')
-      .select('id, version_no, body, source, status, note, created_at, approved_at, client_decision_at, client_decision_note')
+      .select('id, version_no, body, source, status, note, created_at, approved_at, client_decision_at, client_decision_note, sent_to_client_at')
       .eq('project_id', id)
       .order('version_no', { ascending: false })
       .limit(50),
@@ -282,6 +284,7 @@ export async function getStudioProject(id: string): Promise<QueryResult<StudioPr
         approvedAt: x.approved_at,
         clientDecisionAt: x.client_decision_at,
         clientDecisionNote: x.client_decision_note,
+        sentToClientAt: x.sent_to_client_at,
       })),
       pages: (pg.data ?? []).map((x) => ({
         id: x.id,

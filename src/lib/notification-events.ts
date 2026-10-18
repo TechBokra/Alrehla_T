@@ -21,6 +21,7 @@ export type NotificationEvent =
   | 'instructor_profile'
   | 'join_request'
   | 'support'
+  | 'story_preview'
   | 'account_deletion'
   | 'withdrawal'
   | 'aqlam'
@@ -89,6 +90,19 @@ export const NOTIFICATION_EVENTS: {
     label: 'الدعم',
     description: 'تذكرة دعم جديدة أو طلب جلسة دعم.',
     audience: 'الإدارة',
+  },
+  {
+    key: 'story_preview',
+    label: 'معاينة نص القصة',
+    description:
+      'نص القصة بقى جاهز وولي الأمر لازم يوافق قبل الرسم، وقراره لما يوصل للفريق.',
+    audience: 'الطرفين',
+    // ⚠️ **مقفول عن قصد.** الرسم مابيبدأش قبل موافقة ولي الأمر
+    //    (بوابة `text_client_approved` في القاعدة). فإيقاف الإشعار
+    //    ده معناه إن الطلب بيقف ومحدش يعرف: ولي الأمر مش عارف إن
+    //    فيه حاجة مستنيّاه، والفريق مستني ردًا مش جاي. ودي فلوس
+    //    مدفوعة وشغل واقف.
+    locked: true,
   },
   {
     key: 'account_deletion',

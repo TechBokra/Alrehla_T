@@ -3768,6 +3768,9 @@ export type Database = {
           body: string
           client_decision_at: string | null
           client_decision_note: string | null
+          client_decision_by: string | null
+          sent_to_client_at: string | null
+          sent_to_client_by: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -3783,6 +3786,9 @@ export type Database = {
           body: string
           client_decision_at?: string | null
           client_decision_note?: string | null
+          client_decision_by?: string | null
+          sent_to_client_at?: string | null
+          sent_to_client_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3798,6 +3804,9 @@ export type Database = {
           body?: string
           client_decision_at?: string | null
           client_decision_note?: string | null
+          client_decision_by?: string | null
+          sent_to_client_at?: string | null
+          sent_to_client_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4831,6 +4840,31 @@ export type Database = {
           full_name: string
           guardian_profile_id: string
         }[]
+      }
+      my_story_previews: {
+        Args: { p_order_id: string }
+        Returns: {
+          project_id: string
+          order_item_id: string
+          product_id: string
+          project_status: string
+          version_id: string
+          version_no: number
+          body: string
+          version_status: string
+          sent_at: string
+          decision_at: string | null
+          decision_note: string | null
+          decided_by_me: boolean | null
+        }[]
+      }
+      story_preview_decide: {
+        Args: { p_version_id: string; p_approve: boolean; p_note?: string | null }
+        Returns: string
+      }
+      story_version_send_to_client: {
+        Args: { p_version_id: string }
+        Returns: string
       }
       next_payment_reference: { Args: never; Returns: string }
       notify_admins: {
