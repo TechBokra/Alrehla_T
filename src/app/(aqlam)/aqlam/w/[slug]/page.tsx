@@ -16,15 +16,6 @@ import { requireAqlamReadable } from '../../gate';
  * رقم الحساب. مش بتتفهرس أبدًا (نصوص الكاتب نفسها بتتفهرس لو سمح، لكن
  * التجميع تحت اسمه لأ). بتتخزّن دقيقة زي صفحة النص.
  */
-/**
- * ⚠️ قايمة فاضية عن قصد — الشرح في
- *    `creative-writing/services/[serviceId]/page.tsx`: المسار
- *    المتغيّر من غيرها مابيتخزّنش ولا مرة (مقيس على المنشور).
- */
-export async function generateStaticParams() {
-  return [];
-}
-
 export const revalidate = 60;
 
 type Params = Promise<{ slug: string }>;

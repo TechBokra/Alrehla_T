@@ -22,15 +22,6 @@ import { PostActions } from './PostActions';
  *
  * الفهرسة: بس لو (١) الوضع «عام» و(٢) الكاتب ١٢+ ووافق صراحة.
  */
-/**
- * ⚠️ قايمة فاضية عن قصد — الشرح في
- *    `creative-writing/services/[serviceId]/page.tsx`: المسار
- *    المتغيّر من غيرها مابيتخزّنش ولا مرة (مقيس على المنشور).
- */
-export async function generateStaticParams() {
-  return [];
-}
-
 export const revalidate = 60;
 
 type Params = Promise<{ id: string }>;

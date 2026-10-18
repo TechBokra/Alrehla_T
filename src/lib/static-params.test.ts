@@ -30,21 +30,37 @@ import { join } from 'node:path';
 const read = (p: string) => readFileSync(join(process.cwd(), 'src', p), 'utf8');
 const has = (src: string) => /export\s+(async\s+)?function\s+generateStaticParams/.test(src);
 
-/** صفحات عامة بالكامل — لازم تتخزّن. */
+/**
+ * صفحات عامة بالكامل ومقيسة إنها بتتخزّن فعلًا.
+ *
+ * ⚠️ **ماتزوّدش هنا من غير قياس.** اقرا القسم اللي تحت.
+ */
 const SHOULD_CACHE = [
   'app/(client)/creative-writing/services/[serviceId]/page.tsx',
   'app/(client)/creative-writing/packages/[slug]/page.tsx',
-  'app/(client)/creative-writing/instructors/[id]/page.tsx',
-  'app/(aqlam)/aqlam/p/[id]/page.tsx',
-  'app/(aqlam)/aqlam/w/[slug]/page.tsx',
   'app/(client)/blog/[slug]/page.tsx',
   'app/(client)/enha-lak/product/[slug]/page.tsx',
 ];
 
-/** صفحات بتعرض حاجة خاصة بمستخدم — **ممنوع** تتخزّن. */
+/**
+ * صفحات **ممنوع** يتحط عليها `generateStaticParams`.
+ *
+ * ⚠️ **الصفحتين الأولانيين منع بسبب الخصوصية**: بيقروا خصم
+ *    المشترك، فالتخزين بيعرض خصم عميل لعميل تاني.
+ *
+ * ⚠️ **والباقي منع بسبب عطل حقيقي حصل في الإنتاج.** حطّيت
+ *    `generateStaticParams` على ملف المدرب وهو بيقرا الكوكيز
+ *    (`getReviewsForInstructor` بتستعمل عميل الخادم)، فالصفحة
+ *    **رجّعت 500 للزوّار** لحد ما اترجّعت. الصفحة اللي بتقرا
+ *    الكوكيز ماينفعش تتبني مقدّمًا — Next بيرمي، والصفحة بتقع.
+ */
 const MUST_NOT_CACHE = [
   'app/(client)/enha-lak/custom/[productSlug]/page.tsx',
   'app/(client)/enha-lak/custom-library/[productSlug]/page.tsx',
+  'app/(client)/creative-writing/instructors/[id]/page.tsx',
+  'app/(aqlam)/aqlam/p/[id]/page.tsx',
+  'app/(aqlam)/aqlam/w/[slug]/page.tsx',
+  'app/(client)/enha-lak/custom-subscription/[tierId]/page.tsx',
 ];
 
 describe('الصفحات العامة بتتخزّن', () => {
@@ -55,18 +71,31 @@ describe('الصفحات العامة بتتخزّن', () => {
   }
 });
 
-describe('صفحات المستخدم مابتتخزّنش', () => {
+describe('الصفحات اللي ممنوع تتخزّن', () => {
   for (const page of MUST_NOT_CACHE) {
-    it(`${page} — مفيش generateStaticParams، والسبب موجود`, () => {
-      const src = read(page);
+    it(`${page} — مفيش generateStaticParams`, () => {
       expect(
-        has(src),
-        'الصفحة بتعرض خصم المشترك — تخزينها بيعرضه لعميل تاني',
+        has(read(page)),
+        'الصفحة بتقرا كوكيز أو بتعرض حاجة خاصة بمستخدم — التخزين ' +
+          'بيطلّعها 500 أو بيسرّب بيانات. حصل فعلًا في الإنتاج.',
       ).toBe(false);
-      // ولازم السبب يفضل مكتوب في الصفحة، عشان الاختبار ده يبان مفهومًا.
-      expect(src, 'الخصم الخاص بالمستخدم اتشال؟ راجع قرار التخزين').toContain(
-        'getMyAddonDiscount',
-      );
     });
   }
+});
+
+/**
+ * الدرس المكتوب: **الدالة دي مش مجانية.**
+ *
+ * فكّرت إنها «مابتأذيش» — إن الصفحة اللي بتقرا الكوكيز هتفضل
+ * بتتبني لكل زيارة وخلاص. ده كان **غلط**: Next بيحاول يبنيها
+ * مقدّمًا، وقراءة الكوكيز بترمي، والزائر بيشوف صفحة عطل.
+ *
+ * القاعدة: ماتحطّهاش غير بعد ما تتأكد إن الصفحة وكل استعلاماتها
+ * **مابتقراش كوكيز** — وبعد النشر قيس الصفحة فعلًا.
+ */
+describe('القاعدة مكتوبة', () => {
+  it('الدرس موثّق في الملف ده', () => {
+    const self = readFileSync(join(process.cwd(), 'src/lib/static-params.test.ts'), 'utf8');
+    expect(self).toContain('500');
+  });
 });
