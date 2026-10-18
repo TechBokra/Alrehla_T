@@ -1,6 +1,7 @@
 'use client';
 import { PHONE_INPUT_PROPS, phoneErrorFor } from '@/lib/phone';
 import { requiredFieldProps, clearCustomValidity, focusField } from '@/lib/form-validation';
+import { shippingBlockers, hasOrderableRemainder, blockerLabel } from '@/lib/shipping-blockers';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
 import { formatPrice } from '@/lib/utils';
@@ -148,6 +149,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
         (`governorates.physical_enabled`). `physicalVerdict` هي
         اللي بتحدّد، ونفس قواعدها في `shipping_quote` في القاعدة. */
   const shippingOff = needsShipping && countryClosed.closed;
+  /** مين بالظبط اللي بيمنع الطلب، وهل فاضل حاجة تتطلب من غيرهم. */
+  const blockers = shippingOff ? shippingBlockers(items) : [];
+  const canOrderRemainder = hasOrderableRemainder(items);
   // الصندوق: سعر المنطقة × عدد الشهور (قرار تامر) — نفس حساب القاعدة.
   const shipping = needsShipping ? (matchedFee ?? 0) * boxMonths : 0;
   // الخصم على المنتجات بس، مش الشحن — نفس حساب القاعدة (ملف 13).
@@ -477,10 +481,68 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                     </p>
                     <p className="mt-2 text-sm font-medium leading-relaxed">
                       خانات التوصيل تحت مقفولة لحد ما يرجع، ومش محتاج تملاها.
-                      {hasElectronic
-                        ? ' تقدر تعدّل السلة وتسيب النسخة الإلكترونية بس وتكمّل الطلب عادي.'
-                        : ' سلتك محفوظة — ارجع لها لما الشحن يفتح.'}
                     </p>
+
+                    {/* ══ الخروج ═══════════════════════════════════
+                        ⚠️ **ده كان ناقص، وده كان العطل الحقيقي.**
+                           كان مكتوب «تقدر تسيب النسخة الإلكترونية
+                           وتكمّل» — والشرط اللي بيقرر ظهور الجملة دي
+                           كان `cartHasElectronic`، وهي بترجّع صح
+                           لبند «مطبوعة + إلكترونية» اللي **لسه محتاج
+                           شحن**. يعني بنقول له سيب الإلكتروني وهو
+                           مالوش بند إلكتروني.
+
+                           وفوق ده مافيش زرار يعمل بيه حاجة. فالعميل
+                           وصل لآخر خطوة ولقى زرار باهت وكلامًا
+                           بيوصف حلًا مش موجود. */}
+                    <div className="mt-4 rounded-xl bg-white/70 p-4">
+                      <p className="text-sm font-black">
+                        {blockers.length === 1
+                          ? 'البند ده هو اللي محتاج شحن:'
+                          : `${blockers.length.toLocaleString('ar-EG')} بنود محتاجة شحن:`}
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {blockers.map((b) => (
+                          <li
+                            key={b.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2"
+                          >
+                            <span className="text-sm font-bold">
+                              {b.name}
+                              <span className="font-medium text-amber-800"> — {blockerLabel(b.reason)}</span>
+                            </span>
+                            <span className="flex gap-2">
+                              {b.slug && (
+                                <Link
+                                  href={`/enha-lak/custom/${encodeURIComponent(b.slug)}`}
+                                  className="inline-flex min-h-[44px] items-center rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-900 hover:bg-amber-100"
+                                >
+                                  عدّلها
+                                </Link>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // نفس آلية تأجيل بنود الصندوق: بيترجعوا
+                                  // للسلة بعد الطلب، فمفيش حاجة بتضيع.
+                                  const item = items.find((i: CartItem) => i.id === b.id);
+                                  if (item) saveDeferredItems([item]);
+                                  removeItem(b.id);
+                                }}
+                                className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-800 px-3 text-xs font-bold text-white hover:bg-amber-900"
+                              >
+                                احفظها لوقت تاني
+                              </button>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-sm font-medium leading-relaxed">
+                        {canOrderRemainder
+                          ? 'اللي هتحفظه بيرجع لسلتك لما الشحن يفتح — وباقي الطلب يكمّل عادي دلوقتي.'
+                          : 'لو حفظتهم كلهم، السلة هتفضي — وكل حاجة بترجع لها لما الشحن يفتح.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -600,10 +662,13 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                 </button>
                 {!canContinue && (
                   <p role="status" className="text-sm font-bold text-amber-800">
+                    {/* ⚠️ الشرط كان `hasElectronic` — وهي بترجّع صح لبند
+                        «مطبوعة + إلكترونية» اللي لسه محتاج شحن. السؤال
+                        الصح: هيفضل حاجة تتطلب لو شلنا اللي محتاج شحن؟ */}
                     {shippingOff
-                      ? hasElectronic
-                        ? 'الشحن مقفول — عدّل السلة وسيب النسخة الإلكترونية بس للمتابعة.'
-                        : 'الشحن مقفول دلوقتي، فمش هينفع نكمّل الطلب ده.'
+                      ? canOrderRemainder
+                        ? 'الشحن مقفول — احفظ البنود المعلَّمة فوق لوقت تاني، وباقي الطلب يكمّل عادي.'
+                        : 'كل اللي في سلتك محتاج شحن، والشحن مقفول دلوقتي. احفظهم فوق وهما بيرجعوا لك لما يفتح.'
                       : electronicBlocked && electronicCheck && !electronicCheck.allowed
                         ? electronicCheck.message
                         : !shippingInfo.gov
