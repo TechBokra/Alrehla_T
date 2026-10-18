@@ -34,6 +34,7 @@ describe('سياسة الخصوصية مابتكتبش المدد بإيدها',
   it('بتستعمل العلامات', () => {
     expect(body).toContain('{المدة}');
     expect(body).toContain('{مدة_الملفات}');
+    expect(body).toContain('{مدة_صور_الأطفال}');
   });
 
   it('مفيش مدة محفورة في النص بدل العلامة', () => {
@@ -46,6 +47,7 @@ describe('سياسة الخصوصية مابتكتبش المدد بإيدها',
     const filled = fillContentTokens(body, {
       المدة: retentionLabel(14),
       مدة_الملفات: 45,
+      مدة_صور_الأطفال: retentionLabel(7),
     });
     expect(filled).toContain('14 يومًا');
     expect(filled).toContain('45');

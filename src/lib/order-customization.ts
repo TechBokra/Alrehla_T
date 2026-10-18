@@ -19,7 +19,16 @@ import { describeWritingStyle, type WritingDialect } from './writing-style';
 
 export type CustomizationPhoto =
   | { label: string; kind: 'private'; publicId: string; format: string }
-  | { label: string; kind: 'public'; url: string };
+  | { label: string; kind: 'public'; url: string }
+  /**
+   * ⚠️ **الصورة اللي اتمسحت بعد انتهاء الطلب** (مهمة
+   *    `api/cron/child-photos`).
+   *
+   *    ولولا الحالة دي كانت الصورة هتختفي من الشاشة في سكوت،
+   *    والفريق يفتكر إن ولي الأمر مارفعش صورة أصلًا ويسأله يرفع
+   *    تاني — وهو رفعها فعلًا وإحنا مسحناها بوعدنا.
+   */
+  | { label: string; kind: 'deleted'; deletedAt: string };
 
 export type CustomizationAddon = { name: string; price: number | null; customized: boolean };
 
@@ -93,6 +102,13 @@ function privatePhoto(v: unknown): { publicId: string; format: string } | null {
   return { publicId, format };
 }
 
+/** علامة «اتمسحت» اللي مهمة المسح بتسيبها مكان الصورة. */
+function deletedMarker(v: unknown): string | null {
+  if (!v || typeof v !== 'object') return null;
+  const at = (v as { deletedAt?: unknown }).deletedAt;
+  return typeof at === 'string' && at.trim() ? at : null;
+}
+
 function publicUrl(v: unknown): string | null {
   const s = text(v);
   return s && /^https:\/\/res\.cloudinary\.com\//.test(s) ? s : null;
@@ -132,7 +148,12 @@ export function describeCustomization(
   for (const [key, label] of PRIVATE_PHOTOS) {
     used.add(key);
     const p = privatePhoto(data[key]);
-    if (p) view.photos.push({ label, kind: 'private', ...p });
+    if (p) {
+      view.photos.push({ label, kind: 'private', ...p });
+      continue;
+    }
+    const deletedAt = deletedMarker(data[key]);
+    if (deletedAt) view.photos.push({ label, kind: 'deleted', deletedAt });
   }
   for (const [key, label] of LEGACY_PHOTOS) {
     used.add(key);

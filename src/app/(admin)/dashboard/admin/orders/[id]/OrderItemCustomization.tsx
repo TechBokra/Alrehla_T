@@ -41,6 +41,28 @@ export function OrderItemCustomization({
       {view.photos.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-4">
           {view.photos.map((photo) => {
+            /* ⚠️ **الصورة الممسوحة بتتقال صريح.** مهمة
+               `api/cron/child-photos` بتمسح صور الأطفال بعد انتهاء
+               الطلب وبتسيب علامة. من غير الحالة دي، الصورة كانت
+               هتختفي في سكوت والفريق يسأل ولي الأمر يرفع تاني —
+               وهو رفعها وإحنا مسحناها بوعدنا. */
+            if (photo.kind === 'deleted') {
+              return (
+                <figure
+                  key={photo.label}
+                  className="w-40 rounded-xl border border-dashed border-slate-300 bg-white p-3"
+                >
+                  <div className="flex h-36 w-full items-center justify-center rounded-lg bg-slate-50 px-2 text-center">
+                    <span className="text-xs font-bold leading-relaxed text-slate-500">
+                      الصورة اتحذفت تلقائيًا بعد انتهاء الطلب
+                    </span>
+                  </div>
+                  <figcaption className="mt-2 text-xs font-bold text-slate-600">
+                    {photo.label}
+                  </figcaption>
+                </figure>
+              );
+            }
             const viewUrl =
               photo.kind === 'private' ? privateImageUrl(photo) : photo.url;
             const downloadUrl =

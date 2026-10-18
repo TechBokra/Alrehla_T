@@ -68,6 +68,8 @@ export interface SiteSettings {
    * بعد المدة دي من قفل الطلب أو مراجعة المستند (`lib/private-files`).
    */
   fileRetentionDays: number;
+  /** مدة حفظ صور الأطفال في الطلبات المخصصة (من انتهاء الطلب). */
+  childPhotoRetentionDays: number;
   /**
    * تشغيل «أقلام الرحلة» (`lib/aqlam/settings`). متخزّن جوّه نفس صف
    * `general` اللي كل صفحة بتقراه أصلًا، فالعلم مايكلّفش استعلامًا.

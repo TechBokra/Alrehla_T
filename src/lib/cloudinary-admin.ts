@@ -220,7 +220,27 @@ export function publicIdFromUrl(url: string | null | undefined): string | null {
  * مقيّدة بمجلّدين بس، زي حارس `FOLDER` فوق: أي رقم برّاهم بيترفض.
  */
 
-export const PRIVATE_FILE_PREFIXES = ['alrehla/private/orders/', 'alrehla/private/writing/'] as const;
+/**
+ * ⚠️ **المجلّدات اللي يُسمح بالمسح منها — والقايمة دي حارس أمان.**
+ *
+ * أي رقم برّه القايمة بيترفض، **والطلب بالكامل بيترفض** مش بس الرقم
+ * الغلط (تحت في `deletePrivateAssets`). عشان نداء فيه رقم واحد
+ * مشبوه مايمسحش الباقي.
+ *
+ * ⚠️ **`children/` و`covers/` اتضافوا** لمهمة مسح صور الأطفال
+ *    (`api/cron/child-photos`): الصور دي بتتخزّن في المجلّدين دول
+ *    وماكانش فيه أي طريق يمسحها، فكانت بتفضل على السيرفر للأبد.
+ *
+ * ⚠️ **و`receipts/` مش هنا ولا بيتضاف.** إيصالات الدفع سجل مالي
+ *    بيتراجع في المحاسبة والمنازعات. المجلّد الخاص فيه التلاتة مع
+ *    بعض، فغياب `receipts/` من القايمة دي هو اللي بيحميها.
+ */
+export const PRIVATE_FILE_PREFIXES = [
+  'alrehla/private/orders/',
+  'alrehla/private/writing/',
+  'alrehla/private/children/',
+  'alrehla/private/covers/',
+] as const;
 
 function isPrivateFileId(publicId: string): boolean {
   return PRIVATE_FILE_PREFIXES.some((p) => publicId.startsWith(p)) && !publicId.includes('..');

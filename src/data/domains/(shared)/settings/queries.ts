@@ -5,6 +5,7 @@ import { DEFAULT_RECORDING_SETTINGS, DEFAULT_RETENTION_DAYS } from '@/lib/sessio
 import { DEFAULT_WATERMARK, normalizeWatermark } from '@/lib/watermark-settings';
 import { DEFAULT_MEDIA_CLEANUP, normalizeMediaCleanup } from '@/lib/media-cleanup';
 import { DEFAULT_FILE_RETENTION_DAYS, normalizeRetentionDays } from '@/lib/private-files';
+import { DEFAULT_CHILD_PHOTO_RETENTION_DAYS, normalizeChildPhotoDays } from '@/lib/child-photos';
 import { AQLAM_OFF, normalizeAqlamSettings } from '@/lib/aqlam/settings';
 import type { SiteSettings } from '@/data/domains/(shared)/settings/types';
 
@@ -40,6 +41,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       watermark: DEFAULT_WATERMARK,
       mediaCleanup: DEFAULT_MEDIA_CLEANUP,
       fileRetentionDays: DEFAULT_FILE_RETENTION_DAYS,
+      childPhotoRetentionDays: DEFAULT_CHILD_PHOTO_RETENTION_DAYS,
       aqlam: AQLAM_OFF,
       images: {},
     };
@@ -79,6 +81,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     watermark: normalizeWatermark(value.watermark),
     mediaCleanup: normalizeMediaCleanup(value.mediaCleanup),
     fileRetentionDays: normalizeRetentionDays(value.fileRetentionDays),
+    childPhotoRetentionDays: normalizeChildPhotoDays(value.childPhotoRetentionDays),
     aqlam: normalizeAqlamSettings(value),
     images: value.images ?? {},
   };

@@ -158,6 +158,28 @@ export default async function Page() {
           </Field>
         </Section>
 
+        {/* ---------- صور الأطفال في الطلبات المخصصة ---------- */}
+        <Section
+          title="صور الأطفال في الطلبات المخصصة"
+          hint="الصور اللي ولي الأمر بيرفعها عشان ترتسم في القصة. بتتمسح من السيرفر لوحدها بعد المدة دي من انتهاء الطلب. والطلب اللي لسه بيتنفّذ مابيتلمسش مهما طال — الاستوديو محتاج الصورة."
+        >
+          <Field
+            label="تتمسح بعد كام يوم من انتهاء الطلب"
+            name="childPhotoRetentionDays"
+            hint="من ١ لـ ٩٠ يوم. المسح نهائي ومفيش رجوع. والطلب اللي اتترك بلا دفع صوره بتتمسح بعد ٣٠ يوم من الطلب."
+            className="md:col-span-2"
+          >
+            <TextInput
+              type="number"
+              min={1}
+              max={90}
+              dir="ltr"
+              className="text-left"
+              defaultValue={settings.childPhotoRetentionDays}
+            />
+          </Field>
+        </Section>
+
         {/* ---------- شريط التنبيه ---------- */}
         <Section
           title="شريط التنبيه العلوي"

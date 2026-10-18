@@ -34,6 +34,7 @@ export default async function PrivacyPage() {
   const body = fillContentTokens(content['privacy.body'], {
     المدة: retentionLabel(settings.sessionRecording.retentionDays),
     مدة_الملفات: settings.fileRetentionDays,
+    مدة_صور_الأطفال: retentionLabel(settings.childPhotoRetentionDays),
   });
 
   return (
