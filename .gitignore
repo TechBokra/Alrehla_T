@@ -20,3 +20,5 @@ supabase/.temp/
 # Working documents from Claude sessions; they live in the Claude
 # Project, not in the application repository.
 Claude outputs/
+reports/
+docs/
