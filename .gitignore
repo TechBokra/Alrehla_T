@@ -22,3 +22,8 @@ supabase/.temp/
 Claude outputs/
 reports/
 docs/
+dish/
+
+# admin/ and client/ are independent nested Git repositories.
+/admin/
+/client/
