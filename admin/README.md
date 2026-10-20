@@ -1,27 +1,44 @@
-# Admin Router Application
+# Admin application
 
-This app is the TanStack Router frontend foundation for the admin workspace.
+The `admin/` folder contains a standalone React admin frontend built with Vite
+and TanStack Router. It currently serves as a UI and architecture preview: its
+product records and sign-in identity are local demos, not production data or
+authorization.
 
-## Router guarantees
+## Start locally
 
-- File-based routes are generated into `src/routeTree.gen.ts`.
-- Route params and navigation targets are type-safe.
-- Search parameters are validated with Zod and kept in the URL.
-- Route loaders own page data dependencies.
-- The router preloads links on intent (`defaultPreload: "intent"`).
-- `@tanstack/router-plugin` enables automatic route code splitting.
-- Root and route-level pending, error, and not-found boundaries are included.
-
-## Commands
+Run these commands from this folder:
 
 ```bash
-pnpm --filter admin dev
-pnpm --filter admin generate:routes
-pnpm --filter admin typecheck
-pnpm --filter admin build
+pnpm install
+pnpm dev
 ```
 
-The current data adapter uses typed local fixtures so the route architecture can
-be exercised independently. Replace the implementations in `src/lib/api.ts`
-with the server/BFF client without changing route components or their typed
-loader contracts.
+Other commands:
+
+```bash
+pnpm typecheck
+pnpm build
+pnpm preview
+pnpm generate:routes
+```
+
+`typecheck` regenerates the TanStack route tree before running TypeScript.
+`src/routeTree.gen.ts` is generated; do not edit it by hand.
+
+## Guides
+
+- [Architecture](docs/architecture.md) — runtime, route and feature structure,
+  current data/auth behavior, and rules for future backend integration.
+- [Design system](docs/design-system.md) — current tokens, component sources,
+  and UI implementation conventions.
+
+## Current limitations
+
+- The app uses in-memory fixture providers; changes reset when the page reloads.
+- The preview auth provider always reports an authenticated demo admin.
+- There is no production API, database adapter, or authorization enforcement in
+  this Vite app. Do not treat its demo auth or hidden UI controls as security.
+
+See the guides before adding a production admin feature so it follows the
+existing route, feature, and visual conventions.
