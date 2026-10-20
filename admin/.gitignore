@@ -1,0 +1,14 @@
+# Dependencies and generated build output
+node_modules/
+dist/
+.tanstack/
+.vite/
+.output/
+coverage/
+
+# Local environment and machine-specific files
+.env*
+!.env.example
+.DS_Store
+*.log
+*.tsbuildinfo
