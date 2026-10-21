@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAdminFormContext } from "../context";
 
 export function SubmitButton({
-  children = "Submit",
+  children = "حفظ",
   disabled,
   formId,
 }: {
@@ -29,7 +29,7 @@ export function SubmitButton({
           ) : (
             <Save data-icon="inline-start" />
           )}
-          {isSubmitting ? "Saving…" : children}
+          {isSubmitting ? "جارٍ الحفظ…" : children}
         </Button>
       )}
     </form.Subscribe>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAdminFormContext } from "../context";
 
 export function ResetButton({
-  children = "Reset",
+  children = "إعادة ضبط",
   disabled,
   onReset,
 }: {

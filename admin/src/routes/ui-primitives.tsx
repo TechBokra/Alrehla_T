@@ -11,10 +11,10 @@ export const Route = createFileRoute("/ui-primitives")({
   errorComponent: ShowcaseError,
   head: () => ({
     meta: [
-      { title: "Calesee Admin · UI primitives" },
+      { title: "الرحلة · عناصر الواجهة" },
       {
         name: "description",
-        content: "Buttons, overlays, menus, and feedback components.",
+        content: "الأزرار والنوافذ والقوائم وحالات التفاعل.",
       },
     ],
   }),

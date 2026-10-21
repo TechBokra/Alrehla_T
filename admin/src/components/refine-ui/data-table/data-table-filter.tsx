@@ -119,7 +119,7 @@ export function DataTableFilterDropdownActions({
         }}
       >
         <X className={cn("w-3.5", "h-3.5", "text-muted-foreground")} />
-        {t("buttons.clear", "Clear")}
+        {t("buttons.clear", "مسح")}
       </Button>
 
       <Button
@@ -130,7 +130,7 @@ export function DataTableFilterDropdownActions({
           onApply();
         }}
       >
-        {t("buttons.apply", "Apply")}
+        {t("buttons.apply", "تطبيق")}
       </Button>
     </div>
   );
@@ -182,7 +182,7 @@ export function DataTableFilterDropdownText<TData>({
         <Input
           type="text"
           placeholder={
-            placeholder ?? t("table.filter.text.placeholder", "Filter by...")
+            placeholder ?? t("table.filter.text.placeholder", "تصفية حسب...")
           }
           value={value}
           onChange={(event) => {
@@ -221,7 +221,7 @@ export function DataTableFilterDropdownNumeric<TData>({
         <Input
           type="number"
           placeholder={
-            placeholder ?? t("table.filter.numeric.placeholder", "Filter by...")
+            placeholder ?? t("table.filter.numeric.placeholder", "تصفية حسب...")
           }
           value={value}
           onChange={(event) => {
@@ -296,12 +296,12 @@ export function DataTableFilterCombobox<TData>({
         const getDisplayText = () => {
           if (currentValues.length === 0) {
             return (
-              placeholder ?? t("table.filter.combobox.placeholder", "Select...")
+              placeholder ?? t("table.filter.combobox.placeholder", "اختر...")
             );
           }
 
           if (multiple) {
-            return `${currentValues.length} selected`;
+            return `تم اختيار ${new Intl.NumberFormat("ar-EG").format(currentValues.length)}`;
           }
 
           const selectedOption = options.find(
@@ -413,14 +413,14 @@ export function DataTableFilterCombobox<TData>({
             <PopoverContent className={cn("w-[200px]", "p-0")} align="start">
               <Command>
                 <CommandInput
-                  placeholder={t("table.filter.combobox.search", "Search...")}
+                  placeholder={t("table.filter.combobox.search", "ابحث...")}
                 />
                 <CommandList>
                   <CommandEmpty>
                     {noResultsText ??
                       t(
                         "table.filter.combobox.noResults",
-                        "Results not found.",
+                        "لا توجد نتائج.",
                       )}
                   </CommandEmpty>
                   <CommandGroup>
@@ -776,102 +776,102 @@ const CRUD_OPERATOR_LABELS: Record<
   Exclude<CrudOperators, "or" | "and">,
   { i18nKey: string; defaultLabel: string }
 > = {
-  eq: { i18nKey: "table.filter.operator.eq", defaultLabel: "Equals" },
-  ne: { i18nKey: "table.filter.operator.ne", defaultLabel: "Not equals" },
+  eq: { i18nKey: "table.filter.operator.eq", defaultLabel: "يساوي" },
+  ne: { i18nKey: "table.filter.operator.ne", defaultLabel: "لا يساوي" },
   eqs: {
     i18nKey: "table.filter.operator.eqs",
-    defaultLabel: "Equals (case sensitive)",
+    defaultLabel: "يساوي (حساس لحالة الأحرف)",
   },
   nes: {
     i18nKey: "table.filter.operator.nes",
-    defaultLabel: "Not equals (case sensitive)",
+    defaultLabel: "لا يساوي (حساس لحالة الأحرف)",
   },
-  lt: { i18nKey: "table.filter.operator.lt", defaultLabel: "Less than" },
-  gt: { i18nKey: "table.filter.operator.gt", defaultLabel: "Greater than" },
+  lt: { i18nKey: "table.filter.operator.lt", defaultLabel: "أقل من" },
+  gt: { i18nKey: "table.filter.operator.gt", defaultLabel: "أكبر من" },
   lte: {
     i18nKey: "table.filter.operator.lte",
-    defaultLabel: "Less than or equal",
+    defaultLabel: "أقل من أو يساوي",
   },
   gte: {
     i18nKey: "table.filter.operator.gte",
-    defaultLabel: "Greater than or equal",
+    defaultLabel: "أكبر من أو يساوي",
   },
   in: {
     i18nKey: "table.filter.operator.in",
-    defaultLabel: "Includes in an array",
+    defaultLabel: "يتضمن في القائمة",
   },
   nin: {
     i18nKey: "table.filter.operator.nin",
-    defaultLabel: "Not includes in an array",
+    defaultLabel: "لا يتضمن في القائمة",
   },
   ina: {
     i18nKey: "table.filter.operator.ina",
-    defaultLabel: "Includes in an array (case sensitive)",
+    defaultLabel: "يتضمن في القائمة (حساس لحالة الأحرف)",
   },
   nina: {
     i18nKey: "table.filter.operator.nina",
-    defaultLabel: "Not includes in an array (case sensitive)",
+    defaultLabel: "لا يتضمن في القائمة (حساس لحالة الأحرف)",
   },
   contains: {
     i18nKey: "table.filter.operator.contains",
-    defaultLabel: "Contains",
+    defaultLabel: "يحتوي على",
   },
   ncontains: {
     i18nKey: "table.filter.operator.ncontains",
-    defaultLabel: "Not contains",
+    defaultLabel: "لا يحتوي على",
   },
   containss: {
     i18nKey: "table.filter.operator.containss",
-    defaultLabel: "Contains (case sensitive)",
+    defaultLabel: "يحتوي على (حساس لحالة الأحرف)",
   },
   ncontainss: {
     i18nKey: "table.filter.operator.ncontainss",
-    defaultLabel: "Not contains (case sensitive)",
+    defaultLabel: "لا يحتوي على (حساس لحالة الأحرف)",
   },
   between: {
     i18nKey: "table.filter.operator.between",
-    defaultLabel: "Between",
+    defaultLabel: "بين",
   },
   nbetween: {
     i18nKey: "table.filter.operator.nbetween",
-    defaultLabel: "Not between",
+    defaultLabel: "ليس بين",
   },
-  null: { i18nKey: "table.filter.operator.null", defaultLabel: "Is null" },
+  null: { i18nKey: "table.filter.operator.null", defaultLabel: "فارغ" },
   nnull: {
     i18nKey: "table.filter.operator.nnull",
-    defaultLabel: "Is not null",
+    defaultLabel: "غير فارغ",
   },
   startswith: {
     i18nKey: "table.filter.operator.startswith",
-    defaultLabel: "Starts with",
+    defaultLabel: "يبدأ بـ",
   },
   nstartswith: {
     i18nKey: "table.filter.operator.nstartswith",
-    defaultLabel: "Not starts with",
+    defaultLabel: "لا يبدأ بـ",
   },
   startswiths: {
     i18nKey: "table.filter.operator.startswiths",
-    defaultLabel: "Starts with (case sensitive)",
+    defaultLabel: "يبدأ بـ (حساس لحالة الأحرف)",
   },
   nstartswiths: {
     i18nKey: "table.filter.operator.nstartswiths",
-    defaultLabel: "Not starts with (case sensitive)",
+    defaultLabel: "لا يبدأ بـ (حساس لحالة الأحرف)",
   },
   endswith: {
     i18nKey: "table.filter.operator.endswith",
-    defaultLabel: "Ends with",
+    defaultLabel: "ينتهي بـ",
   },
   nendswith: {
     i18nKey: "table.filter.operator.nendswith",
-    defaultLabel: "Not ends with",
+    defaultLabel: "لا ينتهي بـ",
   },
   endswiths: {
     i18nKey: "table.filter.operator.endswiths",
-    defaultLabel: "Ends with (case sensitive)",
+    defaultLabel: "ينتهي بـ (حساس لحالة الأحرف)",
   },
   nendswiths: {
     i18nKey: "table.filter.operator.nendswiths",
-    defaultLabel: "Not ends with (case sensitive)",
+    defaultLabel: "لا ينتهي بـ (حساس لحالة الأحرف)",
   },
 };
 
@@ -908,10 +908,10 @@ export function DataTableFilterOperatorSelect({
       .defaultLabel,
   );
   const placeholderText =
-    placeholder ?? t("table.filter.operator.placeholder", "Search operator...");
+    placeholder ?? t("table.filter.operator.placeholder", "ابحث عن عامل التصفية...");
   const noResultsText = t(
     "table.filter.operator.noResults",
-    "No operator found.",
+    "لم يتم العثور على عامل تصفية.",
   );
 
   return (

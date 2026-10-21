@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ShowcaseLayout } from "../showcase-layout";
+import { ShowcaseLayout } from "../layout";
 
 function OverviewSection() {
   return (
@@ -19,17 +19,19 @@ function OverviewSection() {
           <div className="relative space-y-5">
             <Badge variant="secondary" className="gap-1.5 px-3 py-1">
               <Sparkles className="size-3.5" />
-              Frontend system preview
+              معاينة واجهة الإدارة
             </Badge>
             <div className="max-w-3xl space-y-3">
               <h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-                Calesee Admin,
+                الرحلة،
                 <br />
-                <span className="text-primary">component by component.</span>
+                <span className="text-primary">
+                  واجهة متناسقة، مكوّنًا بعد مكوّن.
+                </span>
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                Use the sidebar to explore the theme, UI primitives, data
-                views, and field/form patterns on their own pages.
+                استخدم القائمة الجانبية لاستكشاف التصميم وعناصر الواجهة وطرق عرض
+                البيانات ونماذج الإدخال.
               </p>
             </div>
           </div>
@@ -38,19 +40,19 @@ function OverviewSection() {
               variant="outline"
               className="rounded-full bg-background/75 px-3 py-1"
             >
-              preset · b2pQWmaCB
+              مجموعة الألوان · b2pQWmaCB
             </Badge>
             <Badge
               variant="outline"
               className="rounded-full bg-background/75 px-3 py-1"
             >
-              shadcn/ui · latest CLI
+              shadcn/ui · أحدث إصدار
             </Badge>
             <Badge
               variant="outline"
               className="rounded-full bg-background/75 px-3 py-1"
             >
-              Refine · source components
+              Refine · مكوّنات المصدر
             </Badge>
           </div>
         </div>
@@ -59,9 +61,9 @@ function OverviewSection() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">Theme tokens</CardTitle>
+                <CardTitle className="text-base">عناصر التصميم</CardTitle>
                 <CardDescription className="mt-1">
-                  Live semantic colors from the applied preset
+                  ألوان الواجهة المستخدمة حاليًا
                 </CardDescription>
               </div>
               <PaletteIcon />
@@ -70,32 +72,32 @@ function OverviewSection() {
           <CardContent className="space-y-5">
             <div className="grid grid-cols-3 gap-2">
               <ColorToken
-                label="Primary"
+                label="أساسي"
                 color="bg-primary"
                 text="text-primary-foreground"
               />
               <ColorToken
-                label="Secondary"
+                label="ثانوي"
                 color="bg-secondary"
                 text="text-secondary-foreground"
               />
               <ColorToken
-                label="Accent"
+                label="تمييز"
                 color="bg-accent"
                 text="text-accent-foreground"
               />
               <ColorToken
-                label="Surface"
+                label="السطح"
                 color="bg-card"
                 text="text-card-foreground"
               />
               <ColorToken
-                label="Border"
+                label="الحدود"
                 color="bg-muted"
                 text="text-muted-foreground"
               />
               <ColorToken
-                label="Danger"
+                label="تحذير"
                 color="bg-destructive"
                 text="text-white"
               />
@@ -103,9 +105,9 @@ function OverviewSection() {
             <Separator />
             <div className="flex items-center justify-between gap-4 text-sm">
               <span className="text-muted-foreground">
-                Charts · green family
+                ألوان الرسوم · درجات الأخضر
               </span>
-              <div className="flex gap-1.5" aria-label="Chart palette">
+              <div className="flex gap-1.5" aria-label="ألوان الرسوم">
                 {[1, 2, 3, 4, 5].map((number) => (
                   <span
                     key={number}
@@ -116,10 +118,8 @@ function OverviewSection() {
               </div>
             </div>
             <div className="flex items-center justify-between rounded-2xl bg-muted/60 px-4 py-3 text-sm">
-              <span className="text-muted-foreground">Corner radius</span>
-              <span className="font-medium tabular-nums">
-                0.45rem · compact
-              </span>
+              <span className="text-muted-foreground">استدارة الزوايا</span>
+              <span className="font-medium tabular-nums">0.45rem · مدمج</span>
             </div>
           </CardContent>
         </Card>
@@ -128,21 +128,21 @@ function OverviewSection() {
       <div className="grid gap-3 md:grid-cols-3">
         <QuickStat
           icon={<Blocks />}
-          label="UI primitives"
+          label="عناصر الواجهة"
           value="30+"
-          detail="inputs, overlays, navigation"
+          detail="حقول ونوافذ وتنقل"
         />
         <QuickStat
           icon={<Table2 />}
-          label="Refine modules"
-          value="4 groups"
-          detail="views, data table, auth, actions"
+          label="مكوّنات Refine"
+          value="٤ مجموعات"
+          detail="عرض البيانات والجداول والدخول والإجراءات"
         />
         <QuickStat
           icon={<ShieldCheck />}
-          label="Preview safety"
-          value="Local only"
-          detail="no production API or auth calls"
+          label="أمان المعاينة"
+          value="محلي فقط"
+          detail="لا توجد اتصالات بقاعدة الإنتاج أو تسجيل الدخول"
         />
       </div>
     </section>

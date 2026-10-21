@@ -14,12 +14,16 @@ export function DataTableSorter<TData>({
   className,
   ...props
 }: DataTableSorterProps<TData>) {
+  const headerLabel =
+    typeof column.columnDef.header === "string"
+      ? column.columnDef.header
+      : column.id;
   const title =
     column.getIsSorted() === "desc"
-      ? `Sort by ${column.id} as descending`
+      ? `ترتيب تنازلي حسب ${headerLabel}`
       : column.getIsSorted() === "asc"
-        ? `Sort by ${column.id} as ascending`
-        : `Sort by ${column.id}`;
+        ? `ترتيب تصاعدي حسب ${headerLabel}`
+        : `ترتيب حسب ${headerLabel}`;
 
   return (
     <Button

@@ -5,7 +5,6 @@ export const showcaseSections = [
   "fields",
   "forms",
   "form-prototype",
-  "calendar",
 ] as const;
 
 export type ShowcaseSection = (typeof showcaseSections)[number];
@@ -20,49 +19,42 @@ export const showcaseNavigation: ReadonlyArray<{
     | "/data-view"
     | "/fields"
     | "/forms"
-    | "/form-prototype"
-    | "/calendar";
+    | "/form-prototype";
 }> = [
   {
     id: "theme",
-    label: "Theme",
-    description: "Preset colors, typography, and design tokens",
+    label: "التصميم والألوان",
+    description: "ألوان الواجهة والخطوط وعناصر التصميم",
     to: "/theme",
   },
   {
     id: "ui-primitives",
-    label: "UI primitives",
-    description: "Buttons, overlays, menus, and feedback states",
+    label: "عناصر الواجهة",
+    description: "الأزرار والقوائم والنوافذ والتنبيهات",
     to: "/ui-primitives",
   },
   {
     id: "data-view",
-    label: "Data view",
-    description: "Refine table, sort, filter, and pagination",
+    label: "عرض البيانات",
+    description: "الجداول والفرز والتصفية والتنقل بين الصفحات",
     to: "/data-view",
   },
   {
     id: "fields",
-    label: "Fields",
-    description: "TanStack Form, Zod validation, and submitted values",
+    label: "الحقول",
+    description: "إدخال البيانات والتحقق منها وعرض النتائج",
     to: "/fields",
   },
   {
     id: "forms",
-    label: "Forms",
-    description: "Dialog, sheet, section tabs, and save feedback",
+    label: "النماذج",
+    description: "نماذج داخل النوافذ والألواح وحالات الحفظ",
     to: "/forms",
   },
   {
     id: "form-prototype",
-    label: "Form prototype",
-    description: "Typed TanStack fields connected to Refine",
+    label: "تجربة النماذج",
+    description: "حقول مترابطة مع عمليات الإنشاء والتعديل",
     to: "/form-prototype",
-  },
-  {
-    id: "calendar",
-    label: "Calendar",
-    description: "Calendar views with local event editing",
-    to: "/calendar",
   },
 ];

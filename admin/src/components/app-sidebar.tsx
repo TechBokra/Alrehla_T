@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import {
   Blocks,
-  CalendarDays,
   ClipboardList,
   CircleHelp,
   FileCode2,
@@ -37,7 +36,6 @@ const sectionIcons = {
   fields: TextCursorInput,
   forms: ClipboardList,
   "form-prototype": FileCode2,
-  calendar: CalendarDays,
 } satisfies Record<ShowcaseSection, typeof Palette>;
 
 type AppSidebarProps = ComponentProps<typeof Sidebar> & {
@@ -51,17 +49,17 @@ type AppSidebarProps = ComponentProps<typeof Sidebar> & {
 
 export function AppSidebar({ activeSection, user, ...props }: AppSidebarProps) {
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar side="right" collapsible="icon" {...props}>
       <SidebarHeader className="h-16 shrink-0 justify-center border-b border-sidebar-border px-2 py-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               size="lg"
-              tooltip="Home"
+              tooltip="الرئيسية"
               className="justify-center"
             >
-              <Link to="/" aria-label="Home">
+              <Link to="/" aria-label="الرئيسية">
                 <Home aria-hidden="true" />
               </Link>
             </SidebarMenuButton>
@@ -71,7 +69,7 @@ export function AppSidebar({ activeSection, user, ...props }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Preview sections</SidebarGroupLabel>
+          <SidebarGroupLabel>أقسام لوحة التحكم</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {showcaseNavigation.map((item) => {
@@ -100,22 +98,22 @@ export function AppSidebar({ activeSection, user, ...props }: AppSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>Resources</SidebarGroupLabel>
+          <SidebarGroupLabel>روابط سريعة</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Theme tokens">
+                <SidebarMenuButton asChild tooltip="ألوان وخطوط التصميم">
                   <Link to="/theme">
                     <Palette />
-                    <span>Theme tokens</span>
+                    <span>ألوان وخطوط التصميم</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Component notes">
+                <SidebarMenuButton asChild tooltip="مكوّنات الواجهة">
                   <Link to="/ui-primitives">
                     <CircleHelp />
-                    <span>Component notes</span>
+                    <span>مكوّنات الواجهة</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -66,11 +66,11 @@ export function DataTablePagination({
           "whitespace-nowrap",
         )}
       >
-        {typeof total === "number" ? `${total} row(s)` : null}
+        {typeof total === "number" ? `${new Intl.NumberFormat("ar-EG").format(total)} صفوف` : null}
       </div>
       <div className={cn("flex", "items-center", "flex-wrap", "gap-2")}>
         <div className={cn("flex", "items-center", "gap-2")}>
-          <span className={cn("text-sm", "font-medium")}>Rows per page</span>
+          <span className={cn("text-sm", "font-medium")}>الصفوف في الصفحة</span>
           <Select
             value={`${pageSize}`}
             onValueChange={(v) => setPageSize(Number(v))}
@@ -97,7 +97,7 @@ export function DataTablePagination({
               "font-medium",
             )}
           >
-            Page {currentPage} of {pageCount}
+            الصفحة {new Intl.NumberFormat("ar-EG").format(currentPage)} من {new Intl.NumberFormat("ar-EG").format(pageCount)}
           </div>
           <div className={cn("flex", "items-center", "gap-2")}>
             <Button
@@ -105,7 +105,7 @@ export function DataTablePagination({
               className={cn("hidden", "h-8", "w-8", "p-0", "lg:flex")}
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              aria-label="Go to first page"
+              aria-label="الصفحة الأولى"
             >
               <ChevronsLeft />
             </Button>
@@ -114,7 +114,7 @@ export function DataTablePagination({
               className={cn("h-8", "w-8", "p-0")}
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
-              aria-label="Go to previous page"
+              aria-label="الصفحة السابقة"
             >
               <ChevronLeft />
             </Button>
@@ -123,7 +123,7 @@ export function DataTablePagination({
               className={cn("h-8", "w-8", "p-0")}
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === pageCount}
-              aria-label="Go to next page"
+              aria-label="الصفحة التالية"
             >
               <ChevronRight />
             </Button>
@@ -132,7 +132,7 @@ export function DataTablePagination({
               className={cn("hidden", "h-8", "w-8", "p-0", "lg:flex")}
               onClick={() => setCurrentPage(pageCount)}
               disabled={currentPage === pageCount}
-              aria-label="Go to last page"
+              aria-label="الصفحة الأخيرة"
             >
               <ChevronsRight />
             </Button>

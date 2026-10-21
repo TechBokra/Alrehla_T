@@ -24,16 +24,22 @@ import {
 import { FieldGroup } from "@/components/ui/field";
 
 const overlayFormSchema = z.object({
-  title: z.string().trim().min(3, "Use at least three characters."),
-  sku: z.string().trim().min(3, "Use at least three characters."),
+  title: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
+  sku: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
   category: z.enum(["apparel", "home", "accessories"]),
-  price: z.number().positive("Price must be greater than zero."),
-  inventory: z.number().int().min(0, "Inventory cannot be negative."),
+  price: z.number().positive("السعر لازم يكون أكبر من صفر."),
+  inventory: z.number().int().min(0, "المخزون لا يمكن أن يكون أقل من صفر."),
   published: z.boolean(),
 });
 
 type OverlayFormValues = z.infer<typeof overlayFormSchema>;
 type Presentation = "dialog" | "sheet" | "sections";
+
+const presentationLabels: Record<Presentation, string> = {
+  dialog: "نافذة حوارية",
+  sheet: "لوحة جانبية",
+  sections: "نموذج مقسّم",
+};
 type SavedPreview = { values: OverlayFormValues; savedAt: string };
 
 const presentationCopy: Record<
@@ -41,29 +47,26 @@ const presentationCopy: Record<
   { title: string; description: string; trigger: string }
 > = {
   dialog: {
-    title: "Centered form dialog",
-    description:
-      "A compact modal with a fixed action footer and a scrollable form body.",
-    trigger: "Open dialog",
+    title: "نموذج داخل نافذة",
+    description: "نافذة مختصرة بأزرار ثابتة ومحتوى قابل للتمرير.",
+    trigger: "فتح النافذة",
   },
   sheet: {
-    title: "Right-side form sheet",
-    description:
-      "A side panel that keeps the page context visible while editing.",
-    trigger: "Open sheet",
+    title: "نموذج في لوحة جانبية",
+    description: "لوحة جانبية تتيح تعديل البيانات مع إبقاء الصفحة ظاهرة.",
+    trigger: "فتح اللوحة",
   },
   sections: {
-    title: "Sectioned form dialog",
-    description:
-      "A larger dialog with one editable field group per sidebar tab.",
-    trigger: "Open sectioned dialog",
+    title: "نموذج مقسّم إلى أقسام",
+    description: "نافذة واسعة تضم مجموعة حقول مستقلة لكل قسم في القائمة.",
+    trigger: "فتح النموذج",
   },
 };
 
 const sections = [
-  { id: "identity", title: "Product identity" },
-  { id: "pricing", title: "Pricing & stock" },
-  { id: "publishing", title: "Publishing" },
+  { id: "identity", title: "بيانات المنتج" },
+  { id: "pricing", title: "السعر والمخزون" },
+  { id: "publishing", title: "النشر" },
 ] as const;
 
 const sectionFields: Record<string, ReadonlyArray<keyof OverlayFormValues>> = {
@@ -74,7 +77,7 @@ const sectionFields: Record<string, ReadonlyArray<keyof OverlayFormValues>> = {
 
 function createInitialValues(): OverlayFormValues {
   return {
-    title: "Linen market tote",
+    title: "حقيبة قماش يومية",
     sku: "BAG-204",
     category: "accessories",
     price: 32,
@@ -139,7 +142,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
           if (failureRef.current) {
             failureRef.current = false;
             setFailureArmed(false);
-            reject(new Error("Preview save failed"));
+            reject(new Error("تعذّر حفظ المعاينة"));
             return;
           }
 
@@ -148,9 +151,9 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       });
 
       toast.promise(savePromise, {
-        loading: "Saving product preview…",
-        success: "Product preview saved",
-        error: "Could not save product preview. Your draft is still open.",
+        loading: "جارٍ حفظ معاينة المنتج…",
+        success: "تم حفظ معاينة المنتج",
+        error: "تعذّر حفظ معاينة المنتج. ما زالت المسودة مفتوحة.",
       });
 
       try {
@@ -188,7 +191,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
   const formFooter = (
     <form.FormActions className="w-full justify-end">
       <form.SubmitButton formId={formId} disabled={saving}>
-        Save
+        حفظ
       </form.SubmitButton>
     </form.FormActions>
   );
@@ -196,11 +199,11 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
   const identityFields = (
     <>
       <form.AppField name="title">
-        {(field) => <field.Input label="Product title" disabled={saving} />}
+        {(field) => <field.Input label="اسم المنتج" disabled={saving} />}
       </form.AppField>
       <form.AppField name="sku">
         {(field) => (
-          <field.GroupedInput label="SKU" prefix="SKU" disabled={saving} />
+          <field.GroupedInput label="كود المنتج" prefix="SKU" disabled={saving} />
         )}
       </form.AppField>
     </>
@@ -211,7 +214,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       <form.AppField name="price">
         {(field) => (
           <field.Number
-            label="Price"
+            label="السعر"
             min={0.01}
             step={0.01}
             disabled={saving}
@@ -220,7 +223,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       </form.AppField>
       <form.AppField name="inventory">
         {(field) => (
-          <field.Number label="Inventory" min={0} disabled={saving} />
+          <field.Number label="المخزون" min={0} disabled={saving} />
         )}
       </form.AppField>
     </>
@@ -231,12 +234,12 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       <form.AppField name="category">
         {(field) => (
           <field.Select
-            label="Category"
+            label="الفئة"
             disabled={saving}
             options={[
-              { value: "apparel", label: "Apparel" },
-              { value: "home", label: "Home & living" },
-              { value: "accessories", label: "Accessories" },
+              { value: "apparel", label: "ملابس" },
+              { value: "home", label: "المنزل والمعيشة" },
+              { value: "accessories", label: "إكسسوارات" },
             ]}
           />
         )}
@@ -244,8 +247,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       <form.AppField name="published">
         {(field) => (
           <field.Checkbox
-            label="Publish this product"
-            description="This is preview data only; publishing has no external effect."
+            label="نشر هذا المنتج"
+            description="هذه بيانات تجريبية فقط، ولن يؤدي النشر إلى أي إجراء خارجي."
             disabled={saving}
           />
         )}
@@ -269,8 +272,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
           <FormSectionPanel value="identity">
             <FormSection
               sectionId="identity"
-              title="Product identity"
-              description="The name and stock keeping unit identify this catalog item."
+              title="بيانات المنتج"
+              description="اسم المنتج وكوده يميزانه في الكتالوج."
               fieldsClassName="grid gap-5 lg:grid-cols-2"
             >
               {identityFields}
@@ -279,8 +282,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
           <FormSectionPanel value="pricing">
             <FormSection
               sectionId="pricing"
-              title="Pricing & stock"
-              description="Set a preview price and current inventory amount."
+              title="السعر والمخزون"
+              description="حدّد سعرًا تجريبيًا وكمية المخزون الحالية."
               fieldsClassName="grid gap-5 lg:grid-cols-2"
             >
               {pricingFields}
@@ -289,8 +292,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
           <FormSectionPanel value="publishing">
             <FormSection
               sectionId="publishing"
-              title="Publishing"
-              description="Choose a category and mark the preview as published or draft."
+              title="النشر"
+              description="اختار فئة وحدد ما إذا كانت المعاينة منشورة أو مسودة."
               fieldsClassName="grid gap-5 lg:grid-cols-2"
             >
               {publishingFields}
@@ -312,7 +315,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       <Card className="min-w-0">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{presentation}</Badge>
+            <Badge variant="outline">{presentationLabels[presentation]}</Badge>
           </div>
           <CardTitle>{copy.title}</CardTitle>
           <CardDescription>{copy.description}</CardDescription>
@@ -333,13 +336,13 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
               disabled={saving}
               onClick={armFailure}
             >
-              {failureArmed ? "Next save will fail" : "Fail next save"}
+              {failureArmed ? "الحفظ القادم سيفشل" : "محاكاة فشل الحفظ القادم"}
             </Button>
           </div>
 
           <div className="rounded-xl border bg-muted/20 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">Live form state</p>
+              <p className="text-sm font-medium">حالة النموذج الحالية</p>
               <form.Subscribe
                 selector={(state: any) =>
                   [state.isFormValid, state.isDirty] as const
@@ -348,10 +351,10 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
                 {([isValid, isDirty]: readonly [boolean, boolean]) => (
                   <div className="flex gap-2">
                     <Badge variant={isValid ? "secondary" : "destructive"}>
-                      {isValid ? "Valid" : "Needs attention"}
+                      {isValid ? "صحيح" : "يتطلب المراجعة"}
                     </Badge>
                     <Badge variant="outline">
-                      {isDirty ? "Draft changed" : "Clean draft"}
+                      {isDirty ? "تم تعديل المسودة" : "المسودة كما هي"}
                     </Badge>
                   </div>
                 )}
@@ -368,7 +371,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
 
           <div className="rounded-xl border bg-muted/20 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium">Last successful output</p>
+              <p className="text-sm font-medium">آخر نتيجة ناجحة</p>
               {submitted ? (
                 <span className="text-xs text-muted-foreground">
                   {new Date(submitted.savedAt).toLocaleTimeString()}
@@ -381,7 +384,7 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
               </pre>
             ) : (
               <p className="text-sm text-muted-foreground">
-                A successful save will appear here.
+                ستظهر هنا نتيجة الحفظ الناجح.
               </p>
             )}
           </div>
@@ -392,8 +395,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
         <FormDialog
           open={open}
           onOpenChange={handleOpenChange}
-          title="Create a product preview"
-          description="Complete the fields and save to the local preview state."
+          title="إنشاء معاينة منتج"
+          description="أكمل الحقول واحفظها في بيانات المعاينة المحلية."
           pending={saving}
           footer={formFooter}
         >
@@ -404,8 +407,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
         <FormSheet
           open={open}
           onOpenChange={handleOpenChange}
-          title="Create a product preview"
-          description="Edit the form while keeping this page in view."
+          title="إنشاء معاينة منتج"
+          description="عدّل النموذج مع إبقاء الصفحة ظاهرة."
           pending={saving}
           footer={formFooter}
         >
@@ -416,8 +419,8 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
         <FormSectionsDialog
           open={open}
           onOpenChange={handleOpenChange}
-          title="Create a product preview"
-          description="Choose a section from the sidebar, then save the full form."
+          title="إنشاء معاينة منتج"
+          description="اختار قسمًا من القائمة ثم احفظ النموذج كاملًا."
           pending={saving}
           sections={sections}
           value={activeSection}
@@ -436,18 +439,15 @@ export function OverlayFormDemos() {
     <section className="flex flex-col gap-6 border-t pt-10">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">App-local components/forms</Badge>
+          <Badge variant="outline">مكوّنات ونماذج داخل التطبيق</Badge>
           <Badge variant="secondary">TanStack Form + Zod</Badge>
-          <Badge variant="secondary">Memory-only saves</Badge>
+          <Badge variant="secondary">حفظ مؤقت في الذاكرة</Badge>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          Dialog, sheet, and sectioned forms
+          النوافذ والألواح والنماذج المقسّمة
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Each example has its own typed form, live values, validation status,
-          and saved JSON. Closing an overlay discards the draft; reopening
-          starts from defaults. Arm a failed save to see that the open form
-          keeps its edits while Sonner reports the result.
+          لكل مثال نموذج وحقول وحالة تحقق ونتيجة محفوظة. إغلاق النافذة يلغي المسودة، وفتحها من جديد يبدأ بالقيم الافتراضية. جرّب فشل الحفظ لتتأكد أن التعديلات تظل موجودة.
         </p>
       </div>
       <div className="grid min-w-0 gap-5 xl:grid-cols-3">

@@ -42,9 +42,9 @@ export const SignUpForm = () => {
     if (password !== confirmPassword) {
       open?.({
         type: "error",
-        message: "Passwords don't match",
+        message: "كلمتا المرور غير متطابقتين",
         description:
-          "Please make sure both password fields contain the same value.",
+          "تأكد من إدخال كلمة المرور نفسها في الحقلين.",
       });
 
       return;
@@ -99,12 +99,12 @@ export const SignUpForm = () => {
               "font-semibold",
             )}
           >
-            Sign up
+            إنشاء حساب
           </CardTitle>
           <CardDescription
             className={cn("text-muted-foreground", "font-medium")}
           >
-            Welcome to lorem ipsum dolor.
+            أنشئ حسابك للبدء.
           </CardDescription>
         </CardHeader>
 
@@ -113,7 +113,7 @@ export const SignUpForm = () => {
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignUp}>
             <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input
                 id="email"
                 type="email"
@@ -127,7 +127,7 @@ export const SignUpForm = () => {
             <div
               className={cn("relative", "flex", "flex-col", "gap-2", "mt-6")}
             >
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">كلمة المرور</Label>
               <InputPassword
                 id="password"
                 value={password}
@@ -139,7 +139,7 @@ export const SignUpForm = () => {
             <div
               className={cn("relative", "flex", "flex-col", "gap-2", "mt-6")}
             >
-              <Label htmlFor="confirmPassword">Confirm password</Label>
+              <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
               <InputPassword
                 id="confirmPassword"
                 value={confirmPassword}
@@ -156,12 +156,12 @@ export const SignUpForm = () => {
                 "mt-6",
               )}
             >
-              Sign up
+              إنشاء حساب
             </Button>
 
             <div className={cn("flex", "items-center", "gap-4", "mt-6")}>
               <Separator className={cn("flex-1")} />
-              <span className={cn("text-sm", "text-muted-foreground")}>or</span>
+              <span className={cn("text-sm", "text-muted-foreground")}>أو</span>
               <Separator className={cn("flex-1")} />
             </div>
 
@@ -219,7 +219,7 @@ export const SignUpForm = () => {
         <CardFooter>
           <div className={cn("w-full", "text-center text-sm")}>
             <span className={cn("text-sm", "text-muted-foreground")}>
-              Have an account?{" "}
+              لديك حساب بالفعل؟{" "}
             </span>
             <Link
               to="/login"
@@ -230,7 +230,7 @@ export const SignUpForm = () => {
                 "underline",
               )}
             >
-              Sign in
+              تسجيل الدخول
             </Link>
           </div>
         </CardFooter>

@@ -84,12 +84,12 @@ export const SignInForm = () => {
               "font-semibold",
             )}
           >
-            Sign in
+            تسجيل الدخول
           </CardTitle>
           <CardDescription
             className={cn("text-muted-foreground", "font-medium")}
           >
-            Welcome back
+            أهلاً بعودتك
           </CardDescription>
         </CardHeader>
 
@@ -98,7 +98,7 @@ export const SignInForm = () => {
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignIn}>
             <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input
                 id="email"
                 type="email"
@@ -111,7 +111,7 @@ export const SignInForm = () => {
             <div
               className={cn("relative", "flex", "flex-col", "gap-2", "mt-6")}
             >
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">كلمة المرور</Label>
               <InputPassword
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -135,7 +135,7 @@ export const SignInForm = () => {
                     setRememberMe(checked === "indeterminate" ? false : checked)
                   }
                 />
-                <Label htmlFor="remember">Remember me</Label>
+                <Label htmlFor="remember">تذكرني</Label>
               </div>
               <Link
                 to="/forgot-password"
@@ -148,23 +148,23 @@ export const SignInForm = () => {
                   "text-primary",
                 )}
               >
-                <span>Forgot password</span>
+                <span>نسيت كلمة المرور؟</span>
                 <CircleHelp className={cn("w-4", "h-4")} />
               </Link>
             </div>
 
             <Button type="submit" size="lg" className={cn("w-full", "mt-6")}>
-              Sign in
+              تسجيل الدخول
             </Button>
 
             <div className={cn("flex", "items-center", "gap-4", "mt-6")}>
               <Separator className={cn("flex-1")} />
-              <span className={cn("text-sm", "text-muted-foreground")}>or</span>
+              <span className={cn("text-sm", "text-muted-foreground")}>أو</span>
               <Separator className={cn("flex-1")} />
             </div>
 
             <div className={cn("flex", "flex-col", "gap-4", "mt-6")}>
-              <p className={cn("text-sm", "font-medium")}>Sign in using</p>
+              <p className={cn("text-sm", "font-medium")}>تسجيل الدخول باستخدام</p>
               <div className={cn("grid grid-cols-2", "gap-6")}>
                 <Button
                   variant="outline"
@@ -219,7 +219,7 @@ export const SignInForm = () => {
         <CardFooter>
           <div className={cn("w-full", "text-center text-sm")}>
             <span className={cn("text-sm", "text-muted-foreground")}>
-              No account?{" "}
+              ليس لديك حساب؟{" "}
             </span>
             <Link
               to="/register"
@@ -230,7 +230,7 @@ export const SignInForm = () => {
                 "underline",
               )}
             >
-              Sign up
+              إنشاء حساب
             </Link>
           </div>
         </CardFooter>

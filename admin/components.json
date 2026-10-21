@@ -23,6 +23,7 @@
   "menuAccent": "subtle",
   "registries": {
     "@refine": "https://ui.refine.dev/r/{name}.json",
-    "@shadcnblocks": "https://shadcnblocks.com/r/{name}.json"
+    "@shadcnblocks": "https://shadcnblocks.com/r/{name}.json",
+    "@shuip": "https://shuip.plvo.dev/r/{style}/{name}.json"
   }
 }

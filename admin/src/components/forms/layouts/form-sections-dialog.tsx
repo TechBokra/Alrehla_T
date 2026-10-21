@@ -93,7 +93,7 @@ export function FormSectionsDialog({
         className="min-h-full w-full min-w-0 md:flex-row"
       >
         <TabsList
-          aria-label="Form sections"
+          aria-label="أقسام النموذج"
           variant="line"
           className={cn(
             "sticky top-0 z-10 flex h-auto w-full max-w-full shrink-0 justify-start gap-2 overflow-x-auto rounded-none border-b bg-popover p-3 md:my-6 md:w-48 md:items-stretch md:overflow-visible md:rounded-2xl md:border-0 md:bg-transparent md:p-4",

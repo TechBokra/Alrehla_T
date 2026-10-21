@@ -26,7 +26,7 @@ export function FormCombobox({
   disabled,
   ariaLabel,
   options,
-  placeholder = "Search options…",
+  placeholder = "ابحث في الاختيارات…",
 }: FieldProps & { options: ReadonlyArray<Option>; placeholder?: string }) {
   const presentation = useFieldPresentation({
     label,
@@ -58,7 +58,7 @@ export function FormCombobox({
             className="w-full justify-between"
             onBlur={field.handleBlur}
           >
-            {selected?.label ?? "Choose an option"}
+            {selected?.label ?? "اختار عنصرًا"}
             <ChevronsUpDown data-icon="inline-end" />
           </Button>
         </PopoverTrigger>
@@ -69,7 +69,7 @@ export function FormCombobox({
           <Command>
             <CommandInput placeholder={placeholder} />
             <CommandList>
-              <CommandEmpty>No matching options.</CommandEmpty>
+              <CommandEmpty>لا توجد اختيارات مطابقة.</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => (
                   <CommandItem

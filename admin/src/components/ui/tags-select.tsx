@@ -94,7 +94,7 @@ export function TagsSelect<TValue extends string>({
         <PopoverAnchor asChild>
           <div
             role="group"
-            aria-label="Selected tags"
+            aria-label="الوسوم المحددة"
             data-slot="tags-select-trigger"
             className={cn(
               "flex min-h-11 min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-background p-2",
@@ -117,7 +117,7 @@ export function TagsSelect<TValue extends string>({
                   size="icon"
                   className="size-4 rounded-full"
                   disabled={disabled}
-                  aria-label={`Remove tag ${options.find((option) => option.value === selectedValue)?.label ?? selectedValue}`}
+                  aria-label={`إزالة الوسم ${options.find((option) => option.value === selectedValue)?.label ?? selectedValue}`}
                   onBlur={onBlur}
                   onClick={() => changeSelection(selectedValue, false)}
                 >
@@ -130,7 +130,7 @@ export function TagsSelect<TValue extends string>({
               <Badge
                 variant="outline"
                 className="h-auto py-1"
-                title={`${hiddenCount} more selected tags`}
+                title={`وسوم محددة أخرى: ${hiddenCount}`}
               >
                 +{hiddenCount}
               </Badge>
@@ -141,14 +141,14 @@ export function TagsSelect<TValue extends string>({
                 type="button"
                 variant="ghost"
                 disabled={disabled}
-                aria-label={triggerAriaLabel ?? "Choose tags"}
+                aria-label={triggerAriaLabel ?? "اختيار الوسوم"}
                 aria-labelledby={triggerAriaLabelledBy}
                 aria-invalid={invalid}
                 aria-describedby={describedBy}
                 className="min-w-28 flex-1 justify-between"
                 onBlur={onBlur}
               >
-                {value.length ? "Add tags" : "Select tags…"}
+                {value.length ? "إضافة وسوم" : "اختر وسومًا…"}
                 <ChevronsUpDown data-icon="inline-end" />
               </Button>
             </PopoverTrigger>
@@ -158,16 +158,16 @@ export function TagsSelect<TValue extends string>({
           align="start"
           collisionPadding={12}
           className="max-h-[var(--radix-popover-content-available-height)] w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] overflow-hidden"
-          aria-label="Tag options"
+          aria-label="خيارات الوسوم"
         >
           <Field className="shrink-0">
             <FieldLabel htmlFor={`${instanceId}-search`} className="sr-only">
-              Search tags
+              ابحث عن وسوم
             </FieldLabel>
             <Input
               id={`${instanceId}-search`}
               type="search"
-              placeholder="Search tags…"
+              placeholder="ابحث عن وسوم…"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
@@ -178,7 +178,7 @@ export function TagsSelect<TValue extends string>({
 
           <div className="max-h-64 min-h-0 overflow-y-auto">
             <FieldSet>
-              <FieldLegend className="sr-only">Available tags</FieldLegend>
+              <FieldLegend className="sr-only">الوسوم المتاحة</FieldLegend>
               <FieldGroup className="gap-2">
                 {filteredOptions.map((option) => {
                   const selected = value.includes(option.value);

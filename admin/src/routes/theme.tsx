@@ -11,10 +11,10 @@ export const Route = createFileRoute("/theme")({
   errorComponent: ShowcaseError,
   head: () => ({
     meta: [
-      { title: "Calesee Admin · Theme" },
+      { title: "الرحلة · التصميم والألوان" },
       {
         name: "description",
-        content: "Calesee Admin design tokens and theme preview.",
+        content: "معاينة ألوان وخطوط وتصميم لوحة الإدارة.",
       },
     ],
   }),

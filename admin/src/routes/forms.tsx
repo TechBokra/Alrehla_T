@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ShowcaseLayout } from "@/features/component-showcase/showcase-layout";
+import { ShowcaseLayout } from "@/features/component-showcase/layout";
 import {
   ShowcaseError,
   ShowcasePending,
@@ -12,10 +12,10 @@ export const Route = createFileRoute("/forms")({
   errorComponent: ShowcaseError,
   head: () => ({
     meta: [
-      { title: "Calesee Admin · Forms" },
+      { title: "الرحلة · النماذج" },
       {
         name: "description",
-        content: "Dialog, sheet, and sectioned form patterns.",
+        content: "أنماط النماذج داخل النوافذ والألواح والأقسام.",
       },
     ],
   }),

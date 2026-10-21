@@ -18,7 +18,7 @@ export function FormSelect({
   disabled,
   ariaLabel,
   options,
-  placeholder = "Select an option",
+  placeholder = "اختر خيارًا",
 }: FieldProps & { options: ReadonlyArray<Option>; placeholder?: string }) {
   const presentation = useFieldPresentation({
     label,

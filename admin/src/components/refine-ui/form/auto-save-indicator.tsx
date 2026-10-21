@@ -42,7 +42,7 @@ export function AutoSaveIndicator({
       >
         <Loader2 className={cn("h-4", "w-4", "mr-2", "animate-spin")} />
         <span className={cn("font-medium")}>
-          {t("autoSave.saving", "Saving")}
+          {t("autoSave.saving", "جارٍ الحفظ")}
         </span>
       </div>
     ),
@@ -64,7 +64,7 @@ export function AutoSaveIndicator({
       >
         <CheckCircle2 className={cn("h-4", "w-4", "mr-2")} />
         <span className={cn("font-medium")}>
-          {t("autoSave.saved", "Saved")}
+          {t("autoSave.saved", "تم الحفظ")}
         </span>
       </div>
     ),
@@ -81,7 +81,7 @@ export function AutoSaveIndicator({
       >
         <AlertTriangle className={cn("h-4", "w-4", "mr-2")} />
         <span className={cn("font-medium")}>
-          {t("autoSave.failed", "Failed")}
+          {t("autoSave.failed", "تعذّر الحفظ")}
         </span>
       </div>
     ),
@@ -97,7 +97,7 @@ export function AutoSaveIndicator({
         )}
       >
         <Clock className={cn("h-4", "w-4", "mr-2")} />
-        <span>{t("autoSave.idle", "Idle")} </span>
+        <span>{t("autoSave.idle", "بانتظار التعديل")} </span>
       </div>
     ),
   };

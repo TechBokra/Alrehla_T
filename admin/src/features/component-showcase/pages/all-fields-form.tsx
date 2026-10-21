@@ -90,64 +90,69 @@ import {
 const textFields = [
   {
     name: "title",
-    label: "Product name · Text",
+    label: "اسم المنتج · نص",
     type: "text",
     autoComplete: "off",
   },
-  { name: "email", label: "Email", type: "email", autoComplete: "off" },
+  { name: "email", label: "البريد الإلكتروني", type: "email", autoComplete: "off" },
   {
     name: "password",
-    label: "Demo password",
+    label: "كلمة مرور تجريبية",
     type: "password",
     autoComplete: "new-password",
   },
-  { name: "search", label: "Search", type: "search", autoComplete: "off" },
-  { name: "website", label: "Website · URL", type: "url", autoComplete: "off" },
-  { name: "phone", label: "Telephone", type: "tel", autoComplete: "off" },
+  { name: "search", label: "بحث", type: "search", autoComplete: "off" },
+  { name: "website", label: "الموقع الإلكتروني · رابط", type: "url", autoComplete: "off" },
+  { name: "phone", label: "رقم الهاتف", type: "tel", autoComplete: "off" },
   {
     name: "launchDate",
-    label: "Launch date",
+    label: "تاريخ الإطلاق",
     type: "date",
     autoComplete: "off",
   },
   {
     name: "launchTime",
-    label: "Launch time",
+    label: "وقت الإطلاق",
     type: "time",
     autoComplete: "off",
   },
-  { name: "color", label: "Color", type: "color", autoComplete: "off" },
+  { name: "color", label: "اللون", type: "color", autoComplete: "off" },
 ] as const;
 
 const collections = [
-  { value: "accessories", label: "Accessories" },
-  { value: "home", label: "Home & living" },
-  { value: "apparel", label: "Apparel" },
+  { value: "accessories", label: "إكسسوارات" },
+  { value: "home", label: "المنزل والمعيشة" },
+  { value: "apparel", label: "ملابس" },
 ] as const;
+
+const statusLabels = { draft: "مسودة", active: "نشط", archived: "مؤرشف" } as const;
+const channelLabels = { storefront: "المتجر الإلكتروني", marketplace: "سوق إلكتروني", pos: "نقطة البيع" } as const;
+const layoutLabels = { grid: "شبكة", list: "قائمة", compact: "مضغوط" } as const;
+const placementLabels = { storefront: "المتجر الإلكتروني", email: "البريد الإلكتروني", social: "منصات التواصل" } as const;
 
 const tagOptions = [
   {
     value: "new-arrival",
-    label: "New arrival",
-    description: "Recently added to the catalog",
+    label: "وصل حديثًا",
+    description: "أُضيف مؤخرًا إلى الكتالوج",
   },
   {
     value: "best-seller",
-    label: "Best seller",
-    description: "Popular with customers",
+    label: "الأكثر مبيعًا",
+    description: "مفضّل لدى العملاء",
   },
   {
     value: "sustainable",
-    label: "Sustainable",
-    description: "Made with lower-impact materials",
+    label: "مستدام",
+    description: "مصنوع بخامات صديقة للبيئة",
   },
-  { value: "handmade", label: "Handmade", description: "Crafted by hand" },
+  { value: "handmade", label: "صناعة يدوية", description: "مصنوع يدويًا" },
   {
     value: "limited-edition",
-    label: "Limited edition",
-    description: "Available in a limited quantity",
+    label: "إصدار محدود",
+    description: "متوفر بكمية محدودة",
   },
-  { value: "sale", label: "Sale", description: "Included in a promotion" },
+  { value: "sale", label: "تخفيض", description: "ضمن عرض ترويجي" },
 ] as const;
 
 type FrameProps = {
@@ -185,8 +190,8 @@ export function AllFieldsForm() {
         values: serializeFormValues(validated),
         submittedAt: new Date().toISOString(),
       });
-      toast.success("Form submitted", {
-        description: "The submitted values are ready to inspect.",
+      toast.success("تم إرسال النموذج", {
+        description: "تقدر تراجع البيانات التي أرسلتها.",
       });
     },
   });
@@ -195,16 +200,14 @@ export function AllFieldsForm() {
     <section className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">TanStack Form</Badge>
-          <Badge variant="secondary">Zod validation</Badge>
+          <Badge variant="outline">نموذج TanStack</Badge>
+          <Badge variant="secondary">التحقق باستخدام Zod</Badge>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          All fields, one form
+          كل الحقول في نموذج واحد
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Edit the example values, then submit to inspect the complete JSON
-          output. Clear a required field to try validation. All values stay in
-          this local preview.
+          عدّل القيم التجريبية ثم أرسل النموذج لمراجعة البيانات. امسح أحد الحقول المطلوبة لتجربة التحقق. تظل البيانات داخل المعاينة فقط.
         </p>
       </div>
 
@@ -221,15 +224,15 @@ export function AllFieldsForm() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Text, numbers, and dates</CardTitle>
+              <CardTitle>النصوص والأرقام والتواريخ</CardTitle>
               <CardDescription>
-                Strings, numeric values, and grouped inputs.
+                حقول النصوص والأرقام وحقول الإدخال المجمّعة.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <FieldSet>
                 <FieldLegend className="sr-only">
-                  Text, numbers, and dates
+                  النصوص والأرقام والتواريخ
                 </FieldLegend>
                 <FieldGroup className="grid gap-5 md:grid-cols-2">
                   {textFields.map((input) => (
@@ -261,7 +264,7 @@ export function AllFieldsForm() {
                     {(field) => (
                       <FieldFrame
                         id="all-quantity"
-                        label="Quantity · Number"
+                        label="الكمية · رقم"
                         errors={field.state.meta.errors}
                       >
                         <Input
@@ -290,11 +293,11 @@ export function AllFieldsForm() {
                     {(field) => (
                       <FieldFrame
                         id="all-price"
-                        label="Price · Input group"
+                        label="السعر · إدخال مجمّع"
                         errors={field.state.meta.errors}
                       >
                         <InputGroup>
-                          <InputGroupAddon>$</InputGroupAddon>
+                          <InputGroupAddon>ج.م.</InputGroupAddon>
                           <InputGroupInput
                             id="all-price"
                             name={field.name}
@@ -314,7 +317,7 @@ export function AllFieldsForm() {
                             aria-describedby="all-price-error"
                           />
                           <InputGroupAddon align="inline-end">
-                            USD
+                            جنيه مصري
                           </InputGroupAddon>
                         </InputGroup>
                       </FieldFrame>
@@ -324,7 +327,7 @@ export function AllFieldsForm() {
                     {(field) => (
                       <FieldFrame
                         id="all-description"
-                        label="Description · Textarea"
+                        label="الوصف · نص متعدد الأسطر"
                         errors={field.state.meta.errors}
                       >
                         <Textarea
@@ -348,10 +351,9 @@ export function AllFieldsForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Choices and settings</CardTitle>
+              <CardTitle>الاختيارات والإعدادات</CardTitle>
               <CardDescription>
-                Select menus, radio buttons, checkboxes, and a searchable
-                combobox.
+                قوائم الاختيار وأزرار الخيارات ومربعات التحديد والبحث.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -360,7 +362,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-collection"
-                      label="Collection · Select"
+                      label="المجموعة · قائمة اختيار"
                       errors={field.state.meta.errors}
                     >
                       <Select
@@ -397,7 +399,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-status"
-                      label="Status · Native select"
+                      label="الحالة · قائمة أصلية"
                       errors={field.state.meta.errors}
                     >
                       <NativeSelect
@@ -415,7 +417,7 @@ export function AllFieldsForm() {
                       >
                         {statusSchema.options.map((status) => (
                           <NativeSelectOption key={status} value={status}>
-                            {status}
+                            {statusLabels[status]}
                           </NativeSelectOption>
                         ))}
                       </NativeSelect>
@@ -426,7 +428,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldSet>
                       <FieldLegend variant="label" id="all-publishing-label">
-                        Publishing status · Radio group
+                        حالة النشر · أزرار اختيار
                       </FieldLegend>
                       <RadioGroup
                         value={field.state.value}
@@ -444,7 +446,7 @@ export function AllFieldsForm() {
                               value={status}
                             />
                             <FieldLabel htmlFor={`all-radio-${status}`}>
-                              {status}
+                            {statusLabels[status]}
                             </FieldLabel>
                           </Field>
                         ))}
@@ -457,7 +459,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldSet data-invalid={field.state.meta.errors.length > 0}>
                       <FieldLegend variant="label">
-                        Sales channels · Checkboxes
+                        قنوات البيع · مربعات تحديد
                       </FieldLegend>
                       <FieldGroup className="gap-3">
                         {channelSchema.options.map((channel) => (
@@ -481,7 +483,7 @@ export function AllFieldsForm() {
                               }
                             />
                             <FieldLabel htmlFor={`all-channel-${channel}`}>
-                              {channel}
+                              {channelLabels[channel]}
                             </FieldLabel>
                           </Field>
                         ))}
@@ -497,7 +499,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-category"
-                      label="Category · Combobox"
+                      label="الفئة · بحث واختيار"
                       errors={field.state.meta.errors}
                     >
                       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -523,9 +525,9 @@ export function AllFieldsForm() {
                         </PopoverTrigger>
                         <PopoverContent align="start" className="p-0">
                           <Command>
-                            <CommandInput placeholder="Search categories…" />
+                            <CommandInput placeholder="ابحث عن فئة…" />
                             <CommandList>
-                              <CommandEmpty>No categories found.</CommandEmpty>
+                              <CommandEmpty>لم يتم العثور على فئات.</CommandEmpty>
                               <CommandGroup>
                                 {collections.map((option) => (
                                   <CommandItem
@@ -562,7 +564,7 @@ export function AllFieldsForm() {
                         }
                       />
                       <FieldLabel htmlFor="all-published">
-                        Published · Checkbox boolean
+                        منشور · مربع تحديد
                       </FieldLabel>
                     </Field>
                   )}
@@ -577,7 +579,7 @@ export function AllFieldsForm() {
                         onCheckedChange={field.handleChange}
                       />
                       <FieldLabel htmlFor="all-notifications">
-                        Low-stock alerts · Switch
+                        تنبيهات انخفاض المخزون · مفتاح
                       </FieldLabel>
                     </Field>
                   )}
@@ -586,12 +588,12 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-discount"
-                      label={`Discount · Slider (${field.state.value}%)`}
+                      label={`الخصم · شريط التمرير (${field.state.value}٪)`}
                       errors={field.state.meta.errors}
                     >
                       <Slider
                         id="all-discount"
-                        aria-label="Discount"
+                        aria-label="الخصم"
                         min={0}
                         max={100}
                         step={1}
@@ -610,10 +612,9 @@ export function AllFieldsForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tags and checkbox selection</CardTitle>
+              <CardTitle>الوسوم والاختيار بمربعات التحديد</CardTitle>
               <CardDescription>
-                Search for tags, select their checkboxes, and remove selected
-                chips.
+                ابحث عن الوسوم وحددها بمربعات الاختيار، أو أزل الوسوم المحددة.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -621,9 +622,9 @@ export function AllFieldsForm() {
                 {(field) => (
                   <FieldFrame
                     id="all-tags"
-                    label="Product tags"
+                    label="وسوم المنتج"
                     errors={field.state.meta.errors}
-                    description="Choose between 1 and 5 tags. Two chips stay visible; extra selections appear as +N. All selected IDs are included in the submitted JSON."
+                    description="اختار من وسم إلى ٥ وسوم. تظهر الاختيارات الإضافية كرقم، وتُضمَّن كل المعرفات في البيانات المرسلة."
                   >
                     <TagsSelect
                       id="all-tags"
@@ -643,9 +644,9 @@ export function AllFieldsForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Composed controls</CardTitle>
+              <CardTitle>عناصر إدخال مركّبة</CardTitle>
               <CardDescription>
-                Verification, layout, and campaign settings.
+                التحقق وتنسيق العرض وإعدادات الحملات.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -654,7 +655,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-code"
-                      label="Verification code · Input OTP"
+                      label="رمز التحقق · رمز لمرة واحدة"
                       errors={field.state.meta.errors}
                     >
                       <InputOTP
@@ -687,7 +688,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldSet>
                       <FieldLegend variant="label" id="all-layout-label">
-                        Layout · Single toggle group
+                        طريقة العرض · اختيار واحد
                       </FieldLegend>
                       <ToggleGroup
                         type="single"
@@ -702,7 +703,7 @@ export function AllFieldsForm() {
                       >
                         {layoutSchema.options.map((layout) => (
                           <ToggleGroupItem key={layout} value={layout}>
-                            {layout}
+                            {layoutLabels[layout]}
                           </ToggleGroupItem>
                         ))}
                       </ToggleGroup>
@@ -713,7 +714,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldFrame
                       id="all-featured"
-                      label="Featured · Toggle"
+                      label="منتج مميز · مفتاح"
                       errors={field.state.meta.errors}
                     >
                       <Toggle
@@ -724,7 +725,7 @@ export function AllFieldsForm() {
                         onBlur={field.handleBlur}
                         onPressedChange={field.handleChange}
                       >
-                        {field.state.value ? "Featured" : "Not featured"}
+                        {field.state.value ? "منتج مميز" : "منتج عادي"}
                       </Toggle>
                     </FieldFrame>
                   )}
@@ -733,7 +734,7 @@ export function AllFieldsForm() {
                   {(field) => (
                     <FieldSet data-invalid={field.state.meta.errors.length > 0}>
                       <FieldLegend variant="label" id="all-placements-label">
-                        Placements · Multi-select toggle group
+                        أماكن الظهور · اختيار متعدد
                       </FieldLegend>
                       <ToggleGroup
                         type="multiple"
@@ -751,7 +752,7 @@ export function AllFieldsForm() {
                       >
                         {placementSchema.options.map((placement) => (
                           <ToggleGroupItem key={placement} value={placement}>
-                            {placement}
+                            {placementLabels[placement]}
                           </ToggleGroupItem>
                         ))}
                       </ToggleGroup>
@@ -768,9 +769,9 @@ export function AllFieldsForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>File attachments</CardTitle>
+              <CardTitle>المرفقات</CardTitle>
               <CardDescription>
-                Up to 5 files, 10 MB each. The output shows file metadata.
+                حتى ٥ ملفات، بحد أقصى ١٠ ميجابايت لكل ملف. تعرض النتيجة بيانات الملفات فقط.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -778,9 +779,9 @@ export function AllFieldsForm() {
                 {(field) => (
                   <FieldFrame
                     id="all-attachments"
-                    label="Attach files"
+                    label="إرفاق ملفات"
                     errors={field.state.meta.errors}
-                    description="Files remain in browser memory. No upload request is sent."
+                    description="تظل الملفات في ذاكرة المتصفح، ولا يتم رفعها إلى أي مكان."
                   >
                     <Input
                       ref={fileInput}
@@ -800,7 +801,7 @@ export function AllFieldsForm() {
                       }}
                     />
                     {field.state.value.length ? (
-                      <AttachmentGroup aria-label="Selected attachments">
+                      <AttachmentGroup aria-label="المرفقات المحددة">
                         {field.state.value.map((file, index) => (
                           <Attachment
                             key={`${file.name}-${file.lastModified}-${index}`}
@@ -812,14 +813,14 @@ export function AllFieldsForm() {
                             <AttachmentContent>
                               <AttachmentTitle>{file.name}</AttachmentTitle>
                               <AttachmentDescription>
-                                {file.type || "Unknown type"} ·{" "}
-                                {file.size.toLocaleString()} bytes
+                                {file.type || "نوع غير معروف"} ·{" "}
+                                {new Intl.NumberFormat("ar-EG").format(file.size)} بايت
                               </AttachmentDescription>
                             </AttachmentContent>
                             <AttachmentActions>
                               <AttachmentAction
                                 type="button"
-                                aria-label={`Remove ${file.name}`}
+                                aria-label={`إزالة ${file.name}`}
                                 onClick={() =>
                                   field.handleChange(
                                     field.state.value.filter(
@@ -836,7 +837,7 @@ export function AllFieldsForm() {
                       </AttachmentGroup>
                     ) : (
                       <FieldDescription>
-                        No attachments selected.
+                        لم يتم اختيار مرفقات.
                       </FieldDescription>
                     )}
                   </FieldFrame>
@@ -858,8 +859,7 @@ export function AllFieldsForm() {
               <div className="flex flex-col gap-3">
                 {attempts > 0 && !isValid ? (
                   <p role="alert" className="text-sm text-destructive">
-                    Please fix the highlighted fields, then submit again. The
-                    last successful output stays visible.
+                    راجع الحقول المحددة ثم أرسل النموذج مرة أخرى. ستظل آخر نتيجة ناجحة ظاهرة.
                   </p>
                 ) : null}
                 <div className="flex flex-wrap gap-3">
@@ -872,7 +872,7 @@ export function AllFieldsForm() {
                     ) : (
                       <Check data-icon="inline-start" />
                     )}
-                    {isSubmitting ? "Submitting…" : "Submit all fields"}
+                    {isSubmitting ? "جارٍ الإرسال…" : "إرسال كل البيانات"}
                   </Button>
                   <Button
                     type="button"
@@ -885,7 +885,7 @@ export function AllFieldsForm() {
                       if (fileInput.current) fileInput.current.value = "";
                     }}
                   >
-                    Reset form & output
+                    إعادة ضبط النموذج والنتيجة
                   </Button>
                 </div>
               </div>
@@ -895,13 +895,12 @@ export function AllFieldsForm() {
 
         <aside
           className="flex min-w-0 flex-col gap-4 xl:sticky xl:top-24"
-          aria-label="Form values inspector"
+          aria-label="مراجع بيانات النموذج"
         >
           <Card>
             <CardHeader>
-              <CardTitle>Submitted values</CardTitle>
               <CardDescription>
-                Snapshot from the last successful Zod-validated submission.
+                آخر نتيجة ناجحة بعد التحقق من البيانات.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-3">
@@ -912,16 +911,16 @@ export function AllFieldsForm() {
                     form="all-fields-form"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Submitting…" : "Submit & inspect JSON"}
+                    {isSubmitting ? "جارٍ الإرسال…" : "إرسال ومراجعة البيانات"}
                   </Button>
                 )}
               </form.Subscribe>
               <div aria-live="polite" aria-atomic="true" className="min-w-0">
                 {submitted ? (
                   <div className="flex min-w-0 flex-col gap-3">
-                    <Badge variant="secondary">Validation passed</Badge>
+                    <Badge variant="secondary">التحقق ناجح</Badge>
                     <p className="text-xs text-muted-foreground">
-                      Submitted at{" "}
+                      وقت الإرسال: {" "}
                       <time dateTime={submitted.submittedAt}>
                         {new Date(submitted.submittedAt).toLocaleTimeString()}
                       </time>
@@ -935,21 +934,18 @@ export function AllFieldsForm() {
                   </div>
                 ) : (
                   <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                    No values submitted yet. Use either submit button to see all
-                    field values here.
+                    لم يتم إرسال بيانات بعد. استخدم أحد زري الإرسال لعرضها هنا.
                   </p>
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Numbers stay numbers, switches are booleans, and multi-select
-                controls produce arrays. Attachments show metadata instead of
-                file bytes.
+                تظل الأرقام أرقامًا، والمفاتيح قيمًا منطقية، والاختيارات المتعددة قوائم. تعرض المرفقات بياناتها دون محتوى الملفات.
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Live form state</CardTitle>
+              <CardTitle>حالة النموذج الحالية</CardTitle>
             </CardHeader>
             <CardContent>
               <form.Subscribe
@@ -964,13 +960,13 @@ export function AllFieldsForm() {
               >
                 {([dirty, valid, submitting, attempts]) => (
                   <dl className="grid grid-cols-2 gap-3 text-sm">
-                    <dt>isDirty</dt>
+                    <dt>تم التعديل</dt>
                     <dd>{String(dirty)}</dd>
-                    <dt>isValid</dt>
+                    <dt>البيانات صحيحة</dt>
                     <dd>{String(valid)}</dd>
-                    <dt>isSubmitting</dt>
+                    <dt>جارٍ الإرسال</dt>
                     <dd>{String(submitting)}</dd>
-                    <dt>Submit attempts</dt>
+                    <dt>محاولات الإرسال</dt>
                     <dd>{attempts}</dd>
                   </dl>
                 )}

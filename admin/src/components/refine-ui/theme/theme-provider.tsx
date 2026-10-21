@@ -44,10 +44,12 @@ export function ThemeProvider({
         : "light";
 
       root.classList.add(systemTheme);
+      root.dataset.theme = systemTheme;
       return;
     }
 
     root.classList.add(theme);
+    root.dataset.theme = theme;
   }, [theme]);
 
   const value = {

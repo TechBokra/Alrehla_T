@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FormPrototypePage } from "@/features/form-prototype";
-import { ShowcaseLayout } from "@/features/component-showcase/showcase-layout";
+import { ShowcaseLayout } from "@/features/component-showcase/layout";
 import {
   ShowcaseError,
   ShowcasePending,
@@ -12,10 +12,10 @@ export const Route = createFileRoute("/form-prototype")({
   errorComponent: ShowcaseError,
   head: () => ({
     meta: [
-      { title: "Calesee Admin · Form prototype" },
+      { title: "الرحلة · تجربة النماذج" },
       {
         name: "description",
-        content: "An app-local TanStack Form composition and Refine demo.",
+        content: "تجربة محلية لتركيب النماذج وربطها بعمليات Refine.",
       },
     ],
   }),

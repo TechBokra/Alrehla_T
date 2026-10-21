@@ -43,7 +43,7 @@ type NavUserProps = {
 type ActiveDialog = "profile" | "settings" | null;
 
 const signOutMessage =
-  "Demo sign-out completed. No real session is active in this preview.";
+  "تم تسجيل الخروج التجريبي. لا توجد جلسة دخول حقيقية في المعاينة.";
 
 export function NavUser({ user, signOut }: NavUserProps) {
   const { isMobile } = useSidebar();
@@ -56,7 +56,7 @@ export function NavUser({ user, signOut }: NavUserProps) {
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
       : theme === "dark";
 
-  const name = user.name?.trim() || "Preview Admin";
+  const name = user.name?.trim() || "مشرف تجريبي";
   const email = user.email?.trim() || "admin@example.test";
   const avatar = user.avatar?.trim();
 
@@ -73,7 +73,7 @@ export function NavUser({ user, signOut }: NavUserProps) {
       { redirectPath: false },
       {
         onSuccess: () => toast.info(signOutMessage),
-        onError: () => toast.error("Demo sign-out could not be completed."),
+        onError: () => toast.error("تعذّر إكمال تسجيل الخروج التجريبي."),
       }
     );
   };
@@ -96,11 +96,11 @@ export function NavUser({ user, signOut }: NavUserProps) {
               size="lg"
               disabled={isLoggingOut}
               tooltip={name}
-              aria-label={`User menu for ${name}`}
+              aria-label={`قائمة المستخدم ${name}`}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               {avatarMark}
-              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+              <div className="grid min-w-0 flex-1 text-right text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-medium">{name}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {email}
@@ -110,12 +110,12 @@ export function NavUser({ user, signOut }: NavUserProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-64"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : "left"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+              <div className="flex items-center gap-2 px-2 py-2 text-right text-sm">
                 {avatarMark}
                 <div className="grid min-w-0 flex-1 leading-tight">
                   <span className="truncate font-medium">{name}</span>
@@ -129,11 +129,11 @@ export function NavUser({ user, signOut }: NavUserProps) {
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => setActiveDialog("profile")}>
                 <UserRound />
-                Profile
+                الملف الشخصي
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setActiveDialog("settings")}>
                 <Settings2 />
-                Settings
+                الإعدادات
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuGroup className="flex min-h-9 items-center gap-2 px-2">
@@ -149,7 +149,7 @@ export function NavUser({ user, signOut }: NavUserProps) {
                 <Switch
                   id={themeSwitchId}
                   role="menuitemcheckbox"
-                  aria-label="Dark mode"
+                  aria-label="الوضع الداكن"
                   checked={darkModeEnabled}
                   onCheckedChange={(checked) =>
                     setTheme(checked ? "dark" : "light")
@@ -174,7 +174,7 @@ export function NavUser({ user, signOut }: NavUserProps) {
                 ) : (
                   <LogOut />
                 )}
-                {isLoggingOut ? "Signing out…" : "Sign out"}
+                {isLoggingOut ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج"}
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

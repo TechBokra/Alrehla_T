@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/refine-ui/theme/theme-provider";
 import { Toaster } from "@/components/refine-ui/notification/toaster";
 import { Separator } from "@/components/ui/separator";
+import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import {
   SidebarInset,
   SidebarProvider,
@@ -27,7 +28,7 @@ const resources = [
     clone: "/",
     show: "/",
     meta: {
-      label: "Products",
+      label: "المنتجات",
       icon: <Package className="size-4" />,
     },
   },
@@ -50,7 +51,7 @@ export function ShowcaseLayout({
   children,
 }: ShowcaseLayoutProps) {
   const activePage = showcaseNavigation.find(
-    (item) => item.id === activeSection
+    (item) => item.id === activeSection,
   );
 
   return (
@@ -67,28 +68,23 @@ export function ShowcaseLayout({
         },
         close: (key) => toast.dismiss(key),
       }}
+      i18nProvider={arabicEgyptI18nProvider}
       options={{
         disableTelemetry: true,
         disableRouteChangeHandler: true,
         syncWithLocation: false,
         title: {
-          text: "Calesee Admin",
+          text: "الرحلة · لوحة الإدارة",
           icon: <Store className="size-5" />,
         },
       }}
     >
-      <ThemeProvider
-        defaultTheme="light"
-        storageKey="calesee-admin-preview-theme"
+      <ShowcaseShell
+        activeSection={activeSection}
+        pageLabel={activePage?.label}
       >
-        <ShowcaseShell
-          activeSection={activeSection}
-          pageLabel={activePage?.label}
-        >
-          {children}
-        </ShowcaseShell>
-        <Toaster position="bottom-right" richColors />
-      </ThemeProvider>
+        {children}
+      </ShowcaseShell>
     </Refine>
   );
 }
@@ -104,7 +100,7 @@ function ShowcaseShell({
 }) {
   const { data: identity } = useGetIdentity<ShowcaseIdentity>();
   const user = {
-    name: identity?.name ?? "Preview Admin",
+    name: identity?.name ?? "مشرف تجريبي",
     email: identity?.email ?? "admin@example.test",
     avatar: identity?.avatar ?? identity?.image ?? "",
   };
@@ -115,12 +111,12 @@ function ShowcaseShell({
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center border-b border-sidebar-border bg-background/90 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3">
-            <SidebarTrigger className="-ml-1" />
+            <SidebarTrigger className="-ms-1" />
             <Separator orientation="vertical" className="h-5" />
             <div className="hidden text-sm text-muted-foreground sm:block">
-              Admin system <span className="px-1.5">/</span>
+              نظام الإدارة <span className="px-1.5">/</span>
               <span className="font-medium text-foreground">
-                {pageLabel ?? "Component gallery"}
+                {pageLabel ?? "معرض المكوّنات"}
               </span>
             </div>
           </div>
@@ -128,12 +124,6 @@ function ShowcaseShell({
 
         <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-12 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
           {children}
-          <footer className="flex flex-col gap-3 border-t pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <span>Calesee Admin · Frontend component preview</span>
-            <span>
-              All records and authentication in this gallery are local demos.
-            </span>
-          </footer>
         </main>
       </SidebarInset>
     </SidebarProvider>

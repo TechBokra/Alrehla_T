@@ -18,7 +18,7 @@ const columns: ColumnDef<DemoProduct>[] = [
     accessorKey: "title",
     header: ({ column }) => (
       <div className="flex items-center gap-1">
-        <span>Product</span>
+        <span>المنتج</span>
         <DataTableSorter column={column} />
       </div>
     ),
@@ -36,13 +36,13 @@ const columns: ColumnDef<DemoProduct>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "الحالة",
     cell: ({ row }) => (
       <Badge variant={row.original.status === "Active" ? "secondary" : "outline"}>
         <span
-          className={`mr-1.5 size-1.5 rounded-full ${row.original.status === "Active" ? "bg-emerald-500" : "bg-amber-500"}`}
+          className={`me-1.5 size-1.5 rounded-full ${row.original.status === "Active" ? "bg-emerald-500" : "bg-amber-500"}`}
         />
-        {row.original.status}
+        {row.original.status === "Active" ? "نشط" : "مسودة"}
       </Badge>
     ),
     size: 115,
@@ -51,13 +51,13 @@ const columns: ColumnDef<DemoProduct>[] = [
     accessorKey: "inventory",
     header: ({ column }) => (
       <div className="flex items-center gap-1">
-        <span>Inventory</span>
+        <span>المخزون</span>
         <DataTableSorter column={column} />
       </div>
     ),
     cell: ({ row }) => (
       <span className="tabular-nums text-muted-foreground">
-        {row.original.inventory} in stock
+        {new Intl.NumberFormat("ar-EG").format(row.original.inventory)} قطعة متاحة
       </span>
     ),
     size: 150,
@@ -66,15 +66,15 @@ const columns: ColumnDef<DemoProduct>[] = [
     accessorKey: "price",
     header: ({ column }) => (
       <div className="flex items-center gap-1">
-        <span>Price</span>
+        <span>السعر</span>
         <DataTableSorter column={column} />
       </div>
     ),
     cell: ({ row }) => (
       <span className="font-medium tabular-nums">
-        {new Intl.NumberFormat("en-US", {
+        {new Intl.NumberFormat("ar-EG", {
           style: "currency",
-          currency: "USD",
+          currency: "EGP",
           maximumFractionDigits: 0,
         }).format(row.original.price)}
       </span>
@@ -92,7 +92,7 @@ const columns: ColumnDef<DemoProduct>[] = [
           recordItemId={row.original.id}
           variant="ghost"
           size="icon"
-          aria-label={`Show ${row.original.title}`}
+          aria-label={`عرض ${row.original.title}`}
         >
           <Eye />
         </ShowButton>
@@ -101,7 +101,7 @@ const columns: ColumnDef<DemoProduct>[] = [
           recordItemId={row.original.id}
           variant="ghost"
           size="icon"
-          aria-label={`Edit ${row.original.title}`}
+          aria-label={`تعديل ${row.original.title}`}
         >
           <Pencil />
         </EditButton>
@@ -110,7 +110,7 @@ const columns: ColumnDef<DemoProduct>[] = [
           recordItemId={row.original.id}
           variant="ghost"
           size="icon"
-          aria-label={`Clone ${row.original.title}`}
+          aria-label={`نسخ ${row.original.title}`}
         >
           <ArrowDownToLine />
         </CloneButton>
@@ -119,7 +119,7 @@ const columns: ColumnDef<DemoProduct>[] = [
           recordItemId={row.original.id}
           variant="ghost"
           size="icon"
-          aria-label={`Delete ${row.original.title}`}
+          aria-label={`حذف ${row.original.title}`}
         >
           <Trash2 />
         </DeleteButton>
@@ -146,7 +146,7 @@ export function ProductsTablePreview() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => {
@@ -154,14 +154,14 @@ export function ProductsTablePreview() {
               setSearch(value);
               table.reactTable.setGlobalFilter(value);
             }}
-            placeholder="Search sample products…"
-            className="pl-9"
-            aria-label="Search sample products"
+            placeholder="ابحث عن منتج تجريبي…"
+            className="pe-9"
+            aria-label="البحث عن منتج تجريبي"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="h-7 px-2.5 font-normal">
-            5 sample records
+            ٥ منتجات تجريبية
           </Badge>
           <Button
             variant="outline"
@@ -171,7 +171,7 @@ export function ProductsTablePreview() {
               table.reactTable.setGlobalFilter("");
             }}
           >
-            Clear filters
+            مسح الفلاتر
           </Button>
         </div>
       </div>

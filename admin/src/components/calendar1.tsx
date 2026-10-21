@@ -48,34 +48,34 @@ type Calendar1Props = {
 };
 
 const TODAY = new Date(2026, 9, 21);
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"];
 
 const CALENDARS: Record<
   CalendarId,
   { label: string; dot: string; chip: string }
 > = {
   work: {
-    label: "Work",
+    label: "عمل",
     dot: "bg-chart-1",
     chip: "bg-chart-1/15 hover:bg-chart-1/25",
   },
   meetings: {
-    label: "Meetings",
+    label: "اجتماعات",
     dot: "bg-chart-2",
     chip: "bg-chart-2/15 hover:bg-chart-2/25",
   },
   social: {
-    label: "Social",
+    label: "اجتماعي",
     dot: "bg-chart-3",
     chip: "bg-chart-3/15 hover:bg-chart-3/25",
   },
   personal: {
-    label: "Personal",
+    label: "شخصي",
     dot: "bg-chart-4",
     chip: "bg-chart-4/15 hover:bg-chart-4/25",
   },
   important: {
-    label: "Important",
+    label: "مهم",
     dot: "bg-chart-5",
     chip: "bg-chart-5/15 hover:bg-chart-5/25",
   },
@@ -84,7 +84,7 @@ const CALENDARS: Record<
 const INITIAL_EVENTS: CalendarEvent[] = [
   {
     id: "1",
-    title: "Sprint kickoff",
+    title: "بداية مرحلة العمل",
     date: "2026-09-28",
     start: "10:00",
     end: "11:00",
@@ -92,14 +92,14 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "2",
-    title: "Team offsite",
+    title: "لقاء الفريق خارج المكتب",
     date: "2026-10-01",
     calendar: "social",
-    description: "Full day at the lake house. Bus leaves at 8am.",
+    description: "يوم كامل في الاستراحة. التحرك الساعة ٨ صباحًا.",
   },
   {
     id: "3",
-    title: "Design review",
+    title: "مراجعة التصميم",
     date: "2026-10-02",
     start: "14:00",
     end: "15:00",
@@ -107,7 +107,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "4",
-    title: "Standup",
+    title: "اجتماع متابعة سريع",
     date: "2026-10-05",
     start: "09:00",
     end: "09:15",
@@ -115,7 +115,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "5",
-    title: "Dentist",
+    title: "موعد طبيب الأسنان",
     date: "2026-10-07",
     start: "15:30",
     end: "16:15",
@@ -123,7 +123,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "6",
-    title: "Investor update",
+    title: "تحديث المستثمرين",
     date: "2026-10-08",
     start: "11:00",
     end: "12:00",
@@ -131,7 +131,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "7",
-    title: "Product review",
+    title: "مراجعة المنتج",
     date: "2026-10-12",
     start: "11:00",
     end: "12:00",
@@ -139,7 +139,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "8",
-    title: "Write release notes",
+    title: "كتابة ملاحظات الإصدار",
     date: "2026-10-12",
     start: "15:00",
     end: "16:00",
@@ -147,7 +147,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "9",
-    title: "Interview",
+    title: "مقابلة شخصية",
     date: "2026-10-13",
     start: "16:30",
     end: "17:30",
@@ -155,7 +155,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "10",
-    title: "Quarterly planning",
+    title: "تخطيط الربع السنوي",
     date: "2026-10-16",
     start: "10:00",
     end: "12:30",
@@ -163,7 +163,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "11",
-    title: "Farmers market",
+    title: "زيارة سوق المزارعين",
     date: "2026-10-17",
     start: "09:00",
     end: "11:00",
@@ -171,7 +171,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "12",
-    title: "Standup",
+    title: "اجتماع الفريق",
     date: "2026-10-19",
     start: "09:00",
     end: "09:15",
@@ -179,7 +179,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "13",
-    title: "Customer call",
+    title: "مكالمة مع عميل",
     date: "2026-10-21",
     start: "10:30",
     end: "11:00",
@@ -187,7 +187,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "14",
-    title: "Team lunch",
+    title: "غداء الفريق",
     date: "2026-10-21",
     start: "12:30",
     end: "13:30",
@@ -195,7 +195,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "15",
-    title: "Yoga",
+    title: "تمرين يوغا",
     date: "2026-10-21",
     start: "18:00",
     end: "19:00",
@@ -203,7 +203,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "16",
-    title: "Launch rehearsal",
+    title: "بروفة الإطلاق",
     date: "2026-10-23",
     start: "16:00",
     end: "17:00",
@@ -211,7 +211,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "17",
-    title: "Weekend hike",
+    title: "نزهة نهاية الأسبوع",
     date: "2026-10-25",
     start: "08:00",
     end: "12:00",
@@ -219,16 +219,16 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "18",
-    title: "Board meeting",
+    title: "اجتماع مجلس الإدارة",
     date: "2026-10-29",
     start: "09:30",
     end: "11:00",
     calendar: "important",
   },
-  { id: "19", title: "Launch day", date: "2026-10-30", calendar: "important" },
+  { id: "19", title: "يوم الإطلاق", date: "2026-10-30", calendar: "important" },
   {
     id: "20",
-    title: "Halloween party",
+    title: "حفل تنكري للفريق",
     date: "2026-10-31",
     start: "19:00",
     end: "23:00",
@@ -236,7 +236,7 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
   {
     id: "21",
-    title: "Retro",
+    title: "مراجعة ما تم إنجازه",
     date: "2026-11-02",
     start: "14:00",
     end: "15:00",
@@ -244,14 +244,15 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
 ];
 
-const monthFormatter = new Intl.DateTimeFormat("en-US", {
+const monthFormatter = new Intl.DateTimeFormat("ar-EG", {
   month: "long",
   year: "numeric",
 });
-const shortMonthFormatter = new Intl.DateTimeFormat("en-US", {
+const shortMonthFormatter = new Intl.DateTimeFormat("ar-EG", {
   month: "short",
 });
-const longDayFormatter = new Intl.DateTimeFormat("en-US", {
+const numberFormatter = new Intl.NumberFormat("ar-EG");
+const longDayFormatter = new Intl.DateTimeFormat("ar-EG", {
   weekday: "long",
   month: "long",
   day: "numeric",
@@ -298,11 +299,11 @@ function parseIsoDate(value: string): Date | null {
 
 function formatTime(value: string) {
   const [hour, minute] = value.split(":").map(Number);
-  const suffix = hour >= 12 ? "pm" : "am";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return minute === 0
-    ? `${displayHour}${suffix}`
-    : `${displayHour}:${String(minute).padStart(2, "0")}${suffix}`;
+  const date = new Date(2026, 0, 1, hour, minute);
+  return new Intl.DateTimeFormat("ar-EG", {
+    hour: "numeric",
+    minute: minute === 0 ? undefined : "2-digit",
+  }).format(date);
 }
 
 function buildMonthDays(anchor: Date) {
@@ -319,9 +320,9 @@ function formatWeekRange(anchor: Date) {
   const end = addDays(start, 6);
   const endLabel =
     start.getMonth() === end.getMonth()
-      ? String(end.getDate())
-      : `${shortMonthFormatter.format(end)} ${end.getDate()}`;
-  return `${shortMonthFormatter.format(start)} ${start.getDate()} – ${endLabel}, ${end.getFullYear()}`;
+      ? numberFormatter.format(end.getDate())
+      : `${shortMonthFormatter.format(end)} ${numberFormatter.format(end.getDate())}`;
+  return `${shortMonthFormatter.format(start)} ${numberFormatter.format(start.getDate())} – ${endLabel}، ${numberFormatter.format(end.getFullYear())}`;
 }
 
 function sortEvents(a: CalendarEvent, b: CalendarEvent) {
@@ -443,7 +444,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
       <header className="flex min-h-14 items-center justify-between gap-3 border-b px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="truncate text-lg font-semibold">
-            Calendar -{" "}
+            التقويم -{" "}
             {view === "month"
               ? monthFormatter.format(anchor)
               : formatWeekRange(anchor)}
@@ -452,7 +453,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={view === "month" ? "Previous month" : "Previous week"}
+              aria-label={view === "month" ? "الشهر السابق" : "الأسبوع السابق"}
               onClick={() => step(-1)}
             >
               <ChevronLeft />
@@ -460,7 +461,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={view === "month" ? "Next month" : "Next week"}
+              aria-label={view === "month" ? "الشهر التالي" : "الأسبوع التالي"}
               onClick={() => step(1)}
             >
               <ChevronRight />
@@ -476,11 +477,11 @@ const Calendar1 = ({ className }: Calendar1Props) => {
           onValueChange={(value) => {
             if (value === "month" || value === "week") setView(value);
           }}
-          aria-label="Calendar view"
+          aria-label="طريقة عرض التقويم"
           className="shrink-0"
         >
-          <ToggleGroupItem value="month">Month</ToggleGroupItem>
-          <ToggleGroupItem value="week">Week</ToggleGroupItem>
+          <ToggleGroupItem value="month">شهر</ToggleGroupItem>
+          <ToggleGroupItem value="week">أسبوع</ToggleGroupItem>
         </ToggleGroup>
       </header>
 
@@ -518,7 +519,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                 }}
                 onDrop={(dragEvent) => handleDrop(dragEvent, iso)}
                 className={cn(
-                  "group flex min-h-0 cursor-pointer flex-col gap-1 border-r border-b px-2 pt-1.5 pb-2 transition-colors hover:bg-muted/30 [&:nth-child(7n)]:border-r-0",
+                  "group flex min-h-0 cursor-pointer flex-col gap-1 border-s border-b px-2 pt-1.5 pb-2 transition-colors hover:bg-muted/30 [&:nth-child(7n)]:border-s-0",
                   isOutside && "bg-muted/30",
                   dropDate === iso && "bg-muted/60"
                 )}
@@ -537,7 +538,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                         "bg-primary font-semibold text-primary-foreground"
                     )}
                   >
-                    {date.getDate()}
+                    {numberFormatter.format(date.getDate())}
                   </span>
                 </div>
 
@@ -546,14 +547,14 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                     const eventDate = parseIsoDate(event.date);
                     const eventDateLabel = eventDate
                       ? longDayFormatter.format(eventDate)
-                      : "an unknown date";
+                      : "تاريخ غير معروف";
 
                     return (
                       <button
                         key={event.id}
                         type="button"
                         draggable
-                        aria-label={`${event.title}${event.start ? ` at ${formatTime(event.start)}` : ""} on ${eventDateLabel}`}
+                        aria-label={`${event.title}${event.start ? ` الساعة ${formatTime(event.start)}` : ""} يوم ${eventDateLabel}`}
                         onDragStart={(dragEvent) => {
                           dragEvent.dataTransfer.effectAllowed = "move";
                           dragEvent.dataTransfer.setData(
@@ -597,11 +598,11 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                 <button
                   type="button"
                   onClick={() => openNewEvent(iso)}
-                  aria-label={`Add event on ${longDayFormatter.format(date)}`}
+                  aria-label={`إضافة موعد يوم ${longDayFormatter.format(date)}`}
                   className="mt-auto flex h-6 items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                 >
                   <Plus className="size-3.5" />
-                  Add event
+                  إضافة موعد
                 </button>
               </div>
             );
@@ -615,11 +616,11 @@ const Calendar1 = ({ className }: Calendar1Props) => {
       >
         <SheetContent className="min-h-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md">
           <SheetHeader className="shrink-0">
-            <SheetTitle>{isEditing ? "Edit event" : "New event"}</SheetTitle>
+            <SheetTitle>{isEditing ? "تعديل الموعد" : "موعد جديد"}</SheetTitle>
             <SheetDescription>
               {draftDate
                 ? longDayFormatter.format(draftDate)
-                : "Choose a date for this event."}
+                : "اختار تاريخ الموعد."}
             </SheetDescription>
           </SheetHeader>
 
@@ -631,32 +632,32 @@ const Calendar1 = ({ className }: Calendar1Props) => {
             >
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="calendar1-title">Title</FieldLabel>
+                  <FieldLabel htmlFor="calendar1-title">عنوان الموعد</FieldLabel>
                   <Input
                     id="calendar1-title"
                     value={draft.title}
                     onChange={(event) =>
                       updateDraft({ title: event.target.value })
                     }
-                    placeholder="Planning session"
+                    placeholder="جلسة تخطيط"
                     required
                     autoFocus
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="calendar1-description">Notes</FieldLabel>
+                  <FieldLabel htmlFor="calendar1-description">ملاحظات</FieldLabel>
                   <Textarea
                     id="calendar1-description"
                     value={draft.description}
                     onChange={(event) =>
                       updateDraft({ description: event.target.value })
                     }
-                    placeholder="Agenda, links, or anything to remember"
+                    placeholder="جدول الأعمال أو الروابط أو أي تفاصيل مهمة"
                     rows={3}
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="calendar1-date">Date</FieldLabel>
+                  <FieldLabel htmlFor="calendar1-date">التاريخ</FieldLabel>
                   <Input
                     id="calendar1-date"
                     type="date"
@@ -670,7 +671,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                 <Field data-invalid={hasTimeError || undefined}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                      <FieldLabel htmlFor="calendar1-start">Starts</FieldLabel>
+                      <FieldLabel htmlFor="calendar1-start">يبدأ</FieldLabel>
                       <Input
                         id="calendar1-start"
                         type="time"
@@ -681,7 +682,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <FieldLabel htmlFor="calendar1-end">Ends</FieldLabel>
+                      <FieldLabel htmlFor="calendar1-end">ينتهي</FieldLabel>
                       <Input
                         id="calendar1-end"
                         type="time"
@@ -695,12 +696,12 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                   </div>
                   <FieldDescription>
                     {hasTimeError
-                      ? "The end time must be after the start time."
-                      : "Clear both times for an all day event."}
+                      ? "وقت الانتهاء لازم يكون بعد وقت البداية."
+                      : "امسح الوقتين لو الموعد طوال اليوم."}
                   </FieldDescription>
                 </Field>
                 <div className="flex flex-col gap-3">
-                  <span className="text-sm font-medium">Calendar</span>
+                  <span className="text-sm font-medium">نوع الموعد</span>
                   <ToggleGroup
                     type="single"
                     variant="outline"
@@ -711,14 +712,14 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                         updateDraft({ calendar: value as CalendarId });
                       }
                     }}
-                    aria-label="Event calendar"
+                    aria-label="تصنيف الموعد"
                     className="flex-wrap"
                   >
                     {(Object.keys(CALENDARS) as CalendarId[]).map((id) => (
                       <ToggleGroupItem
                         key={id}
                         value={id}
-                        aria-label={`${CALENDARS[id].label} calendar`}
+                        aria-label={`تقويم ${CALENDARS[id].label}`}
                         className="rounded-full"
                       >
                         <span
@@ -740,7 +741,7 @@ const Calendar1 = ({ className }: Calendar1Props) => {
           <SheetFooter className="shrink-0 flex-row justify-between gap-2">
             {isEditing ? (
               <Button type="button" variant="ghost" onClick={handleDelete}>
-                Delete
+                حذف
               </Button>
             ) : (
               <span />
@@ -751,10 +752,10 @@ const Calendar1 = ({ className }: Calendar1Props) => {
                 variant="outline"
                 onClick={() => setDraft(null)}
               >
-                Cancel
+                إلغاء
               </Button>
               <Button type="submit" form="calendar1-event-form">
-                {isEditing ? "Save" : "Add event"}
+                {isEditing ? "حفظ التعديلات" : "إضافة الموعد"}
               </Button>
             </div>
           </SheetFooter>

@@ -11,10 +11,10 @@ export const Route = createFileRoute("/fields")({
   errorComponent: ShowcaseError,
   head: () => ({
     meta: [
-      { title: "Calesee Admin · Fields & forms" },
+      { title: "الرحلة · الحقول والنماذج" },
       {
         name: "description",
-        content: "Shadcn fields, form states, and TanStack Form.",
+        content: "حقول Shadcn وحالات النماذج وTanStack Form.",
       },
     ],
   }),

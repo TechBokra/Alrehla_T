@@ -15,75 +15,75 @@ export const tagSchema = z.enum([
 ]);
 
 export const allFieldsSchema = z.object({
-  title: z.string().trim().min(2, "Enter at least 2 characters."),
-  email: z.string().trim().email("Enter a valid email address."),
-  password: z.string().min(8, "Use at least 8 characters."),
+  title: z.string().trim().min(2, "اكتب حرفين على الأقل."),
+  email: z.string().trim().email("اكتب بريد إلكتروني صحيح."),
+  password: z.string().min(8, "استخدم ٨ أحرف على الأقل."),
   quantity: z
-    .number({ invalid_type_error: "Enter a quantity." })
-    .int("Use a whole number.")
-    .min(1, "Quantity must be at least 1.")
-    .max(10000),
-  search: z.string().max(100, "Use 100 characters or fewer."),
-  website: z.string().trim().url("Enter a complete URL, including https://."),
+    .number({ invalid_type_error: "اكتب الكمية." })
+    .int("اكتب عددًا صحيحًا بدون كسور.")
+    .min(1, "الكمية لازم تكون ١ على الأقل.")
+    .max(10000, "الحد الأقصى للكمية ١٠٬٠٠٠."),
+  search: z.string().max(100, "اكتب ١٠٠ حرف أو أقل."),
+  website: z.string().trim().url("اكتب رابط كامل يبدأ بـ https://."),
   launchDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a date.")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "اختار تاريخًا.")
     .refine((value) => {
       const date = new Date(`${value}T00:00:00Z`);
       return (
         !Number.isNaN(date.getTime()) &&
         date.toISOString().slice(0, 10) === value
       );
-    }, "Choose a valid calendar date."),
+    }, "اختار تاريخًا صحيحًا."),
   launchTime: z
     .string()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Choose a time in HH:mm format."),
-  color: z.string().regex(/^#[0-9a-f]{6}$/i, "Choose a valid hex color."),
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "اختار وقتًا صحيحًا."),
+  color: z.string().regex(/^#[0-9a-f]{6}$/i, "اختار لونًا صحيحًا."),
   phone: z
     .string()
     .regex(
       /^\+?[\d\s()-]{7,20}$/,
-      "Enter a phone number using 7–20 characters."
+      "اكتب رقم هاتف من ٧ إلى ٢٠ خانة."
     ),
   description: z
     .string()
     .trim()
-    .min(10, "Use at least 10 characters.")
-    .max(1000),
+    .min(10, "اكتب ١٠ أحرف على الأقل.")
+    .max(1000, "اكتب ١٬٠٠٠ حرف أو أقل."),
   price: z
-    .number({ invalid_type_error: "Enter a price." })
-    .positive("Price must be greater than zero."),
+    .number({ invalid_type_error: "اكتب السعر." })
+    .positive("السعر لازم يكون أكبر من صفر."),
   collection: collectionSchema,
   status: statusSchema,
   publishingStatus: statusSchema,
-  channels: z.array(channelSchema).min(1, "Select at least one sales channel."),
+  channels: z.array(channelSchema).min(1, "اختار قناة بيع واحدة على الأقل."),
   published: z.boolean(),
   notifications: z.boolean(),
   discount: z.number().min(0).max(100),
   category: collectionSchema,
-  verificationCode: z.string().regex(/^\d{6}$/, "Enter all 6 digits."),
+  verificationCode: z.string().regex(/^\d{6}$/, "أدخل الأرقام الستة كاملة."),
   layout: layoutSchema,
   featured: z.boolean(),
-  placements: z.array(placementSchema).min(1, "Select at least one placement."),
+  placements: z.array(placementSchema).min(1, "اختار مكان ظهور واحدًا على الأقل."),
   tags: z
     .array(tagSchema)
-    .min(1, "Select at least one tag.")
-    .max(5, "Select up to 5 tags.")
+    .min(1, "اختار وسمًا واحدًا على الأقل.")
+    .max(5, "اختار ٥ وسوم كحد أقصى.")
     .refine(
       (tags) => new Set(tags).size === tags.length,
-      "Each tag can only be selected once."
+      "ما ينفعش تختار الوسم نفسه أكتر من مرة."
     ),
   attachments: z
     .array(
       z.custom<File>(
         (value) => typeof File !== "undefined" && value instanceof File,
-        "Choose a valid file."
+        "اختار ملفًا صحيحًا."
       )
     )
-    .max(5, "Attach up to 5 files.")
+    .max(5, "ارفق ٥ ملفات كحد أقصى.")
     .refine(
       (files) => files.every((file) => file.size <= 10 * 1024 * 1024),
-      "Each file must be 10 MB or smaller."
+      "حجم كل ملف لازم يكون ١٠ ميجابايت أو أقل."
     ),
 });
 
@@ -91,17 +91,17 @@ export type AllFieldsValues = z.infer<typeof allFieldsSchema>;
 
 export function createExampleValues(): AllFieldsValues {
   return {
-    title: "Linen market tote",
+    title: "حقيبة قماش يومية",
     email: "admin@example.com",
     password: "Demo-only-123!",
     quantity: 24,
-    search: "linen",
+    search: "حقيبة",
     website: "https://example.com/products/linen-tote",
     launchDate: "2026-10-20",
     launchTime: "09:30",
     color: "#3366ff",
     phone: "+20 100 000 0000",
-    description: "A durable everyday bag made from natural linen.",
+    description: "حقيبة يومية متينة مصنوعة من الكتان الطبيعي.",
     price: 34,
     collection: "accessories",
     status: "draft",
