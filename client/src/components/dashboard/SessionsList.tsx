@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Clock, Video, Search, ChevronRight, ChevronLeft } from 'lucide-react';
-import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
+import { sessionStatusView } from '@/lib/session-status';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { calendarDate, isTodayAt } from '@/lib/time-values';
@@ -25,12 +26,15 @@ interface SessionsListProps {
   enablePagination?: boolean;
 }
 
-const STATUS: Record<string, { label: string; type: StatusBadgeType }> = {
-  confirmed: { label: 'مؤكدة', type: 'success' },
-  pending: { label: 'بانتظار التأكيد', type: 'pending' },
-  completed: { label: 'تمّت', type: 'neutral' },
-  cancelled: { label: 'ملغاة', type: 'neutral' },
-};
+/* ⚠️ **الخريطة المحلية اتشالت** (ملاحظة الفريق، ٢٤ أكتوبر: «اضبط
+   المصطلحات»).
+
+   `lib/session-status` اتعمل عشان يبقى مصدرًا واحدًا، وفيه تعليق
+   بيقول إن الخريطة كانت متكررة تلات مرات. بس الشاشة دي فضلت
+   شايلة نسختها الخاصة: مافيهاش `scheduled` — **وهي الافتراضي في
+   القاعدة** — فولي الأمر كان بيشوف الكلمة الإنجليزية خام. وكانت
+   بتقول `confirmed: 'مؤكدة'` و`pending: 'بانتظار التأكيد'`،
+   واللي خلّى الفريق يفتكر إن فيه قرار إداري مستني. */
 
 export function SessionsList({
   sessions,
@@ -114,10 +118,8 @@ export function SessionsList({
             const date = new Date(session.scheduledAt);
             const isToday = isTodayAt(session.scheduledAt, now);
             const past = date.getTime() < now;
-            const badge = STATUS[session.status] ?? {
-              label: session.status,
-              type: 'neutral' as const,
-            };
+            const view = sessionStatusView(session.status);
+            const badge = { label: view.label, type: view.badge };
 
             return (
               <div

@@ -3,12 +3,23 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, CheckCircle2 } from 'lucide-react';
-import { submitServiceReview } from '@/actions/reviews';
+import { submitBookingReview, submitServiceReview } from '@/actions/reviews';
 import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
 
+/**
+ * اللي بيتقيّم: طلب خدمة، أو باقة خلصت.
+ *
+ * ⚠️ **اتحاد مميّز مش حقلين اختياريين** — الحقلين الاختياريين
+ *    بيسمحوا بحالة «الاتنين فاضيين» و«الاتنين مليانين»، والاتنين
+ *    مالهمش معنى. الاتحاد بيخلّي الحالة الغلط ماتتكتبش أصلًا.
+ */
+export type ReviewTarget =
+  | { kind: 'service'; orderId: string }
+  | { kind: 'booking'; subscriptionId: string };
+
 interface Props {
-  orderId: string;
+  target: ReviewTarget;
   serviceName: string;
   instructorName: string | null;
 }
@@ -57,7 +68,7 @@ function StarPicker({
  * Two scores on purpose: a weak service delivered well should not drag down
  * the instructor, and a strong service delivered badly should not flatter them.
  */
-export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
+export function ReviewForm({ target, serviceName, instructorName }: Props) {
   const router = useRouter();
   const [serviceRating, setServiceRating] = useState(0);
   const [instructorRating, setInstructorRating] = useState(0);
@@ -92,7 +103,20 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
     setError('');
     setErrorField(undefined);
     try {
-      const result = await submitServiceReview({ orderId, instructorRating, serviceRating, comment });
+      const result =
+        target.kind === 'service'
+          ? await submitServiceReview({
+              orderId: target.orderId,
+              instructorRating,
+              serviceRating,
+              comment,
+            })
+          : await submitBookingReview({
+              subscriptionId: target.subscriptionId,
+              instructorRating,
+              serviceRating,
+              comment,
+            });
       if (!result.ok) {
         setError(result.error);
         setErrorField(result.field);
@@ -119,7 +143,7 @@ export function ReviewForm({ orderId, serviceName, instructorName }: Props) {
 
       <div className="grid gap-6 rounded-2xl bg-white p-5 sm:grid-cols-2">
         <StarPicker
-          label="جودة الخدمة"
+          label={target.kind === 'booking' ? 'جودة الباقة' : 'جودة الخدمة'}
           hint={serviceName}
           value={serviceRating}
           onChange={setServiceRating}

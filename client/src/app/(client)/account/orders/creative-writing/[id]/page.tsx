@@ -28,7 +28,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       <DashboardPageHeader title="تفاصيل الطلب" backHref="/account/orders/creative-writing" />
       {order.status === 'completed' && !alreadyReviewed && (
         <ReviewForm
-          orderId={order.id}
+          target={{ kind: 'service', orderId: order.id }}
           serviceName={order.serviceName}
           instructorName={order.instructorName}
         />

@@ -21,9 +21,14 @@ export default async function PublisherLayout({
           // شاشة المستحقات كانت موجودة ومحدش بيوصّل لها.
           { href: '/dashboard/publisher/payouts', label: 'مستحقاتي' },
           { href: '/dashboard/publisher/profile', label: 'ملفي' },
-          // ⭐ (#VRKC في اختبار الإدارة) الشراء مش ممنوع عليه — بس اللوحة
-          //    ماكانش فيها طريق لطلباته ولا الدفع ولا المركز العائلي.
-          { href: '/account', label: 'مشترياتي وأطفالي' },
+          /* ⚠️ **«مشترياتي وأطفالي» اتشال** — زيّ لوحة المدرب بالظبط
+             (طلب الفريق، ٢٤ أكتوبر: «اضبط ما يلزم في كل الحسابات»).
+
+             اتحطّ لما الشراء كان مسموحًا لحساب الناشر. والقرار
+             اتغيّر (`@/lib/buying-roles` + محفّز
+             `block_suspended_purchase`): `publisher` من ضمن أدوار
+             الشغل الممنوعة من الطلب — فالتبويب بقى بيودّي لشاشة كل
+             أزرار الشراء فيها مقفولة. */
         ]}
       />
       <main className="flex flex-1 flex-col">{children}</main>

@@ -23,7 +23,8 @@ import {
   ExternalLink,
   RotateCcw,
 } from 'lucide-react';
-import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
+import { sessionStatusView } from '@/lib/session-status';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 interface Props {
@@ -33,15 +34,11 @@ interface Props {
 type StatusFilter = 'all' | 'upcoming' | 'today' | 'completed' | 'pending' | 'cancelled' | 'past';
 type SortOption = 'closest' | 'newest' | 'oldest';
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; type: StatusBadgeType }
-> = {
-  confirmed: { label: 'مؤكدة', type: 'success' },
-  pending: { label: 'بانتظار التأكيد', type: 'pending' },
-  completed: { label: 'مكتملة', type: 'neutral' },
-  cancelled: { label: 'ملغاة', type: 'neutral' },
-};
+/* ⚠️ **النسخة التانية من الخريطة اتشالت** لـ`lib/session-status`.
+
+   كانت بتقول `completed: 'مكتملة'` وشاشة ولي الأمر بتقول «تمّت» —
+   نفس الحالة باسمين مختلفين للمدرب وللعميل. والاتنين مافيهمش
+   `scheduled`، وهي الحالة اللي بتتكتب على كل جلسة جديدة. */
 
 export function InstructorSessionsClient({ sessions }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -256,7 +253,19 @@ export function InstructorSessionsClient({ sessions }: Props) {
               { key: 'upcoming' as StatusFilter, label: 'القادمة', count: stats.upcoming },
               { key: 'today' as StatusFilter, label: 'اليوم', count: stats.today },
               { key: 'completed' as StatusFilter, label: 'المكتملة', count: stats.completed },
-              { key: 'pending' as StatusFilter, label: 'بانتظار التأكيد', count: stats.pending },
+              /* ⚠️ **التبويب ده كان فاضي دايمًا.** محدش بيكتب `pending`
+                 على جلسة — لا الكود ولا القاعدة. واسمه كان بيوحي إن
+                 فيه قرار إداري مستني (وده سؤال الفريق بالحرف). بقى
+                 بيظهر بس لو فيه صف قديم فعلًا عليه الحالة دي. */
+              ...(stats.pending > 0
+                ? [
+                    {
+                      key: 'pending' as StatusFilter,
+                      label: 'بانتظار تحديد موعد',
+                      count: stats.pending,
+                    },
+                  ]
+                : []),
               { key: 'past' as StatusFilter, label: 'السابقة', count: undefined },
               { key: 'cancelled' as StatusFilter, label: 'الملغاة', count: undefined },
             ]
@@ -411,10 +420,8 @@ export function InstructorSessionsClient({ sessions }: Props) {
             const date = new Date(session.scheduledAt);
             const isToday = isTodayAt(session.scheduledAt, now);
             const isPast = date.getTime() < now;
-            const badge = STATUS_CONFIG[session.status] ?? {
-              label: session.status,
-              type: 'neutral' as const,
-            };
+            const view = sessionStatusView(session.status);
+            const badge = { label: view.label, type: view.badge };
 
             return (
               <div
