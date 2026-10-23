@@ -45,9 +45,17 @@ type AppSidebarProps = ComponentProps<typeof Sidebar> & {
     email: string;
     avatar: string;
   };
+  logOut: () => void;
+  isLoggingOut: boolean;
 };
 
-export function AppSidebar({ activeSection, user, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  activeSection,
+  user,
+  logOut,
+  isLoggingOut,
+  ...props
+}: AppSidebarProps) {
   return (
     <Sidebar side="right" collapsible="icon" {...props}>
       <SidebarHeader className="h-16 shrink-0 justify-center border-b border-sidebar-border px-2 py-2">
@@ -123,7 +131,7 @@ export function AppSidebar({ activeSection, user, ...props }: AppSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        <NavUser user={user} />
+        <NavUser user={user} isLoggingOut={isLoggingOut} signOut={logOut} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

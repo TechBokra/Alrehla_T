@@ -19,7 +19,7 @@ const legacySectionRoutes = {
   primitives: "/ui-primitives",
 } as const;
 
-export const Route = createFileRoute("/sections/$section")({
+export const Route = createFileRoute("/sections/$section/")({
   params: {
     parse: (params) => ({
       section: legacySectionSchema.parse(params.section),

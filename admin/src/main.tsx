@@ -13,10 +13,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <DirectionProvider direction="rtl">
       <TooltipProvider>
-        <ThemeProvider
-          defaultTheme="light"
-          storageKey="calesee-admin-preview-theme"
-        >
+        <ThemeProvider defaultTheme="light" storageKey="admin-preview-theme">
           <RouterProvider router={router} />
           <Toaster position="bottom-left" richColors />
         </ThemeProvider>

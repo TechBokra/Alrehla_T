@@ -2,12 +2,31 @@ import {
   createRootRoute,
   HeadContent,
   Outlet,
-  type ErrorComponentProps,
+  redirect,
+  useRouter,
 } from "@tanstack/react-router";
-import { AlertCircle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { Refine } from "@refinedev/core";
+import { RootPending } from "@/components/route-states/root-pending";
+import { RootError } from "@/components/route-states/root-error";
+import { NotFound } from "@/components/route-states/not-found";
+import { adminAuthProvider, getSupabaseClient } from "@/features/auth/supabase";
+import { authRouterProvider } from "@/features/auth/router-provider";
+import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
+import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
 
 export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    const pathname = location.pathname.replace(/\/+$/, "") || "/";
+    // The OAuth callback must exchange its code before any session guard runs.
+    if (pathname === "/auth/callback") return;
+    const { authenticated } = await adminAuthProvider.check();
+    if (pathname === "/sign-in") {
+      if (authenticated) throw redirect({ to: "/theme", replace: true });
+      return;
+    }
+    if (!authenticated) throw redirect({ to: "/sign-in", replace: true });
+  },
   component: RootLayout,
   pendingComponent: RootPending,
   errorComponent: RootError,
@@ -15,47 +34,28 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
+  const router = useRouter();
+  const notificationProvider = useNotificationProvider();
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    const subscription = supabase?.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        queueMicrotask(() => { void router.invalidate(); });
+      }
+    });
+    return () => subscription?.data.subscription.unsubscribe();
+  }, [router]);
+
   return (
-    <>
+    <Refine
+      authProvider={adminAuthProvider}
+      routerProvider={authRouterProvider}
+      notificationProvider={notificationProvider}
+      i18nProvider={arabicEgyptI18nProvider}
+      options={{ disableTelemetry: true, disableRouteChangeHandler: true }}
+    >
       <HeadContent />
       <Outlet />
-    </>
-  );
-}
-
-function RootPending() {
-  return (
-    <div className="grid min-h-svh place-items-center bg-background text-sm text-muted-foreground">
-      جارٍ تحميل لوحة الإدارة…
-    </div>
-  );
-}
-
-function RootError({ error, reset }: ErrorComponentProps) {
-  return (
-    <main className="grid min-h-svh place-items-center bg-background p-6">
-      <section className="max-w-md rounded-3xl border bg-card p-8 text-card-foreground shadow-sm">
-        <AlertCircle className="mb-4 size-6 text-destructive" />
-        <h1 className="text-lg font-semibold">حصلت مشكلة في معاينة لوحة الإدارة</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{String(error)}</p>
-        <Button className="mt-6" onClick={reset}>
-          <RotateCcw /> حاول مرة أخرى
-        </Button>
-      </section>
-    </main>
-  );
-}
-
-function NotFound() {
-  return (
-    <main className="grid min-h-svh place-items-center bg-background p-6">
-      <section className="max-w-md rounded-3xl border bg-card p-8 text-center shadow-sm">
-        <p className="text-sm font-medium text-primary">404 · الصفحة غير موجودة</p>
-        <h1 className="mt-2 text-2xl font-semibold">الصفحة دي مش موجودة.</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          استخدم قائمة التنقل للرجوع إلى لوحة المعاينة.
-        </p>
-      </section>
-    </main>
+    </Refine>
   );
 }

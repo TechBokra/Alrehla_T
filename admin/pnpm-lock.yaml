@@ -35,6 +35,9 @@ importers:
       '@refinedev/react-table':
         specifier: ^6.0.1
         version: 6.0.1(@refinedev/core@5.0.12(@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@tanstack/react-table@8.21.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@refinedev/supabase':
+        specifier: ^6.0.2
+        version: 6.0.2(@refinedev/core@5.0.12(@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@supabase/supabase-js@2.116.0)
       '@supabase/supabase-js':
         specifier: 2.116.0
         version: 2.116.0
@@ -1328,6 +1331,13 @@ packages:
       '@tanstack/react-table': ^8.2.6
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
+
+  '@refinedev/supabase@6.0.2':
+    resolution: {integrity: sha512-D3pPI8by8gNAOU9zyfC7a/r76ZSE1fkEJz0CXophwn1LU1/oOUsacoJz28kNsXUKiX6JB0FJiu83VNkr5a4t/Q==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@refinedev/core': ^5.0.0
+      '@supabase/supabase-js': ^2.7.0
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -4425,6 +4435,11 @@ snapshots:
       lodash-es: 4.18.1
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
+
+  '@refinedev/supabase@6.0.2(@refinedev/core@5.0.12(@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@supabase/supabase-js@2.116.0)':
+    dependencies:
+      '@refinedev/core': 5.0.12(@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@supabase/supabase-js': 2.116.0
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 

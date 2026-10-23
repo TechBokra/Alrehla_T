@@ -1,13 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { FormPrototypePage } from "@/features/form-prototype";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ShowcaseLayout } from "@/features/component-showcase/layout";
-import {
-  ShowcaseError,
-  ShowcasePending,
-} from "@/features/component-showcase/route-states";
+import { ShowcaseError, ShowcasePending } from "@/features/component-showcase/route-states";
 
 export const Route = createFileRoute("/form-prototype")({
-  loader: () => ({ activeSection: "form-prototype" as const }),
   pendingComponent: ShowcasePending,
   errorComponent: ShowcaseError,
   head: () => ({
@@ -19,13 +14,13 @@ export const Route = createFileRoute("/form-prototype")({
       },
     ],
   }),
-  component: FormPrototypeRoutePage,
+  component: FeatureLayout,
 });
 
-function FormPrototypeRoutePage() {
+function FeatureLayout() {
   return (
-    <ShowcaseLayout activeSection={Route.useLoaderData().activeSection}>
-      <FormPrototypePage />
+    <ShowcaseLayout activeSection="form-prototype">
+      <Outlet />
     </ShowcaseLayout>
   );
 }

@@ -110,7 +110,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShowcaseLayout } from "../layout";
 
 function ActionsSection() {
   return (
@@ -552,17 +551,11 @@ function PencilIcon() {
   return <Pencil className="size-4" />;
 }
 
-export function UiPrimitivesPage({
-  activeSection,
-}: {
-  activeSection: "ui-primitives";
-}) {
+export function UiPrimitivesPage() {
   return (
-    <ShowcaseLayout activeSection={activeSection}>
-      <>
-        <ActionsSection />
-        <PrimitivesSection />
-      </>
-    </ShowcaseLayout>
+    <>
+      <ActionsSection />
+      <PrimitivesSection />
+    </>
   );
 }

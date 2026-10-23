@@ -1,4 +1,3 @@
-import { ShowcaseLayout } from "../layout";
 import { AllFieldsForm } from "./all-fields-form";
 import { SignInForm } from "@/components/refine-ui/form/sign-in-form";
 import { SignUpForm } from "@/components/refine-ui/form/sign-up-form";
@@ -16,9 +15,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-export function FieldsPage({ activeSection }: { activeSection: "fields" }) {
+export function FieldsPage() {
   return (
-    <ShowcaseLayout activeSection={activeSection}>
+    <>
       <AllFieldsForm />
       <Collapsible className="flex flex-col gap-4">
         <CollapsibleTrigger asChild>
@@ -51,6 +50,6 @@ export function FieldsPage({ activeSection }: { activeSection: "fields" }) {
           </div>
         </CollapsibleContent>
       </Collapsible>
-    </ShowcaseLayout>
+    </>
   );
 }

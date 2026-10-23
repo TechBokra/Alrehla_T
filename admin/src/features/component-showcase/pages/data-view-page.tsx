@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getDemoProducts, type DemoProduct } from "../demo-provider";
-import { ShowcaseLayout } from "../layout";
 
 export type DataViewMode = "table" | "kanban" | "calendar";
 
@@ -417,31 +416,27 @@ function SectionHeading({
 }
 
 export function DataViewPage({
-  activeSection,
   selectedView,
   onViewChange,
 }: {
-  activeSection: "data-view";
   selectedView: DataViewMode;
   onViewChange: (view: DataViewMode) => void;
 }) {
   return (
-    <ShowcaseLayout activeSection={activeSection}>
-      <div className="flex flex-col gap-10">
-        <section className="flex flex-col gap-5">
-          <SectionHeading
-            eyebrow="الكتالوج · طرق عرض البيانات"
-            title="اعرض البيانات بالطريقة المناسبة لك"
-            description="استخدم بيانات المنتجات نفسها في جدول قابل للبحث ولوحة بالسحب والإفلات، أو انتقل للتقويم لمتابعة المواعيد."
-          />
-          <DataViewsPanel
-            selectedView={selectedView}
-            onViewChange={onViewChange}
-          />
-        </section>
-        <DualKitAmountPreview />
-        <ViewsSection />
-      </div>
-    </ShowcaseLayout>
+    <div className="flex flex-col gap-10">
+      <section className="flex flex-col gap-5">
+        <SectionHeading
+          eyebrow="الكتالوج · طرق عرض البيانات"
+          title="اعرض البيانات بالطريقة المناسبة لك"
+          description="استخدم بيانات المنتجات نفسها في جدول قابل للبحث ولوحة بالسحب والإفلات، أو انتقل للتقويم لمتابعة المواعيد."
+        />
+        <DataViewsPanel
+          selectedView={selectedView}
+          onViewChange={onViewChange}
+        />
+      </section>
+      <DualKitAmountPreview />
+      <ViewsSection />
+    </div>
   );
 }

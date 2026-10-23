@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
-import { Refine, useGetIdentity } from "@refinedev/core";
+import { Refine, useGetIdentity, useLogout } from "@refinedev/core";
 import { toast } from "sonner";
 import { Package, Store } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeProvider } from "@/components/refine-ui/theme/theme-provider";
-import { Toaster } from "@/components/refine-ui/notification/toaster";
+import { adminAuthProvider } from "@/features/auth/supabase";
 import { Separator } from "@/components/ui/separator";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import {
@@ -12,11 +11,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import {
-  previewAuthProvider,
-  previewDataProvider,
-  previewRouterProvider,
-} from "./demo-provider";
+import { previewDataProvider, previewRouterProvider } from "./demo-provider";
 import { showcaseNavigation, type ShowcaseSection } from "./sections";
 
 const resources = [
@@ -58,7 +53,7 @@ export function ShowcaseLayout({
     <Refine
       resources={resources}
       dataProvider={previewDataProvider}
-      authProvider={previewAuthProvider}
+      authProvider={adminAuthProvider}
       routerProvider={previewRouterProvider}
       notificationProvider={{
         open: ({ message, description, type }) => {
@@ -99,15 +94,21 @@ function ShowcaseShell({
   children: ReactNode;
 }) {
   const { data: identity } = useGetIdentity<ShowcaseIdentity>();
+  const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const user = {
-    name: identity?.name ?? "مشرف تجريبي",
-    email: identity?.email ?? "admin@example.test",
+    name: identity?.name ?? "حساب الإدارة",
+    email: identity?.email ?? "",
     avatar: identity?.avatar ?? identity?.image ?? "",
   };
 
   return (
     <SidebarProvider defaultOpen>
-      <AppSidebar activeSection={activeSection} user={user} />
+      <AppSidebar
+        activeSection={activeSection}
+        user={user}
+        logOut={logout}
+        isLoggingOut={isLoggingOut}
+      />
       <SidebarInset>
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center border-b border-sidebar-border bg-background/90 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3">

@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ShowcaseLayout } from "../layout";
 
 function OverviewSection() {
   return (
@@ -206,10 +205,6 @@ function PaletteIcon() {
   );
 }
 
-export function ThemePage({ activeSection }: { activeSection: "theme" }) {
-  return (
-    <ShowcaseLayout activeSection={activeSection}>
-      <OverviewSection />
-    </ShowcaseLayout>
-  );
+export function ThemePage() {
+  return <OverviewSection />;
 }
