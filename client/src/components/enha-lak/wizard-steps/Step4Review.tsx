@@ -1,10 +1,10 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
-import { PersonalizedProduct } from '@/types';
+import { PersonalizedProduct, type AddonProduct } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { FormatChooser } from './FormatChooser';
-import { cartNeedsShipping } from '@/lib/item-format';
+import { cartNeedsShipping, selectedAddonsNeedShipping } from '@/lib/item-format';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { ExtraFieldsReview } from './ExtraFieldsSection';
 import { describeWritingStyle, type WritingDialect } from '@/lib/writing-style';
@@ -18,9 +18,12 @@ export function Step4Review({
   writingDialects = [],
   showWritingStyle = false,
   deliveryPaused = false,
+  addons = [],
 }: {
   /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة في اختيار النسخة. */
   deliveryPaused?: boolean;
+  /** عشان نعرف أنهي إضافة بتتشحن (قرار تامر، ٢٣ أكتوبر). */
+  addons?: AddonProduct[];
   /** اللهجات — لعرض اسم اللهجة المختارة. */
   writingDialects?: WritingDialect[];
   /** خيار أسلوب الكتابة ظاهر في الخطوة ٢ (قصة مخصّصة واحدة). */
@@ -147,7 +150,7 @@ export function Step4Review({
           </div>
         )}
 
-        <FormatChooser product={product} deliveryPaused={deliveryPaused} />
+        <FormatChooser product={product} deliveryPaused={deliveryPaused} addons={addons} />
 
         {/* ══ الشحن ═══════════════════════════════════════════
             إلكتروني من غير إضافات = مفيش شحن (ملف 138).
@@ -158,8 +161,16 @@ export function Step4Review({
                ويروح الدفع ويلاقي الطلب مرفوض. السطر كان بيوعد
                بخطوة مش هتحصل. */}
         {(() => {
+          // ⚠️ **بأنواع الإضافات، مش بعددها.** قبل كده أي إضافة كانت
+          //    بتخلي السطر يقول «هتدخل بيانات الشحن» — حتى لو ملف
+          //    إلكتروني.
+          const addonsShip = selectedAddonsNeedShipping(addons, values.selectedAddonIds);
           const needs = cartNeedsShipping([
-            { format: values.format, addonIds: values.selectedAddonIds },
+            {
+              format: values.format,
+              addonIds: values.selectedAddonIds,
+              addonsNeedShipping: addonsShip,
+            },
           ]);
           if (subscriptionMonths) {
             return (
@@ -174,7 +185,7 @@ export function Step4Review({
               <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
                 <p>الطلب ده محتاج شحن، والتوصيل متوقف مؤقتًا — فمش هينفع يتطلب دلوقتي.</p>
                 <p className="mt-1 font-medium leading-relaxed">
-                  {(values.selectedAddonIds?.length ?? 0) > 0
+                  {addonsShip
                     ? 'الإضافات اللي اخترتها بتتشحن. ارجع لخطوة الإضافات وشيلها، وكمّل بالنسخة الإلكترونية.'
                     : 'اختار النسخة الإلكترونية فوق وهتقدر تكمّل عادي.'}
                 </p>

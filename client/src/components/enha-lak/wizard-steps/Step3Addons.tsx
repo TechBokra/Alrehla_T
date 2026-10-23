@@ -5,7 +5,7 @@ import { ExternalLink, Truck } from 'lucide-react';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { useFormContext } from 'react-hook-form';
 import { AddonProduct } from '@/types';
-import { addonCustomerPrice, customizedAddonIdsFor } from '@/lib/item-format';
+import { addonCustomerPrice, addonNeedsShipping, customizedAddonIdsFor } from '@/lib/item-format';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 
 /**
@@ -24,6 +24,13 @@ import { PAUSED_MESSAGE } from '@/lib/delivery';
  *    السعر و`customization_price` من الجدول، **وبتخصّص لوحدها** أي
  *    إضافة بتقبل التخصيص — تلاعب المتصفح مبيعدّيش.
  */
+/** نوع الإضافة زي ما العميل يفهمه. */
+const DELIVERY_HINT: Record<string, string> = {
+  printed: 'بتتشحن لعنوانك',
+  electronic: 'بتوصلك على الإيميل — من غير شحن',
+  both: 'بتتشحن لعنوانك ومعاها نسخة إلكترونية',
+};
+
 export function Step3Addons({
   onNext,
   onPrev,
@@ -45,7 +52,10 @@ export function Step3Addons({
   pauseMessage?: string;
 }) {
   const { watch, setValue } = useFormContext();
-  const selectedAddons: string[] = watch('selectedAddonIds') || [];
+  const watchedAddons = watch('selectedAddonIds');
+  // ⚠️ `|| []` بتطلّع مصفوفة جديدة كل رسم، والتأثير تحت بيعتمد عليها
+  //    — يعني بيشتغل كل مرة. `useMemo` بتثبّت المرجع.
+  const selectedAddons: string[] = React.useMemo(() => watchedAddons ?? [], [watchedAddons]);
 
   /**
    * ⚠️ **تنضيف الاختيار القديم.** العميل ممكن يكون اختار إضافات
@@ -53,15 +63,30 @@ export function Step3Addons({
    *    من غير السطر ده بيرجع للخطوة ويلاقي بوستر متعلّم والزرار
    *    مقفول — وبيدوّر على سبب مش ظاهر.
    */
+  /** الإضافة دي مقفولة دلوقتي؟ الإلكترونية بتفضل متاحة. */
+  const blockedFor = React.useCallback(
+    (addon: AddonProduct) => deliveryPaused && addonNeedsShipping(addon),
+    [deliveryPaused],
+  );
+
   React.useEffect(() => {
-    if (deliveryPaused && selectedAddons.length > 0) {
-      setValue('selectedAddonIds', []);
-      setValue('customizedAddonIds', []);
+    if (!deliveryPaused) return;
+    // ⚠️ **اللي بيتشال هو اللي بيتشحن وبس** (قرار تامر، ٢٣ أكتوبر).
+    //    قبل كده كنت بشيل الاختيار كله لما التوصيل يقف — وده كان
+    //    بيلغي ملف تلوين إلكتروني مالوش أي علاقة بالشحن.
+    const keep = selectedAddons.filter((id) => {
+      const addon = addons.find((a) => a.id === id);
+      return addon ? !addonNeedsShipping(addon) : false;
+    });
+    if (keep.length !== selectedAddons.length) {
+      setValue('selectedAddonIds', keep);
+      setValue('customizedAddonIds', customizedAddonIdsFor(addons, keep));
     }
-  }, [deliveryPaused, selectedAddons.length, setValue]);
+  }, [deliveryPaused, selectedAddons, addons, setValue]);
 
   const toggleAddon = (id: string) => {
-    if (deliveryPaused) return;
+    const addon = addons.find((a) => a.id === id);
+    if (addon && blockedFor(addon)) return;
     const next = selectedAddons.includes(id)
       ? selectedAddons.filter((a) => a !== id)
       : [...selectedAddons, id];
@@ -81,20 +106,22 @@ export function Step3Addons({
       {/* ══ التوصيل مقفول ═══════════════════════════════════════
           كل إضافة حاجة ملموسة بتتشحن — فمفيش ولا واحدة تتطلب
           دلوقتي. والعميل لازم يعرف ده **هنا**، مش في آخر خطوة. */}
-      {deliveryPaused && (
+      {/* ⚠️ البانر بيظهر بس لو فيه إضافة بتتشحن فعلًا — تحذير عن
+          حاجة مالهاش وجود في القايمة بيخلّي العميل يدوّر عليها. */}
+      {deliveryPaused && addons.some(addonNeedsShipping) && (
         <div
           role="status"
           className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900"
         >
           <Truck className="mt-0.5 h-6 w-6 shrink-0" aria-hidden="true" />
           <div>
-            <p className="font-black">الإضافات مش متاحة دلوقتي</p>
+            <p className="font-black">الإضافات اللي بتتشحن مش متاحة دلوقتي</p>
             <p className="mt-1 text-sm font-medium leading-relaxed">
               {pauseMessage.trim() || PAUSED_MESSAGE}
             </p>
             <p className="mt-2 text-sm font-medium leading-relaxed">
-              كل إضافة حاجة ملموسة بتتشحن لحد عندك — فمش هينفع تتطلب والتوصيل
-              متوقف. كمّل بالنسخة الإلكترونية دلوقتي، والإضافات هتفضل مستنياك.
+              الإضافات الملموسة بتتشحن لحد عندك، فمش هينفع تتطلب والتوصيل متوقف.
+              والإضافات اللي بتوصل على الإيميل متاحة عادي.
             </p>
           </div>
         </div>
@@ -107,7 +134,8 @@ export function Step3Addons({
           </p>
         )}
         {addons.map((addon) => {
-          const isSelected = selectedAddons.includes(addon.id) && !deliveryPaused;
+          const blocked = blockedFor(addon);
+          const isSelected = selectedAddons.includes(addon.id) && !blocked;
           // السعر شامل التخصيص — كل الإضافات بتتخصص (ملف 08).
           const shownPrice = addonCustomerPrice(addon);
 
@@ -115,7 +143,7 @@ export function Step3Addons({
             <div
               key={addon.id}
               className={`rounded-2xl border-2 transition-colors ${
-                deliveryPaused
+                blocked
                   ? 'border-slate-200 bg-slate-50 opacity-60'
                   : isSelected
                     ? 'border-emerald-600 bg-emerald-50'
@@ -125,8 +153,8 @@ export function Step3Addons({
               <div
                 role="checkbox"
                 aria-checked={isSelected}
-                aria-disabled={deliveryPaused || undefined}
-                tabIndex={deliveryPaused ? -1 : 0}
+                aria-disabled={blocked || undefined}
+                tabIndex={blocked ? -1 : 0}
                 onClick={() => toggleAddon(addon.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -134,7 +162,7 @@ export function Step3Addons({
                     toggleAddon(addon.id);
                   }
                 }}
-                className={`flex items-start gap-4 p-5 ${deliveryPaused ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`flex items-start gap-4 p-5 ${blocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div
                   className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${isSelected ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white'}`}
@@ -165,8 +193,13 @@ export function Step3Addons({
                   <p className="mt-2 inline-block rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
                     مخصصة بالاسم والصورة
                   </p>
-                  {deliveryPaused && (
-                    <p className="mt-2 text-xs font-bold text-amber-800">
+                  {/* نوع الإضافة — العميل لازم يعرف دي بتتشحن ولا بتوصل
+                      على الإيميل **قبل** ما يختارها. */}
+                  <p className="mt-2 text-xs font-bold text-slate-500">
+                    {DELIVERY_HINT[addon.deliveryFormat] ?? DELIVERY_HINT.printed}
+                  </p>
+                  {blocked && (
+                    <p className="mt-1 text-xs font-bold text-amber-800">
                       غير متاحة — التوصيل متوقف مؤقتًا
                     </p>
                   )}

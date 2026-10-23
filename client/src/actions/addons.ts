@@ -40,6 +40,11 @@ export async function saveAddon(params: {
   price: number;
   isActive: boolean;
   sortOrder: number;
+  /**
+   * نوع الإضافة (قرار تامر، ٢٣ أكتوبر): مطبوعة / إلكترونية /
+   * الاتنين. الغايب = «مطبوعة» — السلوك اللي كان.
+   */
+  deliveryFormat?: 'printed' | 'electronic' | 'both';
   /** صورة اختيارية (ملف 12) — فاضي = من غير صورة. */
   imageUrl?: string | null;
   /** ملف 19 — صفحة التفاصيل. */
@@ -51,6 +56,13 @@ export async function saveAddon(params: {
 
   const name = params.name.trim();
   if (!name) return { ok: false, error: 'اكتب اسم الإضافة' };
+
+  // ⚠️ القيمة بتتفحص هنا مش بتتبعت زي ما جت: القاعدة عليها قيد
+  //    بيرفض أي قيمة تانية، والخطأ ساعتها بيبقى رسالة قيد مش مفهومة.
+  const deliveryFormat =
+    params.deliveryFormat === 'electronic' || params.deliveryFormat === 'both'
+      ? params.deliveryFormat
+      : 'printed';
   if (!Number.isFinite(params.price) || params.price < 0) {
     return { ok: false, error: 'السعر غير صحيح' };
   }
@@ -87,8 +99,12 @@ export async function saveAddon(params: {
     updated_at: new Date().toISOString(),
   };
   const withImage = { ...base, image_url: imageUrl || null };
+  // ⚠️ نوع الإضافة في طبقة لوحدها (ترحيل ٢٣ أكتوبر): لو العمود لسه
+  //    مش موجود على القاعدة، الحفظ بيكمّل من غيره بدل ما شاشة
+  //    الإضافات كلها تقف — نفس نمط الصورة والتفاصيل تحت.
+  const withFormat = { ...withImage, delivery_format: deliveryFormat };
   const row = {
-    ...withImage,
+    ...withFormat,
     gallery_image_urls: gallery.length ? gallery : null,
     long_description: longDescription || null,
     features: features.length ? features : null,
@@ -104,6 +120,18 @@ export async function saveAddon(params: {
   //    الإضافات يقف — إلا لو الإدارة كتبت فيها، فنقول بدل ما نضيّعها.
   if (error && isMissingSchemaError(error)) {
     if (hasDetails) return { ok: false, error: 'الصور الفرعية والوصف الكامل محتاجين ملف 19 يتشغّل الأول — احفظ من غيرهم دلوقتي' };
+    ({ error } = await write(withFormat));
+  }
+  // ⚠️ العمود لسه مش متشغّل: الإضافة بتتحفظ «مطبوعة» (السلوك القديم).
+  //    وبنقول لو الإدارة كانت بتغيّره فعلًا — السكوت هنا معناه إنها
+  //    تفتكر إنها حفظت «إلكترونية» وهي اتحفظت مطبوعة.
+  if (error && isMissingSchemaError(error)) {
+    if (deliveryFormat !== 'printed') {
+      return {
+        ok: false,
+        error: 'نوع الإضافة محتاج ترحيل ٢٣ أكتوبر يتشغّل الأول — احفظها «مطبوعة» دلوقتي',
+      };
+    }
     ({ error } = await write(withImage));
   }
   // ⚠️ قبل ملف 12 العمود مش موجود: من غير صورة = السلوك القديم، فنحفظ من

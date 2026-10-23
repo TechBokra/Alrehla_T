@@ -47,8 +47,17 @@ describe('المعالج مابيبيعش تناقض', () => {
    *    وإلا بيبقى فيه تعريفين للشحن وواحد منهم غلط.
    */
   it('الحارس الأخير بيستعمل itemNeedsShipping مش فحص النوع لوحده', () => {
-    expect(wizard).toMatch(/deliveryPaused && itemNeedsShipping\(/);
+    expect(wizard).toMatch(/itemNeedsShipping\(\{/);
     expect(wizard).not.toMatch(/deliveryPaused && format !== 'electronic'/);
+  });
+
+  /**
+   * ⚠️ وبقى بيحسب **أنواع** الإضافات مش عددها (قرار تامر، ٢٣
+   *    أكتوبر): إضافة إلكترونية مابتخلّيش الطلب محتاج شحن.
+   */
+  it('الحارس بيسأل عن الإضافات اللي بتتشحن، مش عن وجود إضافات', () => {
+    expect(wizard).toMatch(/selectedAddonsNeedShipping\(addons,/);
+    expect(wizard).toMatch(/addonsNeedShipping: addonsShip/);
   });
 
   it('ورسالة الرفض بتقول إن السبب الإضافات لما يكون هو السبب', () => {
@@ -63,19 +72,25 @@ describe('المعالج مابيبيعش تناقض', () => {
 describe('خطوة الإضافات وقت إيقاف التوصيل', () => {
   const step3 = read('../components/enha-lak/wizard-steps/Step3Addons.tsx');
 
-  it('⚠️ مفيش إضافة تتختار — كلها بتتشحن', () => {
-    expect(step3).toMatch(/if \(deliveryPaused\) return;/);
-    expect(step3).toContain('الإضافات مش متاحة دلوقتي');
+  /**
+   * ⚠️ **اللي بيتقفل هو اللي بيتشحن وبس** — بعد ما الإضافات بقى
+   *    ليها نوع. قبل كده كنت بقفل القايمة كلها، وده كان بيلغي ملف
+   *    إلكتروني مالوش أي علاقة بالشحن.
+   */
+  it('اللي بيتشحن بس هو اللي بيتقفل', () => {
+    expect(step3).toMatch(/addonNeedsShipping\(addon\)/);
     expect(step3).toContain('غير متاحة — التوصيل متوقف مؤقتًا');
+    // ومفيش قفل أعمى على كل إضافة.
+    expect(step3).not.toMatch(/if \(deliveryPaused\) return;/);
   });
 
   /**
    * ⚠️ والاختيار القديم بيتشال: النموذج محفوظ في المتصفح، والعميل
    *    ممكن يكون اختار قبل ما الإدارة توقف التوصيل.
    */
-  it('الاختيار المحفوظ من قبل الإيقاف بيتنضّف', () => {
-    expect(step3).toMatch(/setValue\('selectedAddonIds', \[\]\)/);
-    expect(step3).toMatch(/setValue\('customizedAddonIds', \[\]\)/);
+  it('الاختيار المحفوظ من قبل الإيقاف بيتنضّف — من اللي بيتشحن بس', () => {
+    expect(step3).toMatch(/setValue\('selectedAddonIds', keep\)/);
+    expect(step3).toMatch(/customizedAddonIdsFor\(addons, keep\)/);
   });
 });
 

@@ -5,7 +5,7 @@ import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
-import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, type ItemFormat } from '@/lib/item-format';
+import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, selectedAddonsNeedShipping, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -483,8 +483,19 @@ export function PersonalizationWizard({
      *    دلوقتي بيستعمل `itemNeedsShipping` — نفس الدالة اللي
      *    الدفع والقاعدة بيحسبوا بيها. فمفيش تعريفين للشحن.
      */
-    if (deliveryPaused && itemNeedsShipping({ format, addonIds: data.selectedAddonIds })) {
-      const becauseAddons = (data.selectedAddonIds?.length ?? 0) > 0;
+    const addonsShip = selectedAddonsNeedShipping(addons, data.selectedAddonIds);
+    if (
+      deliveryPaused &&
+      itemNeedsShipping({
+        format,
+        addonIds: data.selectedAddonIds,
+        addonsNeedShipping: addonsShip,
+      })
+    ) {
+      // ⚠️ «بسبب الإضافات» بقى يعني **إضافة بتتشحن**، مش أي إضافة.
+      //    الإضافة الإلكترونية مالهاش ذنب، ورسالة بتوجّهه يشيلها
+      //    كانت هتبعته يدوّر على مشكلة مش موجودة.
+      const becauseAddons = addonsShip;
       setUploadError(
         becauseAddons
           ? `${pauseText} — والإضافات اللي اخترتها بتتشحن. شيلها من خطوة الإضافات وكمّل بالنسخة الإلكترونية.`
@@ -544,6 +555,9 @@ export function PersonalizationWizard({
       addonIds: data.selectedAddonIds,
       // القاعدة بتضيف سعر التخصيص للإضافات دي وحدها.
       customizedAddonIds,
+      // ⚠️ للعرض في الدفع بس — القاعدة بتحسب الشحن تاني من
+      //    `addon_products.delivery_format` وقت تسجيل الطلب.
+      addonsNeedShipping: addonsShip,
     };
 
     if (editing) replaceItem(editing.id, line);
@@ -625,6 +639,7 @@ export function PersonalizationWizard({
                   writingDialects={writingDialects}
                   showWritingStyle={showWritingStyle}
                   deliveryPaused={deliveryPaused}
+                  addons={addons}
                 />
               )}
             </div>

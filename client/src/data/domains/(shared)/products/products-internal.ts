@@ -71,6 +71,14 @@ export function mapAddonRow(a: any): AddonProduct {
     sortOrder: a.sort_order,
     supportsCustomization: a.supports_customization ?? false,
     customizationPrice: a.customization_price ?? 0,
+    // ⚠️ **الافتراضي «مطبوعة» عن قصد** — قبل ترحيل ٢٣ أكتوبر العمود
+    //    مش موجود، والإضافات كلها كانت بتتشحن. الافتراض الآمن هو
+    //    السلوك القديم: نطلب الشحن. العكس (نفترض إلكترونية) كان
+    //    هيخلّي طلبًا فيه بوستر يعدّي من غير عنوان.
+    deliveryFormat:
+      a.delivery_format === 'electronic' || a.delivery_format === 'both'
+        ? a.delivery_format
+        : 'printed',
     imageUrl: a.image_url || undefined,
     // ملف 19 — قبله الخانات دي مش موجودة فبتيجي `undefined`.
     galleryImageUrls: a.gallery_image_urls?.length ? a.gallery_image_urls : undefined,

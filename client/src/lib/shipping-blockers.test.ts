@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { blockerLabel, hasOrderableRemainder, shippingBlockers } from './shipping-blockers';
+import { addonNeedsShipping, itemNeedsShipping, selectedAddonsNeedShipping } from './item-format';
 
 const printed = { id: '1', name: 'قصة مطبوعة', format: 'printed' as const, productSlug: 'story' };
 const both = { id: '2', name: 'مطبوعة + إلكترونية', format: 'both' as const, productSlug: 'story' };
@@ -96,5 +97,101 @@ describe('شاشة الدفع بتستعمل الفحص الصح', () => {
     expect(src).toMatch(/shippingOff\s*\n?\s*\?\s*canOrderRemainder/);
     const offBlock = src.slice(src.indexOf('نعتذر — الشحن غير متاح حاليًا'));
     expect(offBlock.slice(0, 2500)).not.toContain('hasElectronic');
+  });
+});
+
+/* ════════════════════════════════════════════════════════════
+   الإضافات بقى ليها نوع (قرار تامر، ٢٣ أكتوبر)
+   ════════════════════════════════════════════════════════════ */
+describe('الإضافة الإلكترونية مابتطلبش شحن', () => {
+  const eAddon = { id: 'e1', deliveryFormat: 'electronic' as const };
+  const pAddon = { id: 'p1', deliveryFormat: 'printed' as const };
+  const bAddon = { id: 'b1', deliveryFormat: 'both' as const };
+
+  it('المطبوعة والاتنين بيتشحنوا، الإلكترونية لأ', () => {
+    expect(addonNeedsShipping(pAddon)).toBe(true);
+    expect(addonNeedsShipping(bAddon)).toBe(true);
+    expect(addonNeedsShipping(eAddon)).toBe(false);
+  });
+
+  /**
+   * ⚠️ **الإضافة من غير نوع بتتشحن.** السلوك اللي كان قبل العمود،
+   *    والغلط في الاتجاه ده بيطلب عنوان زيادة — مش بيسجّل بوستر
+   *    من غير عنوان.
+   */
+  it('الإضافة من غير نوع بتتعامل كمطبوعة', () => {
+    expect(addonNeedsShipping({ id: 'x' })).toBe(true);
+  });
+
+  it('المختار هو اللي بيتحسب، مش كل القايمة', () => {
+    const all = [eAddon, pAddon];
+    expect(selectedAddonsNeedShipping(all, ['e1'])).toBe(false);
+    expect(selectedAddonsNeedShipping(all, ['e1', 'p1'])).toBe(true);
+    expect(selectedAddonsNeedShipping(all, [])).toBe(false);
+  });
+
+  /** ⚠️ ودي الحالة اللي البلاغ كله اتعمل عليها. */
+  it('قصة إلكترونية + إضافة إلكترونية = مفيش شحن', () => {
+    expect(
+      itemNeedsShipping({
+        format: 'electronic',
+        addonIds: ['e1'],
+        addonsNeedShipping: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('قصة إلكترونية + بوستر مطبوع = شحن', () => {
+    expect(
+      itemNeedsShipping({
+        format: 'electronic',
+        addonIds: ['p1'],
+        addonsNeedShipping: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('⚠️ السلة القديمة (مفيش الخانة) بتتعامل كإنها بتتشحن', () => {
+    expect(itemNeedsShipping({ format: 'electronic', addonIds: ['old'] })).toBe(true);
+  });
+});
+
+describe('الشاشات بتقرا النوع مش العدد', () => {
+  const read = (rel: string) =>
+    readFileSync(new URL(rel, import.meta.url), 'utf8')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+
+  it('خطوة الإضافات بتقفل اللي بيتشحن وبس', () => {
+    const src = read('../components/enha-lak/wizard-steps/Step3Addons.tsx');
+    expect(src).toMatch(/addonNeedsShipping\(/);
+    expect(src).not.toMatch(/if \(deliveryPaused\) return;/);
+  });
+
+  it('المراجعة وكارت النسخة بيحسبوا بالنوع', () => {
+    for (const rel of [
+      '../components/enha-lak/wizard-steps/Step4Review.tsx',
+      '../components/enha-lak/wizard-steps/FormatChooser.tsx',
+    ]) {
+      expect(read(rel), rel).toMatch(/selectedAddonsNeedShipping\(/);
+    }
+  });
+
+  it('شاشة اللوحة فيها الاختيار التلاتي', () => {
+    const src = read('../app/(admin)/dashboard/admin/addons/AddonsClient.tsx');
+    expect(src).toMatch(/ADDON_FORMATS/);
+    expect(src).toContain('deliveryFormat');
+  });
+
+  /** ⚠️ الترحيل بيقف لو ماللقاش الفقرة — الاستبدال الصامت أوحش. */
+  it('ترحيل نوع الإضافة بيتحقق قبل ما يعدّل، ومابيمسحش', () => {
+    const sql = readFileSync(
+      new URL('../../supabase/migrations/20261023230000_addon_delivery_format.sql', import.meta.url),
+      'utf8',
+    );
+    expect(sql).toContain('delivery_format');
+    expect(sql).toMatch(/raise exception[\s\S]{0,200}ماللقتش/);
+    expect(sql).not.toMatch(/\b(drop table|delete from|truncate)\b/i);
   });
 });

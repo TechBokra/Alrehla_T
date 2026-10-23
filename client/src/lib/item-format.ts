@@ -132,13 +132,54 @@ export function isQuantityLocked(format: unknown): boolean {
   return format === 'electronic' || format === 'both';
 }
 
-type CartLike = { type?: string; format?: unknown; addonIds?: string[]; boxPlanId?: string };
+type CartLike = {
+  type?: string;
+  format?: unknown;
+  addonIds?: string[];
+  boxPlanId?: string;
+  /**
+   * هل الإضافات المختارة فيها حاجة بتتشحن؟ (قرار تامر، ٢٣ أكتوبر)
+   *
+   * ⚠️ **اختيارية، والغايب معناه «آه»** — ودي مش كسل.
+   *    السلال المحفوظة في متصفحات العملاء من قبل الخانة دي مالهاش
+   *    قيمة. وقبل التغيير ده كل إضافة كانت بتتشحن، فـ«آه» هو
+   *    السلوك القديم بالظبط. والغلط في الاتجاه ده بيطلب عنوان
+   *    لطلب مش محتاجه — مزعج. والغلط في الاتجاه التاني بيسجّل طلب
+   *    فيه بوستر من غير عنوان، والقاعدة بترفضه في آخر خطوة.
+   */
+  addonsNeedShipping?: boolean;
+};
 
+/**
+ * الشحن مطلوب للبند ده؟
+ *
+ * ⚠️ **التعريف ده واحد في المنصة كلها** — الدفع والمعالج وشاشة
+ *    «البنود اللي بتمنع الطلب» كلهم بيسألوه. ونسخة تانية من القاعدة
+ *    في أي مكان = بند بيعدّي من شاشة وبيترفض من التانية.
+ *
+ * ⚠️ والقاعدة نفسها بتحسبها تاني في `create_customer_order` —
+ *    الحساب هناك هو الحساب، وده للعرض.
+ */
 export function itemNeedsShipping(item: CartLike): boolean {
   // صندوق الرحلة بيتشحن كل شهر (ملف 140). بند «اشتراك» من غير خطة =
   // سلة قديمة من قبل الإصلاح، ومالوش شحن.
   if (item.type === 'subscription') return Boolean(item.boxPlanId);
-  return item.format !== 'electronic' || (item.addonIds?.length ?? 0) > 0;
+  if (item.format !== 'electronic') return true;
+  if ((item.addonIds?.length ?? 0) === 0) return false;
+  return item.addonsNeedShipping ?? true;
+}
+
+/** الإضافة دي بتتشحن؟ الإلكترونية وحدها هي اللي لأ. */
+export function addonNeedsShipping(addon: { id?: string; deliveryFormat?: string }): boolean {
+  return addon.deliveryFormat !== 'electronic';
+}
+
+/** فيه إضافة واحدة على الأقل بتتشحن جوّه المختار؟ */
+export function selectedAddonsNeedShipping(
+  addons: { id: string; deliveryFormat?: string }[],
+  selectedIds: string[] = [],
+): boolean {
+  return addons.some((a) => selectedIds.includes(a.id) && addonNeedsShipping(a));
 }
 
 export function cartNeedsShipping(items: CartLike[]): boolean {

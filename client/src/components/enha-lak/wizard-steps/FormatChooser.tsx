@@ -9,6 +9,7 @@ import {
   FORMAT_LABELS,
   ITEM_FORMATS,
   type ItemFormat,
+  selectedAddonsNeedShipping,
 } from '@/lib/item-format';
 
 const ICONS = { printed: BookOpen, electronic: Mail, both: Layers } as const;
@@ -25,10 +26,13 @@ const HINTS: Record<ItemFormat, string> = {
 export function FormatChooser({
   product,
   deliveryPaused = false,
+  addons = [],
 }: {
   product: PersonalizedProduct;
   /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة. */
   deliveryPaused?: boolean;
+  /** عشان نعرف أنهي إضافة مختارة بتتشحن فعلًا. */
+  addons?: { id: string; deliveryFormat?: string }[];
 }) {
   const { watch, setValue } = useFormContext();
   const selectedAddonIds: string[] = watch('selectedAddonIds') || [];
@@ -45,7 +49,10 @@ export function FormatChooser({
    *    فالعميل بيقرا وعدًا بمفيش شحن، وبيترفض في الدفع. دلوقتي
    *    الكارت بيقول الحقيقة لما يكون فيه إضافة.
    */
-  const addonsForceShipping = selectedAddonIds.length > 0;
+  // ⚠️ **بأنواع الإضافات، مش بعددها** (قرار تامر، ٢٣ أكتوبر):
+  //    الإضافة الإلكترونية مابتخلّيش البند محتاج شحن، فالجملة
+  //    ماتقولش إنها بتتشحن.
+  const addonsForceShipping = selectedAddonsNeedShipping(addons, selectedAddonIds);
 
   return (
     <fieldset className="rounded-2xl border border-slate-200 bg-white p-6">
