@@ -86,8 +86,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TableBody, TableCell, TableHead, TableHeader, Table as TableRoot, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -241,6 +242,7 @@ export type UseDataTableProps<TData> = {
   getRowId?: (row: TData, index: number) => string;
   enableRowSelection?: boolean;
   enableColumnPinning?: boolean;
+  enableGlobalFilter?: boolean;
   initialState?: {
     pagination?: PaginationState;
     sorting?: SortingState;
@@ -267,6 +269,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     getRowId,
     enableRowSelection = false,
     enableColumnPinning = false,
+    enableGlobalFilter = true,
     initialState,
   } = props;
 
@@ -306,6 +309,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     },
     enableRowSelection,
     enableColumnPinning,
+    enableGlobalFilter,
     getRowId,
     manualPagination: manual,
     manualSorting: manual,
@@ -367,7 +371,7 @@ function getPinClass<TData>(column: Column<TData>): string | undefined {
   return column.getIsPinned() ? 'bg-background' : undefined;
 }
 
-const skeletonBar = <div className='h-5 w-full animate-pulse rounded bg-muted' />;
+const skeletonBar = <Skeleton className='h-5 w-full' />;
 
 const shimmerBar = (
   <div className='relative h-5 w-full overflow-hidden rounded bg-muted'>
@@ -457,7 +461,7 @@ export function DataTable<TData>({
           ) : (
             <TableRow>
               <TableCell colSpan={columnCount} className='h-24 text-center'>
-                {emptyState ?? 'No results.'}
+                {emptyState ?? 'لا توجد نتائج.'}
               </TableCell>
             </TableRow>
           )}
@@ -526,17 +530,17 @@ export function DataTableColumnHeader<TData, TValue>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant='ghost' size='sm' className={cn('-ml-3 h-8', className)}>
+        <Button variant='ghost' size='sm' className={cn('-ms-3 h-8', className)}>
           <span>{title}</span>
           {sorted === 'desc' ? (
-            <ArrowDown className='ml-2 size-4' />
+            <ArrowDown className='ms-2 size-4' />
           ) : sorted === 'asc' ? (
-            <ArrowUp className='ml-2 size-4' />
+            <ArrowUp className='ms-2 size-4' />
           ) : (
-            <ChevronsUpDown className='ml-2 size-4' />
+            <ChevronsUpDown className='ms-2 size-4' />
           )}
           {sorted && column.getSortIndex() >= 1 && (
-            <span className='ml-1 rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground tabular-nums'>
+            <span className='ms-1 rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground tabular-nums'>
               {column.getSortIndex() + 1}
             </span>
           )}
@@ -575,13 +579,18 @@ export function DataTableFacetedFilter<TData, TValue>({
   options,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues();
-  const selectedValues = new Set((column?.getFilterValue() as string[]) ?? []);
+  const filterValue = column?.getFilterValue();
+  const selectedValues = new Set<string>(Array.isArray(filterValue)
+    ? filterValue
+    : isFilterCondition(filterValue) && ['is', 'isAnyOf'].includes(filterValue.operator)
+      ? (Array.isArray(filterValue.value) ? filterValue.value : [String(filterValue.value ?? '')])
+      : []);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant='outline' size='sm' className='h-8 border-dashed'>
-          <PlusCircle className='mr-2 size-4' />
+          <PlusCircle className='me-2 size-4' />
           {title}
           {selectedValues.size > 0 && (
             <>
@@ -618,7 +627,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     >
                       <CheckIcon className='size-3.5' />
                     </div>
-                    {option.icon && <option.icon className='mr-2 size-4 text-muted-foreground' />}
+                    {option.icon && <option.icon className='me-2 size-4 text-muted-foreground' />}
                     <span>{option.label}</span>
                     {(facets?.get(option.value) ?? 0) > 0 && (
                       <span className='ml-auto flex size-4 items-center justify-center font-mono text-xs'>
@@ -693,6 +702,18 @@ function getFilterChips<TData>(table: Table<TData>): FilterChip[] {
     const column = table.getColumn(filter.id);
     const meta = column?.columnDef.meta;
     const columnLabel = meta?.label ?? filter.id;
+    if (isFilterCondition(filter.value)) {
+      const condition = filter.value;
+      const value = Array.isArray(condition.value)
+        ? condition.value.map(item => meta?.options?.find(option => option.value === item)?.label ?? String(item)).join('، ')
+        : meta?.options?.find(option => option.value === condition.value)?.label ?? String(condition.value ?? '');
+      chips.push({
+        key: filter.id,
+        label: `${columnLabel}: ${OPERATOR_LABELS[condition.operator]} ${operatorTakesValue(condition.operator) ? value : ''}`,
+        onRemove: () => column?.setFilterValue(undefined),
+      });
+      continue;
+    }
     const values = Array.isArray(filter.value) ? (filter.value as string[]) : [filter.value as string];
     for (const value of values) {
       const optionLabel = meta?.options?.find((option) => option.value === value)?.label ?? String(value);
@@ -738,12 +759,13 @@ export function DataTableToolbar<TData>({
   return (
     <div className='flex flex-col gap-2'>
       <div className='flex flex-wrap items-center gap-2'>
-        <Input
+        {table.options.enableGlobalFilter !== false && <Input
+          aria-label={searchPlaceholder}
           placeholder={searchPlaceholder}
           value={(table.getState().globalFilter as string) ?? ''}
           onChange={(event) => table.setGlobalFilter(event.target.value)}
           className='h-8 w-40 lg:w-56'
-        />
+        />}
         {showFacets &&
           filterableColumns.map((column) => {
             const meta = column.columnDef.meta;
@@ -825,12 +847,15 @@ export type DataTablePaginationProps<TData> = {
   table: Table<TData>;
   pageSizeOptions?: number[];
   variant?: 'simple' | 'numbered';
+  /** Server total; otherwise computed from the complete local row model. */
+  total?: number;
 };
 
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 30, 40, 50],
   variant = 'simple',
+  total,
 }: DataTablePaginationProps<TData>) {
   const pageSize = table.getState().pagination.pageSize;
   const pageIndex = table.getState().pagination.pageIndex;
@@ -842,7 +867,8 @@ export function DataTablePagination<TData>({
   return (
     <div className='flex flex-wrap items-center justify-between gap-4'>
       <div className='text-muted-foreground text-sm'>
-        تم تحديد {new Intl.NumberFormat('ar-EG').format(table.getFilteredSelectedRowModel().rows.length)} من {new Intl.NumberFormat('ar-EG').format(table.getFilteredRowModel().rows.length)} صفوف.
+        {new Intl.NumberFormat('ar-EG').format(total ?? table.getFilteredRowModel().rows.length)} صفوف
+        {table.options.enableRowSelection && <> · المحدد في الصفحة: {new Intl.NumberFormat('ar-EG').format(table.getFilteredSelectedRowModel().rows.length)}</>}
       </div>
       <div className='flex flex-wrap items-center gap-4 lg:gap-6'>
         <div className='flex items-center gap-2'>
@@ -855,11 +881,13 @@ export function DataTablePagination<TData>({
               <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side='top'>
-              {options.map((size) => (
-                <SelectItem key={size} value={`${size}`}>
-                  {size}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {options.map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>
@@ -872,7 +900,7 @@ export function DataTablePagination<TData>({
               disabled={!table.getCanPreviousPage()}
               aria-label='الصفحة السابقة'
             >
-              <ChevronLeft className='size-4' />
+              <ChevronLeft className='rtl:rotate-180' />
             </Button>
             {getPaginationRange(pageIndex + 1, pageCount).map((page, index) =>
               page === 'ellipsis' ? (
@@ -891,7 +919,7 @@ export function DataTablePagination<TData>({
                   aria-current={page === pageIndex + 1 ? 'page' : undefined}
                   onClick={() => table.setPageIndex(page - 1)}
                 >
-                  {page}
+                  {new Intl.NumberFormat('ar-EG').format(page)}
                 </Button>
               ),
             )}
@@ -902,7 +930,7 @@ export function DataTablePagination<TData>({
               disabled={!table.getCanNextPage()}
               aria-label='الصفحة التالية'
             >
-              <ChevronRight className='size-4' />
+              <ChevronRight className='rtl:rotate-180' />
             </Button>
           </div>
         ) : (
@@ -919,7 +947,7 @@ export function DataTablePagination<TData>({
                 disabled={!table.getCanPreviousPage()}
                 aria-label='الصفحة الأولى'
               >
-                <ChevronsLeft className='size-4' />
+                <ChevronsLeft className='rtl:rotate-180' />
               </Button>
               <Button
                 variant='outline'
@@ -928,7 +956,7 @@ export function DataTablePagination<TData>({
                 disabled={!table.getCanPreviousPage()}
                 aria-label='الصفحة السابقة'
               >
-                <ChevronLeft className='size-4' />
+                <ChevronLeft className='rtl:rotate-180' />
               </Button>
               <Button
                 variant='outline'
@@ -937,7 +965,7 @@ export function DataTablePagination<TData>({
                 disabled={!table.getCanNextPage()}
                 aria-label='الصفحة التالية'
               >
-                <ChevronRight className='size-4' />
+                <ChevronRight className='rtl:rotate-180' />
               </Button>
               <Button
                 variant='outline'
@@ -947,7 +975,7 @@ export function DataTablePagination<TData>({
                 disabled={!table.getCanNextPage()}
                 aria-label='الصفحة الأخيرة'
               >
-                <ChevronsRight className='size-4' />
+                <ChevronsRight className='rtl:rotate-180' />
               </Button>
             </div>
           </>
@@ -1018,7 +1046,7 @@ export function DataTableLoadMore({
     <div className='flex flex-col items-center gap-2 py-4'>
       {hasMore ? (
         <Button variant='outline' size='sm' onClick={onLoadMore} disabled={isLoading}>
-          {isLoading && <Loader2 className='mr-2 size-4 animate-spin' />}
+          {isLoading && <Loader2 className='me-2 size-4 animate-spin' />}
           عرض المزيد
         </Button>
       ) : (
@@ -1074,7 +1102,7 @@ function SortableRow({ id, children }: { id: string; children: React.ReactNode }
       <button
         type='button'
         className='shrink-0 cursor-grab touch-none text-muted-foreground/50 active:cursor-grabbing'
-        aria-label='Reorder'
+        aria-label='إعادة الترتيب'
         {...attributes}
         {...listeners}
       >
@@ -1100,11 +1128,13 @@ function FieldSelect({
         <SelectValue>{fields.find((field) => field.id === value)?.label ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {fields.map((field) => (
-          <SelectItem key={field.id} value={field.id}>
-            {field.label}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {fields.map((field) => (
+            <SelectItem key={field.id} value={field.id}>
+              {field.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -1125,11 +1155,13 @@ function OperatorSelect({
         <SelectValue>{OPERATOR_LABELS[value] ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {OPERATORS_BY_VARIANT[variant].map((operator) => (
-          <SelectItem key={operator} value={operator}>
-            {OPERATOR_LABELS[operator]}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {OPERATORS_BY_VARIANT[variant].map((operator) => (
+            <SelectItem key={operator} value={operator}>
+              {OPERATOR_LABELS[operator]}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -1158,7 +1190,7 @@ function MultiSelectValue({
       <PopoverTrigger asChild>
         <Button variant='outline' size='sm' className='h-8 flex-1 justify-between font-normal'>
           <span className='truncate'>{label}</span>
-          <ChevronDown className='ml-1 size-3.5 shrink-0 text-muted-foreground' />
+          <ChevronDown className='ms-1 size-3.5 shrink-0 text-muted-foreground' />
         </Button>
       </PopoverTrigger>
       <PopoverContent align='start' className='w-48 p-1'>
@@ -1207,11 +1239,13 @@ function FilterValueControl({
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {field.options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {field.options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     );
@@ -1370,8 +1404,8 @@ function FilterMenuButton({
   return (
     <Button variant='outline' size='sm' className='h-8 border-dashed' {...props}>
       <ListFilter className='me-2 size-4' /> تصفية
-      {count > 0 && <span className='ml-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{count}</span>}
-      {showChevron && <ChevronDown className='ml-1 size-3.5 text-muted-foreground' />}
+      {count > 0 && <span className='ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{count}</span>}
+      {showChevron && <ChevronDown className='ms-1 size-3.5 text-muted-foreground' />}
     </Button>
   );
 }
@@ -1406,7 +1440,7 @@ export function DataTableFilterMenu<TData>({ table, variant = 'popover' }: DataT
       <PopoverTrigger asChild>
         <FilterMenuButton count={count} showChevron />
       </PopoverTrigger>
-      <PopoverContent align='start' className='w-[560px] p-2'>
+      <PopoverContent align='start' className='w-[min(560px,calc(100vw-2rem))] p-2'>
         <FilterBuilder table={table} />
       </PopoverContent>
     </Popover>
@@ -1469,8 +1503,10 @@ function SortBuilder<TData>({ table }: { table: Table<TData> }) {
                       <SelectValue>{sort.desc ? 'تنازلي' : 'تصاعدي'}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value='asc'>تصاعدي</SelectItem>
-                      <SelectItem value='desc'>تنازلي</SelectItem>
+                      <SelectGroup>
+                        <SelectItem value='asc'>تصاعدي</SelectItem>
+                        <SelectItem value='desc'>تنازلي</SelectItem>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                   <Button
@@ -1504,11 +1540,11 @@ export function DataTableSortMenu<TData>({ table }: { table: Table<TData> }) {
       <PopoverTrigger asChild>
         <Button variant='outline' size='sm' className='h-8 border-dashed'>
           <ArrowDownUp className='me-2 size-4' /> ترتيب
-          {count > 0 && <span className='ml-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{count}</span>}
-          <ChevronDown className='ml-1 size-3.5 text-muted-foreground' />
+          {count > 0 && <span className='ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{count}</span>}
+          <ChevronDown className='ms-1 size-3.5 text-muted-foreground' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align='start' className='w-[420px] p-2'>
+      <PopoverContent align='start' className='w-[min(420px,calc(100vw-2rem))] p-2'>
         <SortBuilder table={table} />
       </PopoverContent>
     </Popover>
@@ -1572,9 +1608,9 @@ export function DataTableViews<TData>({ table, storageKey }: DataTableViewsProps
         <Button variant='outline' size='sm' className='h-8'>
           <Bookmark className='me-2 size-4' /> طرق العرض
           {views.length > 0 && (
-            <span className='ml-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{views.length}</span>
+            <span className='ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs'>{views.length}</span>
           )}
-          <ChevronDown className='ml-1 size-3.5 text-muted-foreground' />
+          <ChevronDown className='ms-1 size-3.5 text-muted-foreground' />
         </Button>
       </PopoverTrigger>
       <PopoverContent align='end' className='w-60 p-1'>

@@ -1,26 +1,37 @@
-import { useState } from "react";
-import { useTable } from "@refinedev/react-table";
+import { useDataTable } from "@/components/refine-ui/data-table/use-data-table";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowDownToLine, Eye, Pencil, Search, Trash2 } from "lucide-react";
+import { ArrowDownToLine, Eye, Pencil, Trash2 } from "lucide-react";
 import type { DemoProduct } from "./demo-provider";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
-import { DataTableSorter } from "@/components/refine-ui/data-table/data-table-sorter";
+import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
 import { CloneButton } from "@/components/refine-ui/buttons/clone";
 import { DeleteButton } from "@/components/refine-ui/buttons/delete";
 import { EditButton } from "@/components/refine-ui/buttons/edit";
 import { ShowButton } from "@/components/refine-ui/buttons/show";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const columns: ColumnDef<DemoProduct>[] = [
   {
+    id: "select",
+    header: ({ table }) => <Checkbox
+      aria-label="تحديد كل صفوف الصفحة"
+      checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+      onCheckedChange={value => table.toggleAllPageRowsSelected(Boolean(value))}
+    />,
+    cell: ({ row }) => <Checkbox aria-label={`تحديد ${row.original.title}`}
+      checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(Boolean(value))} />,
+    size: 48,
+    enableSorting: false,
+    enableHiding: false,
+    enableColumnFilter: false,
+    enableGlobalFilter: false,
+  },
+  {
     accessorKey: "title",
+    meta: { label: "المنتج", variant: "text" },
     header: ({ column }) => (
-      <div className="flex items-center gap-1">
-        <span>المنتج</span>
-        <DataTableSorter column={column} />
-      </div>
+      <DataTableColumnHeader column={column} title="المنتج" />
     ),
     cell: ({ row }) => (
       <div className="min-w-0">
@@ -36,7 +47,10 @@ const columns: ColumnDef<DemoProduct>[] = [
   },
   {
     accessorKey: "status",
-    header: "الحالة",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="الحالة" />,
+    meta: { label: "الحالة", variant: "multiSelect", options: [
+      { label: "نشط", value: "Active" }, { label: "مسودة", value: "Draft" },
+    ] },
     cell: ({ row }) => (
       <Badge variant={row.original.status === "Active" ? "secondary" : "outline"}>
         <span
@@ -49,11 +63,9 @@ const columns: ColumnDef<DemoProduct>[] = [
   },
   {
     accessorKey: "inventory",
+    meta: { label: "المخزون", variant: "number" },
     header: ({ column }) => (
-      <div className="flex items-center gap-1">
-        <span>المخزون</span>
-        <DataTableSorter column={column} />
-      </div>
+      <DataTableColumnHeader column={column} title="المخزون" />
     ),
     cell: ({ row }) => (
       <span className="tabular-nums text-muted-foreground">
@@ -64,11 +76,9 @@ const columns: ColumnDef<DemoProduct>[] = [
   },
   {
     accessorKey: "price",
+    meta: { label: "السعر", variant: "number" },
     header: ({ column }) => (
-      <div className="flex items-center gap-1">
-        <span>السعر</span>
-        <DataTableSorter column={column} />
-      </div>
+      <DataTableColumnHeader column={column} title="السعر" />
     ),
     cell: ({ row }) => (
       <span className="font-medium tabular-nums">
@@ -83,6 +93,9 @@ const columns: ColumnDef<DemoProduct>[] = [
   },
   {
     id: "actions",
+    enableHiding: false,
+    enableColumnFilter: false,
+    enableGlobalFilter: false,
     header: "",
     enableSorting: false,
     cell: ({ row }) => (
@@ -130,52 +143,22 @@ const columns: ColumnDef<DemoProduct>[] = [
 ];
 
 export function ProductsTablePreview() {
-  const [search, setSearch] = useState("");
-  const table = useTable<DemoProduct>({
+  const table = useDataTable<DemoProduct>({
     columns,
-    refineCoreProps: {
-      resource: "products",
-      pagination: { pageSize: 5 },
-      filters: { mode: "off" },
-      sorters: { mode: "off" },
-    },
-    globalFilterFn: "includesString",
+    mode: "client",
+    enableRowSelection: true,
+    initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
+    refineCoreProps: { resource: "products" },
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => {
-              const value = event.currentTarget.value;
-              setSearch(value);
-              table.reactTable.setGlobalFilter(value);
-            }}
-            placeholder="ابحث عن منتج تجريبي…"
-            className="pe-9"
-            aria-label="البحث عن منتج تجريبي"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="h-7 px-2.5 font-normal">
-            ٥ منتجات تجريبية
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSearch("");
-              table.reactTable.setGlobalFilter("");
-            }}
-          >
-            مسح الفلاتر
-          </Button>
-        </div>
-      </div>
-      <DataTable table={table} />
-    </div>
+    <DataTable
+      table={table}
+      searchPlaceholder="ابحث عن منتج تجريبي…"
+      toolbarVariant="inline-chips"
+      viewsStorageKey="refine-preview-products"
+      paginationVariant="numbered"
+      pageSizeOptions={[5, 10, 20]}
+    />
   );
 }

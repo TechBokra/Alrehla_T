@@ -17,6 +17,8 @@ Install with `pnpm install`, copy `.env.example` to `.env.local`, and supply the
 
 The browser keeps the session under the dedicated `alrehla-admin-auth` storage key. There is no separate sign-up, password reset, or remember-me control.
 
+The shared browser client now lives in `src/providers/supabase-client.ts`; authentication and the root data provider use the same session and refresh process. See [Data provider](data-provider.md) for ownership and demo isolation.
+
 ## Google sign-in
 
 The Google button calls Refine `useLogin({ providerName: "google" })` independently of the password fields. The adapter checks the project's public auth settings and displays an Arabic error if Google is disabled. Otherwise it starts Google OAuth with PKCE and an account chooser, then returns to `/auth/callback` on the same admin origin. Only ordinary profile/email access is requested; no Gmail or Drive scopes are added.
@@ -37,8 +39,6 @@ The root guard controls navigation. Supabase RLS and guarded RPCs remain respons
 
 ## Verification
 
-Run `pnpm typecheck` and `pnpm build` from `admin/`. Provider checks live in `src/features/auth/auth-provider.test.ts` and can be run with a TypeScript test runner using Node's test API. They cover input validation, both admin roles, invalid credentials, non-admin users, archived/missing profiles, read failures, missing configuration, and logout failure.
-
-Google tests additionally cover OAuth initiation without password validation, disabled-provider feedback, denied/missing callbacks, concurrent code exchange, non-admin/archived profiles after exchange, and preserving an existing session when a code has expired.
+Run `pnpm typecheck` and `pnpm build` from `admin/`. Current regression checks live in `tests/auth-provider.test.ts` and `tests/data-provider.test.ts`, using Node's test API and the existing TypeScript loader documented in [Data provider](data-provider.md). They cover admin access, denied profiles, read failures, missing configuration, logout, duplicate callback exchange, shared-client wiring, and local demo isolation. The earlier auth test file referenced in historical progress notes was absent when the data-provider change began.
 
 In the browser, visit a protected preview URL while signed out: it should open sign-in. Submit empty or invalid fields, toggle password visibility, and verify the loading state during a request. Test a valid staging admin account to confirm the successful transition to `/theme`, then sign out. This requires an actual staging account; mocked provider checks do not prove a real credential login succeeds.

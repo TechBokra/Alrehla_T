@@ -76,7 +76,7 @@ export const previewDataProvider: DataProvider = {
   getList: async <TData extends BaseRecord = BaseRecord>(
     params: GetListParams,
   ): Promise<GetListResponse<TData>> => {
-    const pageSize = params.pagination?.pageSize ?? demoProducts.length;
+    const pageSize = params.pagination?.mode === "off" ? demoProducts.length : params.pagination?.pageSize ?? demoProducts.length;
     const currentPage = params.pagination?.currentPage ?? 1;
     const start = (currentPage - 1) * pageSize;
 

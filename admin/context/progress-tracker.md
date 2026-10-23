@@ -2,10 +2,18 @@
 
 ## Current phase
 
-First real authentication feature alongside the existing UI previews.
+Shared staging authentication and official Refine data-provider foundation alongside local UI previews.
 
 ## Completed
 
+- Completed the Refine/Shuip table composition with toolbar, advanced/faceted filtering, multi-sort, column visibility, saved views, both pagination variants, selection, loading/refetch, empty/no-results, and read-failure states. Added the paired `useDataTable` hook for client/server state translation; the local product preview uses it with the complete fixture dataset. Documented usage in `docs/data-table.md`. No staging resources or database writes were introduced.
+- The completed table composition passes TypeScript and `git diff --check`. Reviewed the Shuip documentation in the browser; application browser checks and automated tests were not run for this update.
+- Replaced the Refine data table's duplicated rendering with `components/block/shuip/data-table.tsx`. The adapter keeps the existing `UseTableReturnType` prop and Refine pagination; Shuip owns headers, rows, pinning, selection display, and loading. Supports Shuip loading variants, custom empty states, row clicks, and class names, with an Arabic default empty state. No provider or database changes.
+- The Refine/Shuip adapter passes TypeScript checking and `git diff --check`. No tests or browser checks were run for this component update.
+- Connected the installed Refine Devtools package through a development-only wrapper above all Refine contexts. `pnpm dev` now uses the Refine CLI to start Vite and the Devtools server; `pnpm devtools` runs the server separately. Documented usage in the README. No database changes.
+- Devtools integration passes TypeScript checking and `git diff --check`. No tests or live server/browser checks were run for this setup.
+- Moved browser-client ownership to `src/providers/supabase-client.ts` and wired the root Refine context to the official Supabase data provider. Preserved local demo providers, lazy configuration failures, and auth behavior. Added provider/auth regression checks under `tests/` and `docs/data-provider.md`. No database or live resource changes.
+- Verified the provider foundation with route regeneration, TypeScript, the production build, and 12 passing mocked/local tests. Both demo contexts retain their providers; create/edit/delete checks issue no network requests. Build reports a large-chunk warning; route generation reports a dependency circular-import warning. Real-account browser login remains outside these mocked checks.
 - Reorganized existing routes into folders with feature `route.tsx` layouts and `index.tsx` pages. Moved preview shells into parent layouts, preserved data-view search and legacy redirects, and kept auth callback handling compatible with trailing slashes. See `../docs/routing.md`.
 - Regenerated the route tree and verified all 11 previous navigation URLs remain available. TypeScript and the production build pass after the route reorganization.
 - Added Arabic `/sign-in` using the existing shadcn components and Refine `useLogin`.

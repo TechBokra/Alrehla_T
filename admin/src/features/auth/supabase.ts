@@ -1,31 +1,13 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/supabase";
+import { getSupabaseClient, supabaseConnection } from "@/providers/supabase-client";
 import { createAdminAuthProvider, createGoogleCallbackHandler, GoogleProviderDisabledError, type AuthGateway } from "./auth-provider";
 import { googleAuthSettingsSchema } from "@/lib/schema";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-export const isAuthConfigured = Boolean(url && key);
-let client: SupabaseClient<Database> | null = null;
-
-export function getSupabaseClient() {
-  if (!isAuthConfigured) return null;
-  client ??= createClient<Database>(url, key, {
-    auth: {
-      storageKey: "alrehla-admin-auth",
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      flowType: "pkce",
-    },
-  });
-  return client;
-}
+export { getSupabaseClient, isAuthConfigured } from "@/providers/supabase-client";
 
 function getGateway(): AuthGateway | null {
   const supabase = getSupabaseClient();
-  if (!supabase) return null;
+  const { url, publishableKey: key } = supabaseConnection;
+  if (!supabase || !url || !key) return null;
   return {
     startGoogleSignIn: async () => {
       const response = await fetch(new URL("/auth/v1/settings", url), {

@@ -1,316 +1,143 @@
 "use client";
 
-import type { HttpError, BaseRecord } from "@refinedev/core";
+import type { BaseRecord, HttpError } from "@refinedev/core";
 import type { UseTableReturnType } from "@refinedev/react-table";
-import type { Column } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
-import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { DataTablePagination } from "@/components/refine-ui/data-table/data-table-pagination";
-import { cn } from "@/lib/utils";
+  DataTable as ShuipDataTable,
+  DataTableEmpty,
+  DataTableToolbar,
+  DataTableFilterMenu,
+  DataTableSortMenu,
+  DataTableViews,
+  DataTablePagination,
+  type DataTableToolbarProps,
+  type DataTablePaginationProps,
+  type DataTableProps as ShuipDataTableProps,
+} from "@/components/block/shuip/data-table";
+import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type DataTableProps<TData extends BaseRecord> = {
+export type DataTableProps<TData extends BaseRecord> = Omit<
+  ShuipDataTableProps<TData>,
+  "table" | "isLoading"
+> & {
   table: UseTableReturnType<TData, HttpError>;
+  toolbar?: boolean;
+  toolbarVariant?: DataTableToolbarProps<TData>["variant"];
+  toolbarActions?: ReactNode;
+  searchPlaceholder?: string;
+  filterVariant?: "popover" | "dialog";
+  viewsStorageKey?: string;
+  paginationVariant?: DataTablePaginationProps<TData>["variant"];
+  pageSizeOptions?: number[];
 };
 
 export function DataTable<TData extends BaseRecord>({
   table,
+  emptyState,
+  toolbar = true,
+  toolbarVariant = "default",
+  toolbarActions,
+  searchPlaceholder = "ابحث في البيانات…",
+  filterVariant = "popover",
+  viewsStorageKey,
+  paginationVariant = "simple",
+  pageSizeOptions,
+  loadingVariant = "skeleton",
+  ...props
 }: DataTableProps<TData>) {
   const {
-    reactTable: { getHeaderGroups, getRowModel, getAllColumns },
-    refineCore: {
-      tableQuery,
-      currentPage,
-      setCurrentPage,
-      pageCount,
-      pageSize,
-      setPageSize,
-    },
+    reactTable,
+    refineCore: { tableQuery },
   } = table;
-
-  const columns = getAllColumns();
-  const leafColumns = table.reactTable.getAllLeafColumns();
-  const isLoading = tableQuery.isLoading;
-
-  const tableContainerRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState({
-    horizontal: false,
-    vertical: false,
-  });
-
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (tableRef.current && tableContainerRef.current) {
-        const table = tableRef.current;
-        const container = tableContainerRef.current;
-
-        const horizontalOverflow = table.offsetWidth > container.clientWidth;
-        const verticalOverflow = table.offsetHeight > container.clientHeight;
-
-        setIsOverflowing({
-          horizontal: horizontalOverflow,
-          vertical: verticalOverflow,
-        });
-      }
-    };
-
-    checkOverflow();
-
-    // Check on window resize
-    window.addEventListener("resize", checkOverflow);
-
-    // Check when table data changes
-    const timeoutId = setTimeout(checkOverflow, 100);
-
-    return () => {
-      window.removeEventListener("resize", checkOverflow);
-      clearTimeout(timeoutId);
-    };
-  }, [tableQuery.data?.data, pageSize]);
+  const isLoading = tableQuery.isFetching;
+  const isFiltered =
+    reactTable.getState().columnFilters.length > 0 ||
+    Boolean(reactTable.getState().globalFilter);
 
   return (
-    <div className={cn("flex", "flex-col", "flex-1", "gap-4")}>
-      <div ref={tableContainerRef} className={cn("rounded-md", "border")}>
-        <Table ref={tableRef} style={{ tableLayout: "fixed", width: "100%" }}>
-          <TableHeader>
-            {getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const isPlaceholder = header.isPlaceholder;
-
-                  return (
-                    <TableHead
-                      key={header.id}
-                      style={{
-                        ...getCommonStyles({
-                          column: header.column,
-                          isOverflowing: isOverflowing,
-                        }),
-                      }}
-                    >
-                      {isPlaceholder ? null : (
-                        <div className={cn("flex", "items-center", "gap-1")}>
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                        </div>
-                      )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody className="relative">
-            {isLoading ? (
-              <>
-                {Array.from({ length: pageSize < 1 ? 1 : pageSize }).map(
-                  (_, rowIndex) => (
-                    <TableRow
-                      key={`skeleton-row-${rowIndex}`}
-                      aria-hidden="true"
-                    >
-                      {leafColumns.map((column) => (
-                        <TableCell
-                          key={`skeleton-cell-${rowIndex}-${column.id}`}
-                          style={{
-                            ...getCommonStyles({
-                              column,
-                              isOverflowing: isOverflowing,
-                            }),
-                          }}
-                          className={cn("truncate")}
-                        >
-                          <div className="h-8" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ),
-                )}
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className={cn("absolute", "inset-0", "pointer-events-none")}
+    <div className="flex flex-1 flex-col gap-4" aria-busy={isLoading}>
+      {toolbar && (
+        <DataTableToolbar
+          table={reactTable}
+          variant={toolbarVariant}
+          searchPlaceholder={searchPlaceholder}
+        >
+          <DataTableFilterMenu table={reactTable} variant={filterVariant} />
+          <DataTableSortMenu table={reactTable} />
+          {viewsStorageKey && (
+            <DataTableViews table={reactTable} storageKey={viewsStorageKey} />
+          )}
+          {toolbarActions}
+        </DataTableToolbar>
+      )}
+      {tableQuery.isError && (
+        <Card role="alert">
+          <CardHeader>
+            <CardTitle>تعذّر تحميل البيانات. حاول مرة أخرى.</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void tableQuery.refetch()}
+              disabled={isLoading}
+            >
+              إعادة المحاولة
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {!tableQuery.isError && (
+        <ShuipDataTable
+          {...props}
+          table={reactTable}
+          isLoading={isLoading}
+          loadingVariant={tableQuery.isLoading ? loadingVariant : "overlay"}
+          emptyState={
+            emptyState ?? (
+              <DataTableEmpty
+                variant={isFiltered ? "with-action" : "illustrated"}
+                title={
+                  isFiltered ? "لا توجد نتائج مطابقة" : "لا توجد بيانات لعرضها"
+                }
+                description={
+                  isFiltered
+                    ? "جرّب تعديل البحث أو الفلاتر."
+                    : "ستظهر السجلات هنا عند إضافتها."
+                }
+                action={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      reactTable.resetColumnFilters();
+                      reactTable.setGlobalFilter("");
+                    }}
                   >
-                    <Loader2
-                      className={cn(
-                        "absolute",
-                        "top-1/2",
-                        "left-1/2",
-                        "animate-spin",
-                        "text-primary",
-                        "h-8",
-                        "w-8",
-                        "-translate-x-1/2",
-                        "-translate-y-1/2",
-                      )}
-                    />
-                  </TableCell>
-                </TableRow>
-              </>
-            ) : getRowModel().rows?.length ? (
-              getRowModel().rows.map((row) => {
-                return (
-                  <TableRow
-                    key={row.original?.id ?? row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      return (
-                        <TableCell
-                          key={cell.id}
-                          style={{
-                            ...getCommonStyles({
-                              column: cell.column,
-                              isOverflowing: isOverflowing,
-                            }),
-                          }}
-                        >
-                          <div className="truncate">
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })
-            ) : (
-              <DataTableNoData
-                isOverflowing={isOverflowing}
-                columnsLength={columns.length}
+                    مسح البحث والفلاتر
+                  </Button>
+                }
               />
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {!isLoading && getRowModel().rows?.length > 0 && (
+            )
+          }
+        />
+      )}
+      {!tableQuery.isLoading && !tableQuery.isError && (
         <DataTablePagination
-          currentPage={currentPage}
-          pageCount={pageCount}
-          setCurrentPage={setCurrentPage}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
-          total={tableQuery.data?.total}
+          table={reactTable}
+          variant={paginationVariant}
+          pageSizeOptions={pageSizeOptions}
+          total={
+            reactTable.options.manualPagination
+              ? tableQuery.data?.total
+              : undefined
+          }
         />
       )}
     </div>
   );
-}
-
-function DataTableNoData({
-  isOverflowing,
-  columnsLength,
-}: {
-  isOverflowing: { horizontal: boolean; vertical: boolean };
-  columnsLength: number;
-}) {
-  return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell
-        colSpan={columnsLength}
-        className={cn("relative", "text-center")}
-        style={{ height: "490px" }}
-      >
-        <div
-          className={cn(
-            "absolute",
-            "inset-0",
-            "flex",
-            "flex-col",
-            "items-center",
-            "justify-center",
-            "gap-2",
-            "bg-background",
-          )}
-          style={{
-            position: isOverflowing.horizontal ? "sticky" : "absolute",
-            left: isOverflowing.horizontal ? "50%" : "50%",
-            transform: "translateX(-50%)",
-            zIndex: isOverflowing.horizontal ? 2 : 1,
-            width: isOverflowing.horizontal ? "fit-content" : "100%",
-            minWidth: "300px",
-          }}
-        >
-          <div className={cn("text-lg", "font-semibold", "text-foreground")}>
-            No data to display
-          </div>
-          <div className={cn("text-sm", "text-muted-foreground")}>
-            This table is empty for the time being.
-          </div>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-export function getCommonStyles<TData>({
-  column,
-  isOverflowing,
-}: {
-  column: Column<TData>;
-  isOverflowing: {
-    horizontal: boolean;
-    vertical: boolean;
-  };
-}): React.CSSProperties {
-  const isPinned = column.getIsPinned();
-  const isLastLeftPinnedColumn =
-    isPinned === "left" && column.getIsLastColumn("left");
-  const isFirstRightPinnedColumn =
-    isPinned === "right" && column.getIsFirstColumn("right");
-
-  return {
-    boxShadow:
-      isOverflowing.horizontal && isLastLeftPinnedColumn
-        ? "-4px 0 4px -4px var(--border) inset"
-        : isOverflowing.horizontal && isFirstRightPinnedColumn
-          ? "4px 0 4px -4px var(--border) inset"
-          : undefined,
-    left:
-      isOverflowing.horizontal && isPinned === "left"
-        ? `${column.getStart("left")}px`
-        : undefined,
-    right:
-      isOverflowing.horizontal && isPinned === "right"
-        ? `${column.getAfter("right")}px`
-        : undefined,
-    opacity: 1,
-    position: isOverflowing.horizontal && isPinned ? "sticky" : "relative",
-    background: isOverflowing.horizontal && isPinned ? "var(--background)" : "",
-    borderTopRightRadius:
-      isOverflowing.horizontal && isPinned === "right"
-        ? "var(--radius)"
-        : undefined,
-    borderBottomRightRadius:
-      isOverflowing.horizontal && isPinned === "right"
-        ? "var(--radius)"
-        : undefined,
-    borderTopLeftRadius:
-      isOverflowing.horizontal && isPinned === "left"
-        ? "var(--radius)"
-        : undefined,
-    borderBottomLeftRadius:
-      isOverflowing.horizontal && isPinned === "left"
-        ? "var(--radius)"
-        : undefined,
-    width: column.getSize(),
-    zIndex: isOverflowing.horizontal && isPinned ? 1 : 0,
-  };
 }
 
 DataTable.displayName = "DataTable";

@@ -7,13 +7,15 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Refine } from "@refinedev/core";
-import { RootPending } from "@/components/route-states/root-pending";
-import { RootError } from "@/components/route-states/root-error";
+import { RootError } from "@/components/route-states/global-error";
 import { NotFound } from "@/components/route-states/not-found";
-import { adminAuthProvider, getSupabaseClient } from "@/features/auth/supabase";
+import { adminAuthProvider } from "@/features/auth/supabase";
+import { getSupabaseClient } from "@/providers/supabase-client";
+import { adminDataProvider } from "@/providers/data-provider";
 import { authRouterProvider } from "@/features/auth/router-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
+import { Loading } from "@/components/route-states/loading";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -28,7 +30,7 @@ export const Route = createRootRoute({
     if (!authenticated) throw redirect({ to: "/sign-in", replace: true });
   },
   component: RootLayout,
-  pendingComponent: RootPending,
+  pendingComponent: Loading,
   errorComponent: RootError,
   notFoundComponent: NotFound,
 });
@@ -40,7 +42,9 @@ function RootLayout() {
     const supabase = getSupabaseClient();
     const subscription = supabase?.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        queueMicrotask(() => { void router.invalidate(); });
+        queueMicrotask(() => {
+          void router.invalidate();
+        });
       }
     });
     return () => subscription?.data.subscription.unsubscribe();
@@ -48,6 +52,7 @@ function RootLayout() {
 
   return (
     <Refine
+      dataProvider={adminDataProvider}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}
       notificationProvider={notificationProvider}
