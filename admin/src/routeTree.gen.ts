@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CatalogRouteRouteImport } from './routes/catalog/route'
 import { Route as DataViewRouteRouteImport } from './routes/data-view/route'
 import { Route as FieldsRouteRouteImport } from './routes/fields/route'
 import { Route as FormPrototypeRouteRouteImport } from './routes/form-prototype/route'
@@ -25,11 +26,18 @@ import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
 import { Route as ThemeIndexRouteImport } from './routes/theme/index'
 import { Route as UiPrimitivesIndexRouteImport } from './routes/ui-primitives/index'
 import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
+import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
+import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
 import { Route as SectionsSectionIndexRouteImport } from './routes/sections/$section/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogRouteRoute = CatalogRouteRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DataViewRouteRoute = DataViewRouteRouteImport.update({
@@ -107,6 +115,16 @@ const AuthCallbackIndexRoute = AuthCallbackIndexRouteImport.update({
   path: '/auth/callback/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogAddonsIndexRoute = CatalogAddonsIndexRouteImport.update({
+  id: '/addons/',
+  path: '/addons/',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
+const CatalogProductsIndexRoute = CatalogProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
 const SectionsSectionIndexRoute = SectionsSectionIndexRouteImport.update({
   id: '/sections/$section/',
   path: '/sections/$section/',
@@ -115,6 +133,7 @@ const SectionsSectionIndexRoute = SectionsSectionIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
   '/data-view': typeof DataViewRouteRouteWithChildren
   '/fields': typeof FieldsRouteRouteWithChildren
   '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
@@ -130,10 +149,13 @@ export interface FileRoutesByFullPath {
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
+  '/catalog/addons/': typeof CatalogAddonsIndexRoute
+  '/catalog/products/': typeof CatalogProductsIndexRoute
   '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
   '/calendar': typeof CalendarIndexRoute
   '/data-view': typeof DataViewIndexRoute
   '/fields': typeof FieldsIndexRoute
@@ -143,11 +165,14 @@ export interface FileRoutesByTo {
   '/theme': typeof ThemeIndexRoute
   '/ui-primitives': typeof UiPrimitivesIndexRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
+  '/catalog/addons': typeof CatalogAddonsIndexRoute
+  '/catalog/products': typeof CatalogProductsIndexRoute
   '/sections/$section': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
   '/data-view': typeof DataViewRouteRouteWithChildren
   '/fields': typeof FieldsRouteRouteWithChildren
   '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
@@ -163,12 +188,15 @@ export interface FileRoutesById {
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
+  '/catalog/addons/': typeof CatalogAddonsIndexRoute
+  '/catalog/products/': typeof CatalogProductsIndexRoute
   '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/catalog'
     | '/data-view'
     | '/fields'
     | '/form-prototype'
@@ -184,10 +212,13 @@ export interface FileRouteTypes {
     | '/theme/'
     | '/ui-primitives/'
     | '/auth/callback/'
+    | '/catalog/addons/'
+    | '/catalog/products/'
     | '/sections/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/catalog'
     | '/calendar'
     | '/data-view'
     | '/fields'
@@ -197,10 +228,13 @@ export interface FileRouteTypes {
     | '/theme'
     | '/ui-primitives'
     | '/auth/callback'
+    | '/catalog/addons'
+    | '/catalog/products'
     | '/sections/$section'
   id:
     | '__root__'
     | '/'
+    | '/catalog'
     | '/data-view'
     | '/fields'
     | '/form-prototype'
@@ -216,11 +250,14 @@ export interface FileRouteTypes {
     | '/theme/'
     | '/ui-primitives/'
     | '/auth/callback/'
+    | '/catalog/addons/'
+    | '/catalog/products/'
     | '/sections/$section/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
   DataViewRouteRoute: typeof DataViewRouteRouteWithChildren
   FieldsRouteRoute: typeof FieldsRouteRouteWithChildren
   FormPrototypeRouteRoute: typeof FormPrototypeRouteRouteWithChildren
@@ -240,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/data-view': {
@@ -347,6 +391,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalog/addons/': {
+      id: '/catalog/addons/'
+      path: '/addons'
+      fullPath: '/catalog/addons/'
+      preLoaderRoute: typeof CatalogAddonsIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/products/': {
+      id: '/catalog/products/'
+      path: '/products'
+      fullPath: '/catalog/products/'
+      preLoaderRoute: typeof CatalogProductsIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
     '/sections/$section/': {
       id: '/sections/$section/'
       path: '/sections/$section'
@@ -356,6 +414,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface CatalogRouteRouteChildren {
+  CatalogAddonsIndexRoute: typeof CatalogAddonsIndexRoute
+  CatalogProductsIndexRoute: typeof CatalogProductsIndexRoute
+}
+
+const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
+  CatalogAddonsIndexRoute: CatalogAddonsIndexRoute,
+  CatalogProductsIndexRoute: CatalogProductsIndexRoute,
+}
+
+const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
+  CatalogRouteRouteChildren,
+)
 
 interface DataViewRouteRouteChildren {
   DataViewIndexRoute: typeof DataViewIndexRoute
@@ -429,6 +501,7 @@ const UiPrimitivesRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CatalogRouteRoute: CatalogRouteRouteWithChildren,
   DataViewRouteRoute: DataViewRouteRouteWithChildren,
   FieldsRouteRoute: FieldsRouteRouteWithChildren,
   FormPrototypeRouteRoute: FormPrototypeRouteRouteWithChildren,

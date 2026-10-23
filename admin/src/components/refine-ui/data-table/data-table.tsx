@@ -58,20 +58,25 @@ export function DataTable<TData extends BaseRecord>({
 
   return (
     <div className="flex flex-1 flex-col gap-4" aria-busy={isLoading}>
-      {toolbar && (
-        <DataTableToolbar
-          table={reactTable}
-          variant={toolbarVariant}
-          searchPlaceholder={searchPlaceholder}
-        >
-          <DataTableFilterMenu table={reactTable} variant={filterVariant} />
-          <DataTableSortMenu table={reactTable} />
-          {viewsStorageKey && (
-            <DataTableViews table={reactTable} storageKey={viewsStorageKey} />
-          )}
-          {toolbarActions}
-        </DataTableToolbar>
-      )}
+      <div className="flex justify-between items-center gap-4 ">
+        {toolbar && (
+          <DataTableToolbar
+            table={reactTable}
+            variant={toolbarVariant}
+            searchPlaceholder={searchPlaceholder}
+          >
+            <DataTableFilterMenu table={reactTable} variant={filterVariant} />
+            {/* <DataTableSortMenu table={reactTable} /> */}
+            {/* {viewsStorageKey && (
+                <DataTableViews
+                  table={reactTable}
+                  storageKey={viewsStorageKey}
+                />
+              )} */}
+          </DataTableToolbar>
+        )}
+        {toolbarActions}
+      </div>
       {tableQuery.isError && (
         <Card role="alert">
           <CardHeader>

@@ -1,16 +1,10 @@
 import type { ReactNode } from "react";
-import { Refine, useGetIdentity, useLogout } from "@refinedev/core";
+import { Refine } from "@refinedev/core";
 import { toast } from "sonner";
 import { Package, Store } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AdminLayout } from "@/components/admin-layout";
 import { adminAuthProvider } from "@/features/auth/supabase";
-import { Separator } from "@/components/ui/separator";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
 import { previewDataProvider, previewRouterProvider } from "./demo-provider";
 import { showcaseNavigation, type ShowcaseSection } from "./sections";
 
@@ -32,13 +26,6 @@ const resources = [
 type ShowcaseLayoutProps = {
   activeSection: ShowcaseSection;
   children: ReactNode;
-};
-
-type ShowcaseIdentity = {
-  name?: string;
-  email?: string;
-  avatar?: string;
-  image?: string;
 };
 
 export function ShowcaseLayout({
@@ -74,59 +61,12 @@ export function ShowcaseLayout({
         },
       }}
     >
-      <ShowcaseShell
+      <AdminLayout
         activeSection={activeSection}
         pageLabel={activePage?.label}
       >
         {children}
-      </ShowcaseShell>
+      </AdminLayout>
     </Refine>
-  );
-}
-
-function ShowcaseShell({
-  activeSection,
-  pageLabel,
-  children,
-}: {
-  activeSection: ShowcaseSection;
-  pageLabel?: string;
-  children: ReactNode;
-}) {
-  const { data: identity } = useGetIdentity<ShowcaseIdentity>();
-  const { mutate: logout, isPending: isLoggingOut } = useLogout();
-  const user = {
-    name: identity?.name ?? "حساب الإدارة",
-    email: identity?.email ?? "",
-    avatar: identity?.avatar ?? identity?.image ?? "",
-  };
-
-  return (
-    <SidebarProvider defaultOpen>
-      <AppSidebar
-        activeSection={activeSection}
-        user={user}
-        logOut={logout}
-        isLoggingOut={isLoggingOut}
-      />
-      <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center border-b border-sidebar-border bg-background/90 px-4 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="-ms-1" />
-            <Separator orientation="vertical" className="h-5" />
-            <div className="hidden text-sm text-muted-foreground sm:block">
-              نظام الإدارة <span className="px-1.5">/</span>
-              <span className="font-medium text-foreground">
-                {pageLabel ?? "معرض المكوّنات"}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-12 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
-          {children}
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
   );
 }

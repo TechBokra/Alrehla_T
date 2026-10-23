@@ -16,6 +16,7 @@ import { authRouterProvider } from "@/features/auth/router-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
 import { Loading } from "@/components/route-states/loading";
+import { catalogResources } from "@/features/catalog/resources";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -52,6 +53,7 @@ function RootLayout() {
 
   return (
     <Refine
+      resources={catalogResources}
       dataProvider={adminDataProvider}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}

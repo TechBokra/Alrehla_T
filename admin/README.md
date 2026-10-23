@@ -2,7 +2,7 @@
 
 The `admin/` folder contains a standalone React admin frontend built with Vite
 and TanStack Router. Its sign-in uses Refine and Supabase staging authentication;
-product records and the existing data views remain local UI previews.
+catalog resource pages use staging records; the existing showcase data views remain local UI previews.
 
 ## Start locally
 
@@ -44,6 +44,7 @@ in. Open `/sign-in` with an existing staging administrator account. See
 
 ## Guides
 
+- [Resource pages](docs/resource-pages.md) — live product/add-on lists, shared dialogs, typed forms, and save boundaries.
 - [Data tables](docs/data-table.md) — Shuip controls, Refine state, filtering, pagination, and display states.
 - [Data provider](docs/data-provider.md) — shared Supabase client, root provider, and isolated demo contexts.
 - [Routing](docs/routing.md) — folder routes, parent layouts, index pages, and dynamic children.
@@ -57,8 +58,9 @@ in. Open `/sign-in` with an existing staging administrator account. See
 - Existing demo views use in-memory fixture providers; changes reset when the page reloads.
 - Root-route navigation requires a verified Supabase user with a non-archived
   `super_admin` or `general_supervisor` profile.
-- The root Supabase data provider is configured, with no live resources registered yet.
-  Database RLS and RPC guards must enforce authorization when features are connected.
+- The root Supabase data provider serves platform products and add-ons.
+  These use existing RLS and triggers; audit logging and storefront-cache refresh
+  integration are deferred for these direct staging saves.
 
 See the guides before adding a production admin feature so it follows the
 existing route, feature, and visual conventions.

@@ -2,10 +2,12 @@
 
 ## Current phase
 
-Shared staging authentication and official Refine data-provider foundation alongside local UI previews.
+Live staging product/add-on resource pages alongside the local UI previews.
 
 ## Completed
 
+- Added the reusable resource-page/dialog foundation and platform/add-on product schemas, allowlisted payloads, and live list routes. Extracted a shared admin shell; live pages stay under the root provider while demo screens retain their own provider. Staging metadata read confirmed RLS, admin policies, and add-on Cloudinary/customization constraints; no database writes were performed.
+- Resource implementation passes route generation, TypeScript, production build, and all 25 Node unit/mocked checks. The build retains its existing large-chunk warning. Read-only staging checks also verified authenticated SELECT/INSERT/UPDATE grants and standard Cloudinary URL acceptance. Local authenticated Chrome checks covered both lists, form rendering/edit loading, validation, dirty cancellation, and no-results search; no valid form was submitted. Live save/invalidation remains unverified. Documentation is in `docs/resource-pages.md`; no migrations or production changes.
 - Completed the Refine/Shuip table composition with toolbar, advanced/faceted filtering, multi-sort, column visibility, saved views, both pagination variants, selection, loading/refetch, empty/no-results, and read-failure states. Added the paired `useDataTable` hook for client/server state translation; the local product preview uses it with the complete fixture dataset. Documented usage in `docs/data-table.md`. No staging resources or database writes were introduced.
 - The completed table composition passes TypeScript and `git diff --check`. Reviewed the Shuip documentation in the browser; application browser checks and automated tests were not run for this update.
 - Replaced the Refine data table's duplicated rendering with `components/block/shuip/data-table.tsx`. The adapter keeps the existing `UseTableReturnType` prop and Refine pagination; Shuip owns headers, rows, pinning, selection display, and loading. Supports Shuip loading variants, custom empty states, row clicks, and class names, with an Arabic default empty state. No provider or database changes.

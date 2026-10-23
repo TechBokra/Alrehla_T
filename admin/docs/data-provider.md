@@ -17,7 +17,7 @@ Never expose a service-role or secret key through a `VITE_` variable. `src/types
 
 ## Provider boundaries
 
-- The root Refine context owns the staging data provider. Constructing it sends no data request and registers no live resources.
+- The root Refine context owns the staging data provider and registers `personalized_products` and `addon_products`. Provider construction itself sends no data request. See [Resource pages](resource-pages.md) for the live catalog routes.
 - `component-showcase/layout.tsx` retains its nested Refine context with `previewDataProvider`.
 - `form-prototype/refine-demo.tsx` retains its nested Refine context with its own in-memory provider.
 - Demo `products` records are fixtures, not a staging resource. Keep all demo actions within these contexts.

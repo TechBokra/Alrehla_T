@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import {
   Blocks,
@@ -39,7 +39,7 @@ const sectionIcons = {
 } satisfies Record<ShowcaseSection, typeof Palette>;
 
 type AppSidebarProps = ComponentProps<typeof Sidebar> & {
-  activeSection: ShowcaseSection;
+  activeSection?: ShowcaseSection;
   user: {
     name: string;
     email: string;
@@ -56,6 +56,7 @@ export function AppSidebar({
   isLoggingOut,
   ...props
 }: AppSidebarProps) {
+  const pathname = useLocation({ select: location => location.pathname });
   return (
     <Sidebar side="right" collapsible="icon" {...props}>
       <SidebarHeader className="h-16 shrink-0 justify-center border-b border-sidebar-border px-2 py-2">
@@ -76,6 +77,15 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>إدارة الكتالوج</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith("/catalog/products")} tooltip="منتجات المنصة"><Link to="/catalog/products"><Table2 /><span>منتجات المنصة</span></Link></SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith("/catalog/addons")} tooltip="الإضافات"><Link to="/catalog/addons"><Blocks /><span>الإضافات</span></Link></SidebarMenuButton></SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>أقسام لوحة التحكم</SidebarGroupLabel>
           <SidebarGroupContent>
