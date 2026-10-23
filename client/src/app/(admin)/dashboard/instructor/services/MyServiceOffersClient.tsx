@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, X, Pause, Play, Clock, AlertCircle, Plus, Pencil } from 'lucide-react';
 import type { CreativeService, InstructorServiceOffer, PricingFormulaSettings } from '@/types';
-import { formatPrice, calculateFinalSessionPrice } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import {
   proposeServiceOffer,
   setMyOfferActive,
@@ -63,7 +63,6 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
     }
   };
 
-  const customerPrice = (earning: number) => calculateFinalSessionPrice(earning, formula);
 
   const startEditing = (serviceId: string, current?: number | null) => {
     setError('');
@@ -144,13 +143,18 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
                   {service.description || '—'}
                 </p>
 
+                {/* ⚠️ **حصيلة المدرب وبس — سعر العميل مابيظهرش له**
+                    (طلب الفريق، ٢٣ أكتوبر).
+
+                    السعر اللي العميل بيدفعه = حصيلة المدرب + معادلة
+                    المنصة. وعرضه للمدرب بيحوّل كل تسعيرة لمفاوضة على
+                    نسبة المنصة بدل ما تكون على قيمة شغله — وبيكشف
+                    هامش المنصة لطرف خارجي.
+
+                    الرقم اللي يهمّه هو اللي هيقبضه، وهو ظاهر. */}
                 {offer?.status === 'approved' && offer.approvedPrice != null && (
                   <p className="mt-3 text-sm font-bold text-slate-700">
                     حصيلتك: {formatPrice(offer.approvedPrice)}
-                    <span className="mx-2 text-slate-300">|</span>
-                    <span className="text-slate-500">
-                      العميل يدفع: {formatPrice(customerPrice(offer.approvedPrice))}
-                    </span>
                   </p>
                 )}
 
@@ -253,7 +257,7 @@ export function MyServiceOffersClient({ services, offers, formula, priceAlert = 
                   </Field>
                   {Number(draftPrice) > 0 && (
                     <p className="text-xs font-bold text-slate-500">
-                      العميل سيدفع: {formatPrice(customerPrice(Number(draftPrice)))}
+                      ده اللي هتقبضه عن الجلسة. الإدارة بتراجع الرقم قبل الاعتماد.
                     </p>
                   )}
                   {/*

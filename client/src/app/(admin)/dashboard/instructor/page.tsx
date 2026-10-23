@@ -160,7 +160,9 @@ export default async function InstructorDashboard() {
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-slate-700">الباقات المعتمدة:</span>
                 <span className="font-medium text-slate-800">
-                  {approvedPackages.length > 0 ? `${approvedPackages.length} باقة` : 'جميع الباقات'}
+                  {approvedPackages.length > 0
+                    ? `${approvedPackages.length} باقة`
+                    : 'لسه مفيش'}
                 </span>
               </div>
               <span className="text-slate-300 hidden sm:inline">•</span>
@@ -500,9 +502,30 @@ export default async function InstructorDashboard() {
               </Link>
             </div>
 
+            {/* ⚠️ **كان مكتوب «أنت معتمد في جميع الباقات»** (طلب
+                الفريق، ٢٣ أكتوبر: «تعديل ظهوره في كل الباقات في حالة
+                عدم اختياره»).
+
+                القايمة الفاضية معناها إن الإدارة **ماخصّصتلوش باقة
+                لسه** — مش إنها اعتمدته في كلها. والنص القديم كان
+                بيقلب الغياب لاعتماد شامل، فالمدرب يفتكر إنه جاهز
+                لأي باقة ويستنى حجوزات مش جاية.
+
+                ومش فرق في الصياغة: هو كان بيقرا «معتمد» وهو لسه
+                مستني قرار. */}
             {approvedPackages.length === 0 ? (
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
-                أنت معتمد حالياً للتدريب في <strong>جميع الباقات المتاحة بالمنصة</strong>. يمكنك تحديد باقات معينة من صفحة الإعدادات في أي وقت.
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900">
+                <p className="font-black">لسه مش مشترك في باقة</p>
+                <p className="mt-1 leading-relaxed">
+                  الإدارة ماخصّصتلكش باقات لحد دلوقتي. تقدر تطلب الباقات اللي تحبّ
+                  تدرّب فيها من «الإعدادات»، والإدارة بتراجع الطلب.
+                </p>
+                <Link
+                  href="/dashboard/instructor/settings"
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded-xl bg-amber-700 px-4 font-bold text-white hover:bg-amber-800"
+                >
+                  اطلب باقاتك
+                </Link>
               </div>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">

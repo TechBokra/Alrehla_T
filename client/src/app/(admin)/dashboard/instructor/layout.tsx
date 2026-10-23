@@ -48,9 +48,15 @@ export default async function InstructorLayout({
           { href: '/dashboard/instructor/payouts', label: 'مستحقاتي' },
           { href: '/dashboard/instructor/profile', label: 'ملفي وصوري' },
           { href: '/dashboard/instructor/settings', label: 'الإعدادات' },
-          // ⭐ (#VRKC في اختبار الإدارة) الشراء مش ممنوع عليه — بس اللوحة
-          //    ماكانش فيها طريق لطلباته ولا الدفع ولا المركز العائلي.
-          { href: '/account', label: 'مشترياتي وأطفالي' },
+          /* ⚠️ **«مشترياتي وأطفالي» اتشال** (طلب الفريق، ٢٣ أكتوبر).
+
+             اتحطّ أصلًا لأن الشراء ماكانش ممنوع على المدرب واللوحة
+             ماكانش فيها طريق لطلباته. والقرار اتغيّر من يومين:
+             حساب الشغل مايطلبش بنفس الحساب (`@/lib/buying-roles`
+             ومحفّز `block_suspended_purchase`) — فالتبويب بقى
+             بيودّي لشاشة كل أزرار الشراء فيها مقفولة.
+
+             وتبويب بيوعد بحاجة ممنوعة أسوأ من غيابه. */
         ]}
       />
       {onboarding === 'needs_profile' && (
