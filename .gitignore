@@ -23,3 +23,5 @@ Claude outputs/
 /reports/
 /docs/
 dish/
+.pnpm-store/
+.npm/
