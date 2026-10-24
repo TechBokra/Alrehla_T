@@ -38,6 +38,8 @@ export default async function InstructorLayout({
       <DashboardTabs
         tabs={[
           { href: '/dashboard/instructor', label: 'نظرة عامة' },
+          // التأهيل التأسيسي الذاتي — كان ملف منفصل (طلب تامر، ٢٤ أكتوبر).
+          { href: '/dashboard/instructor/training', label: 'التأهيل التأسيسي' },
           { href: '/dashboard/instructor/sessions', label: 'جلساتي' },
           { href: '/dashboard/instructor/students', label: 'طلابي' },
           // «خدماتي» فيها الخدمات اللي بيقدّمها **وطلباتها** في نفس

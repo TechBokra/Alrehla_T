@@ -136,6 +136,12 @@ export const ADMIN_NAV: AdminGroup[] = [
             href: `${A}/instructors/review`,
             permission: 'canManageInstructors',
           },
+          // التأهيل التأسيسي الذاتي — كان ملف HTML منفصل (طلب تامر، ٢٤ أكتوبر).
+          {
+            label: 'التأهيل التأسيسي',
+            href: `${A}/instructors/training`,
+            permission: 'canManageInstructors',
+          },
           {
             label: 'طلبات الانضمام',
             href: `${A}/join-requests`,

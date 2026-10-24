@@ -43,7 +43,7 @@ export type StepState =
   | 'locked';
 
 export type ApprovalStep = {
-  key: 'profile' | 'training' | 'exam' | 'visible';
+  key: 'profile' | 'foundation' | 'training' | 'exam' | 'visible';
   title: string;
   state: StepState;
   /** سطر بيقول إيه اللي حصل أو المطلوب — بصيغة المخاطَب. */
@@ -67,6 +67,11 @@ export type ApprovalInput = {
   } | null;
   /** طلبات تعديل الملف — عشان نفرّق «ناقص» من «مستني مراجعة». */
   requests: { status: string; requestedChanges?: Record<string, unknown> | null }[];
+  /**
+   * التأهيل التأسيسي الذاتي (طلب تامر، ٢٤ أكتوبر). `null`/غايب = الدورة
+   * مقفولة أو مش مفعّلة — الخطوة مابتظهرش خالص.
+   */
+  foundation?: { started: boolean; passed: boolean; required: boolean } | null;
 };
 
 /**
@@ -80,9 +85,10 @@ export function isAdminHold(status: InstructorStatus): boolean {
 }
 
 const PROFILE_HREF = '/dashboard/instructor/profile';
+const FOUNDATION_HREF = '/dashboard/instructor/training';
 
 export function approvalSteps(input: ApprovalInput): ApprovalStep[] {
-  const { instructor, certification, requests } = input;
+  const { instructor, certification, requests, foundation } = input;
 
   const profileDone = isProfileComplete(instructor);
   const profileInReview = requests.some(
@@ -170,7 +176,31 @@ export function approvalSteps(input: ApprovalInput): ApprovalStep[] {
           : 'بيحصل بعد اجتياز التدريب والاختبار.',
       };
 
-  return [profile, training, exam, visibleStep];
+  if (!foundation) return [profile, training, exam, visibleStep];
+
+  // ⚠️ اجتياز التأهيل الذاتي مش اعتماد — دي خطوة بيعملها المدرب بنفسه
+  //    قبل التدريب العملي. ولو المدرب اتعتمد قبل ما التأهيل يتعمل، مانقولش
+  //    له إن عليه حاجة (`examDone` = عدّى الطريق خلاص).
+  const foundationStep: ApprovalStep =
+    foundation.passed || examDone
+      ? {
+          key: 'foundation',
+          title: 'التأهيل التأسيسي',
+          state: 'done',
+          detail: foundation.passed ? 'اجتزت التأهيل التأسيسي.' : 'اتعتمدت قبل التأهيل الذاتي.',
+          ...(foundation.passed ? {} : { href: FOUNDATION_HREF, hrefLabel: 'راجع التأهيل' }),
+        }
+      : {
+          key: 'foundation',
+          title: 'التأهيل التأسيسي',
+          state: 'action',
+          detail: foundation.started
+            ? 'كمّل وحدات التأهيل والتقييم النهائي — من لوحتك وفي الوقت اللي يناسبك.'
+            : '٦ وحدات قصيرة وتقييم نهائي من لوحتك — في الوقت اللي يناسبك.',
+          href: FOUNDATION_HREF,
+          hrefLabel: foundation.started ? 'كمّل التأهيل' : 'ابدأ التأهيل',
+        };
+  return [profile, foundationStep, training, exam, visibleStep];
 }
 
 /** الخطوة اللي الطريق واقف عندها — أول واحدة مش `done`. */

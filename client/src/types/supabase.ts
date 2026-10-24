@@ -3767,6 +3767,135 @@ export type Database = {
           },
         ]
       }
+      training_courses: {
+        Row: {
+          id: string
+          title: string
+          version: string
+          content: Json
+          module_pass_pct: number
+          final_pass_pct: number
+          critical_required: boolean
+          required_for_activation: boolean
+          is_active: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id: string
+          title: string
+          version: string
+          content: Json
+          module_pass_pct?: number
+          final_pass_pct?: number
+          critical_required?: boolean
+          required_for_activation?: boolean
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          version?: string
+          content?: Json
+          module_pass_pct?: number
+          final_pass_pct?: number
+          critical_required?: boolean
+          required_for_activation?: boolean
+          is_active?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      training_final_attempts: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          course_version: string
+          selected: Json
+          correct: number
+          total: number
+          score: number
+          critical_correct: number
+          critical_total: number
+          passed: boolean
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          course_version: string
+          selected: Json
+          correct: number
+          total: number
+          score: number
+          critical_correct: number
+          critical_total: number
+          passed: boolean
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          course_version?: string
+          selected?: Json
+          correct?: number
+          total?: number
+          score?: number
+          critical_correct?: number
+          critical_total?: number
+          passed?: boolean
+          submitted_at?: string
+        }
+        Relationships: []
+      }
+      training_progress: {
+        Row: {
+          user_id: string
+          course_id: string
+          started_at: string
+          last_seen_at: string
+          active_seconds: number
+          modules: Json
+          final_attempts: number
+          best_score: number | null
+          passed_at: string | null
+          passed_version: string | null
+          reset_at: string | null
+        }
+        Insert: {
+          user_id: string
+          course_id: string
+          started_at?: string
+          last_seen_at?: string
+          active_seconds?: number
+          modules?: Json
+          final_attempts?: number
+          best_score?: number | null
+          passed_at?: string | null
+          passed_version?: string | null
+          reset_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          course_id?: string
+          started_at?: string
+          last_seen_at?: string
+          active_seconds?: number
+          modules?: Json
+          final_attempts?: number
+          best_score?: number | null
+          passed_at?: string | null
+          passed_version?: string | null
+          reset_at?: string | null
+        }
+        Relationships: []
+      }
       story_image_reviews: {
         Row: {
           id: string
@@ -4911,6 +5040,15 @@ export type Database = {
         Args: { p_version_id: string }
         Returns: string
       }
+      training_course_for_me: { Args: { p_course: string }; Returns: Json }
+      training_start: { Args: { p_course: string }; Returns: undefined }
+      training_heartbeat: { Args: { p_course: string; p_seconds: number }; Returns: undefined }
+      training_submit_module: {
+        Args: { p_course: string; p_module: number; p_answers: Json }
+        Returns: Json
+      }
+      training_submit_final: { Args: { p_course: string; p_answers: Json }; Returns: Json }
+      training_reset_progress: { Args: { p_user: string; p_course: string }; Returns: undefined }
       story_image_send: {
         Args: { p_project_id: string; p_note?: string | null }
         Returns: string

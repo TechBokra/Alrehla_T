@@ -673,7 +673,7 @@ export async function setInstructorStatus(
 
   const { data: current, error: readError } = await supabase
     .from('instructors')
-    .select('id, display_name, training_passed, status')
+    .select('id, display_name, training_passed, status, user_id')
     .eq('id', instructorId)
     .maybeSingle();
 
@@ -687,6 +687,20 @@ export async function setInstructorStatus(
       ok: false,
       error: 'مينفعش تفعّله قبل ما يجتاز التدريب والاختبار. اظبط الخانة الأول.',
     };
+  }
+
+  // ⚠️ التأهيل التأسيسي الذاتي (طلب تامر، ٢٤ أكتوبر) — لو الإدارة
+  //    خلّته إلزامي من «التأهيل التأسيسي». المدرب النشط أصلًا مابيتلمسش:
+  //    الفحص على التفعيل بس.
+  if (status === 'active' && current.status !== 'active') {
+    const { activationTrainingCheck } = await import('@/data/domains/(admin)/training/queries');
+    const foundation = await activationTrainingCheck(current.user_id ?? null);
+    if (foundation.required && !foundation.passed) {
+      return {
+        ok: false,
+        error: 'المدرب لسه مااجتازش التأهيل التأسيسي من لوحته. (تقدر تلغي الإلزام من «المدربون ← التأهيل التأسيسي».)',
+      };
+    }
   }
 
   const { data: rows, error } = await supabase

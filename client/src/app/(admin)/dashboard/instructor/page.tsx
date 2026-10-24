@@ -36,6 +36,7 @@ import {
   isAdminHold,
 } from '@/lib/instructor-approval';
 import { ApprovalJourney } from '@/components/dashboard/ApprovalJourney';
+import { getLearnerCourse } from '@/data/domains/(admin)/training/queries';
 import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
 import { getInstructorOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
 
@@ -97,6 +98,16 @@ export default async function InstructorDashboard() {
    *    `getInstructorById` (أعمدة محميّة بمحفّز في القاعدة)، لا من
    *    أي حاجة الشاشة بتحسبها.
    */
+  // التأهيل التأسيسي الذاتي — خطوة في الطريق لو الدورة متاحة.
+  const foundationLoad = instructor ? await getLearnerCourse() : null;
+  const foundation =
+    foundationLoad?.state === 'ok' && foundationLoad.data
+      ? {
+          started: !!foundationLoad.data.progress,
+          passed: !!foundationLoad.data.progress?.passedAt,
+          required: true,
+        }
+      : null;
   const steps = instructor
     ? approvalSteps({
         instructor: {
@@ -107,6 +118,7 @@ export default async function InstructorDashboard() {
         },
         certification,
         requests: updateRequests,
+        foundation,
       })
     : [];
   const headline = instructor ? approvalHeadline(instructor.status, steps) : null;
