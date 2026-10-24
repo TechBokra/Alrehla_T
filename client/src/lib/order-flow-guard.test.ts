@@ -48,4 +48,15 @@ describe('مسار الطلب', () => {
     expect(sql).toMatch(/before insert on public\.order_items/);
     expect(sql).toMatch(/= 'electronic' and v_fmt = 'printed'/);
   });
+
+  it('الإضافات بتتفلتر بالمنتج في صفحتي الطلب، والقاعدة بترفض الغلط', () => {
+    for (const rel of [
+      '../app/(client)/enha-lak/custom/[productSlug]/page.tsx',
+      '../app/(client)/enha-lak/custom-library/[productSlug]/page.tsx',
+    ]) {
+      expect(read(rel), rel).toMatch(/isVisibleFor\(a\.appliesTo, \{ productId: product\.id \}\)/);
+    }
+    const sql = read('../../supabase/migrations/20261024160000_addon_applies_to.sql');
+    expect(sql).toMatch(/not \(new\.product_id::text = any \(v_applies\)\)/);
+  });
 });

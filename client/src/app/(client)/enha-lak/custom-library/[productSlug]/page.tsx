@@ -14,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { isVisibleFor } from '@/lib/applies-to';
 import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { PageContainer } from '@/components/PageContainer';
@@ -58,7 +59,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
       <Section>
         <LibraryCustomizationWizard
           product={product}
-          addons={addons}
+          addons={addons.filter((a) => isVisibleFor(a.appliesTo, { productId: product.id }))}
           addonDiscountPercent={addonDiscountPercent}
           extraFields={extraFields}
           delivery={delivery}

@@ -19,7 +19,12 @@ export function AppliesToPicker({
   products,
   disabled,
   unavailable,
+  showBox = true,
+  allLabel = 'كل المنتجات (وصندوق الرحلة)',
 }: {
+  /** اختيار «صندوق الرحلة» — الإضافات مالهاش خطوة في الصندوق فبتخفيه. */
+  showBox?: boolean;
+  allLabel?: string;
   value: string[] | null;
   onChange: (next: string[] | null) => void;
   products: AppliesToProduct[];
@@ -62,7 +67,7 @@ export function AppliesToPicker({
             onChange={() => onChange(null)}
             className="h-4 w-4 text-blue-600 focus:ring-blue-500"
           />
-          كل المنتجات (وصندوق الرحلة)
+          {allLabel}
         </label>
         <label className="flex cursor-pointer items-center gap-2 font-bold text-slate-700">
           <input
@@ -79,11 +84,13 @@ export function AppliesToPicker({
 
       {specific && (
         <div className="space-y-3 border-t border-slate-100 pt-3">
-          <Checkbox
-            label="صندوق الرحلة"
-            checked={selected.includes(BOX_TARGET)}
-            onChange={(e) => toggle(BOX_TARGET, e.target.checked)}
-          />
+          {showBox && (
+            <Checkbox
+              label="صندوق الرحلة"
+              checked={selected.includes(BOX_TARGET)}
+              onChange={(e) => toggle(BOX_TARGET, e.target.checked)}
+            />
+          )}
           {[...groups.entries()].map(([group, list]) => (
             <div key={group} className="space-y-2">
               <p className="text-xs font-bold text-slate-500">{group}</p>

@@ -5,6 +5,8 @@ import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AddonsClient } from './AddonsClient';
+import { getManagedProducts } from '@/data/domains/(shared)/products/queries';
+import { appliesToProducts } from '@/lib/applies-to';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +22,10 @@ export default async function Page() {
     return <Unauthorized />;
   }
 
-  const addons = await getAddonProducts({ includeInactive: true });
+  const [addons, products] = await Promise.all([
+    getAddonProducts({ includeInactive: true }),
+    getManagedProducts(),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
@@ -31,7 +36,7 @@ export default async function Page() {
         السعر اللي هنا هو اللي بيتحسب عليه — الواجهة ما بتبعتش أسعار.
       </p>
 
-      <AddonsClient addons={addons} />
+      <AddonsClient addons={addons} products={appliesToProducts(products)} />
     </div>
   );
 }

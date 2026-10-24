@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { isVisibleFor } from '@/lib/applies-to';
 import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { permanentRedirect } from 'next/navigation';
@@ -75,7 +76,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
     <div className="min-h-screen bg-slate-50">
       <PersonalizationWizard
         product={product}
-        addons={addons}
+        addons={addons.filter((a) => isVisibleFor(a.appliesTo, { productId: product.id }))}
         addonDiscountPercent={addonDiscountPercent}
         extraFields={extraFields}
         goals={goals}

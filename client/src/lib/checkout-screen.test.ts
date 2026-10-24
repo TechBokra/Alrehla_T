@@ -45,10 +45,21 @@ describe('شاشة الدفع', () => {
   });
 
   it('⚠️ نص الزرار بيتبع إعداد الدفع، مش مكتوب ثابت', () => {
-    const btn = src.slice(src.indexOf('جارٍ تسجيل الطلب…'), src.indexOf('جارٍ تسجيل الطلب…') + 400);
+    // ⚠️ من ٢٤ أكتوبر: زرار واحد — «ادفع X» مع البوابة.
+    const btn = src.slice(src.indexOf('جارٍ تسجيل الطلب…'), src.indexOf('جارٍ تسجيل الطلب…') + 500);
     expect(btn).toContain('gateway');
-    expect(btn).toContain('سجّل الطلب وكمّل الدفع');
+    expect(btn).toContain('ادفع {formatPrice(grandTotal)}');
     expect(btn).toContain('سجّل الطلب واعرض بيانات التحويل');
+  });
+
+  it('⚠️ ضغطة واحدة: الزرار بيسجّل الطلب ويفتح صفحة الدفع على طول', () => {
+    // «المتابعة للدفع» ← «سجّل وكمّل» ← «ادفع» بقوا ضغطة واحدة.
+    expect(src).not.toContain('المتابعة للدفع');
+    const submit = src.slice(src.indexOf('const handleShippingSubmit'), src.indexOf('const placeOrder'));
+    expect(submit).toMatch(/placeOrder\(\)/);
+    const place = src.slice(src.indexOf('const placeOrder'));
+    expect(place).toMatch(/startGatewayPayment\(result\.orderId/);
+    expect(place).toMatch(/window\.location\.assign\(pay\.url\)/);
   });
 
   it('⚠️ تنبيه الصندوق في ملخّص الطلب، مش في خطوة الدفع', () => {

@@ -1,3 +1,4 @@
+import { readAppliesTo } from '@/lib/applies-to';
 import { PersonalizedProduct, AddonProduct } from '@/types';
 import { getWatermarkLayer } from '@/lib/watermark';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
@@ -79,6 +80,8 @@ export function mapAddonRow(a: any): AddonProduct {
       a.delivery_format === 'electronic' || a.delivery_format === 'both'
         ? a.delivery_format
         : 'printed',
+    // «بتظهر مع أنهي منتج» — قبل ترحيل ٢٤ أكتوبر العمود مش موجود = الكل.
+    appliesTo: readAppliesTo(a.applies_to),
     imageUrl: a.image_url || undefined,
     // ملف 19 — قبله الخانات دي مش موجودة فبتيجي `undefined`.
     galleryImageUrls: a.gallery_image_urls?.length ? a.gallery_image_urls : undefined,

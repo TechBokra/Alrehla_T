@@ -5,7 +5,7 @@ import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
-import { isMissingSchemaError } from '@/lib/applies-to';
+import { isMissingSchemaError, normalizeAppliesTo } from '@/lib/applies-to';
 
 /** نفس قيد القاعدة (ملف 12) — صور Cloudinary بتاعنا بس. */
 const CLOUDINARY_PREFIX = 'https://res.cloudinary.com/';
@@ -51,6 +51,8 @@ export async function saveAddon(params: {
   galleryImageUrls?: string[];
   longDescription?: string;
   features?: string[];
+  /** المنتجات اللي الإضافة بتظهر معاها — `null` = الكل (قرار ٢٤ أكتوبر). */
+  appliesTo?: string[] | null;
 }): Promise<AddonResult> {
   const admin = await requireAdmin('canManageCatalog', 'غير مصرح لك بإدارة الإضافات');
 
@@ -115,6 +117,11 @@ export async function saveAddon(params: {
       ? supabase.from('addon_products').update(r).eq('id', params.id)
       : supabase.from('addon_products').insert({ ...r, slug: slugify(name) });
 
+  // ── «بتظهر مع أنهي منتج» (٢٤ أكتوبر) ────────────────────
+  // ⚠️ في طلب لوحده: لو العمود لسه مش موجود، باقي الإضافة بيتحفظ عادي،
+  //    وبنقول بس لو الإدارة كانت مختارة منتجات فعلًا.
+  const appliesTo = normalizeAppliesTo(params.appliesTo);
+
   let { error } = await write(row);
   // ⚠️ قبل ملف 19 خانات التفاصيل مش موجودة: نحفظ من غيرها بدل ما تعديل
   //    الإضافات يقف — إلا لو الإدارة كتبت فيها، فنقول بدل ما نضيّعها.
@@ -154,6 +161,22 @@ export async function saveAddon(params: {
     entityId: params.id ?? name,
     metadata: { price: params.price },
   });
+
+  if (params.appliesTo !== undefined) {
+    const target = params.id
+      ? supabase.from('addon_products').update({ applies_to: appliesTo } as never).eq('id', params.id)
+      : supabase.from('addon_products').update({ applies_to: appliesTo } as never).eq('slug', slugify(name));
+    const { error: appliesError } = await target;
+    if (appliesError) {
+      if (isMissingSchemaError(appliesError)) {
+        if (appliesTo) {
+          return { ok: false, error: 'الإضافة اتحفظت، بس اختيار المنتجات محتاج تحديث قاعدة البيانات (٢٤ أكتوبر) يترفع الأول.' };
+        }
+      } else {
+        return { ok: false, error: `الإضافة اتحفظت، بس تعذّر حفظ المنتجات: ${appliesError.message}` };
+      }
+    }
+  }
 
   revalidatePath('/dashboard/admin/addons');
   refreshPublicPages();

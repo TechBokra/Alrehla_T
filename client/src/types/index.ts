@@ -540,6 +540,8 @@ export type AddonProduct = {
    * `both` بتتشحن ومعاها نسخة إلكترونية.
    */
   deliveryFormat: 'printed' | 'electronic' | 'both';
+  /** المنتجات اللي الإضافة بتظهر معاها — `null` = كل المنتجات (قرار ٢٤ أكتوبر). */
+  appliesTo?: string[] | null;
   /** الصورة الرئيسية من Cloudinary (ملف 12) — الكارت وأول صورة في المعرض. */
   imageUrl?: string;
   /** صور فرعية لصفحة التفاصيل (ملف 19، لحد ٨). */
