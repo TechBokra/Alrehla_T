@@ -2,12 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireUser } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins, notifyUser } from '@/lib/notifications';
 import { parseCairoInput } from '@/lib/session-plan';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { updateSessionDetails } from '@/actions/admin-sessions';
+import { rescheduleAllowed } from '@/lib/reschedule-policy';
 
 /**
  * طلبات تغيير موعد الجلسة (ملف 16 — #LQMO، قرار تامر).
@@ -79,6 +81,48 @@ export async function requestSessionChange(params: {
       .maybeSingle();
     if (sub?.user_id === user.id && user.role !== 'student') role = 'guardian';
   }
+
+  // ── سياسة التأجيل (بند ٦، ٢٤ أكتوبر) ──────────────────────
+  //
+  // ⚠️ العدّ على **الباقة كلها**: كل جلساتها، وطلبات ولي الأمر/الطالب
+  //    اللي لسه مستنية أو اتوافق عليها. المرفوض مابيتحسبش.
+  // ⚠️ **العدّ بعميل الخادم، مش بجلسة المستخدم.** صلاحيات الجدول
+  //    بتخلّي كل واحد يشوف طلباته هو بس — فولي الأمر وابنه كانوا
+  //    هيعدّوا كل واحد مرتين لوحده (أربعة للباقة). الملكية اتفحصت
+  //    فوق بجلسة المستخدم؛ هنا قراية عدد بس.
+  let usedInPackage = 0;
+  if (role !== 'instructor' && session.course_subscription_id) {
+    let admin;
+    try {
+      admin = createAdminClient();
+    } catch (e) {
+      // بيرمي لو مفتاح الخادم ناقص — والأكشن مابيرميش (قاعدة «هـ»).
+      console.error('requestSessionChange admin client', e);
+      return { ok: false, error: 'تعذّر التحقق من مرات التأجيل — جرّب تاني' };
+    }
+    const { data: packageSessions } = await admin
+      .from('sessions')
+      .select('id')
+      .eq('course_subscription_id', session.course_subscription_id);
+    const ids = (packageSessions ?? []).map((s) => s.id);
+    if (ids.length > 0) {
+      const { count, error: countError } = await admin
+        .from('session_change_requests')
+        .select('id', { count: 'exact', head: true })
+        .in('session_id', ids)
+        .in('requester_role', ['guardian', 'student'])
+        .in('status', ['pending', 'approved']);
+      // ⚠️ فشل العدّ = نوقف، مش نعدّي: البديل إن الحد مايتطبّقش بالسكوت.
+      if (countError) {
+        console.error('requestSessionChange count', countError);
+        return { ok: false, error: 'تعذّر التحقق من مرات التأجيل — جرّب تاني' };
+      }
+      usedInPackage = count ?? 0;
+    }
+  }
+
+  const policy = rescheduleAllowed({ role, scheduledAt: session.scheduled_at, usedInPackage });
+  if (!policy.ok) return { ok: false, error: policy.message };
 
   const { error } = await supabase.from('session_change_requests').insert({
     session_id: session.id,

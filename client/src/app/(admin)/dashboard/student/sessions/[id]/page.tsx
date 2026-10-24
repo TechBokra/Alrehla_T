@@ -98,7 +98,7 @@ export default async function StudentSessionPage({
 
         {/* ⭐ (#LQMO) طلب موعد تاني — الإدارة بتوافق. */}
         {canRequestChange && (
-          <SessionChangeRequest sessionId={session.id} existing={change} />
+          <SessionChangeRequest sessionId={session.id} existing={change} scheduledAt={session.scheduledAt} />
         )}
 
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex gap-3 text-blue-800">

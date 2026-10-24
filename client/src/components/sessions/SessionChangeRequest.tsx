@@ -8,6 +8,7 @@ import { useAction } from '@/lib/use-action';
 import { Field, TextInput, TextArea, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { RESCHEDULE_NOTICE_HOURS, RESCHEDULE_POLICY_TEXT } from '@/lib/reschedule-policy';
 
 type Existing = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
@@ -24,7 +25,16 @@ const fmt = (iso: string) =>
  * الموعد المقترح بيتكتب بساعة القاهرة (`datetime-local` من غير منطقة
  * زمنية — والخادم بيقراه كده). الإدارة هي اللي بتوافق وتغيّر.
  */
-export function SessionChangeRequest({ sessionId, existing }: { sessionId: string; existing: Existing }) {
+export function SessionChangeRequest({
+  sessionId,
+  existing,
+  scheduledAt,
+}: {
+  sessionId: string;
+  existing: Existing;
+  /** موعد الجلسة الحالي — لو أقل من ٢٤ ساعة الزرار بيتشال (بند ٦). */
+  scheduledAt?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [proposedAt, setProposedAt] = useState('');
@@ -46,8 +56,22 @@ export function SessionChangeRequest({ sessionId, existing }: { sessionId: strin
     );
   }
 
+  // ⚠️ نفس شرط الخادم (`rescheduleAllowed`)، عشان الشاشة ماتعرضش
+  //    نموذج هيترفض. الخادم هو الحارس — ده للعرض بس.
+  // eslint-disable-next-line react-hooks/purity -- مقارنة بالوقت الحالي للعرض فقط
+  const tooLate = scheduledAt ? new Date(scheduledAt).getTime() - Date.now() < RESCHEDULE_NOTICE_HOURS * 3_600_000 : false;
+  if (tooLate) {
+    return (
+      <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-700">
+        فاضل أقل من {RESCHEDULE_NOTICE_HOURS} ساعة على الجلسة، فتغيير الموعد مش متاح من هنا. لو فيه ظرف طارئ،
+        كلّم الإدارة من الدعم.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
+      <p className="text-xs font-medium text-slate-500">{RESCHEDULE_POLICY_TEXT}</p>
       {existing?.status === 'rejected' && existing.adminNote && (
         <p className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-700">
           آخر طلب تغيير اترفض: {existing.adminNote}

@@ -125,7 +125,11 @@ export async function saveSessionReport(params: {
         event: 'session_update',
         recipientProfileId: subscription.user_id,
         title: `تقرير الجلسة ${session.session_number}`,
-        message: `${attendanceText} · ${user.fullName || 'المدرب'} كتب تقريرًا عن الجلسة.`,
+        // سياسة الغياب (بند ٦، ٢٤ أكتوبر): الغياب من غير طلب تأجيل بيتحسب.
+        message:
+          attendance === 'absent'
+            ? `${attendanceText} · الجلسة اتحسبت من الباقة لأن الغياب ماكانش بطلب تأجيل قبلها بـ٢٤ ساعة. لو فيه ظرف، كلّمنا من الدعم.`
+            : `${attendanceText} · ${user.fullName || 'المدرب'} كتب تقريرًا عن الجلسة.`,
         link: '/account/bookings',
       });
     }
@@ -136,7 +140,9 @@ export async function saveSessionReport(params: {
       await notifyAdmins({
         event: 'session_update',
         title: 'غياب في جلسة',
-        message: `الطالب لم يحضر الجلسة ${session.session_number} مع ${user.fullName || 'المدرب'}.`,
+        message:
+          `الطالب لم يحضر الجلسة ${session.session_number} مع ${user.fullName || 'المدرب'} — واتحسبت عليه. ` +
+          'لو ولي الأمر اعترض بظرف، تقدر تحدد موعد تعويض من صفحة الجلسة.',
         link: `/dashboard/admin/sessions/${sessionId}`,
       });
     }

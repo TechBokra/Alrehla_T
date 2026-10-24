@@ -123,6 +123,7 @@ export default async function DependentFollowUpPage({
             <SessionChangeRequest
               sessionId={nextSession.id}
               existing={nextChange}
+              scheduledAt={nextSession.scheduledAt}
             />
           </div>
         </section>

@@ -39,7 +39,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       {/* ⭐ (#LQMO) المدرب يطلب موعد تاني — الإدارة بتوافق. */}
       {canRequestChange && (
         <div className="mt-6">
-          <SessionChangeRequest sessionId={session.id} existing={change} />
+          <SessionChangeRequest sessionId={session.id} existing={change} scheduledAt={session.scheduledAt} />
         </div>
       )}
     </div>
