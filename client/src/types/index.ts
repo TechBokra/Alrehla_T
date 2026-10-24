@@ -65,6 +65,8 @@ export type WritingPackage = {
    * مختلف عن `isActive` اللي بيخفيها خالص. الغايب = مفتوحة.
    */
   bookingOpen?: boolean;
+  /** صورة الباقة (Cloudinary) — الغايب = خلفية المسار. */
+  imageUrl?: string | null;
 };
 
 // ملف المدرب

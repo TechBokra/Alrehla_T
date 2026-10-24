@@ -142,6 +142,25 @@ export async function saveWritingPackage(
     }
   }
 
+  // ── صورة الباقة (٢٤ أكتوبر) ──────────────────────────────
+  //
+  // ⚠️ نفس شرط «الحجز مفتوح»: بتتكتب بس لو النموذج بعت الخانة
+  //    (`hasImage`)، ولو العمود لسه مش موجود، الباقي بيتحفظ والشاشة
+  //    بتقول. ورابط من برّه Cloudinary بيترفض — نفس قاعدة الإضافات.
+  let imageSkipped = false;
+  if (formData.get('hasImage') === '1') {
+    const imageUrl = String(formData.get('imageUrl') ?? '').trim();
+    if (imageUrl && !imageUrl.startsWith('https://res.cloudinary.com/')) {
+      return { ok: false as const, error: 'الصورة لازم تترفع من زرار الرفع.', field: 'imageUrl' };
+    }
+    const probe = await supabase
+      .from('creative_writing_packages')
+      .select('image_url' as never)
+      .limit(1);
+    if (probe.error) imageSkipped = true;
+    else payload = { ...payload, image_url: imageUrl || null } as typeof payload;
+  }
+
   let savedId = id;
 
   if (isNew) {
@@ -205,11 +224,11 @@ export async function saveWritingPackage(
 
   revalidatePath('/dashboard/admin/writing/packages');
   refreshPublicPages();
-  if (bookingOpenSkipped) {
+  if (bookingOpenSkipped || imageSkipped) {
+    const which = [bookingOpenSkipped && '«الحجز مفتوح»', imageSkipped && 'الصورة'].filter(Boolean).join(' و');
     return {
       ok: false as const,
-      error:
-        'الباقة اتحفظت، بس خانة «الحجز مفتوح» لسه ماتحفظتش: محتاجة تحديث قاعدة البيانات (ترحيل ٢٤ أكتوبر) يترفع الأول.',
+      error: `الباقة اتحفظت، بس ${which} لسه ماتحفظتش: محتاجة تحديث قاعدة البيانات يترفع الأول.`,
     };
   }
   return { ok: true as const };

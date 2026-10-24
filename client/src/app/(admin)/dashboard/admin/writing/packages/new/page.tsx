@@ -5,6 +5,7 @@ import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { saveWritingPackage } from '@/actions/writing';
 import { ActionForm } from '@/components/dashboard/ActionForm';
+import { ImageField } from '@/components/dashboard/ImageField';
 import {
   Checkbox,
   Field,
@@ -138,6 +139,16 @@ export default async function Page() {
             defaultChecked
             label="الباقة ظاهرة على الموقع"
           />
+          <input type="hidden" name="hasImage" value="1" />
+          <ImageField
+            name="imageUrl"
+            label="صورة الباقة"
+            folder="alrehla/packages"
+            aspect="wide"
+            library
+            hint="بتظهر فوق كارت الباقة وفي أول صفحة التفاصيل. الأفضل صورة عرضية (١٦:١٠) معبّرة عن محتوى الباقة، من غير نص مكتوب عليها."
+          />
+
           <input type="hidden" name="hasBookingOpen" value="1" />
           <Checkbox
             id="bookingOpen"

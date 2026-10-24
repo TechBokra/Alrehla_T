@@ -8,6 +8,7 @@ import { saveWritingPackage } from '@/actions/writing';
 import { countPackageInterest } from '@/actions/package-interest';
 import { NotifyInterestButton } from './NotifyInterestButton';
 import { ActionForm } from '@/components/dashboard/ActionForm';
+import { ImageField } from '@/components/dashboard/ImageField';
 import {
   Checkbox,
   Field,
@@ -194,6 +195,17 @@ export default async function Page({
           />
 
           {/* بند ٩ (٢٤ أكتوبر): الباقة تفضل ظاهرة والحجز «قريبًا». */}
+          <input type="hidden" name="hasImage" value="1" />
+          <ImageField
+            name="imageUrl"
+            label="صورة الباقة"
+            folder="alrehla/packages"
+            aspect="wide"
+            library
+            value={target.imageUrl ?? ""}
+            hint="بتظهر فوق كارت الباقة وفي أول صفحة التفاصيل. الأفضل صورة عرضية (١٦:١٠) معبّرة عن محتوى الباقة، من غير نص مكتوب عليها."
+          />
+
           <input type="hidden" name="hasBookingOpen" value="1" />
           <Checkbox
             id="bookingOpen"

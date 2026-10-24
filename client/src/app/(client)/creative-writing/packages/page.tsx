@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 import Link from 'next/link';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
-import { PackageCard } from '@/components/creative-writing/PackageCard';
+import { PackageCard, trackStyle } from '@/components/creative-writing/PackageCard';
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
 import { SectionTabs } from '@/components/SectionTabs';
@@ -93,22 +93,34 @@ export default async function PackagesPage() {
       <PageContainer className="!py-0 !space-y-0">
         <SectionTabs items={tabItems} />
 
-      <div className="mx-auto w-full max-w-6xl space-y-20 pb-20">
-        {tracks.map((track) =>
-          track.items.length === 0 ? null : (
-            <Section key={track.key} id={track.key} className="scroll-mt-24">
-              <div className="mb-10 text-center md:text-right">
-                <h2 className="text-3xl font-black text-slate-800">{track.title}</h2>
-                <p className="mt-2 font-medium text-slate-500">{track.subtitle}</p>
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {track.items.map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} />
-                ))}
-              </div>
-            </Section>
-          ),
-        )}
+      <div className="mx-auto w-full max-w-5xl space-y-16 pb-20">
+        {tracks
+          .filter((track) => track.items.length > 0)
+          .map((track, idx) => {
+            const style = trackStyle(track.key);
+            return (
+              <Section key={track.key} id={track.key} className="scroll-mt-24">
+                {/* رأس المسار: رقم ولون — المسارات خطوات في رحلة، مش قايمة. */}
+                <div className="mb-8 flex items-start gap-4">
+                  <span
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-white shadow-sm ${style.accent}`}
+                    aria-hidden="true"
+                  >
+                    {(idx + 1).toLocaleString('ar-EG')}
+                  </span>
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 md:text-3xl">{track.title}</h2>
+                    <p className="mt-1 font-medium text-slate-500">{track.subtitle}</p>
+                  </div>
+                </div>
+                <div className={`grid gap-6 md:grid-cols-2 ${track.items.length > 2 ? 'lg:grid-cols-3' : ''}`}>
+                  {track.items.map((pkg) => (
+                    <PackageCard key={pkg.id} pkg={pkg} />
+                  ))}
+                </div>
+              </Section>
+            );
+          })}
 
         {untracked.length > 0 && (
           <Section id="other" className="scroll-mt-24">
@@ -118,7 +130,7 @@ export default async function PackagesPage() {
                 {content['packages.otherSubtitle']}
               </p>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               {untracked.map((pkg) => (
                 <PackageCard key={pkg.id} pkg={pkg} />
               ))}

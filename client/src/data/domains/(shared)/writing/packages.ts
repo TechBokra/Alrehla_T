@@ -37,5 +37,6 @@ export const getWritingPackages = async (
     isActive: p.is_active,
     // العمود ممكن يكون لسه مش موجود (قبل ترحيل ٢٤ أكتوبر) = مفتوحة.
     bookingOpen: p.booking_open !== false,
+    imageUrl: p.image_url || null,
   }));
 };
