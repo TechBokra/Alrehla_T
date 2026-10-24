@@ -1,0 +1,24 @@
+import { describe, expect, it } from 'vitest';
+import { cartSignature, resumableFor, PENDING_ORDER_TTL_MS } from './pending-order-store';
+
+const items = [{ id: 'a', productId: 'p', format: 'electronic', addonIds: ['x'] }];
+const pending = { orderId: 'o1', reference: 'R-1', total: 900, signature: cartSignature(items), at: 1_000 };
+
+describe('resumableFor', () => {
+  it('نفس السلة وفي خلال يوم = يتعرض', () => {
+    expect(resumableFor(pending, items, 2_000)).toEqual(pending);
+  });
+
+  it('⚠️ السلة اتغيّرت (إضافة اتشالت) = لأ — الطلب المسجّل مابقاش هو', () => {
+    expect(resumableFor(pending, [{ ...items[0], addonIds: [] }], 2_000)).toBeNull();
+  });
+
+  it('أقدم من يوم = لأ', () => {
+    expect(resumableFor(pending, items, 1_000 + PENDING_ORDER_TTL_MS + 1)).toBeNull();
+  });
+
+  it('سلة فاضية أو مفيش طلب محفوظ = لأ', () => {
+    expect(resumableFor(pending, [], 2_000)).toBeNull();
+    expect(resumableFor(null, items, 2_000)).toBeNull();
+  });
+});

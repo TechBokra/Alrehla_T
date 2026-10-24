@@ -21,7 +21,8 @@ import { createOrder, createBoxSubscriptionOrder, submitPaymentProof } from '@/a
 import type { PaymentMethod } from '@/actions/orders';
 import { PaymentProofForm } from '@/components/checkout/PaymentProofForm';
 import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
-import { startGatewayPayment } from '@/actions/payments';
+import { getResumableOrder, startGatewayPayment } from '@/actions/payments';
+import { cartSignature, clearPendingOrder, loadPendingOrder, resumableFor, savePendingOrder } from '@/lib/pending-order-store';
 import { METHOD_LABELS, type PaymentAvailability } from '@/lib/payments/settings';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
@@ -139,6 +140,60 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       i.format === 'electronic' && (i.addonIds ?? []).some((id) => addonFormats[id] === 'printed'),
   );
   const canContinue = shippingKnown && !electronicBlocked && addonConflicts.length === 0;
+
+  // ── طلب اتسجّل ومااتدفعش (قرار ٢٤ أكتوبر) ────────────────────
+  // العميل راح صفحة الدفع ورجع من غير ما يدفع: بنعرض عليه يكمّل على
+  // نفس الطلب بدل ما يتسجّل طلب تاني — **لو اختار**.
+  const [resumable, setResumable] = useState<{ orderId: string; reference: string; total: number } | null>(null);
+  const [resuming, setResuming] = useState(false);
+  React.useEffect(() => {
+    const pending = resumableFor(loadPendingOrder(), items);
+    if (!pending) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ بيتقري بعد أول رسم.
+      setResumable(null);
+      return;
+    }
+    let alive = true;
+    void getResumableOrder(pending.orderId).then((r) => {
+      if (!alive) return;
+      if (r.ok) setResumable({ orderId: pending.orderId, reference: r.reference, total: r.total });
+      else {
+        // اتدفع أو اتلغى — مالوش لازمة يفضل محفوظ.
+        clearPendingOrder();
+        setResumable(null);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [items]);
+
+  const resumeOrder = () => {
+    if (!resumable) return;
+    setResuming(true);
+    setOrderError('');
+    startTransition(async () => {
+      if (gateway) {
+        try {
+          const pay = await startGatewayPayment(resumable.orderId, 'order');
+          if (pay.ok) {
+            window.location.assign(pay.url);
+            return;
+          }
+          setOrderError(pay.error);
+        } catch {
+          setOrderError('تعذّر فتح صفحة الدفع. جرّب تاني.');
+        }
+        setResuming(false);
+        return;
+      }
+      // التحويل: نفس الطلب، وبيانات التحويل ورفع الإيصال.
+      setPlacedOrder({ id: resumable.orderId, reference: resumable.reference, total: resumable.total });
+      setResuming(false);
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  };
 
   // ── المنطقة اللي اتختارت في المعالج ──────────────────────────
   // «يكمّل الطلب مباشرة»: العميل اختار منطقته في خطوة ٣، فمانسألوش تاني.
@@ -309,6 +364,13 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       }
 
       setPlacedOrder({ id: result.orderId, reference: result.paymentReference, total: result.totalAmount });
+      // عشان لو رجع من صفحة الدفع من غير ما يدفع، يقدر يكمّل على نفس الطلب.
+      savePendingOrder({
+        orderId: result.orderId,
+        reference: result.paymentReference,
+        total: result.totalAmount,
+        signature: cartSignature(items),
+      });
 
       // البوابة: على صفحة الدفع على طول — من غير زرار «ادفع» تاني.
       // ⚠️ `isProcessing` بيفضل شغّال: الصفحة بتتنقل، والزرار مايتضغطش تاني.
@@ -346,6 +408,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       }
 
       clearCart();
+      clearPendingOrder();
       // المنتجات اللي استنت طلب الاشتراك (`saveDeferredItems`) ترجع للسلة
       // — ودلوقتي هتاخد خصم المشترك لما الدفع يتأكد.
       for (const item of takeDeferredItems<CartItem>()) addItem(item);
@@ -420,6 +483,38 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       <div className="lg:col-span-2 space-y-8">
         
         {/* Step 1: Shipping */}
+        {resumable && !placedOrder && (
+          <div role="status" className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900">
+            <p className="font-black">عندك طلب بنفس المحتويات اتسجّل ولسه مادفعتوش</p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">
+              رقم الطلب <span className="font-mono font-bold" dir="ltr">{resumable.reference}</span> — المبلغ{' '}
+              {formatPrice(resumable.total)}. تقدر تكمّل دفعه بدل ما يتسجّل طلب جديد.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={resumeOrder}
+                disabled={resuming || isPending}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-60"
+              >
+                {resuming ? 'لحظة…' : gateway ? `كمّل دفع الطلب ده (${formatPrice(resumable.total)})` : 'كمّل الطلب ده'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearPendingOrder();
+                  setResumable(null);
+                }}
+                disabled={resuming}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-blue-300 bg-white px-5 text-sm font-bold text-blue-900 hover:bg-blue-100"
+              >
+                اعمل طلب جديد
+              </button>
+            </div>
+            {orderError && <p className="mt-3 text-sm font-bold text-red-700">{orderError}</p>}
+          </div>
+        )}
+
         {addonConflicts.length > 0 && (
           <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
             <p className="font-black">

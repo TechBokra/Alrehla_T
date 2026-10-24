@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/Button';
 import { CheckCircle, Package, ArrowLeft, Clock } from 'lucide-react';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { ClearPaidCart } from '@/components/checkout/ClearPaidCart';
 
 
 export default async function PaymentStatusPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
@@ -41,6 +42,8 @@ export default async function PaymentStatusPage({ searchParams }: { searchParams
 
   return (
     <PageContainer className="!py-0 !space-y-0">
+      {/* السلة بتتفضّى هنا بعد الدفع بالبوابة (كانت بتفضل مليانة). */}
+      <ClearPaidCart orderId={order.id} />
       <Section containerClassName="mx-auto w-full max-w-2xl pt-24 pb-32 text-center">
         <div className={`mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-full ${isAwaiting ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'}`}>
           {isAwaiting ? <Clock className="h-16 w-16" /> : <CheckCircle className="h-16 w-16" />}

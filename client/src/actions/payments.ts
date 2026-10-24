@@ -267,6 +267,33 @@ async function requirePaymentsAdmin() {
   }
 }
 
+/**
+ * الطلب ده لسه مستني دفع؟ — لاستكمال طلب اتسجّل ومااتدفعش (قرار ٢٤
+ * أكتوبر). بجلسة العميل: صلاحيات `orders` بتوري طلباته هو بس.
+ *
+ * ⚠️ مابترميش. أي فشل = «مش متاح للاستكمال»، والعميل يعمل طلب جديد.
+ */
+export async function getResumableOrder(
+  orderId: string,
+): Promise<{ ok: true; reference: string; total: number } | { ok: false }> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('orders')
+      .select('id, status, total_amount, payment_reference')
+      .eq('id', orderId)
+      .maybeSingle();
+    if (!data || (data.status !== 'pending' && data.status !== 'failed')) return { ok: false };
+    return {
+      ok: true,
+      reference: data.payment_reference ?? data.id.slice(0, 8),
+      total: Number(data.total_amount),
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export async function savePaymentSettings(input: {
   provider: string;
   methods: string[];

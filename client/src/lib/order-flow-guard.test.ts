@@ -59,4 +59,13 @@ describe('مسار الطلب', () => {
     const sql = read('../../supabase/migrations/20261024160000_addon_applies_to.sql');
     expect(sql).toMatch(/not \(new\.product_id::text = any \(v_applies\)\)/);
   });
+
+  it('طلب اتسجّل ومااتدفعش: بيتحفظ، وبيتعرض للاستكمال، والسلة بتتفضّى بعد الدفع', () => {
+    const checkout = read('../app/(client)/enha-lak/checkout/CheckoutClient.tsx');
+    expect(checkout).toMatch(/savePendingOrder\(/);
+    expect(checkout).toMatch(/getResumableOrder\(pending\.orderId\)/);
+    expect(checkout).toContain('اعمل طلب جديد');
+    const confirmation = read('../app/(client)/enha-lak/order-confirmation/page.tsx');
+    expect(confirmation).toMatch(/<ClearPaidCart orderId=\{order\.id\} \/>/);
+  });
 });
