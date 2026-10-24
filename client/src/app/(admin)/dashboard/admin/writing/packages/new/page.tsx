@@ -26,7 +26,10 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="إضافة باقة جديدة" backHref="/dashboard/admin/writing/packages" />
+      <DashboardPageHeader
+        title="إضافة باقة جديدة"
+        backHref="/dashboard/admin/writing/packages"
+      />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         {/* `ActionForm` بدل `<form action>` العادي: لو الأكشن رجّع خطأ
@@ -41,7 +44,12 @@ export default async function Page() {
             <Field label="اسم الباقة" name="name" required>
               <TextInput />
             </Field>
-            <Field label="الفئة العمرية" help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل." name="ageGroup" required>
+            <Field
+              label="الفئة العمرية"
+              help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل."
+              name="ageGroup"
+              required
+            >
               <Select>
                 <option value="under_12">أقل من 12 سنة</option>
                 <option value="12_plus">12 سنة فأكثر</option>
@@ -62,10 +70,20 @@ export default async function Page() {
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="الوصف القصير" help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها." name="shortDescription" required>
+            <Field
+              label="الوصف القصير"
+              help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها."
+              name="shortDescription"
+              required
+            >
               <TextInput />
             </Field>
-            <Field label="الفئة المستهدفة" help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»." name="targetAudience" required>
+            <Field
+              label="الفئة المستهدفة"
+              help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»."
+              name="targetAudience"
+              required
+            >
               <TextInput />
             </Field>
           </FormSection>
@@ -75,27 +93,58 @@ export default async function Page() {
           </Field>
 
           <FormSection columns={3}>
-            <Field label="السعر (ج.م)" help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز." name="price" required>
+            <Field
+              label="السعر (ج.م)"
+              help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز."
+              name="price"
+              required
+            >
               <TextInput type="number" />
             </Field>
             <Field label="عدد الجلسات" name="sessionsCount" required>
               <TextInput type="number" />
             </Field>
-            <Field label="مدة الجلسة" help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»." name="sessionDuration" required>
+            <Field
+              label="مدة الجلسة"
+              help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»."
+              name="sessionDuration"
+              required
+            >
               <TextInput defaultValue="40 دقيقة" />
             </Field>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="مدة البرنامج الإجمالية (نص)" help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»." name="durationText" required>
+            <Field
+              label="مدة البرنامج الإجمالية (نص)"
+              help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»."
+              name="durationText"
+              required
+            >
               <TextInput />
             </Field>
-            <Field label="ملاحظة المتطلبات السابقة" help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة." name="prerequisiteNote">
+            <Field
+              label="ملاحظة المتطلبات السابقة"
+              help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة."
+              name="prerequisiteNote"
+            >
               <TextInput />
             </Field>
           </FormSection>
 
-          <Checkbox id="isActive" name="isActive" defaultChecked label="الباقة نشطة ومتاحة للحجز" />
+          <Checkbox
+            id="isActive"
+            name="isActive"
+            defaultChecked
+            label="الباقة ظاهرة على الموقع"
+          />
+          <input type="hidden" name="hasBookingOpen" value="1" />
+          <Checkbox
+            id="bookingOpen"
+            name="bookingOpen"
+            defaultChecked
+            label="الحجز مفتوح — لو مش متعلّم، الباقة بتظهر «قريبًا» مع زرار «بلّغني لما تفتح»"
+          />
 
           <FormActions>
             <SubmitButton>إضافة الباقة</SubmitButton>

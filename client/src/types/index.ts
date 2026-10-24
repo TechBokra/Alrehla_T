@@ -60,6 +60,11 @@ export type WritingPackage = {
   shortDescription: string;
   fullDescription: string;
   isActive: boolean;
+  /**
+   * false = الباقة ظاهرة والحجز «قريبًا» (قرار ٢٤ أكتوبر، بند ٩).
+   * مختلف عن `isActive` اللي بيخفيها خالص. الغايب = مفتوحة.
+   */
+  bookingOpen?: boolean;
 };
 
 // ملف المدرب
@@ -955,6 +960,8 @@ export interface ChildProfile {
   userProfileId: string;
   fullName: string;
   birthDate: string | null;
+  /** استثناء السن من الإدارة (بند ١٠) — بيغلب تاريخ الميلاد. */
+  ageGroupOverride?: AgeGroup | null;
   /** ذكر/أنثى — تُستخدم في صياغة القصة. كانت تُجمع في المعالج وتُهمل. */
   gender?: 'male' | 'female' | null;
   avatarUrl?: string | null;

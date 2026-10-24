@@ -5,6 +5,7 @@ import { formatPrice } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { DependentRequestButton } from '@/components/services/DependentRequestButton';
+import { PackageInterestButton } from '@/components/creative-writing/PackageInterestButton';
 
 /** رابط صفحة تفاصيل الباقة — من مكان واحد عشان الكارت والصفحة مايفترقوش. */
 export function packageHref(pkg: Pick<WritingPackage, 'slug' | 'id'>): string {
@@ -12,7 +13,9 @@ export function packageHref(pkg: Pick<WritingPackage, 'slug' | 'id'>): string {
 }
 
 export function ageGroupLabel(ageGroup: WritingPackage['ageGroup']): string {
-  return ageGroup === 'under_12' ? 'مناسبة لأقل من 12 سنة' : 'مناسبة لـ 12 سنة فأكثر';
+  return ageGroup === 'under_12'
+    ? 'مناسبة لأقل من 12 سنة'
+    : 'مناسبة لـ 12 سنة فأكثر';
 }
 
 /**
@@ -29,6 +32,10 @@ export function PackageBookButton({
   pkg: WritingPackage;
   className?: string;
 }) {
+  // باقة «قريبًا»: ظاهرة، والحجز مقفول (بند ٩). القاعدة كمان بترفض.
+  if (pkg.bookingOpen === false) {
+    return <PackageInterestButton packageId={pkg.id} className={className} />;
+  }
   return (
     <Button
       // الباقة بتتبعت في الرابط: قبل كده كان اللي بيختار باقة معيّنة
@@ -43,7 +50,13 @@ export function PackageBookButton({
 }
 
 /** المدة · الجلسات · مدة الجلسة — صف صغير مشترك بين الكارت والصفحة. */
-export function PackageStats({ pkg, size = 'sm' }: { pkg: WritingPackage; size?: 'sm' | 'lg' }) {
+export function PackageStats({
+  pkg,
+  size = 'sm',
+}: {
+  pkg: WritingPackage;
+  size?: 'sm' | 'lg';
+}) {
   const items = [
     // الخانة بتفضل ظاهرة حتى لو المدة مش متسجّلة، عشان الكروت ما تبقاش
     // مختلفة الشكل من باقة للتانية.
@@ -55,12 +68,23 @@ export function PackageStats({ pkg, size = 'sm' }: { pkg: WritingPackage; size?:
   ];
   const big = size === 'lg';
   return (
-    <div className={`grid ${items.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} ${big ? 'gap-4' : 'gap-2'}`}>
+    <div
+      className={`grid ${items.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} ${big ? 'gap-4' : 'gap-2'}`}
+    >
       {items.map(({ icon: Icon, label, value }) => (
-        <div key={label} className={`rounded-xl bg-slate-50 text-center ${big ? 'p-4' : 'px-2 py-2.5'}`}>
-          <Icon className={`mx-auto text-slate-400 ${big ? 'mb-2 h-5 w-5' : 'mb-1 h-4 w-4'}`} />
+        <div
+          key={label}
+          className={`rounded-xl bg-slate-50 text-center ${big ? 'p-4' : 'px-2 py-2.5'}`}
+        >
+          <Icon
+            className={`mx-auto text-slate-400 ${big ? 'mb-2 h-5 w-5' : 'mb-1 h-4 w-4'}`}
+          />
           <div className="text-[11px] font-medium text-slate-500">{label}</div>
-          <div className={`font-bold text-slate-800 ${big ? 'text-base' : 'text-xs'}`}>{value}</div>
+          <div
+            className={`font-bold text-slate-800 ${big ? 'text-base' : 'text-xs'}`}
+          >
+            {value}
+          </div>
         </div>
       ))}
     </div>

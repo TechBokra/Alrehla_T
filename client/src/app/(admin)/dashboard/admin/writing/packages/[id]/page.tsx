@@ -5,6 +5,8 @@ import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { saveWritingPackage } from '@/actions/writing';
+import { countPackageInterest } from '@/actions/package-interest';
+import { NotifyInterestButton } from './NotifyInterestButton';
 import { ActionForm } from '@/components/dashboard/ActionForm';
 import {
   Checkbox,
@@ -19,7 +21,11 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageCatalog')) {
     return <Unauthorized />;
@@ -27,21 +33,47 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { id } = await params;
   const packages = await getWritingPackages();
-  const target = packages.find(p => p.id === id);
+  const target = packages.find((p) => p.id === id);
 
   if (!target) {
     return <div className="p-8 text-center">الباقة غير موجودة</div>;
   }
 
+  // `null` = الجدول لسه مش موجود (الترحيل ما اتشغّلش) — القسم مايظهرش.
+  const interested = await countPackageInterest(target.id);
+
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <DashboardPageHeader title={`تعديل الباقة: ${target.name}`} backHref="/dashboard/admin/writing/packages" />
-      
+      <DashboardPageHeader
+        title={`تعديل الباقة: ${target.name}`}
+        backHref="/dashboard/admin/writing/packages"
+      />
+
+      {interested !== null && (
+        <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-6">
+          <p className="mb-1 text-lg font-black text-amber-900">
+            {interested.toLocaleString('ar-EG')} مستني يتبلّغ لما الباقة تفتح
+          </p>
+          <p className="mb-4 text-sm font-medium text-amber-900/80">
+            {target.bookingOpen === false
+              ? 'الباقة دلوقتي «قريبًا». بعد ما تعلّم «الحجز مفتوح» وتحفظ، ابعت لهم الإشعار من هنا.'
+              : 'الحجز مفتوح — لو لسه مابلّغتهمش، ابعت لهم دلوقتي.'}
+          </p>
+          {target.bookingOpen !== false && (
+            <NotifyInterestButton packageId={target.id} count={interested} />
+          )}
+        </div>
+      )}
+
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         {/* `ActionForm` بدل `<form action>` العادي: خطأ الأكشن بيتعرض فوق
             النموذج والإداري يفضل مكانه بتعديلاته. وبعد الحفظ بيفضل في
             نفس الصفحة برسالة «اتحفظ» عشان لو عايز يكمّل تعديل. */}
-        <ActionForm action={saveWritingPackage} successMessage="اتحفظ ✓" className="space-y-6">
+        <ActionForm
+          action={saveWritingPackage}
+          successMessage="اتحفظ ✓"
+          className="space-y-6"
+        >
           <input type="hidden" name="id" value={target.id} />
           <input type="hidden" name="slug" value={target.slug} />
 
@@ -49,7 +81,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <Field label="اسم الباقة" name="name" required>
               <TextInput defaultValue={target.name} />
             </Field>
-            <Field label="الفئة العمرية" help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل." name="ageGroup" required>
+            <Field
+              label="الفئة العمرية"
+              help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل."
+              name="ageGroup"
+              required
+            >
               <Select defaultValue={target.ageGroup}>
                 <option value="under_12">أقل من 12 سنة</option>
                 <option value="12_plus">12 سنة فأكثر</option>
@@ -70,10 +107,20 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="الوصف القصير" help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها." name="shortDescription" required>
+            <Field
+              label="الوصف القصير"
+              help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها."
+              name="shortDescription"
+              required
+            >
               <TextInput defaultValue={target.shortDescription} />
             </Field>
-            <Field label="الفئة المستهدفة" help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»." name="targetAudience" required>
+            <Field
+              label="الفئة المستهدفة"
+              help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»."
+              name="targetAudience"
+              required
+            >
               <TextInput defaultValue={target.targetAudience} />
             </Field>
           </FormSection>
@@ -83,7 +130,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </Field>
 
           <FormSection columns={3}>
-            <Field label="السعر (ج.م)" help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز." name="price" required>
+            <Field
+              label="السعر (ج.م)"
+              help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز."
+              name="price"
+              required
+            >
               <TextInput type="number" defaultValue={target.price} />
             </Field>
             <Field label="عدد الجلسات" name="sessionsCount" required>
@@ -103,16 +155,33 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   دلوقتي الخانة بتفضل فاضية، و`required` بيلزم
                   الإداري يكتبها بوعي. ولوحة الإدارة أصلًا بتعدّ
                   الباقات الناقصة (`packagesMissingDuration`). */}
-            <Field label="مدة الجلسة" help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»." name="sessionDuration" required>
-              <TextInput defaultValue={target.sessionDuration ?? ''} placeholder="مثال: 40 دقيقة" />
+            <Field
+              label="مدة الجلسة"
+              help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»."
+              name="sessionDuration"
+              required
+            >
+              <TextInput
+                defaultValue={target.sessionDuration ?? ''}
+                placeholder="مثال: 40 دقيقة"
+              />
             </Field>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="مدة البرنامج الإجمالية (نص)" help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»." name="durationText" required>
+            <Field
+              label="مدة البرنامج الإجمالية (نص)"
+              help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»."
+              name="durationText"
+              required
+            >
               <TextInput defaultValue={target.durationText} />
             </Field>
-            <Field label="ملاحظة المتطلبات السابقة" help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة." name="prerequisiteNote">
+            <Field
+              label="ملاحظة المتطلبات السابقة"
+              help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة."
+              name="prerequisiteNote"
+            >
               <TextInput defaultValue={target.prerequisiteNote} />
             </Field>
           </FormSection>
@@ -121,7 +190,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             id="isActive"
             name="isActive"
             defaultChecked={target.isActive}
-            label="الباقة نشطة ومتاحة للحجز"
+            label="الباقة ظاهرة على الموقع"
+          />
+
+          {/* بند ٩ (٢٤ أكتوبر): الباقة تفضل ظاهرة والحجز «قريبًا». */}
+          <input type="hidden" name="hasBookingOpen" value="1" />
+          <Checkbox
+            id="bookingOpen"
+            name="bookingOpen"
+            defaultChecked={target.bookingOpen !== false}
+            label="الحجز مفتوح — لو مش متعلّم، الباقة بتظهر «قريبًا» مع زرار «بلّغني لما تفتح»"
           />
 
           <FormActions>

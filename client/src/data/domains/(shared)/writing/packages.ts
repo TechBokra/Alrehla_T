@@ -4,18 +4,18 @@ import { createPublicClient } from '@/lib/supabase/public';
 
 // Import from auth if needed
 
-
-
-
-export const getWritingPackages = async (options: QueryReadOptions = {}): Promise<WritingPackage[]> => {
+export const getWritingPackages = async (
+  options: QueryReadOptions = {}
+): Promise<WritingPackage[]> => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.from('creative_writing_packages')
+  const { data, error } = await supabase
+    .from('creative_writing_packages')
     .select('*')
     .order('created_at', { ascending: true });
 
   if (error && options.throwOnError) throw error;
 
-  if ((error || !data || data.length === 0)) {
+  if (error || !data || data.length === 0) {
     return [];
   }
 
@@ -34,6 +34,8 @@ export const getWritingPackages = async (options: QueryReadOptions = {}): Promis
     prerequisitePackageId: p.prerequisite_package_id || undefined,
     shortDescription: p.short_description,
     fullDescription: p.full_description,
-    isActive: p.is_active
+    isActive: p.is_active,
+    // العمود ممكن يكون لسه مش موجود (قبل ترحيل ٢٤ أكتوبر) = مفتوحة.
+    bookingOpen: p.booking_open !== false,
   }));
 };

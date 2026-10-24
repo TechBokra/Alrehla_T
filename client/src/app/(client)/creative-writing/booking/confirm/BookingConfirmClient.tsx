@@ -1,18 +1,33 @@
 'use client';
+
+import type { AgeGroup } from '@/types';
+import { childFitsPackage, type ChildForAge } from '@/lib/package-age';
 import { formatPrice } from '@/lib/utils';
 import React, { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { Calendar, Clock, User, CheckCircle2, ArrowRight } from 'lucide-react';
-import { createCourseBooking, submitBookingPaymentProof } from '@/actions/bookings';
-import { PaymentProofForm, type PaymentMethod } from '@/components/checkout/PaymentProofForm';
+import {
+  createCourseBooking,
+  submitBookingPaymentProof,
+} from '@/actions/bookings';
+import {
+  PaymentProofForm,
+  type PaymentMethod,
+} from '@/components/checkout/PaymentProofForm';
 import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
 import type { PaymentAvailability } from '@/lib/payments/settings';
 import { Button } from '@/components/ui/Button';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
-import { consentLabel, type SessionRecordingSettings } from '@/lib/session-recording';
-import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
+import {
+  consentLabel,
+  type SessionRecordingSettings,
+} from '@/lib/session-recording';
+import {
+  DiscountCodeField,
+  type AppliedDiscount,
+} from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
 
 export function BookingConfirmClient({
@@ -27,6 +42,7 @@ export function BookingConfirmClient({
   instructorAvatarUrl,
   preferredSlot,
   presetChildId,
+  packageAgeGroup,
   recording,
   recordingText,
 }: {
@@ -48,19 +64,36 @@ export function BookingConfirmClient({
    * من غيره كان لازم يختاره بإيده، فيحجز باسمه هو بالغلط.
    */
   presetChildId?: string;
+  /** فئة سن الباقة — الأطفال اللي مش في السن ده بيظهروا مقفولين (بند ١٠). */
+  packageAgeGroup?: AgeGroup;
   /** إعدادات تسجيل الجلسات — الإفصاح والموافقة بيتبنوا منها. */
   recording: SessionRecordingSettings;
   /** نصوص التسجيل من لوحة التحكم — المدة بتتحط مكان {المدة}. */
   recordingText: { notice: string; consent: string };
 }) {
   const [participantType, setParticipantType] = useState<'self' | 'child'>(
-    presetChildId ? 'child' : 'self',
+    presetChildId ? 'child' : 'self'
   );
   const [childId, setChildId] = useState<string>(presetChildId ?? '');
-  const [children, setChildren] = useState<{id:string, name:string}[]>([]);
+  const [children, setChildren] = useState<(ChildForAge & { id: string })[]>(
+    []
+  );
 
   React.useEffect(() => {
-    import('@/app/actions/family').then(mod => mod.fetchFamilyMembers()).then(data => setChildren(data ? data.map((d: any) => ({id: d.id, name: d.fullName})) : []));
+    import('@/app/actions/family')
+      .then((mod) => mod.fetchFamilyMembers())
+      .then((data) =>
+        setChildren(
+          data
+            ? data.map((d) => ({
+                id: d.id,
+                name: d.fullName,
+                birthDate: d.birthDate,
+                ageGroupOverride: d.ageGroupOverride ?? null,
+              }))
+            : []
+        )
+      );
   }, []);
 
   // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
@@ -70,10 +103,16 @@ export function BookingConfirmClient({
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [booking, setBooking] = useState<{ id: string; reference: string; amount: number | null } | null>(null);
+  const [booking, setBooking] = useState<{
+    id: string;
+    reference: string;
+    amount: number | null;
+  } | null>(null);
   // كود الخصم (ملف 13) — للعرض، والقاعدة بتحسبه وقت الحجز.
   const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
-  const discountOff = discount ? discountAmount(packagePrice, discount.percent) : 0;
+  const discountOff = discount
+    ? discountAmount(packagePrice, discount.percent)
+    : 0;
   const [isPending, startTransition] = useTransition();
 
   // ⚠️ **الموافقة مبدئيًّا مش متعلَّمة، ومفيش «موافق ضمنًا».** ولي
@@ -110,14 +149,21 @@ export function BookingConfirmClient({
         return;
       }
 
-      setBooking({ id: result.subscriptionId, reference: result.paymentReference, amount: result.amount });
+      setBooking({
+        id: result.subscriptionId,
+        reference: result.paymentReference,
+        amount: result.amount,
+      });
     });
   };
 
   /** الخطوة التانية: الإيصال بعد التحويل. */
   // ⚠️ المعامل اسمه `proof` مش `payment`: بقى فيه خاصية اسمها `payment`
   //    (إعدادات البوابة)، والتظليل هنا كان هيخلّي القراية مضلّلة.
-  const handleReceipt = (proof: { method: PaymentMethod; receiptUrl: string }) => {
+  const handleReceipt = (proof: {
+    method: PaymentMethod;
+    receiptUrl: string;
+  }) => {
     if (!booking) return;
     startTransition(async () => {
       setError('');
@@ -140,13 +186,23 @@ export function BookingConfirmClient({
           بانتظار تأكيد الدفع
         </h2>
         <p className="mb-8 text-slate-600">
-          لقد استلمنا طلب الحجز الخاص بك وجاري مراجعة التحويل. سنؤكد حجزك قريبًا.
+          لقد استلمنا طلب الحجز الخاص بك وجاري مراجعة التحويل. سنؤكد حجزك
+          قريبًا.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button href="/account/orders/creative-writing" variant="neutral" className="px-8 py-3">
+        <div className="flex flex-col justify-center gap-4 sm:flex-row">
+          <Button
+            href="/account/orders/creative-writing"
+            variant="neutral"
+            className="px-8 py-3"
+          >
             تتبع الحجز
           </Button>
-          <Button href="/creative-writing" variant="secondary" accentColor="emerald" className="px-8 py-3">
+          <Button
+            href="/creative-writing"
+            variant="secondary"
+            accentColor="emerald"
+            className="px-8 py-3"
+          >
             العودة للرئيسية
           </Button>
         </div>
@@ -156,7 +212,7 @@ export function BookingConfirmClient({
 
   return (
     <>
-      <div className="mb-8 rounded-2xl bg-slate-50 p-6 border border-slate-100">
+      <div className="mb-8 rounded-2xl border border-slate-100 bg-slate-50 p-6">
         <h2 className="mb-6 text-xl font-bold text-slate-800">تفاصيل الجلسة</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between font-medium text-slate-600">
@@ -189,12 +245,14 @@ export function BookingConfirmClient({
               <Clock className="h-5 w-5 text-emerald-500" />
               <span>الموعد</span>
             </div>
-            <span className="font-bold text-slate-900">يتحدد بعد تأكيد الدفع</span>
+            <span className="font-bold text-slate-900">
+              يتحدد بعد تأكيد الدفع
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="mb-8 rounded-2xl bg-emerald-50 p-6 border border-emerald-100">
+      <div className="mb-8 rounded-2xl border border-emerald-100 bg-emerald-50 p-6">
         <h2 className="mb-4 text-lg font-bold text-slate-800">ملخص الدفع</h2>
         <div className="flex justify-between text-xl font-black text-slate-900">
           <span>قيمة الباقة</span>
@@ -204,13 +262,19 @@ export function BookingConfirmClient({
           <>
             <div className="mt-2 flex justify-between text-sm font-bold text-emerald-800">
               <span>
-                خصم <span dir="ltr" className="font-mono">{discount.code}</span> ({discount.percent.toLocaleString('ar-EG')}٪)
+                خصم{' '}
+                <span dir="ltr" className="font-mono">
+                  {discount.code}
+                </span>{' '}
+                ({discount.percent.toLocaleString('ar-EG')}٪)
               </span>
               <span>− {formatPrice(discountOff)}</span>
             </div>
             <div className="mt-2 flex justify-between border-t border-emerald-200 pt-2 text-xl font-black text-slate-900">
               <span>المطلوب</span>
-              <span className="text-emerald-700">{formatPrice(packagePrice - discountOff)}</span>
+              <span className="text-emerald-700">
+                {formatPrice(packagePrice - discountOff)}
+              </span>
             </div>
           </>
         )}
@@ -223,8 +287,12 @@ export function BookingConfirmClient({
             role="status"
             className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-3"
           >
-            <span className="text-sm font-black text-emerald-900">وفّرت في الحجز ده</span>
-            <span className="text-lg font-black text-emerald-700">{formatPrice(discountOff)}</span>
+            <span className="text-sm font-black text-emerald-900">
+              وفّرت في الحجز ده
+            </span>
+            <span className="text-lg font-black text-emerald-700">
+              {formatPrice(discountOff)}
+            </span>
           </div>
         )}
 
@@ -303,9 +371,17 @@ export function BookingConfirmClient({
               </p>
             ) : (
               <>
-                <div role="radiogroup" aria-label="المشارك" className="grid gap-3 sm:grid-cols-2">
+                <div
+                  role="radiogroup"
+                  aria-label="المشارك"
+                  className="grid gap-3 sm:grid-cols-2"
+                >
                   {[
-                    { value: 'self' as const, title: 'ليا أنا', note: 'الحجز باسمك' },
+                    {
+                      value: 'self' as const,
+                      title: 'ليا أنا',
+                      note: 'الحجز باسمك',
+                    },
                     {
                       value: 'child' as const,
                       title: 'لواحد من أبنائي',
@@ -315,7 +391,8 @@ export function BookingConfirmClient({
                     },
                   ].map((choice) => {
                     const active = participantType === choice.value;
-                    const blocked = choice.value === 'child' && children.length === 0;
+                    const blocked =
+                      choice.value === 'child' && children.length === 0;
                     return (
                       <button
                         key={choice.value}
@@ -329,7 +406,9 @@ export function BookingConfirmClient({
                         }}
                         className={`rounded-2xl border-2 p-4 text-start transition-colors disabled:opacity-50 ${active ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                       >
-                        <span className="block font-bold text-slate-800">{choice.title}</span>
+                        <span className="block font-bold text-slate-800">
+                          {choice.title}
+                        </span>
                         <span className="mt-1 block text-xs font-medium text-slate-600">
                           {choice.note}
                         </span>
@@ -346,13 +425,28 @@ export function BookingConfirmClient({
                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-600"
                   >
                     <option value="">اختار المشارك…</option>
-                    {children.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
+                    {children.map((c) => {
+                      const fit = packageAgeGroup
+                        ? childFitsPackage(c, packageAgeGroup)
+                        : { ok: true as const };
+                      return (
+                        <option key={c.id} value={c.id} disabled={!fit.ok}>
+                          {fit.ok ? c.name : `${c.name} — ${fit.message}`}
+                        </option>
+                      );
+                    })}
                   </select>
                 )}
+                {participantType === 'child' &&
+                  packageAgeGroup &&
+                  children.some(
+                    (c) => !childFitsPackage(c, packageAgeGroup).ok
+                  ) && (
+                    <p className="text-xs font-medium text-slate-500">
+                      الأطفال اللي مش في سن الباقة بيظهروا مقفولين. لو محتاج
+                      استثناء لحالة معيّنة، كلّمنا من الدعم.
+                    </p>
+                  )}
               </>
             )}
           </div>
@@ -411,21 +505,23 @@ export function BookingConfirmClient({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex flex-col gap-4 pt-4 sm:flex-row">
             <Button
               type="submit"
               disabled={isPending || consentMissing}
               accentColor="emerald"
               className="flex-1 py-4 text-center disabled:opacity-70"
             >
-              {isPending ? 'جارٍ تسجيل الحجز…' : 'سجّل الحجز واعرض بيانات التحويل'}
+              {isPending
+                ? 'جارٍ تسجيل الحجز…'
+                : 'سجّل الحجز واعرض بيانات التحويل'}
               {!isPending && <CheckCircle2 className="h-5 w-5" />}
             </Button>
             <Button
               href="/creative-writing/booking"
               variant="secondary"
               accentColor="emerald"
-              className="sm:w-1/3 py-4 text-center"
+              className="py-4 text-center sm:w-1/3"
             >
               <ArrowRight className="h-5 w-5" />
               تعديل الاختيار

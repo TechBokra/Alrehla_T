@@ -1,7 +1,11 @@
 'use client';
 
 import { SITE_URL } from '@/lib/site-url';
-import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
+import {
+  accountMessage,
+  greetByName,
+  SIGN_IN_PATH,
+} from '@/lib/account-message';
 import React, { useState, useMemo } from 'react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ticketStatus } from '@/lib/ticket-status';
@@ -55,6 +59,7 @@ import {
   BusyButton,
   fieldClass,
 } from '@/components/forms/Form';
+import { ChildAgeOverrideSelect } from './ChildAgeOverrideSelect';
 import { ROLE_LABELS } from '../UsersClient';
 
 export interface UserOrderRow {
@@ -91,6 +96,8 @@ export interface UserChildRow {
   birthDate?: string;
   age?: number | null;
   createdAt: string;
+  /** استثناء السن في الحجز (بند ١٠). */
+  ageGroupOverride?: 'under_12' | '12_plus' | null;
 }
 
 export interface UserTicketRow {
@@ -1134,6 +1141,10 @@ export function AdminUserDetailClient({
                       <span className="text-slate-400">تاريخ الإضافة: </span>
                       <span>{formatDate(ch.createdAt)}</span>
                     </div>
+                    <ChildAgeOverrideSelect
+                      childId={ch.id}
+                      initial={ch.ageGroupOverride ?? null}
+                    />
                   </div>
                 </div>
               ))}

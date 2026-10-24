@@ -27,7 +27,11 @@ import { Section } from '@/components/ui/Section';
 export default async function BookingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ package?: string; instructor?: string; child?: string }>;
+  searchParams: Promise<{
+    package?: string;
+    instructor?: string;
+    child?: string;
+  }>;
 }) {
   const { instructor: instructorParam, child: childParam } = await searchParams;
   const [instructors, packages] = await Promise.all([
@@ -39,7 +43,7 @@ export default async function BookingPage({
   // اللي مفيش حاجة بتكتبها. من غير ده عميلين يقدروا يحجزوا نفس المدرب
   // في نفس الساعة من نفس اليوم.
   const bookedSlots = await getBookedSlotsByInstructor(
-    instructors.filter((i) => i.status === 'active').map((i) => i.id),
+    instructors.filter((i) => i.status === 'active').map((i) => i.id)
   );
 
   // المستفيد بييجي من موافقة ولي الأمر على طلب ابنه.
@@ -80,7 +84,7 @@ export default async function BookingPage({
   const viewer = await getCurrentUser();
   if (staffPurchaseBlock(viewer.role)) {
     return (
-      <PageContainer className="!py-0 !space-y-0">
+      <PageContainer className="!space-y-0 !py-0">
         <Section containerClassName="mx-auto w-full max-w-2xl pt-16 pb-24">
           <StaffAccountNotice role={viewer.role} what="الحجز" />
         </Section>
@@ -90,12 +94,15 @@ export default async function BookingPage({
 
   if (dependentOf) {
     return (
-      <PageContainer className="!py-0 !space-y-0">
+      <PageContainer className="!space-y-0 !py-0">
         <Section containerClassName="mx-auto w-full max-w-2xl pt-16 pb-24">
           <div className="rounded-card border border-amber-200 bg-amber-50 p-6">
-            <h1 className="mb-2 text-2xl font-black text-amber-900">محتاج موافقة ولي أمرك</h1>
+            <h1 className="mb-2 text-2xl font-black text-amber-900">
+              محتاج موافقة ولي أمرك
+            </h1>
             <p className="mb-5 font-medium text-amber-900">
-              الحجز بيتم من حساب ولي أمرك. ابعتله الطلب من هنا، وهو يكمّل الحجز ويختار الموعد.
+              الحجز بيتم من حساب ولي أمرك. ابعتله الطلب من هنا، وهو يكمّل الحجز
+              ويختار الموعد.
             </p>
             <DependentRequestButton
               kind="package"
@@ -109,27 +116,41 @@ export default async function BookingPage({
   }
 
   return (
-    <PageContainer className="!py-0 !space-y-0">
+    <PageContainer className="!space-y-0 !py-0">
       <Section containerClassName="mx-auto w-full max-w-4xl pt-12 pb-24">
-        <h1 className="mb-10 text-center text-3xl font-black text-slate-800 md:text-5xl">حجز مسار تدريبي</h1>
+        <h1 className="mb-10 text-center text-3xl font-black text-slate-800 md:text-5xl">
+          حجز مسار تدريبي
+        </h1>
         <p className="mx-auto mb-12 max-w-2xl text-center text-lg font-medium text-slate-500">
-          اختر الباقة المناسبة والمدرب، ثم حدد موعدك الأسبوعي الثابت طوال فترة التدريب.
+          اختر الباقة المناسبة والمدرب، ثم حدد موعدك الأسبوعي الثابت طوال فترة
+          التدريب.
         </p>
-        <Suspense fallback={<div className="p-8 text-center font-medium text-slate-500">جاري التحميل…</div>}>
-        <BookingWizardClient
-          instructors={instructors}
-          bookedSlots={bookedSlots}
-          presetInstructorId={instructorParam}
-          presetChild={presetChild ? { id: presetChild.id, name: presetChild.fullName } : undefined}
-          packages={packages
-            .filter((pkg) => pkg.isActive)
-            .map((pkg) => ({
-              id: pkg.id,
-              name: pkg.name,
-              price: pkg.price,
-              ageGroup: pkg.ageGroup,
-            }))}
-        />
+        <Suspense
+          fallback={
+            <div className="p-8 text-center font-medium text-slate-500">
+              جاري التحميل…
+            </div>
+          }
+        >
+          <BookingWizardClient
+            instructors={instructors}
+            bookedSlots={bookedSlots}
+            presetInstructorId={instructorParam}
+            presetChild={
+              presetChild
+                ? { id: presetChild.id, name: presetChild.fullName }
+                : undefined
+            }
+            packages={packages
+              // باقات «قريبًا» ماتظهرش في اختيار الحجز (بند ٩).
+              .filter((pkg) => pkg.isActive && pkg.bookingOpen !== false)
+              .map((pkg) => ({
+                id: pkg.id,
+                name: pkg.name,
+                price: pkg.price,
+                ageGroup: pkg.ageGroup,
+              }))}
+          />
         </Suspense>
       </Section>
     </PageContainer>

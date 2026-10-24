@@ -13,7 +13,13 @@ import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 const DAY_ORDER: DayOfWeek[] = [
-  'saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+  'saturday',
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
 ];
 
 /** كان اليوم بيتكتب بالإنجليزي حرفيًا («saturday») في صفحة عربية. */
@@ -83,7 +89,7 @@ export function BookingWizardClient({
   const [selectedPackage, setSelectedPackage] = useState(
     packages.some((pkg) => pkg.id === requestedPackage)
       ? requestedPackage
-      : (packages[0]?.id ?? ''),
+      : (packages[0]?.id ?? '')
   );
   // المدرب اللي الابن طلبه بيتختار سلفًا — لو لسه مفعّل.
   //
@@ -92,9 +98,11 @@ export function BookingWizardClient({
   //    الأمر بيمر من نفس الخطوات، واختيارات الابن **جاهزة** بس
   //    قابلة للتغيير.
   const [selectedInstructorId, setSelectedInstructorId] = useState<string>(
-    instructors.some((i) => i.id === presetInstructorId && i.status === 'active')
+    instructors.some(
+      (i) => i.id === presetInstructorId && i.status === 'active'
+    )
       ? (presetInstructorId as string)
-      : '',
+      : ''
   );
   const [selectedSlot, setSelectedSlot] = useState<WeeklySlot | null>(null);
 
@@ -113,7 +121,9 @@ export function BookingWizardClient({
   const activeInstructors = instructors.filter(
     (i) =>
       i.status === 'active' &&
-      (!i.packageIds || i.packageIds.length === 0 || i.packageIds.includes(selectedPackage)),
+      (!i.packageIds ||
+        i.packageIds.length === 0 ||
+        i.packageIds.includes(selectedPackage))
   );
 
   /** الميعاد محجوز لحد امتى؟ فاضي = متاح. */
@@ -134,24 +144,30 @@ export function BookingWizardClient({
     setSelectedSlot(null);
   }
 
-  const bookedUntilFor = (instructorId: string, slot: WeeklySlot): string | null => {
+  const bookedUntilFor = (
+    instructorId: string,
+    slot: WeeklySlot
+  ): string | null => {
     const taken = (bookedSlots[instructorId] ?? []).find(
-      (b) => b.day === slot.day && b.time === slot.time,
+      (b) => b.day === slot.day && b.time === slot.time
     );
     return taken?.bookedUntil ?? null;
   };
 
   const formatUntil = (iso: string) =>
-    new Date(iso).toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE,
+    new Date(iso).toLocaleDateString('ar-EG', {
+      timeZone: PLATFORM_TIMEZONE,
       day: 'numeric',
       month: 'long',
       year: 'numeric',
     });
   const chosenPackage = packages.find((pkg) => pkg.id === selectedPackage);
-  const selectedInstructor = activeInstructors.find(i => i.id === selectedInstructorId);
+  const selectedInstructor = activeInstructors.find(
+    (i) => i.id === selectedInstructorId
+  );
 
-  const handleNext = () => setStep(prev => prev + 1);
-  const handlePrev = () => setStep(prev => prev - 1);
+  const handleNext = () => setStep((prev) => prev + 1);
+  const handlePrev = () => setStep((prev) => prev - 1);
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +190,10 @@ export function BookingWizardClient({
   };
 
   return (
-    <Card accentColor="emerald" className="p-6 md:p-10 shadow-xl shadow-slate-200/50">
+    <Card
+      accentColor="emerald"
+      className="p-6 shadow-xl shadow-slate-200/50 md:p-10"
+    >
       {/* ولي الأمر لازم يعرف إنه بيكمّل طلب ابنه، ولمين الحجز. */}
       {presetChild && (
         <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
@@ -189,22 +208,25 @@ export function BookingWizardClient({
       )}
 
       <form onSubmit={handleConfirm} className="space-y-8">
-        
         {/* Step 1: Package & Instructor */}
         {step === 1 && (
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="flex items-center gap-3 text-xl font-bold text-slate-800">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">1</div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">
+                  1
+                </div>
                 اختيار الباقة والمدرب
               </h2>
-              
+
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الباقة المختارة</label>
-                <select 
+                <label className="text-sm font-bold text-slate-700">
+                  الباقة المختارة
+                </label>
+                <select
                   value={selectedPackage}
                   onChange={(e) => setSelectedPackage(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-emerald-500"
                 >
                   {packages.map((pkg) => (
                     <option key={pkg.id} value={pkg.id}>
@@ -214,15 +236,18 @@ export function BookingWizardClient({
                 </select>
                 {chosenPackage && (
                   <p className="text-xs font-medium text-slate-500">
+                    {/* بند ١٠ (٢٤ أكتوبر): السن بقى شرط مش توضيح. */}
                     {chosenPackage.ageGroup === 'under_12'
-                      ? 'الباقة دي مصمّمة لأقل من 12 سنة — توضيح للمساعدة في الاختيار، والحجز متاح في كل الأحوال.'
-                      : 'الباقة دي مصمّمة لـ 12 سنة فأكثر — توضيح للمساعدة في الاختيار، والحجز متاح في كل الأحوال.'}
+                      ? 'الباقة دي لأقل من 12 سنة — والحجز فيها للأطفال في السن ده.'
+                      : 'الباقة دي لـ 12 سنة فأكثر — والحجز فيها للمشاركين في السن ده.'}
                   </p>
                 )}
               </div>
 
               <div className="space-y-4">
-                <label className="text-sm font-bold text-slate-700">المدرب المفضل</label>
+                <label className="text-sm font-bold text-slate-700">
+                  المدرب المفضل
+                </label>
                 {/* ⚠️ الرسالة بتفرّق بين سببين مختلفين. «مفيش مدربين»
                     على باقة ليها مدربين في باقات تانية بتخلّي ولي
                     الأمر يفتكر إن الموقع مكسور، والحقيقة إنه اختار
@@ -246,13 +271,16 @@ export function BookingWizardClient({
                   aria-label="اختيار المدرب"
                   className="grid gap-4 md:grid-cols-2"
                 >
-                  {activeInstructors.map(inst => (
-                    <div 
+                  {activeInstructors.map((inst) => (
+                    <div
                       key={inst.id}
                       role="radio"
                       aria-checked={selectedInstructorId === inst.id}
                       tabIndex={0}
-                      onClick={() => { setSelectedInstructorId(inst.id); setSelectedSlot(null); }}
+                      onClick={() => {
+                        setSelectedInstructorId(inst.id);
+                        setSelectedSlot(null);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
@@ -261,8 +289,8 @@ export function BookingWizardClient({
                         }
                       }}
                       className={`cursor-pointer rounded-2xl border-2 p-4 transition-[border-color,box-shadow] duration-200 ease-[var(--ease-ui)] ${
-                        selectedInstructorId === inst.id 
-                          ? 'border-journey-border bg-journey-soft shadow-md' 
+                        selectedInstructorId === inst.id
+                          ? 'border-journey-border bg-journey-soft shadow-md'
                           : 'border-slate-100 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -275,17 +303,24 @@ export function BookingWizardClient({
                           اتكرر في **خمس** شاشات، فبقى في مكوّن واحد
                           (`PersonAvatar`) بدل ما يتنسخ في كل واحدة.
                         */}
-                        <PersonAvatar name={inst.displayName} avatarUrl={inst.avatarUrl} />
+                        <PersonAvatar
+                          name={inst.displayName}
+                          avatarUrl={inst.avatarUrl}
+                        />
                         <div>
-                          <h4 className="font-bold text-slate-800">{inst.displayName}</h4>
-                          <p className="text-xs text-slate-500">{inst.specialties.join('، ')}</p>
+                          <h4 className="font-bold text-slate-800">
+                            {inst.displayName}
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            {inst.specialties.join('، ')}
+                          </p>
                         </div>
                       </div>
 
                       {/* نبذة وخبرة المدرب في نفس الصفحة: كان لازم العميل
                           يخرج لصفحة المدرب عشان يقرر. */}
                       {inst.bio && (
-                        <p className="mt-3 text-sm leading-relaxed text-slate-600 line-clamp-3">
+                        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">
                           {inst.bio}
                         </p>
                       )}
@@ -311,13 +346,13 @@ export function BookingWizardClient({
                 </div>
               </div>
             </div>
-            
+
             <Button
               type="button"
               onClick={handleNext}
               disabled={!selectedInstructorId}
               accentColor="emerald"
-              className="w-full py-4 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 text-center disabled:cursor-not-allowed disabled:opacity-50"
             >
               متابعة لاختيار الموعد
               <ArrowRight className="h-5 w-5 rotate-180" />
@@ -330,20 +365,29 @@ export function BookingWizardClient({
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="flex items-center gap-3 text-xl font-bold text-slate-800">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">2</div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">
+                  2
+                </div>
                 الموعد الأسبوعي الثابت
               </h2>
-              
+
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                <p className="font-bold mb-1">الجدول الأسبوعي:</p>
-                <p>يتم اختيار الموعد مرة واحدة، وسيكون هو <strong>موعدك الثابت في نفس اليوم والساعة أسبوعياً</strong> طوال فترة الباقة.</p>
+                <p className="mb-1 font-bold">الجدول الأسبوعي:</p>
+                <p>
+                  يتم اختيار الموعد مرة واحدة، وسيكون هو{' '}
+                  <strong>موعدك الثابت في نفس اليوم والساعة أسبوعياً</strong>{' '}
+                  طوال فترة الباقة.
+                </p>
               </div>
 
-              {(!selectedInstructor.weeklySchedule || selectedInstructor.weeklySchedule.length === 0) ? (
-                <p className="text-slate-500 text-center py-4">لا توجد مواعيد متاحة حالياً لهذا المدرب.</p>
+              {!selectedInstructor.weeklySchedule ||
+              selectedInstructor.weeklySchedule.length === 0 ? (
+                <p className="py-4 text-center text-slate-500">
+                  لا توجد مواعيد متاحة حالياً لهذا المدرب.
+                </p>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {DAY_ORDER.map(dayKey => {
+                  {DAY_ORDER.map((dayKey) => {
                     // بنعرض المواعيد المحجوزة كمان — معطّلة ومكتوب عليها
                     // «محجوز حتى». اختفاؤها كان بيخلي العميل يفتكر إن
                     // المدرب مش شغّال في الوقت ده أصلًا.
@@ -351,21 +395,41 @@ export function BookingWizardClient({
                       .filter((s) => {
                         if (s.day !== dayKey) return false;
                         // استبعاد المواعيد المؤقتة التي انقضى تاريخ نهايتها المحدد باليوم
-                        if (s.commitmentType === 'fixed_term' && s.commitmentEndsAt) {
+                        if (
+                          s.commitmentType === 'fixed_term' &&
+                          s.commitmentEndsAt
+                        ) {
                           const ends = parseISO(s.commitmentEndsAt);
-                          if (isValid(ends) && isBefore(calendarDate(ends), calendarDate(new Date(now)))) return false;
+                          if (
+                            isValid(ends) &&
+                            isBefore(
+                              calendarDate(ends),
+                              calendarDate(new Date(now))
+                            )
+                          )
+                            return false;
                         }
                         return true;
                       })
                       .sort((a, b) => a.time.localeCompare(b.time));
                     if (daySlots.length === 0) return null;
                     return (
-                      <div key={dayKey} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <h4 className="font-bold text-slate-700 mb-3">{DAY_LABELS[dayKey]}</h4>
+                      <div
+                        key={dayKey}
+                        className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                      >
+                        <h4 className="mb-3 font-bold text-slate-700">
+                          {DAY_LABELS[dayKey]}
+                        </h4>
                         <div className="grid grid-cols-2 gap-2">
-                          {daySlots.map(s => {
-                            const isSelected = selectedSlot?.day === s.day && selectedSlot?.time === s.time;
-                            const bookedUntil = bookedUntilFor(selectedInstructor.id, s);
+                          {daySlots.map((s) => {
+                            const isSelected =
+                              selectedSlot?.day === s.day &&
+                              selectedSlot?.time === s.time;
+                            const bookedUntil = bookedUntilFor(
+                              selectedInstructor.id,
+                              s
+                            );
                             if (bookedUntil) {
                               return (
                                 <div
@@ -375,7 +439,7 @@ export function BookingWizardClient({
                                   <span className="block text-sm font-bold text-slate-400 line-through">
                                     {s.time}
                                   </span>
-                                  <span className="block text-[10px] font-bold leading-tight text-slate-500">
+                                  <span className="block text-[10px] leading-tight font-bold text-slate-500">
                                     محجوز حتى {formatUntil(bookedUntil)}
                                   </span>
                                 </div>
@@ -389,19 +453,22 @@ export function BookingWizardClient({
                                 className={`rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                                   isSelected
                                     ? 'bg-emerald-600 text-white shadow-md'
-                                    : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-400'
+                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-400'
                                 }`}
                               >
                                 <span>{s.time}</span>
-                                {s.commitmentType === 'fixed_term' && s.commitmentEndsAt && (
-                                  <span
-                                    className={`block text-[10px] font-medium leading-tight mt-0.5 ${
-                                      isSelected ? 'text-emerald-100' : 'text-amber-700'
-                                    }`}
-                                  >
-                                    مؤقت حتى {s.commitmentEndsAt}
-                                  </span>
-                                )}
+                                {s.commitmentType === 'fixed_term' &&
+                                  s.commitmentEndsAt && (
+                                    <span
+                                      className={`mt-0.5 block text-[10px] leading-tight font-medium ${
+                                        isSelected
+                                          ? 'text-emerald-100'
+                                          : 'text-amber-700'
+                                      }`}
+                                    >
+                                      مؤقت حتى {s.commitmentEndsAt}
+                                    </span>
+                                  )}
                               </button>
                             );
                           })}
@@ -428,7 +495,7 @@ export function BookingWizardClient({
                 onClick={handleNext}
                 disabled={!selectedSlot}
                 accentColor="emerald"
-                className="flex-1 py-4 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-4 text-center disabled:cursor-not-allowed disabled:opacity-50"
               >
                 متابعة البيانات
                 <ArrowRight className="h-5 w-5 rotate-180" />
@@ -442,10 +509,12 @@ export function BookingWizardClient({
           <div className="space-y-8">
             <div className="space-y-6">
               <h2 className="flex items-center gap-3 text-xl font-bold text-slate-800">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">3</div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-600">
+                  3
+                </div>
                 تأكيد البيانات والحجز
               </h2>
-              
+
               {/*
                 كان هنا حقلين: «اسم المتدرب» و«مجال الاهتمام». الاتنين
                 `required` — يعني بيوقّفوا العميل لحد ما يملاهم — وبلا
@@ -455,11 +524,13 @@ export function BookingWizardClient({
               */}
 
               <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
-                <h3 className="font-bold text-slate-800 mb-4">ملخص الحجز:</h3>
+                <h3 className="mb-4 font-bold text-slate-800">ملخص الحجز:</h3>
                 <ul className="space-y-3 text-sm text-slate-600">
                   <li className="flex justify-between border-b border-slate-200 pb-2">
                     <span>الباقة:</span>
-                    <span className="font-bold text-slate-800">{chosenPackage?.name ?? '—'}</span>
+                    <span className="font-bold text-slate-800">
+                      {chosenPackage?.name ?? '—'}
+                    </span>
                   </li>
                   <li className="flex justify-between border-b border-slate-200 pb-2">
                     <span>سعر الباقة:</span>
@@ -469,12 +540,16 @@ export function BookingWizardClient({
                   </li>
                   <li className="flex justify-between border-b border-slate-200 pb-2">
                     <span>المدرب:</span>
-                    <span className="font-bold text-slate-800">{selectedInstructor?.displayName}</span>
+                    <span className="font-bold text-slate-800">
+                      {selectedInstructor?.displayName}
+                    </span>
                   </li>
                   <li className="flex justify-between border-b border-slate-200 pb-2">
                     <span>الموعد الأسبوعي (يومي وثابت):</span>
                     <span className="font-bold text-emerald-600">
-                      {selectedSlot ? `${DAY_LABELS[selectedSlot.day]} - الساعة ${selectedSlot.time}` : '—'}
+                      {selectedSlot
+                        ? `${DAY_LABELS[selectedSlot.day]} - الساعة ${selectedSlot.time}`
+                        : '—'}
                     </span>
                   </li>
                 </ul>
@@ -494,7 +569,7 @@ export function BookingWizardClient({
               <Button
                 type="submit"
                 accentColor="emerald"
-                className="flex-1 !bg-slate-900 !text-white hover:!bg-slate-800 py-4 text-center"
+                className="flex-1 !bg-slate-900 py-4 text-center !text-white hover:!bg-slate-800"
               >
                 تأكيد الحجز والدفع
               </Button>

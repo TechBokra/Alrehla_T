@@ -30,21 +30,20 @@ import { requireAdmin } from '@/lib/auth-guard';
  * القاعدة كان بيعدّي كأنه نجاح.
  */
 export type SaveWritingPackageResult =
-  | { ok: true }
-  | { ok: false; error: string; field?: string };
+  { ok: true } | { ok: false; error: string; field?: string };
 
 // ⚠️ **الدالة بقت بترجّع الخطأ بدل ما ترميه.** الرمي كان بيوصل للإنتاج
 //    برسالة ممسوحة (قاعدة «هـ») والإداري بيتنقل لصفحة خطأ عامة ويضيع
 //    اللي كتبه. دلوقتي `ActionForm` بيعرض الرسالة فوق النموذج، و`field`
 //    بيعلّم الخانة الغلط بالأحمر ويودّي المؤشر عليها.
 export async function saveWritingPackage(
-  formData: FormData,
+  formData: FormData
 ): Promise<SaveWritingPackageResult> {
   let currentUser;
   try {
     currentUser = await requireAdmin(
       'canManageCatalog',
-      'غير مصرح لك بإدارة باقات الكتابة',
+      'غير مصرح لك بإدارة باقات الكتابة'
     );
   } catch {
     return { ok: false as const, error: 'غير مصرح لك بإدارة باقات الكتابة' };
@@ -55,11 +54,16 @@ export async function saveWritingPackage(
   const isNew = !id;
 
   const name = ((formData.get('name') as string) || '').trim();
-  if (!name) return { ok: false as const, error: 'اسم الباقة مطلوب', field: 'name' };
+  if (!name)
+    return { ok: false as const, error: 'اسم الباقة مطلوب', field: 'name' };
 
   const ageGroup = formData.get('ageGroup') as 'under_12' | '12_plus';
   if (ageGroup !== 'under_12' && ageGroup !== '12_plus') {
-    return { ok: false as const, error: 'الفئة العمرية غير صحيحة', field: 'ageGroup' };
+    return {
+      ok: false as const,
+      error: 'الفئة العمرية غير صحيحة',
+      field: 'ageGroup',
+    };
   }
 
   // المسار مستقل عن الفئة العمرية: مسارين ممكن يكونوا لنفس السن.
@@ -81,13 +85,20 @@ export async function saveWritingPackage(
     };
   }
 
-  const durationText = ((formData.get('durationText') as string) || '').trim() || null;
-  const sessionDuration = ((formData.get('sessionDuration') as string) || '').trim() || null;
-  const targetAudience = ((formData.get('targetAudience') as string) || '').trim() || null;
-  const prerequisiteNote = ((formData.get('prerequisiteNote') as string) || '').trim() || null;
-  const prerequisitePackageId = ((formData.get('prerequisitePackageId') as string) || '') || null;
-  const shortDescription = ((formData.get('shortDescription') as string) || '').trim() || null;
-  const fullDescription = ((formData.get('fullDescription') as string) || '').trim() || null;
+  const durationText =
+    ((formData.get('durationText') as string) || '').trim() || null;
+  const sessionDuration =
+    ((formData.get('sessionDuration') as string) || '').trim() || null;
+  const targetAudience =
+    ((formData.get('targetAudience') as string) || '').trim() || null;
+  const prerequisiteNote =
+    ((formData.get('prerequisiteNote') as string) || '').trim() || null;
+  const prerequisitePackageId =
+    (formData.get('prerequisitePackageId') as string) || '' || null;
+  const shortDescription =
+    ((formData.get('shortDescription') as string) || '').trim() || null;
+  const fullDescription =
+    ((formData.get('fullDescription') as string) || '').trim() || null;
   const isActive = formData.get('isActive') === 'on';
 
   const submittedSlug = ((formData.get('slug') as string) || '').trim();
@@ -108,26 +119,58 @@ export async function saveWritingPackage(
     is_active: isActive,
   };
 
+  // ── «الحجز مفتوح» (بند ٩، ٢٤ أكتوبر) ─────────────────────
+  //
+  // ⚠️ بيتكتب **بس لو النموذج بعت الخانة** (`hasBookingOpen`) — نموذج
+  //    قديم من غيرها مايقفلش الباقة بالسكوت.
+  // ⚠️ ولو العمود لسه مش موجود (الترحيل ما اتشغّلش)، باقي الباقة
+  //    بيتحفظ عادي والشاشة بتقول إن الخانة دي بالذات لسه ماتحفظتش.
+  let payload: typeof dbPayload & { booking_open?: boolean } = dbPayload;
+  let bookingOpenSkipped = false;
+  if (formData.get('hasBookingOpen') === '1') {
+    const probe = await supabase
+      .from('creative_writing_packages')
+      .select('booking_open' as never)
+      .limit(1);
+    if (probe.error) {
+      bookingOpenSkipped = true;
+    } else {
+      payload = {
+        ...dbPayload,
+        booking_open: formData.get('bookingOpen') === 'on',
+      };
+    }
+  }
+
   let savedId = id;
 
   if (isNew) {
     const { data, error } = await supabase
       .from('creative_writing_packages')
-      .insert([{ ...dbPayload, slug: submittedSlug || `pkg-${Date.now()}` }])
+      .insert([
+        {
+          ...(payload as typeof dbPayload),
+          slug: submittedSlug || `pkg-${Date.now()}`,
+        },
+      ])
       .select('id')
       .single();
 
     if (error || !data) {
       console.error('Error inserting package:', error);
-      return { ok: false as const, error: `تعذّر إنشاء الباقة: ${error?.message ?? ''}` };
+      return {
+        ok: false as const,
+        error: `تعذّر إنشاء الباقة: ${error?.message ?? ''}`,
+      };
     }
     savedId = data.id;
   } else {
     // الـslug بيتبعت مع التعديل بس ما بيتغيّرش لو الفورم ما بعتوش —
     // الباقة بتحتفظ بعنوانها.
-    const updatePayload = submittedSlug
-      ? { ...dbPayload, slug: submittedSlug }
-      : dbPayload;
+    // ⚠️ `as typeof dbPayload`: `booking_open` لسه مش في الأنواع المولّدة.
+    const updatePayload = (
+      submittedSlug ? { ...payload, slug: submittedSlug } : payload
+    ) as typeof dbPayload;
 
     const { data, error } = await supabase
       .from('creative_writing_packages')
@@ -137,12 +180,16 @@ export async function saveWritingPackage(
 
     if (error) {
       console.error('Error updating package:', error);
-      return { ok: false as const, error: `تعذّر حفظ الباقة: ${error.message}` };
+      return {
+        ok: false as const,
+        error: `تعذّر حفظ الباقة: ${error.message}`,
+      };
     }
     if (!data || data.length === 0) {
       return {
         ok: false as const,
-        error: 'التعديل مروّحش للقاعدة — الباقة مش موجودة أو الصلاحيات مش سامحة.',
+        error:
+          'التعديل مروّحش للقاعدة — الباقة مش موجودة أو الصلاحيات مش سامحة.',
       };
     }
   }
@@ -158,5 +205,12 @@ export async function saveWritingPackage(
 
   revalidatePath('/dashboard/admin/writing/packages');
   refreshPublicPages();
+  if (bookingOpenSkipped) {
+    return {
+      ok: false as const,
+      error:
+        'الباقة اتحفظت، بس خانة «الحجز مفتوح» لسه ماتحفظتش: محتاجة تحديث قاعدة البيانات (ترحيل ٢٤ أكتوبر) يترفع الأول.',
+    };
+  }
   return { ok: true as const };
 }
