@@ -17,6 +17,35 @@
 
 export const FOUNDATION_COURSE_ID = 'foundation';
 
+/** الوقت المتوقع لإنجاز التأهيل كله (طلب تامر، ٢٤ أكتوبر). */
+export const TRAINING_ESTIMATE = 'من ٤٥ إلى ٦٠ دقيقة';
+
+/** بعد كام دقيقة من غير تفاعل الوقت يتوقف عن الحساب. */
+export const TRAINING_IDLE_MINUTES = 3;
+
+/** مكان المدرب في الصفحات — بيتفتكر على الجهاز (التقدّم نفسه في حسابه). */
+export type TrainingPosition = { module: number; page: number };
+
+export function positionKey(courseId: string): string {
+  return `alrehla:training:${courseId}:pos`;
+}
+
+export function finalDraftKey(courseId: string): string {
+  return `alrehla:training:${courseId}:final`;
+}
+
+/** مكان محفوظ صالح للدورة دي؟ (المحتوى ممكن يتغيّر بنسخة جديدة.) */
+export function validPosition(
+  raw: unknown,
+  modules: { pages: unknown[] }[],
+): TrainingPosition | null {
+  const p = raw as Partial<TrainingPosition> | null;
+  if (!p || !Number.isInteger(p.module) || !Number.isInteger(p.page)) return null;
+  const m = modules[p.module as number];
+  if (!m || (p.page as number) < 0 || (p.page as number) > m.pages.length) return null;
+  return { module: p.module as number, page: p.page as number };
+}
+
 export type TrainingCard = [string, string];
 
 export type TrainingScenario = {

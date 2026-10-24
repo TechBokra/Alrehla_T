@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Lock, Printer, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Clock, Lock, Pause, Play, Printer, RotateCcw, Sparkles } from 'lucide-react';
 import {
   startTraining,
   submitTrainingFinal,
@@ -15,13 +15,37 @@ import {
   doneCount,
   moduleDone,
   topicStats,
+  finalDraftKey,
+  positionKey,
+  validPosition,
+  TRAINING_ESTIMATE,
+  TRAINING_IDLE_MINUTES,
   type FinalResult,
   type LearnerCourse,
   type ModuleResult,
   type TrainingProgress,
   type TrainingQuestion,
+  type TrainingPosition,
   type TrainingScenario,
 } from '@/lib/training';
+
+/** قراءة/كتابة الجهاز — ممكن ترمي (تصفّح خاص)، فكله جوّه try. */
+function readLocal<T>(key: string): T | null {
+  try {
+    const v = window.localStorage.getItem(key);
+    return v ? (JSON.parse(v) as T) : null;
+  } catch {
+    return null;
+  }
+}
+function writeLocal(key: string, value: unknown) {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* مش مهم — التقدّم الأساسي في الحساب */
+  }
+}
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 type View =
@@ -52,30 +76,77 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
   const total = course.modules.length;
   const ready = allModulesDone(progress, total) || !course.learner;
 
-  // أول فتح: نسجّل البداية. والوقت النشط كل دقيقة لو الصفحة ظاهرة.
+  // ══ الوقت النشط + التوقف التلقائي ═══════════════════════════
+  //
+  // ⚠️ الوقت بيتحسب بس لما المدرب بيتفاعل (حركة/كتابة/لمس/تمرير) والصفحة
+  //    ظاهرة. بعد ٣ دقايق من غير تفاعل الحساب بيقف وبيظهر شريط «متوقف»،
+  //    وأي تفاعل بيرجّعه. والقاعدة كمان بتحد كل نداء بدقيقتين.
+  const [idle, setIdle] = useState(false);
+  const lastActivity = useRef(0);
   useEffect(() => {
     if (!course.learner) return;
     if (!course.progress) void startTraining(course.id);
-    let last = Date.now();
-    const id = window.setInterval(() => {
-      const now = Date.now();
-      if (!document.hidden) void trainingHeartbeat(Math.round((now - last) / 1000), course.id);
-      last = now;
-    }, 60_000);
-    const onVis = () => {
-      last = Date.now();
+    const TICK = 15_000;
+    const IDLE_MS = TRAINING_IDLE_MINUTES * 60_000;
+    lastActivity.current = Date.now();
+    let pending = 0;
+    let sinceSend = 0;
+    const onActivity = () => {
+      lastActivity.current = Date.now();
+      setIdle(false);
     };
-    document.addEventListener('visibilitychange', onVis);
+    const events = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart', 'wheel'] as const;
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    const id = window.setInterval(() => {
+      const active = !document.hidden && Date.now() - lastActivity.current < IDLE_MS;
+      setIdle(!active && !document.hidden);
+      if (active) pending += TICK / 1000;
+      sinceSend += TICK;
+      if (sinceSend >= 60_000) {
+        sinceSend = 0;
+        if (pending > 0) void trainingHeartbeat(pending, course.id);
+        pending = 0;
+      }
+    }, TICK);
+    const flush = () => {
+      if (pending > 0) void trainingHeartbeat(pending, course.id);
+      pending = 0;
+    };
+    window.addEventListener('pagehide', flush);
     return () => {
+      flush();
       window.clearInterval(id);
-      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', flush);
+      events.forEach((e) => window.removeEventListener(e, onActivity));
     };
   }, [course.id, course.learner, course.progress]);
 
-  const go = useCallback((v: View) => {
-    setView(v);
+  const [flash, setFlash] = useState('');
+
+  const go = useCallback(
+    (v: View) => {
+      setView(v);
+      setFlash('');
+      // مكانه في الصفحات بيتفتكر — «كمّل رحلتك» بترجّعه هنا.
+      if (v.kind === 'lesson') writeLocal(positionKey(course.id), { module: v.module, page: v.page });
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    [course.id],
+  );
+
+  /** «توقّف وكمّل بعدين» — مكانه محفوظ، والوحدات اللي اتصحّحت في حسابه. */
+  const pause = useCallback(() => {
+    setView({ kind: 'home' });
+    setFlash('اتحفظ مكانك. ارجع في أي وقت واضغط «كمّل رحلتك» — هتكمّل من نفس الصفحة.');
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  const resumeTarget = (): View => {
+    const saved = validPosition(readLocal<TrainingPosition>(positionKey(course.id)), course.modules);
+    if (saved && !moduleDone(progress, saved.module)) return { kind: 'lesson', ...saved };
+    const firstOpen = course.modules.findIndex((_, i) => !moduleDone(progress, i));
+    return { kind: 'lesson', module: Math.max(0, firstOpen), page: 0 };
+  };
 
   const markModule = (i: number, r: ModuleResult) => {
     setProgress((p) => {
@@ -129,7 +200,32 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
             وضع المعاينة للإدارة — التصحيح شغّال، ومفيش حاجة بتتسجّل.
           </p>
         )}
-        {view.kind === 'home' && <Home course={course} progress={progress} onGo={go} ready={ready} />}
+        {idle && (
+          <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-amber-900">
+              <Pause className="h-4 w-4" aria-hidden="true" />
+              احتساب الوقت متوقف — مفيش تفاعل من {ar(TRAINING_IDLE_MINUTES)} دقايق. تقدّمك محفوظ.
+            </p>
+            <button
+              type="button"
+              className={btnLight}
+              onClick={() => {
+                lastActivity.current = Date.now();
+                setIdle(false);
+              }}
+            >
+              <Play className="h-4 w-4" aria-hidden="true" /> كمّل
+            </button>
+          </div>
+        )}
+        {flash && view.kind === 'home' && (
+          <p role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+            {flash}
+          </p>
+        )}
+        {view.kind === 'home' && (
+          <Home course={course} progress={progress} onGo={go} ready={ready} resume={resumeTarget} />
+        )}
         {view.kind === 'lesson' && (
           <Lesson
             key={`${view.module}-${view.page}`}
@@ -139,11 +235,13 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
             done={moduleDone(progress, view.module)}
             onGo={go}
             onPassed={markModule}
+            onPause={course.learner ? pause : undefined}
           />
         )}
         {view.kind === 'final' && (
           <FinalExam
             course={course}
+            onPause={course.learner ? pause : undefined}
             onBack={() => go({ kind: 'lesson', module: 0, page: 0 })}
             onResult={(r) => {
               markFinal(r);
@@ -246,14 +344,23 @@ function Home({
   progress,
   onGo,
   ready,
+  resume,
 }: {
   course: LearnerCourse;
   progress: TrainingProgress | null;
   onGo: (v: View) => void;
   ready: boolean;
+  resume: () => View;
 }) {
   const moduleQs = course.modules.reduce((n, m) => n + m.questions.length, 0);
-  const firstOpen = course.modules.findIndex((_, i) => !moduleDone(progress, i));
+  // مكان محفوظ على الجهاز = بدأ قبل كده (حتى لو لسه ماخلّصش وحدة).
+  const [hasSaved, setHasSaved] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- قراءة تخزين المتصفح بعد التحميل (مش متاح على الخادم)
+    setHasSaved(!!readLocal(positionKey(course.id)));
+  }, [course.id]);
+  const started =
+    hasSaved || (!!progress && (doneCount(progress, course.modules.length) > 0 || progress.activeSeconds > 0));
   return (
     <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 md:p-8">
       {progress?.passedAt && (
@@ -273,6 +380,17 @@ function Home({
           هتراجع المرجعية التربوية المعتمدة، وتتعرّف على لغة الشغل اللي هتستخدمها في التدريب العملي، وتختبر فهمك
           بمواقف مهنية قصيرة. مش محتاج تحضر محاضرة — بس فهم المبادئ هنا مايغنيش عن التحقق العملي من جاهزيتك.
         </p>
+      </div>
+      {/* ══ الوقت والتوقف (طلب تامر، ٢٤ أكتوبر) ══ */}
+      <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-950">
+        <Clock className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <div className="space-y-1 text-sm leading-relaxed">
+          <p className="font-black">الوقت المتوقع: {TRAINING_ESTIMATE}.</p>
+          <p className="font-medium">
+            ابدأ عندما تكون مستعدًا. يمكنك التوقف والعودة في وقت لاحق؛ ستبقى إجاباتك وتقدمك محفوظة في حسابك،
+            ويتوقف احتساب الوقت تلقائيًا عند عدم التفاعل لمدة {TRAINING_IDLE_MINUTES === 3 ? 'ثلاث' : ar(TRAINING_IDLE_MINUTES)} دقائق.
+          </p>
+        </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         {[
@@ -303,12 +421,8 @@ function Home({
             التقييم النهائي <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </button>
         ) : (
-          <button
-            type="button"
-            className={btnPrimary}
-            onClick={() => onGo({ kind: 'lesson', module: Math.max(0, firstOpen), page: 0 })}
-          >
-            {progress && doneCount(progress, course.modules.length) > 0 ? 'كمّل من حيث وقفت' : 'ابدأ التأهيل'}
+          <button type="button" className={btnPrimary} onClick={() => onGo(resume())}>
+            {started ? 'كمّل رحلتك' : 'ابدأ الرحلة'}
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
@@ -326,6 +440,7 @@ function Lesson({
   done,
   onGo,
   onPassed,
+  onPause,
 }: {
   course: LearnerCourse;
   moduleIndex: number;
@@ -333,6 +448,7 @@ function Lesson({
   done: boolean;
   onGo: (v: View) => void;
   onPassed: (i: number, r: ModuleResult) => void;
+  onPause?: () => void;
 }) {
   const m = course.modules[moduleIndex];
   const n = m.pages.length;
@@ -350,6 +466,7 @@ function Lesson({
           <span className={`rounded-full px-3 py-1 ${done ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
             {done ? '✓ أُنجزت' : 'قيد الدراسة'}
           </span>
+          {onPause && <PauseButton onPause={onPause} />}
         </div>
         <h2 className="text-2xl font-black text-slate-900">{m.title}</h2>
         <p className="font-medium text-slate-600">{m.subtitle}</p>
@@ -422,6 +539,18 @@ function Lesson({
         </>
       )}
     </section>
+  );
+}
+
+function PauseButton({ onPause }: { onPause: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPause}
+      className="ms-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700 transition-colors hover:bg-slate-50"
+    >
+      <Pause className="h-3.5 w-3.5" aria-hidden="true" /> توقّف وكمّل بعدين
+    </button>
   );
 }
 
@@ -540,7 +669,8 @@ function useAnswers(count: number) {
   const [answers, setAnswers] = useState<(number | undefined)[]>(() => Array(count).fill(undefined));
   const set = (i: number, v: number) => setAnswers((a) => a.map((x, j) => (j === i ? v : x)));
   const missing = answers.findIndex((a) => a === undefined);
-  return { answers, set, missing, reset: () => setAnswers(Array(count).fill(undefined)) };
+  const restore = useCallback((saved: (number | undefined)[]) => setAnswers(saved), []);
+  return { answers, set, missing, restore, reset: () => setAnswers(Array(count).fill(undefined)) };
 }
 
 function ModuleQuiz({
@@ -645,13 +775,25 @@ function FinalExam({
   course,
   onBack,
   onResult,
+  onPause,
 }: {
   course: LearnerCourse;
   onBack: () => void;
   onResult: (r: FinalResult) => void;
+  onPause?: () => void;
 }) {
   const qs = course.finalQuestions;
-  const { answers, set, missing } = useAnswers(qs.length);
+  const { answers, set, missing, restore } = useAnswers(qs.length);
+  // ⚠️ إجابات التقييم اللي لسه ماتسلّمتش بتتفتكر على الجهاز — لو وقف في
+  //    النص ورجع، يلاقيها زي ما سابها.
+  const draftKey = finalDraftKey(course.id);
+  useEffect(() => {
+    const saved = readLocal<(number | null)[]>(draftKey);
+    if (Array.isArray(saved) && saved.length === qs.length) restore(saved.map((v) => (typeof v === 'number' ? v : undefined)));
+  }, [draftKey, qs.length, restore]);
+  useEffect(() => {
+    if (answers.some((a) => a !== undefined)) writeLocal(draftKey, answers.map((a) => a ?? null));
+  }, [answers, draftKey]);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
@@ -674,6 +816,7 @@ function FinalExam({
         setConfirming(false);
         return;
       }
+      writeLocal(draftKey, null);
       onResult(r);
     });
   };
@@ -681,7 +824,10 @@ function FinalExam({
   return (
     <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 md:p-8">
       <header className="space-y-2">
-        <p className="text-sm font-black text-emerald-700">المرحلة الأخيرة · قياس الاستيعاب</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-black text-emerald-700">المرحلة الأخيرة · قياس الاستيعاب</p>
+          {onPause && <PauseButton onPause={onPause} />}
+        </div>
         <h2 className="text-2xl font-black text-slate-900">
           التقييم النهائي · {ar(qs.length)} موقف وسؤال
         </h2>
