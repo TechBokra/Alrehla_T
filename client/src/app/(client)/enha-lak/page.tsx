@@ -18,6 +18,14 @@ import Link from 'next/link';
 import { getTestimonials } from '@/data/domains/(shared)/content/testimonials';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
+import { getSubscriptionTiers } from '@/data/domains/(shared)/subscriptions/plans';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
+import { METHOD_LABELS } from '@/lib/payments/settings';
+import { REVIEW_DELAY_NOTE, daysLabel } from '@/lib/delivery-days';
+import { retentionLabel } from '@/lib/session-recording';
+import { formatPrice } from '@/lib/utils';
 
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
@@ -39,6 +47,11 @@ import {
   Wand2,
   Package,
   Quote,
+  ArrowLeft,
+  ImageIcon,
+  Clock,
+  CreditCard,
+  Truck,
 } from 'lucide-react';
 import { AdSlot } from '@/components/ads/AdSlot';
 
@@ -47,10 +60,65 @@ import { AdSlot } from '@/components/ads/AdSlot';
 
 export default async function EnhaLakPage() {
   // آراء القسم ده وحده — رأي عن الجلسات مالوش مكان في صفحة القصص.
-  const testimonials = await getTestimonials('enha_lak');
-  const content = await getSiteContent();
-  const settings = await getSiteSettings();
-  const wm = await getWatermarkLayer(); // «على الكل»
+  const [testimonials, content, settings, wm, products, tiers, payment, pause] = await Promise.all([
+    getTestimonials('enha_lak'),
+    getSiteContent(),
+    getSiteSettings(),
+    getWatermarkLayer(), // «على الكل»
+    getPersonalizedProducts(),
+    getSubscriptionTiers(),
+    getPaymentAvailability(),
+    getDeliveryPause(),
+  ]);
+
+  // «من كام» على كل مسار — من الأسعار الحقيقية (أرخص نسخة متاحة).
+  const fromPrice = (category: 'custom' | 'library'): number | null => {
+    const prices = products
+      .filter((p) => p.category === category)
+      .flatMap((p) => [p.price, p.electronicPrice ?? 0])
+      .filter((n) => n > 0);
+    return prices.length ? Math.min(...prices) : null;
+  };
+  const boxFrom = tiers.length ? Math.min(...tiers.map((t) => t.priceMonthly).filter((n) => n > 0)) : null;
+
+  const paths = [
+    { href: '/enha-lak/custom', key: 'path1', icon: PenTool, tone: 'bg-violet-50 text-violet-600', hover: 'hover:border-violet-300 hover:shadow-violet-500/10', from: fromPrice('custom'), unit: '' },
+    { href: '/enha-lak/library', key: 'path2', icon: BookOpen, tone: 'bg-emerald-50 text-emerald-600', hover: 'hover:border-emerald-300 hover:shadow-emerald-500/10', from: fromPrice('library'), unit: '' },
+    { href: '/enha-lak/subscription', key: 'path3', icon: Package, tone: 'bg-purple-50 text-purple-600', hover: 'hover:border-purple-300 hover:shadow-purple-500/10', from: Number.isFinite(boxFrom) ? boxFrom : null, unit: ' / شهريًا' },
+  ];
+
+  // شريط الثقة — كل سطر من إعداد حقيقي، مش وعد مكتوب بإيد.
+  const days = settings.deliveryDays;
+  const paymentLine =
+    payment.mode === 'gateway' && payment.methods.length > 0
+      ? payment.methods.map((m) => METHOD_LABELS[m]).join(' · ')
+      : 'تحويل إنستاباي أو محفظة';
+  const trust = [
+    { icon: ImageIcon, title: 'صورة البطل بموافقتك', text: 'بنبعتهالك تعتمدها قبل رسم الصفحات.' },
+    { icon: Clock, title: 'مدة التجهيز', text: `الإلكترونية ${daysLabel(days.electronic)} · المطبوعة ${daysLabel(days.printed)} + الشحن` },
+    { icon: CreditCard, title: 'الدفع', text: paymentLine },
+    pause.paused
+      ? { icon: Truck, title: 'التوصيل متوقف مؤقتًا', text: 'النسخ الإلكترونية متاحة عادي.' }
+      : { icon: Truck, title: 'توصيل لباب البيت', text: 'أو نسخة إلكترونية على الإيميل.' },
+  ];
+
+  // أسئلة بتتسأل قبل الطلب — الإجابات من الإعدادات نفسها.
+  const faqs = [
+    {
+      q: 'القصة بتاخد قد إيه؟',
+      a: `النسخة الإلكترونية بتجهز خلال ${daysLabel(days.electronic)} من تأكيد الطلب، والمطبوعة خلال ${daysLabel(days.printed)} وبعدها الشحن. بعض الكتب ليها مدة مختلفة ومكتوبة في صفحتها.`,
+    },
+    { q: 'هشوف حاجة قبل ما تخلص؟', a: `أيوه — ${REVIEW_DELAY_NOTE}` },
+    {
+      q: 'صورة طفلي بتروح فين؟',
+      a: `بيشوفها فريق التنفيذ بس، وبتستخدم في رسم القصة بس، وبتتحذف تلقائيًا بعد ${retentionLabel(settings.childPhotoRetentionDays)} من انتهاء الطلب.`,
+    },
+    {
+      q: 'إيه الفرق بين الإلكترونية والمطبوعة؟',
+      a: 'الإلكترونية ملف بيوصلك على الإيميل من غير شحن. المطبوعة كتاب حقيقي بيتشحن لعنوانك، وفي كتب تقدر تاخد الاتنين مع بعض.',
+    },
+    { q: 'بدفع إزاي؟', a: payment.mode === 'gateway' ? `أونلاين: ${paymentLine}.` : 'بالتحويل (إنستاباي أو محفظة)، وبترفع صورة الإيصال بعدها.' },
+  ];
 
   // الشرائح كانت في layout القسم، يعني بتظهر فوق كل صفحة جواه. مكانها
   // الصفحة الرئيسية للقسم وبس.
@@ -75,7 +143,12 @@ export default async function EnhaLakPage() {
   ].map((s) => ({
     ...s,
     title: content[`enhaLak.${s.key}.title`],
-    description: content[`enhaLak.${s.key}.text`],
+    // ⚠️ خطوة الاستلام بتاخد المدة من «الإعدادات» — عشان الصفحة ماتقولش
+    //    رقم والإعدادات (وصفحة المنتج) رقم تاني.
+    description:
+      s.key === 'step4'
+        ? `الإلكترونية خلال ${daysLabel(settings.deliveryDays.electronic)} على الإيميل، والمطبوعة خلال ${daysLabel(settings.deliveryDays.printed)} وبعدها الشحن.`
+        : content[`enhaLak.${s.key}.text`],
   }));
 
   return (
@@ -100,55 +173,54 @@ export default async function EnhaLakPage() {
       {/* Path Selection */}
       <Section containerClassName="max-w-5xl">
         <div className="grid gap-8 md:grid-cols-3">
-          <Link
-            href="/enha-lak/custom"
-            className="group block h-full"
-          >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
-                <PenTool className="h-8 w-8" />
-              </div>
-              <h3 className="mb-3 text-2xl font-bold text-slate-800">
-                {content['enhaLak.path1.title']}
-              </h3>
-              <p className="leading-relaxed font-medium text-slate-600">
-                {content['enhaLak.path1.text']}
-              </p>
-            </Card>
-          </Link>
-          <Link
-            href="/enha-lak/library"
-            className="group block h-full"
-          >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
-                <BookOpen className="h-8 w-8" />
-              </div>
-              <h3 className="mb-3 text-2xl font-bold text-slate-800">
-                {content['enhaLak.path2.title']}
-              </h3>
-              <p className="leading-relaxed font-medium text-slate-600">
-                {content['enhaLak.path2.text']}
-              </p>
-            </Card>
-          </Link>
-          <Link
-            href="/enha-lak/subscription"
-            className="group block h-full"
-          >
-            <Card accentColor="rose" className="h-full relative overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-500/10 md:text-right">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0">
-                <Package className="h-8 w-8" />
-              </div>
-              <h3 className="mb-3 text-2xl font-bold text-slate-800">
-                {content['enhaLak.path3.title']}
-              </h3>
-              <p className="leading-relaxed font-medium text-slate-600">
-                {content['enhaLak.path3.text']}
-              </p>
-            </Card>
-          </Link>
+          {paths.map((path) => {
+            const Icon = path.icon;
+            return (
+              <Link key={path.key} href={path.href} className="group block h-full">
+                <Card
+                  accentColor="rose"
+                  className={`relative flex h-full flex-col overflow-hidden p-8 text-center transition-[box-shadow,transform,border-color] duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:hover:-translate-y-1 hover:shadow-xl md:text-right ${path.hover}`}
+                >
+                  <div
+                    className={`mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl transition-transform duration-[var(--dur-ui)] ease-[var(--ease-ui)] motion-safe:group-hover:scale-110 md:mx-0 ${path.tone}`}
+                  >
+                    <Icon className="h-8 w-8" />
+                  </div>
+                  <h3 className="mb-3 text-2xl font-bold text-slate-800">{content[`enhaLak.${path.key}.title`]}</h3>
+                  <p className="mb-6 leading-relaxed font-medium text-slate-600">{content[`enhaLak.${path.key}.text`]}</p>
+                  {/* «من كام» + سهم — العميل يعرف السعر التقريبي قبل ما يدخل. */}
+                  <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+                    <span className="text-sm font-bold text-slate-700">
+                      {path.from ? `من ${formatPrice(path.from)}${path.unit}` : ''}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-sm font-black text-rose-700">
+                      ابدأ
+                      <ArrowLeft className="h-4 w-4 transition-transform motion-safe:group-hover:-translate-x-1" aria-hidden="true" />
+                    </span>
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
+
+        {/* ══ شريط الثقة ══ */}
+        <ul className="mt-10 grid gap-4 rounded-3xl border border-slate-100 bg-white p-6 sm:grid-cols-2 lg:grid-cols-4">
+          {trust.map((t) => {
+            const Icon = t.icon;
+            return (
+              <li key={t.title} className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <span className="block text-sm font-black text-slate-800">{t.title}</span>
+                  <span className="block text-sm font-medium text-slate-600">{t.text}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </Section>
 
       {/* Power of Personalization */}
@@ -239,6 +311,24 @@ export default async function EnhaLakPage() {
         </div>
       </Section>
       )}
+
+      {/* ══ أسئلة قبل الطلب ══ */}
+      <Section containerClassName="max-w-3xl">
+        <h2 className="mb-8 text-center text-3xl font-black text-slate-800">أسئلة بتتسأل كتير</h2>
+        <div className="space-y-3">
+          {faqs.map((f) => (
+            <details key={f.q} className="group rounded-2xl border border-slate-200 bg-white p-5 open:shadow-sm">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-4 font-bold text-slate-800">
+                {f.q}
+                <span className="text-xl leading-none text-rose-600 transition-transform group-open:rotate-45" aria-hidden="true">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 leading-relaxed font-medium text-slate-600">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </Section>
 
       {/* ⚠️ **الصفحة كانت بتخلص من غير ولا زرار** — اللي قرا لحد هنا
           مقتنع، ومالقاش يروح فين غير إنه يطلع للقايمة فوق. (ملاحظة

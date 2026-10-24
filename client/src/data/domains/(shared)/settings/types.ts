@@ -70,6 +70,8 @@ export interface SiteSettings {
   fileRetentionDays: number;
   /** مدة حفظ صور الأطفال في الطلبات المخصصة (من انتهاء الطلب). */
   childPhotoRetentionDays: number;
+  /** مدة تجهيز «إنها لك» العامة بالأيام — كل كتاب يقدر يغيّرها (`lib/delivery-days`). */
+  deliveryDays: { electronic: number; printed: number };
   /**
    * تشغيل «أقلام الرحلة» (`lib/aqlam/settings`). متخزّن جوّه نفس صف
    * `general` اللي كل صفحة بتقراه أصلًا، فالعلم مايكلّفش استعلامًا.

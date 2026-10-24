@@ -2329,6 +2329,8 @@ export type Database = {
           sort_order: number
           updated_at: string
           writing_styles: string[] | null
+          delivery_days_electronic: number | null
+          delivery_days_printed: number | null
         }
         Insert: {
           category: Database["public"]["Enums"]["product_category"]
@@ -2357,6 +2359,8 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           writing_styles?: string[] | null
+          delivery_days_electronic?: number | null
+          delivery_days_printed?: number | null
         }
         Update: {
           category?: Database["public"]["Enums"]["product_category"]
@@ -2385,6 +2389,8 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           writing_styles?: string[] | null
+          delivery_days_electronic?: number | null
+          delivery_days_printed?: number | null
         }
         Relationships: []
       }
@@ -3761,6 +3767,45 @@ export type Database = {
           },
         ]
       }
+      story_image_reviews: {
+        Row: {
+          id: string
+          project_id: string
+          image_url: string
+          staff_note: string | null
+          status: string
+          sent_at: string
+          sent_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          client_note: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          image_url: string
+          staff_note?: string | null
+          status?: string
+          sent_at?: string
+          sent_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          client_note?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          image_url?: string
+          staff_note?: string | null
+          status?: string
+          sent_at?: string
+          sent_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          client_note?: string | null
+        }
+        Relationships: []
+      }
       story_versions: {
         Row: {
           approved_at: string | null
@@ -4864,6 +4909,30 @@ export type Database = {
       }
       story_version_send_to_client: {
         Args: { p_version_id: string }
+        Returns: string
+      }
+      story_image_send: {
+        Args: { p_project_id: string; p_note?: string | null }
+        Returns: string
+      }
+      my_story_image_reviews: {
+        Args: { p_order_id: string }
+        Returns: {
+          project_id: string
+          order_item_id: string
+          product_id: string
+          review_id: string
+          image_url: string
+          staff_note: string | null
+          status: string
+          sent_at: string
+          decided_at: string | null
+          client_note: string | null
+          character_approved: boolean | null
+        }[]
+      }
+      story_image_decide: {
+        Args: { p_review_id: string; p_approve: boolean; p_note?: string | null }
         Returns: string
       }
       next_payment_reference: { Args: never; Returns: string }

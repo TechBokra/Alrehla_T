@@ -94,6 +94,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
           extraFields={extraFields}
           delivery={delivery}
           photoRetentionDays={photoSettings.childPhotoRetentionDays}
+          deliveryDays={photoSettings.deliveryDays}
         />
       </Section>
     </PageContainer>

@@ -19,6 +19,7 @@ import {
   onlySentFields,
 } from '@/lib/product-input';
 import { parseAgeInput } from '@/lib/age-bands';
+import { MAX_DELIVERY_DAYS, MIN_DELIVERY_DAYS } from '@/lib/delivery-days';
 import { parseWritingStylesInput } from '@/lib/writing-style';
 import {
   customerPriceFromCost,
@@ -669,4 +670,71 @@ export async function reviewProduct(formData: FormData) {
   // صفحة كل منتج وصفحة كل ناشر والصفحة الرئيسية للقسم بيتخزّنوا ساعة —
   // من غير دول، منتج اتوافق عليه أو اتوقف كان بيفضل بحالته القديمة لحد ساعة.
   return { ok: true as const };
+}
+
+
+/**
+ * مدة تجهيز الكتاب ده — قرار تامر (٢٥ أكتوبر): «قيمة عامة للجميع،
+ * ويمكن تغييرها من إعدادات كل كتاب أو قصة».
+ *
+ * ⚠️ **حفظ منفصل عن `saveProduct`** عن قصد: الدالة دي بتلمس عمودين
+ *    بس، فمستحيل تمسح حاجة تانية في المنتج (فخ «الخانة اللي ماجاتش
+ *    من النموذج» اللي فوق).
+ * ⚠️ الخانة الفاضية = `null` = القيمة العامة. ولو الترحيل لسه
+ *    ماتشغّلش (العمود مش موجود) بنقول كده بدل «تعذّر».
+ */
+export async function saveProductDeliveryDays(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string; field?: string }> {
+  let admin;
+  try {
+    admin = await requireAdmin('canManagePublishers', 'تعديل مدة التجهيز للإدارة');
+  } catch (err) {
+    return { ok: false, error: err instanceof Error && err.message ? err.message : 'غير مصرح' };
+  }
+
+  const productId = String(formData.get('productId') ?? '').trim();
+  if (!productId) return { ok: false, error: 'المنتج غير معروف.' };
+
+  const read = (name: string): number | null | 'bad' => {
+    const raw = String(formData.get(name) ?? '').trim();
+    if (raw === '') return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < MIN_DELIVERY_DAYS || n > MAX_DELIVERY_DAYS) return 'bad';
+    return n;
+  };
+  const electronic = read('deliveryDaysElectronic');
+  const printed = read('deliveryDaysPrinted');
+  const range = `رقم صحيح من ${MIN_DELIVERY_DAYS} لـ ${MAX_DELIVERY_DAYS} — أو سيبها فاضية للقيمة العامة.`;
+  if (electronic === 'bad') return { ok: false, error: range, field: 'deliveryDaysElectronic' };
+  if (printed === 'bad') return { ok: false, error: range, field: 'deliveryDaysPrinted' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('personalized_products')
+    .update({ delivery_days_electronic: electronic, delivery_days_printed: printed })
+    .eq('id', productId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '42703' || error.code === 'PGRST204') {
+      return { ok: false, error: 'الخاصية دي محتاجة تحديث القاعدة (ترحيل 20261025090000).' };
+    }
+    console.error('Error saving delivery days', { productId, error });
+    return { ok: false, error: 'تعذّر الحفظ. جرّب تاني.' };
+  }
+  if (!data) return { ok: false, error: 'المنتج مش موجود أو مش مصرّح لك بتعديله.' };
+
+  await logAuditAction({
+    actorProfileId: admin.id,
+    action: 'product_delivery_days_updated',
+    entityType: 'PersonalizedProduct',
+    entityId: productId,
+    metadata: { electronic, printed },
+  });
+
+  revalidatePath(`/dashboard/admin/products/${productId}`);
+  refreshPublicPages();
+  return { ok: true };
 }

@@ -74,6 +74,7 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
         {/* ملف 140: هدف لكل شهر، ومن غير إضافات بفلوس (قرار تامر). */}
         <PersonalizationWizard
           photoRetentionDays={photoSettings.childPhotoRetentionDays}
+          deliveryDays={photoSettings.deliveryDays}
           product={product}
           subscription={{ planId: tier.id, months: tier.durationMonths }}
           extraFields={extraFields}

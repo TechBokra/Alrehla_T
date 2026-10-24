@@ -616,3 +616,19 @@ export async function sendVersionToClient(formData: FormData): Promise<StudioAct
   refresh(projectId);
   return { ok: true, message: 'اتبعتت لولي الأمر.' };
 }
+
+/**
+ * ابعت صورة البطل لولي الأمر يعتمدها — غلاف `FormData` لتبويب «الشخصية».
+ * المنطق في `@/actions/image-review` (نفس نمط `sendVersionToClient`).
+ */
+export async function sendCharacterImage(formData: FormData): Promise<StudioActionResult> {
+  const projectId = projectIdOf(formData);
+  if (!projectId) return { ok: false, error: 'المشروع غير معروف.' };
+
+  const { sendCharacterImageToClient } = await import('@/actions/image-review');
+  const result = await sendCharacterImageToClient(projectId, str(formData.get('note')) || undefined);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  refresh(projectId);
+  return { ok: true, message: 'اتبعتت لولي الأمر، ووصله إشعار.' };
+}

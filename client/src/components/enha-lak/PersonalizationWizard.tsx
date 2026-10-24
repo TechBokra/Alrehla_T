@@ -1,5 +1,6 @@
 'use client';
 
+import type { DeliveryDays } from '@/lib/delivery-days';
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
@@ -104,9 +105,12 @@ export function PersonalizationWizard({
   pauseMessage = '',
   delivery,
   photoRetentionDays,
+  deliveryDays,
 }: {
   /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
   photoRetentionDays?: number;
+  /** مدة التجهيز العامة (الكتاب نفسه ممكن يغيّرها) — قرار ٢٥ أكتوبر. */
+  deliveryDays?: DeliveryDays;
   /** الدول والمحافظات والمناطق — لـ«هنوصّل فين؟» في خطوة ٣ (قرار ٢٤ أكتوبر). */
   delivery?: DeliveryCatalog;
   /** التوصيل متوقف من اللوحة — النسخة المطبوعة مش متاحة للطلب. */
@@ -669,6 +673,7 @@ export function PersonalizationWizard({
               {currentStep === 3 && !subscription && <Step3Addons addons={addons} product={product} delivery={delivery} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds', 'format'])} onPrev={handlePrev} />}
               {(currentStep === 4 || (subscription && currentStep === 3)) && (
                 <Step4Review
+                  deliveryDays={deliveryDays}
                   onPrev={handlePrev}
                   product={product}
                   pending={isSubmitting}

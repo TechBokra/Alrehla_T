@@ -13,6 +13,7 @@ import {
 import { StatusBadge } from '@/components/StatusBadge';
 import type {
   StudioCost,
+  StudioImageReview,
   StudioPage,
   StudioProjectDetail,
   StudioStaff,
@@ -25,7 +26,6 @@ import {
   approveStudioVersion,
   assignStudioProject,
   deleteStudioPage,
-  sendVersionToClient,
   recordClientDecision,
   recordPhotoConsent,
   reviewStudioPage,
@@ -33,6 +33,7 @@ import {
   saveStudioCharacter,
   saveStudioPage,
   saveStudioQa,
+  sendCharacterImage,
 } from '@/actions/studio';
 import { AGE_BANDS } from '@/lib/age-bands';
 import { formatDate } from '@/lib/utils';
@@ -342,31 +343,8 @@ export function TextPanel({
                     </ActionForm>
                   )}
 
-                  {/* ══ ابعتها لولي الأمر ═══════════════════════
-                      ⚠️ **الخطوة دي ما كانتش موجودة خالص.** اعتماد
-                         المحرّر كان بيخلّي النسخة «جاهزة» ومحدش
-                         بيقول لولي الأمر — فالفريق كان بيكلّمه
-                         على الواتساب، أو بيحطّ العلامة بنفسه
-                         وخلاص. ولي الأمر دافع ٨٥٠ جنيه وما شافش
-                         نص قصة ابنه. */}
-                  {status === 'editor_approved' && clientStage && !v.sentToClientAt && (
-                    <ActionForm
-                      action={sendVersionToClient}
-                      successMessage="اتبعتت لولي الأمر، ووصله إشعار."
-                      className="space-y-3"
-                    >
-                      <Hidden projectId={project.id} />
-                      <input type="hidden" name="versionId" value={v.id} />
-                      <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900">
-                        ولي الأمر هيشوف النص في «طلباتي» ويوافق أو يطلب تعديل بنفسه.
-                        والرسم مش هيفتح قبل موافقته.
-                      </p>
-                      <FormActions>
-                        <SubmitButton pendingLabel="جارٍ الإرسال…">ابعتها لولي الأمر</SubmitButton>
-                      </FormActions>
-                    </ActionForm>
-                  )}
-
+                  {/* ⚠️ «ابعتها لولي الأمر» اتشال (قرار تامر، ٢٥ أكتوبر): العميل
+                      بيراجع صورة البطل بس — زرارها في تبويب «الشخصية». */}
                   {/* ══ التسجيل بالنيابة ════════════════════════
                       ⚠️ **بقى الطريق التاني مش الأول.** القرار
                          المفروض يجي من حساب ولي الأمر؛ ده
@@ -412,7 +390,28 @@ export function TextPanel({
 
 // ── الشخصية ──────────────────────────────────────────────────────────────────
 
-export function CharacterPanel({ project }: { project: StudioProjectDetail }) {
+const REVIEW_LABELS: Record<string, { label: string; tone: string }> = {
+  pending: { label: 'مستنية قرار العميل', tone: 'bg-amber-50 text-amber-900' },
+  approved: { label: 'العميل وافق', tone: 'bg-emerald-50 text-emerald-900' },
+  changes_requested: { label: 'العميل طلب تعديل', tone: 'bg-sky-50 text-sky-900' },
+  withdrawn: { label: 'اتبعتت بعدها صورة أحدث', tone: 'bg-slate-100 text-slate-600' },
+};
+
+function waitedDaysText(r: StudioImageReview): string {
+  const end = r.decidedAt ? Date.parse(r.decidedAt) : Date.now();
+  const days = Math.floor((end - Date.parse(r.sentAt)) / 86_400_000);
+  return days > 0 ? ` · انتظار ${days.toLocaleString('ar-EG')} يوم` : '';
+}
+
+export function CharacterPanel({
+  project,
+  reviews = [],
+}: {
+  project: StudioProjectDetail;
+  reviews?: StudioImageReview[];
+}) {
+  const pendingReview = reviews.find((r) => r.status === 'pending');
+  const canSend = project.status === 'character' && !project.characterApprovedAt && !!project.characterRefUrl;
   return (
     <div className="space-y-6">
       <section className={card} aria-labelledby="char-h">
@@ -450,13 +449,70 @@ export function CharacterPanel({ project }: { project: StudioProjectDetail }) {
             className="max-h-80 rounded-2xl border border-slate-200 object-contain"
           />
         )}
+        {/* ══ مراجعة العميل ═══════════════════════════════════
+            ⚠️ قرار تامر (٢٥ أكتوبر): العميل بيراجع **صورة البطل بس**،
+               وموافقته هي اعتماد المرجع. والانتظار بيأخّر ميعاد التسليم. */}
+        {canSend && (
+          <ActionForm
+            action={sendCharacterImage}
+            successMessage="اتبعتت لولي الأمر، ووصله إشعار."
+            className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"
+          >
+            <Hidden projectId={project.id} />
+            <p className="text-sm font-bold text-amber-900">
+              {pendingReview
+                ? 'فيه صورة مستنية قرار العميل — الإرسال تاني بيبعت الصورة المحفوظة دلوقتي مكانها.'
+                : 'احفظ الصورة فوق، وبعدين ابعتها لولي الأمر يعتمدها. المشاهد مابتبدأش قبل موافقته.'}
+            </p>
+            <Field label="ملاحظة للعميل (اختياري)" name="note">
+              <TextArea name="note" rows={2} maxLength={500} />
+            </Field>
+            <FormActions>
+              <SubmitButton pendingLabel="جارٍ الإرسال…">ابعت الصورة للعميل</SubmitButton>
+            </FormActions>
+          </ActionForm>
+        )}
         {!project.characterApprovedAt && (
           <ActionForm action={approveStudioCharacter} successMessage="اتعتمد المرجع." className="flex justify-end">
             <Hidden projectId={project.id} />
-            <SubmitButton pendingLabel="جارٍ الاعتماد…">اعتماد المرجع</SubmitButton>
+            <SubmitButton pendingLabel="جارٍ الاعتماد…">اعتماد المرجع من غير العميل</SubmitButton>
           </ActionForm>
         )}
       </section>
+
+      {reviews.length > 0 && (
+        <section className={card} aria-labelledby="char-reviews">
+          <h3 id="char-reviews" className={h3}>
+            مراجعات العميل
+          </h3>
+          <ul className="space-y-3">
+            {reviews.map((r) => {
+              const meta = REVIEW_LABELS[r.status] ?? REVIEW_LABELS.withdrawn;
+              return (
+                <li key={r.id} className="flex gap-4 rounded-2xl border border-slate-200 p-3">
+                  <img
+                    src={r.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    className="h-20 w-20 shrink-0 rounded-xl border border-slate-200 object-cover"
+                  />
+                  <div className="min-w-0 space-y-1 text-sm">
+                    <p className={`inline-block rounded-full px-3 py-0.5 text-xs font-black ${meta.tone}`}>{meta.label}</p>
+                    <p className="font-medium text-slate-600">
+                      اتبعتت {formatDate(r.sentAt)}
+                      {r.decidedAt ? ` · القرار ${formatDate(r.decidedAt)}` : ''}
+                      {r.status === 'withdrawn' ? '' : waitedDaysText(r)}
+                    </p>
+                    {r.clientNote && <p className="font-bold text-slate-800">«{r.clientNote}»</p>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

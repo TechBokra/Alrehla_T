@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { PreviewRow } from '@/lib/story-preview';
+import type { ImageReviewRow } from '@/lib/image-review';
 
 /**
  * معاينات ولي الأمر على طلب واحد.
@@ -64,3 +65,37 @@ export async function countAwaitingPreviews(orderId: string): Promise<number> {
     return 0;
   }
 }
+
+/**
+ * صور البطل اللي اتبعتت لولي الأمر على طلب واحد — المراجعة بقت
+ * للصورة بس (قرار تامر، ٢٥ أكتوبر).
+ *
+ * ⚠️ لو ترحيل `20261025090000` لسه ماتشغّلش، الدالة مش موجودة
+ *    (`PGRST202`) — بنرجّع فاضي بدل ما نكسر صفحة الطلبات.
+ *    أي خطأ تاني بيرمي، لنفس سبب `getMyStoryPreviews`.
+ */
+export async function getMyImageReviews(orderId: string): Promise<ImageReviewRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('my_story_image_reviews', { p_order_id: orderId });
+
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') return [];
+    console.error('Error reading image reviews', { orderId, error });
+    throw new Error('تعذّر تحميل صورة البطل. جرّب تاني بعد لحظات.');
+  }
+
+  return (data ?? []).map((r) => ({
+    projectId: r.project_id,
+    orderItemId: r.order_item_id,
+    productId: r.product_id,
+    reviewId: r.review_id,
+    imageUrl: r.image_url,
+    staffNote: r.staff_note,
+    status: r.status,
+    sentAt: r.sent_at,
+    decidedAt: r.decided_at,
+    clientNote: r.client_note,
+    characterApproved: r.character_approved === true,
+  }));
+}
+

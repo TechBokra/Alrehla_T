@@ -89,6 +89,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         pauseMessage={delivery.pause.message}
         delivery={delivery}
         photoRetentionDays={photoSettings.childPhotoRetentionDays}
+        deliveryDays={photoSettings.deliveryDays}
       />
     </div>
   );

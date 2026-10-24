@@ -1,8 +1,10 @@
 import Link from 'next/link';
-import { BookOpenCheck } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { productOrderStatus } from '@/lib/order-status';
-import { countAwaitingPreviews } from '@/data/domains/(client)/story-preview/queries';
+import { getMyImageReviews } from '@/data/domains/(client)/story-preview/queries';
+import { awaitingImageCount, waitDays } from '@/lib/image-review';
+import { effectiveDeliveryDays, expectedReadyDate } from '@/lib/delivery-days';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
 import { getProductNamesFor } from '@/data/domains/(shared)/products/queries';
@@ -46,11 +48,29 @@ export default async function EnhaLakOrdersPage() {
      الملغي والمسلّم والمستني دفع مفيش فيهم نص مستني قرار، وسؤال
      القاعدة عنهم شغل زيادة على كل زيارة بلا نتيجة. */
   const liveOrders = allOrders.filter((o) => o.status === 'paid' || o.status === 'preparing');
-  const awaitingByOrder: Record<string, number> = Object.fromEntries(
+  // صور البطل لكل طلب شغّال: كام صورة مستنية قراره، وكام يوم استنّاه
+  // (بيتضاف على ميعاد التجهيز — قرار ٢٥ أكتوبر). الفشل = فاضي.
+  const reviewsByOrder = Object.fromEntries(
     await Promise.all(
-      liveOrders.map(async (o) => [o.id, await countAwaitingPreviews(o.id)] as const),
+      liveOrders.map(async (o) => [o.id, await getMyImageReviews(o.id).catch(() => [])] as const),
     ),
   );
+  const awaitingByOrder: Record<string, number> = Object.fromEntries(
+    Object.entries(reviewsByOrder).map(([id, rows]) => [id, awaitingImageCount(rows)]),
+  );
+  const productsById = new Map(products.map((p) => [p.id, p]));
+  /** الميعاد المتوقع لتجهيز الطلب: أطول بند فيه + أيام انتظار قراره. */
+  const readyBy = (order: (typeof liveOrders)[number]): Date | null => {
+    let days = 0;
+    for (const item of order.items) {
+      const product = productsById.get(item.productId);
+      if (!product) continue;
+      const d = effectiveDeliveryDays(settings.deliveryDays, product);
+      days = Math.max(days, item.format === 'electronic' ? d.electronic : d.printed);
+    }
+    if (days === 0) return null;
+    return expectedReadyDate(order.createdAt, days, waitDays(reviewsByOrder[order.id] ?? []));
+  };
   const names: Record<string, string> = Object.fromEntries(products.map((p) => [p.id, p.name]));
   // المنتجات اللي اتخفت بعد ما العميل طلبها — اسمها بيفضل ظاهر في طلباته (4.4).
   const missing = allOrders.flatMap((o) => o.items.map((i) => i.productId)).filter((id) => id && !names[id]);
@@ -82,10 +102,20 @@ export default async function EnhaLakOrdersPage() {
             href={`/account/orders/enha-lak/${order.id}/preview`}
             className="flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 font-black text-amber-900 transition-colors hover:bg-amber-100"
           >
-            <BookOpenCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
-            النص جاهز — اقراه ووافق
+            <ImageIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            صورة البطل جاهزة — شوفها ووافق
           </Link>
         )}
+        {(order.status === 'paid' || order.status === 'preparing') &&
+          (() => {
+            const date = readyBy(order);
+            return date ? (
+              <span className="text-xs font-bold text-slate-700">
+                متوقع يجهز حوالي{' '}
+                {date.toLocaleDateString('ar-EG', { timeZone: PLATFORM_TIMEZONE, day: 'numeric', month: 'long' })}
+              </span>
+            ) : null;
+          })()}
         {/* الطلب اتسجّل والدفع ما كملش — يكمّله أو يلغيه بنفسه.
             `failed` كمان: محاولة دفع رجعت بالفشل، والطلب لسه قابل للدفع. */}
         {(order.status === 'pending' || order.status === 'failed') && (

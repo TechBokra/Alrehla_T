@@ -3,30 +3,30 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
-import { getMyStoryPreviews } from '@/data/domains/(client)/story-preview/queries';
+import { getMyImageReviews } from '@/data/domains/(client)/story-preview/queries';
 import { getProductNamesFor } from '@/data/domains/(shared)/products/queries';
-import { latestPerItem, awaitingCount } from '@/lib/story-preview';
+import { awaitingImageCount, latestImagePerItem } from '@/lib/image-review';
+import { REVIEW_DELAY_NOTE } from '@/lib/delivery-days';
 import { pageMetadata } from '@/lib/seo';
-import { StoryPreviewCard } from './StoryPreviewClient';
+import { ImageReviewCard } from './ImageReviewClient';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: 'معاينة النص',
-    description: 'اقرا نص القصة وقول لنا رأيك قبل الرسم.',
+    title: 'صورة البطل',
+    description: 'شوف صورة البطل ووافق عليها قبل الرسم.',
     path: '/account/orders/enha-lak',
     noIndex: true,
   });
 }
 
 /**
- * معاينة نص القصة وموافقة ولي الأمر — أكبر بند في دراسة المقارنة.
+ * مراجعة ولي الأمر لصورة البطل — قرار تامر (٢٥ أكتوبر): «المراجعة
+ * بتكون للصورة فقط».
  *
- * ⚠️ **`getOrders` بيقرا طلبات الداخل بس**، فطلب حد تاني = «غير
- *    موجود». ودي طبقة أولى: الطبقة الحقيقية إن
- *    `my_story_previews` في القاعدة بتفلتر على `o.user_id =
- *    auth.uid()` — فحتى لو الفحص ده اتشال، مفيش نص بيطلع.
+ * ⚠️ `getOrders` بيقرا طلبات الداخل بس (طبقة أولى)، و
+ *    `my_story_image_reviews` في القاعدة بتفلتر على صاحب الطلب.
  */
 export default async function StoryPreviewPage({
   params,
@@ -39,35 +39,33 @@ export default async function StoryPreviewPage({
   const order = orders.find((o) => o.id === id);
   if (!order) notFound();
 
-  const rows = await getMyStoryPreviews(id);
-  const latest = latestPerItem(rows);
-  const awaiting = awaitingCount(latest);
+  const rows = await getMyImageReviews(id);
+  const latest = latestImagePerItem(rows);
+  const awaiting = awaitingImageCount(rows);
 
   const names = await getProductNamesFor(latest.map((r) => r.productId).filter(Boolean));
 
   return (
     <div className="space-y-6">
-      <DashboardPageHeader title="معاينة النص" backHref="/account/orders/enha-lak" />
+      <DashboardPageHeader title="صورة البطل" backHref="/account/orders/enha-lak" />
 
       {awaiting > 0 && (
         <p
           role="status"
           className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 font-bold text-amber-900"
         >
-          {awaiting.toLocaleString('ar-EG')} {awaiting === 1 ? 'نص' : 'نصوص'} مستنية موافقتك —
-          الرسم مابيبدأش قبلها.
+          {awaiting === 1 ? 'صورة مستنية' : `${awaiting.toLocaleString('ar-EG')} صور مستنية`} موافقتك — الرسم
+          مابيبدأش قبلها، وأي تأخير في الاعتماد بيأخّر ميعاد التسليم.
         </p>
       )}
 
       {latest.length === 0 ? (
-        /* ⚠️ الفراغ هنا معناه «لسه»، مش «مفيش». العميل اللي
-            بيوصل من رابط قديم أو من فضول لازم يعرف الفرق —
-            وإلا بيفتكر إن فيه حاجة باظت. */
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
-          <p className="font-black text-slate-800">لسه مفيش نص جاهز للمعاينة</p>
+          <p className="font-black text-slate-800">لسه صورة البطل ماجهزتش</p>
           <p className="mx-auto mt-2 max-w-md text-sm font-medium leading-relaxed text-slate-600">
-            المحرّر بيكتب القصة الأول، وأول ما تخلص هنبعتلك إشعارًا تقراها وتقول رأيك.
-            الرسم مابيبدأش قبل موافقتك.
+            فريقنا بيكتب القصة ويرسم البطل الأول، وأول ما الصورة تجهز هنبعتلك إشعارًا تشوفها وتوافق.
+            {' '}
+            {REVIEW_DELAY_NOTE}
           </p>
           <Link
             href="/account/orders/enha-lak"
@@ -79,10 +77,12 @@ export default async function StoryPreviewPage({
       ) : (
         <div className="space-y-6">
           {latest.map((row) => (
-            <StoryPreviewCard
-              key={row.versionId}
+            <ImageReviewCard
+              key={row.reviewId}
               row={row}
+              orderId={id}
               productName={names[row.productId] ?? 'قصة مخصّصة'}
+              delayNote={REVIEW_DELAY_NOTE}
             />
           ))}
         </div>

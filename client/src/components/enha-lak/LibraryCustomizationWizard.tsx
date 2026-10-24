@@ -1,5 +1,6 @@
 'use client';
 
+import type { DeliveryDays } from '@/lib/delivery-days';
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { addonsDisplayTotal, customizedAddonIdsFor } from '@/lib/item-format';
 import { formatPrice } from '@/lib/utils';
@@ -88,9 +89,12 @@ export function LibraryCustomizationWizard({
   extraFields = [],
   delivery,
   photoRetentionDays,
+  deliveryDays,
 }: {
   /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
   photoRetentionDays?: number;
+  /** مدة التجهيز العامة (الكتاب نفسه ممكن يغيّرها) — قرار ٢٥ أكتوبر. */
+  deliveryDays?: DeliveryDays;
   /** الدول والمناطق — «هنوصّل فين؟» قبل الدفع (قرار ٢٤ أكتوبر). */
   delivery?: DeliveryCatalog;
   product: PersonalizedProduct;
@@ -404,6 +408,7 @@ export function LibraryCustomizationWizard({
                 )}
                 {currentStep === 4 && (
                   <Step3LibraryReview
+                  deliveryDays={deliveryDays}
                     onPrev={onPrev}
                     product={product}
                     pending={methods.formState.isSubmitting}

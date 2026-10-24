@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_DELIVERY_DAYS, REVIEW_DELAY_NOTE, deliveryText, effectiveDeliveryDays, type DeliveryDays } from '@/lib/delivery-days';
 import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
 import { PersonalizedProduct, type AddonProduct } from '@/types';
@@ -20,7 +21,10 @@ export function Step4Review({
   showWritingStyle = false,
   deliveryPaused = false,
   addons = [],
+  deliveryDays,
 }: {
+  /** مدة التجهيز العامة — الكتاب ممكن يغيّرها (قرار ٢٥ أكتوبر). */
+  deliveryDays?: DeliveryDays;
   /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة في اختيار النسخة. */
   deliveryPaused?: boolean;
   /** عشان نعرف أنهي إضافة بتتشحن (قرار تامر، ٢٣ أكتوبر). */
@@ -192,6 +196,15 @@ export function Step4Review({
                       ? `${region.gov} — ${region.city}`
                       : 'بتختار المنطقة في الدفع'}
                 </span>
+              </div>
+              <div>
+                <span className="mb-1 block text-slate-500">الميعاد:</span>
+                <span className="font-bold text-slate-800">
+                  {deliveryText(effectiveDeliveryDays(deliveryDays ?? DEFAULT_DELIVERY_DAYS, product), format)}.
+                </span>
+                {product.category !== 'library' && (
+                  <span className="mt-1 block text-xs font-medium text-slate-600">{REVIEW_DELAY_NOTE}</span>
+                )}
               </div>
               <div>
                 <span className="mb-1 block text-slate-500">الإضافات:</span>

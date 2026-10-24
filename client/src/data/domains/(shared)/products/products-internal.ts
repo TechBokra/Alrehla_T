@@ -31,6 +31,9 @@ export function mapProductRow(p: any): PersonalizedProduct {
     // ⚠️ `??` لا `||`: السنّ صفر رقم حقيقي، و`||` كانت هتقراه «مفيش».
     minAge: p.min_age ?? undefined,
     maxAge: p.max_age ?? undefined,
+    // فاضي = القيمة العامة (ترحيل 20261025090000).
+    deliveryDaysElectronic: p.delivery_days_electronic ?? undefined,
+    deliveryDaysPrinted: p.delivery_days_printed ?? undefined,
     writingStyles: Array.isArray(p.writing_styles) && p.writing_styles.length > 0 ? p.writing_styles : undefined,
     // ⚠️ العمود في القاعدة `text` بـ`CHECK` (قرار ملف 130: الـenum
     //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات

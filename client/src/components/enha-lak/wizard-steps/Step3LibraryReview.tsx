@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_DELIVERY_DAYS, deliveryText, effectiveDeliveryDays, type DeliveryDays } from '@/lib/delivery-days';
 import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
 import { PersonalizedProduct } from '@/types';
@@ -11,7 +12,10 @@ export function Step3LibraryReview({
   product,
   pending = false,
   extraFields = [],
+  deliveryDays,
 }: {
+  /** مدة التجهيز العامة — الكتاب ممكن يغيّرها (قرار ٢٥ أكتوبر). */
+  deliveryDays?: DeliveryDays;
   onPrev: () => void;
   product: PersonalizedProduct;
   /** خانات الإدارة (ملف 06). */
@@ -85,6 +89,10 @@ export function Step3LibraryReview({
           </div>
         </div>
       </div>
+
+      <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+        {deliveryText(effectiveDeliveryDays(deliveryDays ?? DEFAULT_DELIVERY_DAYS, product), 'printed')}.
+      </p>
 
       <div className="flex justify-between pt-6 border-t border-slate-100">
         <button

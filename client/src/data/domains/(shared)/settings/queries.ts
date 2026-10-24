@@ -7,6 +7,7 @@ import { DEFAULT_MEDIA_CLEANUP, normalizeMediaCleanup } from '@/lib/media-cleanu
 import { DEFAULT_FILE_RETENTION_DAYS, normalizeRetentionDays } from '@/lib/private-files';
 import { DEFAULT_CHILD_PHOTO_RETENTION_DAYS, normalizeChildPhotoDays } from '@/lib/child-photos';
 import { AQLAM_OFF, normalizeAqlamSettings } from '@/lib/aqlam/settings';
+import { DEFAULT_DELIVERY_DAYS, normalizeDeliveryDays } from '@/lib/delivery-days';
 import type { SiteSettings } from '@/data/domains/(shared)/settings/types';
 
 /** Used only when the settings row has no wallet number saved yet. */
@@ -42,6 +43,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
       mediaCleanup: DEFAULT_MEDIA_CLEANUP,
       fileRetentionDays: DEFAULT_FILE_RETENTION_DAYS,
       childPhotoRetentionDays: DEFAULT_CHILD_PHOTO_RETENTION_DAYS,
+      deliveryDays: DEFAULT_DELIVERY_DAYS,
       aqlam: AQLAM_OFF,
       images: {},
     };
@@ -82,6 +84,7 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
     mediaCleanup: normalizeMediaCleanup(value.mediaCleanup),
     fileRetentionDays: normalizeRetentionDays(value.fileRetentionDays),
     childPhotoRetentionDays: normalizeChildPhotoDays(value.childPhotoRetentionDays),
+    deliveryDays: normalizeDeliveryDays(value.deliveryDays),
     aqlam: normalizeAqlamSettings(value),
     images: value.images ?? {},
   };

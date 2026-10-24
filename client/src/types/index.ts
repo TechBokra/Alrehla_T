@@ -361,6 +361,12 @@ export type PersonalizedProduct = {
    */
   writingStyles?: string[];
   /**
+   * مدة التجهيز بالأيام لهذا الكتاب — فاضي = القيمة العامة من الإعدادات
+   * (قرار تامر، ٢٥ أكتوبر). التفاصيل في `lib/delivery-days.ts`.
+   */
+  deliveryDaysElectronic?: number;
+  deliveryDaysPrinted?: number;
+  /**
    * عرض سعري ساري (يظهر في الصفحات العامة فقط): `price`/`electronicPrice`
    * هنا **بعد العرض**، وده الأصل. الحساب الحقيقي في القاعدة (`effective_price`).
    */

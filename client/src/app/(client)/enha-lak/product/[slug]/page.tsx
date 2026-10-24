@@ -23,8 +23,8 @@ import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
 import { priceBlocks } from '@/lib/item-format';
+import { REVIEW_DELAY_NOTE, deliveryText, effectiveDeliveryDays } from '@/lib/delivery-days';
 import { productUnavailableReason } from '@/lib/product-availability';
-import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { METHOD_LABELS } from '@/lib/payments/settings';
 import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
@@ -77,7 +77,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);
   // بالتوصيل بس والتوصيل متوقف؟ (قرار ٢٤ أكتوبر)
-  const [content, payment] = await Promise.all([getSiteContent(), getPaymentAvailability()]);
+  const payment = await getPaymentAvailability();
   const unavailable = productUnavailableReason(product, await getDeliveryPause());
 
   // ترتيب الأسعار (الإلكترونية أولًا) من مصدر واحد مشترك مع الكارت.
@@ -91,6 +91,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const settings = await getSiteSettings();
   const siteName = settings.siteName?.trim() || 'الرحلة';
+  // مدة التجهيز: الكتاب ده، أو القيمة العامة (قرار ٢٥ أكتوبر).
+  const delivery = effectiveDeliveryDays(settings.deliveryDays, product);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -290,15 +292,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 {product.category !== 'library' && (
                   <li className="flex gap-2">
                     <span className="text-emerald-600" aria-hidden="true">✓</span>
-                    بتراجع القصة وتوافق عليها قبل ما تتنفّذ.
+                    {/* قرار ٢٥ أكتوبر: المراجعة للصورة بس، والتأخير بيأخّر الميعاد. */}
+                    {REVIEW_DELAY_NOTE}
                   </li>
                 )}
-                {content['enhaLak.step4.text']?.trim() && (
-                  <li className="flex gap-2">
-                    <span className="text-emerald-600" aria-hidden="true">✓</span>
-                    {content['enhaLak.step4.text']}
-                  </li>
-                )}
+                <li className="flex gap-2">
+                  <span className="text-emerald-600" aria-hidden="true">✓</span>
+                  {deliveryText(delivery, prices.secondary ? 'both' : prices.headline.format)}.
+                </li>
                 <li className="flex gap-2">
                   <span className="text-emerald-600" aria-hidden="true">✓</span>
                   {payment.mode === 'gateway'
