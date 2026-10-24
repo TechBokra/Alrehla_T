@@ -119,7 +119,8 @@ const home: ContentGroup = {
       key: 'home.pillars.text',
       label: 'الفقرة تحت «أقسامنا الرئيسية»',
       type: 'longtext',
-      fallback: 'بوابتان لرحلة واحدة: قصة يصنعها طفلك، ومسار يتعلم فيه الكتابة بنفسه.',
+      fallback:
+        'بوابتان لرحلة واحدة: قصة يصنعها طفلك، ومسار يتعلم فيه الكتابة بنفسه.',
     },
     {
       key: 'home.steps.title',
@@ -322,16 +323,66 @@ const about: ContentGroup = {
       type: 'text',
       fallback: 'قيمنا الأساسية',
     },
-    { key: 'about.value1.title', label: 'القيمة ١ — الاسم', type: 'text', fallback: 'الأصالة' },
-    { key: 'about.value1.text', label: 'القيمة ١ — الوصف', type: 'text', fallback: 'محتوى عربي أصيل يحافظ على الهوية' },
-    { key: 'about.value2.title', label: 'القيمة ٢ — الاسم', type: 'text', fallback: 'الإبداع' },
-    { key: 'about.value2.text', label: 'القيمة ٢ — الوصف', type: 'text', fallback: 'حلول مبتكرة تواكب العصر' },
-    { key: 'about.value3.title', label: 'القيمة ٣ — الاسم', type: 'text', fallback: 'الجودة' },
-    { key: 'about.value3.text', label: 'القيمة ٣ — الوصف', type: 'text', fallback: 'معايير عالية في كل ما نقدم' },
-    { key: 'about.value4.title', label: 'القيمة ٤ — الاسم', type: 'text', fallback: 'التخصيص' },
-    { key: 'about.value4.text', label: 'القيمة ٤ — الوصف', type: 'text', fallback: 'كل طفل فريد ويستحق محتوى خاص' },
-    { key: 'about.value5.title', label: 'القيمة ٥ — الاسم', type: 'text', fallback: 'الشمولية' },
-    { key: 'about.value5.text', label: 'القيمة ٥ — الوصف', type: 'text', fallback: 'خدماتنا للجميع بغض النظر عن الخلفية' },
+    {
+      key: 'about.value1.title',
+      label: 'القيمة ١ — الاسم',
+      type: 'text',
+      fallback: 'الأصالة',
+    },
+    {
+      key: 'about.value1.text',
+      label: 'القيمة ١ — الوصف',
+      type: 'text',
+      fallback: 'محتوى عربي أصيل يحافظ على الهوية',
+    },
+    {
+      key: 'about.value2.title',
+      label: 'القيمة ٢ — الاسم',
+      type: 'text',
+      fallback: 'الإبداع',
+    },
+    {
+      key: 'about.value2.text',
+      label: 'القيمة ٢ — الوصف',
+      type: 'text',
+      fallback: 'حلول مبتكرة تواكب العصر',
+    },
+    {
+      key: 'about.value3.title',
+      label: 'القيمة ٣ — الاسم',
+      type: 'text',
+      fallback: 'الجودة',
+    },
+    {
+      key: 'about.value3.text',
+      label: 'القيمة ٣ — الوصف',
+      type: 'text',
+      fallback: 'معايير عالية في كل ما نقدم',
+    },
+    {
+      key: 'about.value4.title',
+      label: 'القيمة ٤ — الاسم',
+      type: 'text',
+      fallback: 'التخصيص',
+    },
+    {
+      key: 'about.value4.text',
+      label: 'القيمة ٤ — الوصف',
+      type: 'text',
+      fallback: 'كل طفل فريد ويستحق محتوى خاص',
+    },
+    {
+      key: 'about.value5.title',
+      label: 'القيمة ٥ — الاسم',
+      type: 'text',
+      fallback: 'الشمولية',
+    },
+    {
+      key: 'about.value5.text',
+      label: 'القيمة ٥ — الوصف',
+      type: 'text',
+      fallback: 'خدماتنا للجميع بغض النظر عن الخلفية',
+    },
   ],
 };
 
@@ -357,7 +408,12 @@ const enhaLak: ContentGroup = {
       fallback:
         'قصص ومنتجات مخصصة تجعل الطفل بطل الحكاية، وتعزز ارتباطه بالقراءة والقيم بأسلوب مشوق.',
     },
-    { key: 'enhaLak.path1.title', label: 'المسار ١ — العنوان', type: 'text', fallback: 'أنت البطل هنا' },
+    {
+      key: 'enhaLak.path1.title',
+      label: 'المسار ١ — العنوان',
+      type: 'text',
+      fallback: 'أنت البطل هنا',
+    },
     {
       key: 'enhaLak.path1.text',
       label: 'المسار ١ — الوصف',
@@ -365,7 +421,12 @@ const enhaLak: ContentGroup = {
       fallback:
         'نصنع محتوى مخصصاً لطفلك من الصفر بعد إتمام الطلب، ليكون هو محور القصة بأدق تفاصيلها.',
     },
-    { key: 'enhaLak.path2.title', label: 'المسار ٢ — العنوان', type: 'text', fallback: 'المكتبة العامة' },
+    {
+      key: 'enhaLak.path2.title',
+      label: 'المسار ٢ — العنوان',
+      type: 'text',
+      fallback: 'المكتبة العامة',
+    },
     {
       key: 'enhaLak.path2.text',
       label: 'المسار ٢ — الوصف',
@@ -373,7 +434,12 @@ const enhaLak: ContentGroup = {
       fallback:
         'اختر قصة جاهزة من المكتبة وخصص غلافها فقط، محتوى القصة الأصلي يبقى كما هو.',
     },
-    { key: 'enhaLak.path3.title', label: 'المسار ٣ — العنوان', type: 'text', fallback: 'صندوق الرحلة' },
+    {
+      key: 'enhaLak.path3.title',
+      label: 'المسار ٣ — العنوان',
+      type: 'text',
+      fallback: 'صندوق الرحلة',
+    },
     {
       key: 'enhaLak.path3.text',
       label: 'المسار ٣ — الوصف',
@@ -386,25 +452,90 @@ const enhaLak: ContentGroup = {
       type: 'text',
       fallback: 'قوة القصة الشخصية',
     },
-    { key: 'enhaLak.benefit1.title', label: 'الفائدة ١ — العنوان', type: 'text', fallback: 'تعزيز الهوية' },
-    { key: 'enhaLak.benefit1.text', label: 'الفائدة ١ — الوصف', type: 'text', fallback: 'عندما يرى الطفل نفسه بطلاً، يزداد تقديره لذاته وثقته بنفسه.' },
-    { key: 'enhaLak.benefit2.title', label: 'الفائدة ٢ — العنوان', type: 'text', fallback: 'شغف القراءة' },
-    { key: 'enhaLak.benefit2.text', label: 'الفائدة ٢ — الوصف', type: 'text', fallback: 'الارتباط الشخصي بالقصة يحول القراءة من واجب إلى متعة.' },
-    { key: 'enhaLak.benefit3.title', label: 'الفائدة ٣ — العنوان', type: 'text', fallback: 'غرس القيم' },
-    { key: 'enhaLak.benefit3.text', label: 'الفائدة ٣ — الوصف', type: 'text', fallback: 'الرسائل التربوية أكثر تأثيراً عندما يعيشها الطفل بنفسه.' },
+    {
+      key: 'enhaLak.benefit1.title',
+      label: 'الفائدة ١ — العنوان',
+      type: 'text',
+      fallback: 'تعزيز الهوية',
+    },
+    {
+      key: 'enhaLak.benefit1.text',
+      label: 'الفائدة ١ — الوصف',
+      type: 'text',
+      fallback: 'عندما يرى الطفل نفسه بطلاً، يزداد تقديره لذاته وثقته بنفسه.',
+    },
+    {
+      key: 'enhaLak.benefit2.title',
+      label: 'الفائدة ٢ — العنوان',
+      type: 'text',
+      fallback: 'شغف القراءة',
+    },
+    {
+      key: 'enhaLak.benefit2.text',
+      label: 'الفائدة ٢ — الوصف',
+      type: 'text',
+      fallback: 'الارتباط الشخصي بالقصة يحول القراءة من واجب إلى متعة.',
+    },
+    {
+      key: 'enhaLak.benefit3.title',
+      label: 'الفائدة ٣ — العنوان',
+      type: 'text',
+      fallback: 'غرس القيم',
+    },
+    {
+      key: 'enhaLak.benefit3.text',
+      label: 'الفائدة ٣ — الوصف',
+      type: 'text',
+      fallback: 'الرسائل التربوية أكثر تأثيراً عندما يعيشها الطفل بنفسه.',
+    },
     {
       key: 'enhaLak.steps.title',
       label: 'عنوان قسم «كيف تعمل؟»',
       type: 'text',
       fallback: 'كيف تعمل؟',
     },
-    { key: 'enhaLak.step1.title', label: 'الخطوة ١ — العنوان', type: 'text', fallback: 'املأ البيانات' },
-    { key: 'enhaLak.step1.text', label: 'الخطوة ١ — الوصف', type: 'text', fallback: 'اسم الطفل، عمره، صورته، هواياته.' },
-    { key: 'enhaLak.step2.title', label: 'الخطوة ٢ — العنوان', type: 'text', fallback: 'اختر القيمة' },
-    { key: 'enhaLak.step2.text', label: 'الخطوة ٢ — الوصف', type: 'text', fallback: 'حدد الهدف التربوي.' },
-    { key: 'enhaLak.step3.title', label: 'الخطوة ٣ — العنوان', type: 'text', fallback: 'انتظر السحر' },
-    { key: 'enhaLak.step3.text', label: 'الخطوة ٣ — الوصف', type: 'text', fallback: 'فريقنا ينسج قصة مخصصة.' },
-    { key: 'enhaLak.step4.title', label: 'الخطوة ٤ — العنوان', type: 'text', fallback: 'استلم واستمتع' },
+    {
+      key: 'enhaLak.step1.title',
+      label: 'الخطوة ١ — العنوان',
+      type: 'text',
+      fallback: 'املأ البيانات',
+    },
+    {
+      key: 'enhaLak.step1.text',
+      label: 'الخطوة ١ — الوصف',
+      type: 'text',
+      fallback: 'اسم الطفل، عمره، صورته، هواياته.',
+    },
+    {
+      key: 'enhaLak.step2.title',
+      label: 'الخطوة ٢ — العنوان',
+      type: 'text',
+      fallback: 'اختر القيمة',
+    },
+    {
+      key: 'enhaLak.step2.text',
+      label: 'الخطوة ٢ — الوصف',
+      type: 'text',
+      fallback: 'حدد الهدف التربوي.',
+    },
+    {
+      key: 'enhaLak.step3.title',
+      label: 'الخطوة ٣ — العنوان',
+      type: 'text',
+      fallback: 'انتظر السحر',
+    },
+    {
+      key: 'enhaLak.step3.text',
+      label: 'الخطوة ٣ — الوصف',
+      type: 'text',
+      fallback: 'فريقنا ينسج قصة مخصصة.',
+    },
+    {
+      key: 'enhaLak.step4.title',
+      label: 'الخطوة ٤ — العنوان',
+      type: 'text',
+      fallback: 'استلم واستمتع',
+    },
     {
       key: 'enhaLak.step4.text',
       label: 'الخطوة ٤ — الوصف',
@@ -418,10 +549,30 @@ const enhaLak: ContentGroup = {
       type: 'text',
       fallback: 'ماذا تقول الأسر عنا؟',
     },
-    { key: 'enhaLak.cta.title', label: 'آخر الصفحة — العنوان', type: 'text', fallback: 'جاهز تبدأ حكاية طفلك؟' },
-    { key: 'enhaLak.cta.custom', label: 'آخر الصفحة — زرار «أنت البطل هنا»', type: 'text', fallback: 'ابدأ تخصيص قصتك' },
-    { key: 'enhaLak.cta.library', label: 'آخر الصفحة — زرار المكتبة', type: 'text', fallback: 'اختر قصتك من المكتبة' },
-    { key: 'enhaLak.cta.box', label: 'آخر الصفحة — زرار صندوق الرحلة', type: 'text', fallback: 'اشترك في صندوق الرحلة' },
+    {
+      key: 'enhaLak.cta.title',
+      label: 'آخر الصفحة — العنوان',
+      type: 'text',
+      fallback: 'جاهز تبدأ حكاية طفلك؟',
+    },
+    {
+      key: 'enhaLak.cta.custom',
+      label: 'آخر الصفحة — زرار «أنت البطل هنا»',
+      type: 'text',
+      fallback: 'ابدأ تخصيص قصتك',
+    },
+    {
+      key: 'enhaLak.cta.library',
+      label: 'آخر الصفحة — زرار المكتبة',
+      type: 'text',
+      fallback: 'اختر قصتك من المكتبة',
+    },
+    {
+      key: 'enhaLak.cta.box',
+      label: 'آخر الصفحة — زرار صندوق الرحلة',
+      type: 'text',
+      fallback: 'اشترك في صندوق الرحلة',
+    },
   ],
 };
 
@@ -453,33 +604,118 @@ const creativeWriting: ContentGroup = {
       type: 'text',
       fallback: 'قد تكون مناسبة إذا كان المشارك...',
     },
-    { key: 'cw.suitable1', label: 'الحالة ١', type: 'longtext', fallback: 'لديه أفكار أو صور أو قصص، ويريد أدوات تساعده على تحويلها إلى كتابة أوضح.' },
-    { key: 'cw.suitable2', label: 'الحالة ٢', type: 'longtext', fallback: 'قد لا يعرف من أين يبدأ، أو يتوقف طويلاً أمام الصفحة البيضاء، ويحتاج إلى مساحة تساعده على المحاولة.' },
-    { key: 'cw.suitable3', label: 'الحالة ٣', type: 'longtext', fallback: 'لديه نصوص أو محاولات ويريد تطوير الفكرة والصياغة والمراجعة مع الحفاظ على صوته.' },
+    {
+      key: 'cw.suitable1',
+      label: 'الحالة ١',
+      type: 'longtext',
+      fallback:
+        'لديه أفكار أو صور أو قصص، ويريد أدوات تساعده على تحويلها إلى كتابة أوضح.',
+    },
+    {
+      key: 'cw.suitable2',
+      label: 'الحالة ٢',
+      type: 'longtext',
+      fallback:
+        'قد لا يعرف من أين يبدأ، أو يتوقف طويلاً أمام الصفحة البيضاء، ويحتاج إلى مساحة تساعده على المحاولة.',
+    },
+    {
+      key: 'cw.suitable3',
+      label: 'الحالة ٣',
+      type: 'longtext',
+      fallback:
+        'لديه نصوص أو محاولات ويريد تطوير الفكرة والصياغة والمراجعة مع الحفاظ على صوته.',
+    },
     {
       key: 'cw.features.title',
       label: 'عنوان قسم «ماذا يجد المشارك»',
       type: 'text',
       fallback: 'ماذا يجد المشارك في «بداية الرحلة»؟',
     },
-    { key: 'cw.feature1.title', label: 'الميزة ١ — العنوان', type: 'text', fallback: 'مساحة للمحاولة' },
-    { key: 'cw.feature1.text', label: 'الميزة ١ — الوصف', type: 'text', fallback: 'يبدأ من نقطة تناسبه، من غير مقارنة أو قالب واحد للجميع.' },
-    { key: 'cw.feature2.title', label: 'الميزة ٢ — العنوان', type: 'text', fallback: 'أدوات للكتابة' },
-    { key: 'cw.feature2.text', label: 'الميزة ٢ — الوصف', type: 'text', fallback: 'يتعرف إلى أدوات تساعده على تنمية الفكرة والوصف والتنظيم والمراجعة.' },
-    { key: 'cw.feature3.title', label: 'الميزة ٣ — العنوان', type: 'text', fallback: 'صوت واختيار' },
-    { key: 'cw.feature3.text', label: 'الميزة ٣ — الوصف', type: 'text', fallback: 'الفكرة والقرارات الأساسية والنص لصاحبها.' },
-    { key: 'cw.feature4.title', label: 'الميزة ٤ — العنوان', type: 'text', fallback: 'تقدم بلا مقارنة' },
-    { key: 'cw.feature4.text', label: 'الميزة ٤ — الوصف', type: 'text', fallback: 'ينمو من خلال المحاولة والتغذية الراجعة والمراجعة، لا الدرجات.' },
+    {
+      key: 'cw.feature1.title',
+      label: 'الميزة ١ — العنوان',
+      type: 'text',
+      fallback: 'مساحة للمحاولة',
+    },
+    {
+      key: 'cw.feature1.text',
+      label: 'الميزة ١ — الوصف',
+      type: 'text',
+      fallback: 'يبدأ من نقطة تناسبه، من غير مقارنة أو قالب واحد للجميع.',
+    },
+    {
+      key: 'cw.feature2.title',
+      label: 'الميزة ٢ — العنوان',
+      type: 'text',
+      fallback: 'أدوات للكتابة',
+    },
+    {
+      key: 'cw.feature2.text',
+      label: 'الميزة ٢ — الوصف',
+      type: 'text',
+      fallback:
+        'يتعرف إلى أدوات تساعده على تنمية الفكرة والوصف والتنظيم والمراجعة.',
+    },
+    {
+      key: 'cw.feature3.title',
+      label: 'الميزة ٣ — العنوان',
+      type: 'text',
+      fallback: 'صوت واختيار',
+    },
+    {
+      key: 'cw.feature3.text',
+      label: 'الميزة ٣ — الوصف',
+      type: 'text',
+      fallback: 'الفكرة والقرارات الأساسية والنص لصاحبها.',
+    },
+    {
+      key: 'cw.feature4.title',
+      label: 'الميزة ٤ — العنوان',
+      type: 'text',
+      fallback: 'تقدم بلا مقارنة',
+    },
+    {
+      key: 'cw.feature4.text',
+      label: 'الميزة ٤ — الوصف',
+      type: 'text',
+      fallback: 'ينمو من خلال المحاولة والتغذية الراجعة والمراجعة، لا الدرجات.',
+    },
+    {
+      key: 'cw.features.link',
+      label: 'رابط بعد قسم «ماذا يجد المشارك» (بيودّي لصفحة «عن البرنامج»)',
+      type: 'text',
+      fallback: 'تعرّف إلى فلسفة «بداية الرحلة»',
+    },
     {
       key: 'cw.pathways.title',
       label: 'عنوان قسم «ما يناسبك؟»',
       type: 'text',
       fallback: 'ما يناسبك؟',
     },
-    { key: 'cw.pathway1.title', label: 'المسار ١ — العنوان', type: 'text', fallback: 'باقات «بداية الرحلة»' },
-    { key: 'cw.pathway1.text', label: 'المسار ١ — الوصف', type: 'text', fallback: 'لمن يريد مسارًا متتابعًا' },
-    { key: 'cw.pathway2.title', label: 'المسار ٢ — العنوان', type: 'text', fallback: 'خدمات إبداعية مستقلة' },
-    { key: 'cw.pathway2.text', label: 'المسار ٢ — الوصف', type: 'text', fallback: 'مراجعات واستشارات سريعة' },
+    {
+      key: 'cw.pathway1.title',
+      label: 'المسار ١ — العنوان',
+      type: 'text',
+      fallback: 'باقات «بداية الرحلة»',
+    },
+    {
+      key: 'cw.pathway1.text',
+      label: 'المسار ١ — الوصف',
+      type: 'text',
+      fallback: 'لمن يريد مسارًا متتابعًا',
+    },
+    {
+      key: 'cw.pathway2.title',
+      label: 'المسار ٢ — العنوان',
+      type: 'text',
+      fallback: 'خدمات إبداعية مستقلة',
+    },
+    {
+      key: 'cw.pathway2.text',
+      label: 'المسار ٢ — الوصف',
+      type: 'text',
+      fallback: 'مراجعات واستشارات سريعة',
+    },
     {
       key: 'cw.instructors.title',
       label: 'عنوان قسم المدربين',
@@ -511,9 +747,24 @@ const creativeWritingAbout: ContentGroup = {
   title: 'عن «بداية الرحلة»',
   path: '/creative-writing/about',
   fields: [
-    { key: 'cwAbout.title', label: 'العنوان الرئيسي', type: 'text', fallback: 'عن «بداية الرحلة»' },
-    { key: 'cwAbout.subtitle', label: 'الجملة تحت العنوان', type: 'text', fallback: 'الكتابة مساحة للتعبير والنمو' },
-    { key: 'cwAbout.why.title', label: 'عنوان قسم «لماذا»', type: 'text', fallback: 'لماذا «بداية الرحلة»؟' },
+    {
+      key: 'cwAbout.title',
+      label: 'العنوان الرئيسي',
+      type: 'text',
+      fallback: 'عن «بداية الرحلة»',
+    },
+    {
+      key: 'cwAbout.subtitle',
+      label: 'الجملة تحت العنوان',
+      type: 'text',
+      fallback: 'الكتابة مساحة للتعبير والنمو',
+    },
+    {
+      key: 'cwAbout.why.title',
+      label: 'عنوان قسم «لماذا»',
+      type: 'text',
+      fallback: 'لماذا «بداية الرحلة»؟',
+    },
     {
       key: 'cwAbout.why.text',
       label: 'وصف قسم «لماذا»',
@@ -521,18 +772,155 @@ const creativeWritingAbout: ContentGroup = {
       fallback:
         'لأن الكتابة أكثر من مهمة مدرسية: يمكن أن تكون مساحة للتفكير والتجريب وصناعة المعنى.',
     },
-    { key: 'cwAbout.point1', label: 'النقطة ١', type: 'longtext', fallback: 'مساحة تحتفي بالمحاولة، وتتعامل مع الخطأ باعتباره جزءًا طبيعيًا من التعلم.' },
-    { key: 'cwAbout.point2', label: 'النقطة ٢', type: 'longtext', fallback: 'جلسات فردية تتيح اهتمامًا مركزًا بالمشارك واحتياجاته.' },
-    { key: 'cwAbout.point3', label: 'النقطة ٣', type: 'longtext', fallback: 'تجربة تتكيف مع العمر والعلاقة الحالية بالكتابة والاهتمامات.' },
-    { key: 'cwAbout.features.title', label: 'عنوان قسم «ما الذي يميزنا»', type: 'text', fallback: 'ما الذي يميزنا؟' },
-    { key: 'cwAbout.feature1.title', label: 'الميزة ١ — العنوان', type: 'text', fallback: 'الإلهام أولاً' },
-    { key: 'cwAbout.feature1.text', label: 'الميزة ١ — الوصف', type: 'text', fallback: 'نبدأ بإشعال شرارة الفضول والخيال قبل الخوض في تقنيات الكتابة المعقدة.' },
-    { key: 'cwAbout.feature2.title', label: 'الميزة ٢ — العنوان', type: 'text', fallback: 'الممارسة تصنع المبدع' },
-    { key: 'cwAbout.feature2.text', label: 'الميزة ٢ — الوصف', type: 'text', fallback: 'نؤمن أن الكتابة مهارة تنمو بالتجربة والمحاولة المستمرة أكثر من التنظير.' },
-    { key: 'cwAbout.feature3.title', label: 'الميزة ٣ — العنوان', type: 'text', fallback: 'الثقة هي المفتاح' },
-    { key: 'cwAbout.feature3.text', label: 'الميزة ٣ — الوصف', type: 'text', fallback: 'نبني مساحة آمنة تمنح المشارك الثقة بصوته وقدراته دون خوف من الخطأ.' },
-    { key: 'cwAbout.cta.title', label: 'آخر الصفحة — العنوان', type: 'text', fallback: 'جاهز تبدأ الرحلة؟' },
-    { key: 'cwAbout.cta.button', label: 'آخر الصفحة — الزرار', type: 'text', fallback: 'اكتشف باقات بداية الرحلة' },
+    {
+      key: 'cwAbout.point1',
+      label: 'النقطة ١',
+      type: 'longtext',
+      fallback:
+        'مساحة تحتفي بالمحاولة، وتتعامل مع الخطأ باعتباره جزءًا طبيعيًا من التعلم.',
+    },
+    {
+      key: 'cwAbout.point2',
+      label: 'النقطة ٢',
+      type: 'longtext',
+      fallback: 'جلسات فردية تتيح اهتمامًا مركزًا بالمشارك واحتياجاته.',
+    },
+    {
+      key: 'cwAbout.point3',
+      label: 'النقطة ٣',
+      type: 'longtext',
+      fallback: 'تجربة تتكيف مع العمر والعلاقة الحالية بالكتابة والاهتمامات.',
+    },
+    {
+      key: 'cwAbout.point4',
+      label: 'النقطة ٤',
+      type: 'longtext',
+      fallback:
+        'مدربون يرافقون المشارك ويحترمون صوته، فلا يكتبون بدلًا عنه، بل يساعدونه على قول ما يريد بطريقته.',
+    },
+    {
+      key: 'cwAbout.importance.title',
+      label: 'قسم «أهمية الكتابة الإبداعية» — العنوان',
+      type: 'text',
+      fallback: 'أهمية الكتابة الإبداعية',
+      hint: 'القسم ده بيظهر بعد «لماذا بداية الرحلة».',
+    },
+    {
+      key: 'cwAbout.importance.text',
+      label: 'قسم «أهمية الكتابة الإبداعية» — الوصف',
+      type: 'longtext',
+      fallback:
+        'الكتابة الإبداعية ليست ترفًا ولا موهبة لقلّة؛ هي مهارة تفتح للطفل واليافع أبوابًا في التفكير والتعبير وفهم الذات والعالم.',
+    },
+    {
+      key: 'cwAbout.importance1.title',
+      label: 'الفائدة ١ — العنوان',
+      type: 'text',
+      fallback: 'تفكير أعمق',
+    },
+    {
+      key: 'cwAbout.importance1.text',
+      label: 'الفائدة ١ — الوصف',
+      type: 'longtext',
+      fallback:
+        'ترتيب الأفكار على الورق يعلّم المشارك أن يلاحظ ويربط ويسأل، لا أن يحفظ فقط.',
+    },
+    {
+      key: 'cwAbout.importance2.title',
+      label: 'الفائدة ٢ — العنوان',
+      type: 'text',
+      fallback: 'تعبير عن الذات',
+    },
+    {
+      key: 'cwAbout.importance2.text',
+      label: 'الفائدة ٢ — الوصف',
+      type: 'longtext',
+      fallback:
+        'الكتابة مساحة آمنة يسمّي فيها مشاعره وتجاربه، فيفهم نفسه أكثر.',
+    },
+    {
+      key: 'cwAbout.importance3.title',
+      label: 'الفائدة ٣ — العنوان',
+      type: 'text',
+      fallback: 'ثقة بالصوت',
+    },
+    {
+      key: 'cwAbout.importance3.text',
+      label: 'الفائدة ٣ — الوصف',
+      type: 'longtext',
+      fallback:
+        'كل نص يكتمل يذكّره بأن لديه ما يقوله، وأن طريقته في قوله تستحق أن تُسمع.',
+    },
+    {
+      key: 'cwAbout.importance4.title',
+      label: 'الفائدة ٤ — العنوان',
+      type: 'text',
+      fallback: 'لغة أغنى',
+    },
+    {
+      key: 'cwAbout.importance4.text',
+      label: 'الفائدة ٤ — الوصف',
+      type: 'longtext',
+      fallback:
+        'المحاولة والمراجعة تنمّيان المفردات والأسلوب، وتنعكسان على القراءة والدراسة.',
+    },
+    {
+      key: 'cwAbout.features.title',
+      label: 'عنوان قسم «ما الذي يميزنا»',
+      type: 'text',
+      fallback: 'ما الذي يميزنا؟',
+    },
+    {
+      key: 'cwAbout.feature1.title',
+      label: 'الميزة ١ — العنوان',
+      type: 'text',
+      fallback: 'الإلهام أولاً',
+    },
+    {
+      key: 'cwAbout.feature1.text',
+      label: 'الميزة ١ — الوصف',
+      type: 'text',
+      fallback:
+        'نبدأ بإشعال شرارة الفضول والخيال قبل الخوض في تقنيات الكتابة المعقدة.',
+    },
+    {
+      key: 'cwAbout.feature2.title',
+      label: 'الميزة ٢ — العنوان',
+      type: 'text',
+      fallback: 'الممارسة تصنع المبدع',
+    },
+    {
+      key: 'cwAbout.feature2.text',
+      label: 'الميزة ٢ — الوصف',
+      type: 'text',
+      fallback:
+        'نؤمن أن الكتابة مهارة تنمو بالتجربة والمحاولة المستمرة أكثر من التنظير.',
+    },
+    {
+      key: 'cwAbout.feature3.title',
+      label: 'الميزة ٣ — العنوان',
+      type: 'text',
+      fallback: 'الثقة هي المفتاح',
+    },
+    {
+      key: 'cwAbout.feature3.text',
+      label: 'الميزة ٣ — الوصف',
+      type: 'text',
+      fallback:
+        'نبني مساحة آمنة تمنح المشارك الثقة بصوته وقدراته دون خوف من الخطأ.',
+    },
+    {
+      key: 'cwAbout.cta.title',
+      label: 'آخر الصفحة — العنوان',
+      type: 'text',
+      fallback: 'جاهز تبدأ الرحلة؟',
+    },
+    {
+      key: 'cwAbout.cta.button',
+      label: 'آخر الصفحة — الزرار',
+      type: 'text',
+      fallback: 'اكتشف باقات بداية الرحلة',
+    },
   ],
 };
 
@@ -545,7 +933,12 @@ const joinUs: ContentGroup = {
   title: 'انضم إلينا',
   path: '/join-us',
   fields: [
-    { key: 'join.title', label: 'العنوان الرئيسي', type: 'text', fallback: 'اصنع معنا تجارب تستحق أن تُحكى' },
+    {
+      key: 'join.title',
+      label: 'العنوان الرئيسي',
+      type: 'text',
+      fallback: 'اصنع معنا تجارب تستحق أن تُحكى',
+    },
     {
       key: 'join.subtitle',
       label: 'الفقرة تحت العنوان',
@@ -553,23 +946,111 @@ const joinUs: ContentGroup = {
       fallback:
         'نبحث عن أشخاص يجمعون بين الحرفة والاهتمام بالإنسان: مدرّبين كتابة، ورسّامي قصص، ومتعاونين وأصوات، يساعدوننا على تقديم تجربة عربية عالية الجودة.',
     },
-    { key: 'join.why.title', label: 'عنوان قسم «لماذا تنضم»', type: 'text', fallback: 'لماذا تنضم إلى فريق "الرحلة"؟' },
-    { key: 'join.reason1.title', label: 'السبب ١ — العنوان', type: 'text', fallback: 'ساهم في عمل له معنى' },
-    { key: 'join.reason1.text', label: 'السبب ١ — الوصف', type: 'text', fallback: 'ساهم في قصص وتجارب تربوية حقيقية تصل إلى أطفال ويافعين وشباب.' },
-    { key: 'join.reason2.title', label: 'السبب ٢ — العنوان', type: 'text', fallback: 'مجتمع متعدد الخبرات' },
-    { key: 'join.reason2.text', label: 'السبب ٢ — الوصف', type: 'text', fallback: 'اعمل مع كتّاب ومدربين ورسّامين وصنّاع محتوى وتربويين.' },
-    { key: 'join.reason3.title', label: 'السبب ٣ — العنوان', type: 'text', fallback: 'مرونة في العمل' },
-    { key: 'join.reason3.text', label: 'السبب ٣ — الوصف', type: 'text', fallback: 'استمتع بحرية العمل عن بعد والمساهمة في الأوقات التي تناسبك.' },
-    { key: 'join.reason4.title', label: 'السبب ٤ — العنوان', type: 'text', fallback: 'فرص للتعلم والنمو' },
-    { key: 'join.reason4.text', label: 'السبب ٤ — الوصف', type: 'text', fallback: 'طوّر حرفتك داخل مشروع يطوّر أدواته ومحتواه باستمرار.' },
-    { key: 'join.roles.title', label: 'عنوان قسم الفرص', type: 'text', fallback: 'الفرص المتاحة' },
-    { key: 'join.role1.title', label: 'الفرصة ١ — العنوان', type: 'text', fallback: 'مدرب كتابة إبداعية' },
-    { key: 'join.role1.text', label: 'الفرصة ١ — الوصف', type: 'longtext', fallback: 'يعمل فرديًا مع الأطفال واليافعين والشباب، ويساعدهم على تطوير أدواتهم وصوتهم من دون أن يكتب بدلاً عنهم.' },
-    { key: 'join.role2.title', label: 'الفرصة ٢ — العنوان', type: 'text', fallback: 'رسام قصص أطفال' },
-    { key: 'join.role2.text', label: 'الفرصة ٢ — الوصف', type: 'longtext', fallback: 'تحويل الكلمات إلى عوالم بصرية ساحرة، ورسم شخصيات تبقى في ذاكرة الأطفال.' },
-    { key: 'join.role3.title', label: 'الفرصة ٣ — العنوان', type: 'text', fallback: 'معلق صوتي' },
-    { key: 'join.role3.text', label: 'الفرصة ٣ — الوصف', type: 'longtext', fallback: 'إعطاء حياة وشخصية للكلمات من خلال الأداء الصوتي للقصص المخصصة والمحتوى الصوتي.' },
-    { key: 'join.form.title', label: 'عنوان نموذج التقديم', type: 'text', fallback: 'نموذج التقديم' },
+    {
+      key: 'join.why.title',
+      label: 'عنوان قسم «لماذا تنضم»',
+      type: 'text',
+      fallback: 'لماذا تنضم إلى فريق "الرحلة"؟',
+    },
+    {
+      key: 'join.reason1.title',
+      label: 'السبب ١ — العنوان',
+      type: 'text',
+      fallback: 'ساهم في عمل له معنى',
+    },
+    {
+      key: 'join.reason1.text',
+      label: 'السبب ١ — الوصف',
+      type: 'text',
+      fallback: 'ساهم في قصص وتجارب تربوية حقيقية تصل إلى أطفال ويافعين وشباب.',
+    },
+    {
+      key: 'join.reason2.title',
+      label: 'السبب ٢ — العنوان',
+      type: 'text',
+      fallback: 'مجتمع متعدد الخبرات',
+    },
+    {
+      key: 'join.reason2.text',
+      label: 'السبب ٢ — الوصف',
+      type: 'text',
+      fallback: 'اعمل مع كتّاب ومدربين ورسّامين وصنّاع محتوى وتربويين.',
+    },
+    {
+      key: 'join.reason3.title',
+      label: 'السبب ٣ — العنوان',
+      type: 'text',
+      fallback: 'مرونة في العمل',
+    },
+    {
+      key: 'join.reason3.text',
+      label: 'السبب ٣ — الوصف',
+      type: 'text',
+      fallback: 'استمتع بحرية العمل عن بعد والمساهمة في الأوقات التي تناسبك.',
+    },
+    {
+      key: 'join.reason4.title',
+      label: 'السبب ٤ — العنوان',
+      type: 'text',
+      fallback: 'فرص للتعلم والنمو',
+    },
+    {
+      key: 'join.reason4.text',
+      label: 'السبب ٤ — الوصف',
+      type: 'text',
+      fallback: 'طوّر حرفتك داخل مشروع يطوّر أدواته ومحتواه باستمرار.',
+    },
+    {
+      key: 'join.roles.title',
+      label: 'عنوان قسم الفرص',
+      type: 'text',
+      fallback: 'الفرص المتاحة',
+    },
+    {
+      key: 'join.role1.title',
+      label: 'الفرصة ١ — العنوان',
+      type: 'text',
+      fallback: 'مدرب كتابة إبداعية',
+    },
+    {
+      key: 'join.role1.text',
+      label: 'الفرصة ١ — الوصف',
+      type: 'longtext',
+      fallback:
+        'يعمل فرديًا مع الأطفال واليافعين والشباب، ويساعدهم على تطوير أدواتهم وصوتهم من دون أن يكتب بدلاً عنهم.',
+    },
+    {
+      key: 'join.role2.title',
+      label: 'الفرصة ٢ — العنوان',
+      type: 'text',
+      fallback: 'رسام قصص أطفال',
+    },
+    {
+      key: 'join.role2.text',
+      label: 'الفرصة ٢ — الوصف',
+      type: 'longtext',
+      fallback:
+        'تحويل الكلمات إلى عوالم بصرية ساحرة، ورسم شخصيات تبقى في ذاكرة الأطفال.',
+    },
+    {
+      key: 'join.role3.title',
+      label: 'الفرصة ٣ — العنوان',
+      type: 'text',
+      fallback: 'معلق صوتي',
+    },
+    {
+      key: 'join.role3.text',
+      label: 'الفرصة ٣ — الوصف',
+      type: 'longtext',
+      fallback:
+        'إعطاء حياة وشخصية للكلمات من خلال الأداء الصوتي للقصص المخصصة والمحتوى الصوتي.',
+    },
+    {
+      key: 'join.form.title',
+      label: 'عنوان نموذج التقديم',
+      type: 'text',
+      fallback: 'نموذج التقديم',
+    },
   ],
 };
 
@@ -582,7 +1063,12 @@ const privacy: ContentGroup = {
   title: 'سياسة الخصوصية',
   path: '/privacy',
   fields: [
-    { key: 'privacy.title', label: 'عنوان الصفحة', type: 'text', fallback: 'سياسة الخصوصية' },
+    {
+      key: 'privacy.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'سياسة الخصوصية',
+    },
     {
       key: 'privacy.updated',
       label: 'تاريخ آخر تحديث',
@@ -681,7 +1167,8 @@ const privacy: ContentGroup = {
       key: 'privacy.footer',
       label: 'سطر التواصل في الآخر',
       type: 'longtext',
-      fallback: 'إذا كان لديك أي أسئلة حول سياسة الخصوصية، يرجى التواصل معنا عبر',
+      fallback:
+        'إذا كان لديك أي أسئلة حول سياسة الخصوصية، يرجى التواصل معنا عبر',
       hint: 'رابط «مركز الدعم» بيتحط تلقائيًا بعد النص ده.',
     },
   ],
@@ -692,7 +1179,12 @@ const terms: ContentGroup = {
   title: 'الشروط والأحكام',
   path: '/terms',
   fields: [
-    { key: 'terms.title', label: 'عنوان الصفحة', type: 'text', fallback: 'شروط الاستخدام' },
+    {
+      key: 'terms.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'شروط الاستخدام',
+    },
     {
       key: 'terms.updated',
       label: 'تاريخ آخر تحديث',
@@ -778,7 +1270,8 @@ const terms: ContentGroup = {
       key: 'terms.footer',
       label: 'سطر التواصل في الآخر',
       type: 'longtext',
-      fallback: 'باستخدامك لمنصة الرحلة، فإنك توافق على هذه الشروط. لأي استفسار، يرجى زيارة',
+      fallback:
+        'باستخدامك لمنصة الرحلة، فإنك توافق على هذه الشروط. لأي استفسار، يرجى زيارة',
       hint: 'رابط «مركز الدعم» بيتحط تلقائيًا بعد النص ده.',
     },
   ],
@@ -819,11 +1312,36 @@ const writingPackages: ContentGroup = {
       type: 'text',
       fallback: 'لم يُحدَّد مسارها بعد',
     },
-    { key: 'packages.track.foundation.title', label: 'مسار التأسيس — العنوان', type: 'text', fallback: 'مسار التأسيس' },
-    { key: 'packages.track.foundation.subtitle', label: 'مسار التأسيس — السطر تحته', type: 'text', fallback: 'دون 12 سنة' },
-    { key: 'packages.track.youth.title', label: 'مسار اليافعين — العنوان', type: 'text', fallback: 'مسار اليافعين والكبار' },
-    { key: 'packages.track.youth.subtitle', label: 'مسار اليافعين — السطر تحته', type: 'text', fallback: '12 سنة فأعلى' },
-    { key: 'packages.track.specialization.title', label: 'مسار التخصص — العنوان', type: 'text', fallback: 'مسار التخصص' },
+    {
+      key: 'packages.track.foundation.title',
+      label: 'مسار التأسيس — العنوان',
+      type: 'text',
+      fallback: 'مسار التأسيس',
+    },
+    {
+      key: 'packages.track.foundation.subtitle',
+      label: 'مسار التأسيس — السطر تحته',
+      type: 'text',
+      fallback: 'دون 12 سنة',
+    },
+    {
+      key: 'packages.track.youth.title',
+      label: 'مسار اليافعين — العنوان',
+      type: 'text',
+      fallback: 'مسار اليافعين والكبار',
+    },
+    {
+      key: 'packages.track.youth.subtitle',
+      label: 'مسار اليافعين — السطر تحته',
+      type: 'text',
+      fallback: '12 سنة فأعلى',
+    },
+    {
+      key: 'packages.track.specialization.title',
+      label: 'مسار التخصص — العنوان',
+      type: 'text',
+      fallback: 'مسار التخصص',
+    },
     {
       key: 'packages.track.specialization.subtitle',
       label: 'مسار التخصص — السطر تحته',
@@ -953,7 +1471,6 @@ const sessionRecording: ContentGroup = {
   ],
 };
 
-
 /* ------------------------------------------------------------------ */
 /* الفوتر — في كل صفحات الموقع                                          */
 /* ------------------------------------------------------------------ */
@@ -963,15 +1480,16 @@ const footer: ContentGroup = {
   title: 'الفوتر (أسفل كل الصفحات)',
   path: '/',
   note:
-    'التليفون والواتساب والبريد والعنوان ومواعيد العمل وروابط فيسبوك وإنستجرام واسم الموقع '
-    + 'بتتعدّل من «الإعدادات العامة» — الفوتر بيقراها من هناك، واللي فاضي بيختفي. '
-    + 'والشعار من «صور الموقع» (الشعار على خلفية داكنة، أو العادي لو مش مرفوع).',
+    'التليفون والواتساب والبريد والعنوان ومواعيد العمل وروابط فيسبوك وإنستجرام واسم الموقع ' +
+    'بتتعدّل من «الإعدادات العامة» — الفوتر بيقراها من هناك، واللي فاضي بيختفي. ' +
+    'والشعار من «صور الموقع» (الشعار على خلفية داكنة، أو العادي لو مش مرفوع).',
   fields: [
     {
       key: 'footer.description',
       label: 'الجملة تحت الشعار',
       type: 'longtext',
-      fallback: 'منصة تعليمية متطورة لتعلّم الكتابة الإبداعية وتقديم قصص مخصصة.',
+      fallback:
+        'منصة تعليمية متطورة لتعلّم الكتابة الإبداعية وتقديم قصص مخصصة.',
     },
     {
       key: 'footer.quickLinksTitle',
@@ -1061,14 +1579,24 @@ const blog: ContentGroup = {
   path: '/blog',
   note: 'المقالات نفسها بتتكتب من «المدونة» في القائمة — هنا نصوص الصفحة حواليها بس.',
   fields: [
-    { key: 'blog.title', label: 'عنوان الصفحة', type: 'text', fallback: 'المدونة' },
+    {
+      key: 'blog.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'المدونة',
+    },
     {
       key: 'blog.subtitle',
       label: 'السطر تحت العنوان',
       type: 'longtext',
       fallback: 'مقالات وأفكار حول القصص والكتابة والتربية والإبداع.',
     },
-    { key: 'blog.readMore', label: 'زرار «اقرأ المزيد» على كل مقال', type: 'text', fallback: 'اقرأ المزيد' },
+    {
+      key: 'blog.readMore',
+      label: 'زرار «اقرأ المزيد» على كل مقال',
+      type: 'text',
+      fallback: 'اقرأ المزيد',
+    },
     {
       key: 'blog.empty',
       label: 'رسالة لما مفيش مقالات',
@@ -1088,8 +1616,18 @@ const enhaLakCustom: ContentGroup = {
   path: '/enha-lak/custom',
   note: 'المنتجات والإضافات وأسعارها من «المنتجات» و«إضافات المنتجات» — هنا نصوص الصفحة بس.',
   fields: [
-    { key: 'custom.title', label: 'عنوان الصفحة', type: 'text', fallback: 'أنت البطل هنا' },
-    { key: 'custom.eyebrow', label: 'السطر الصغير تحت العنوان', type: 'text', fallback: 'قصة بتتكتب لطفلك من الصفر' },
+    {
+      key: 'custom.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'أنت البطل هنا',
+    },
+    {
+      key: 'custom.eyebrow',
+      label: 'السطر الصغير تحت العنوان',
+      type: 'text',
+      fallback: 'قصة بتتكتب لطفلك من الصفر',
+    },
     {
       key: 'custom.description',
       label: 'الفقرة التعريفية',
@@ -1097,10 +1635,30 @@ const enhaLakCustom: ContentGroup = {
       fallback:
         'اختار المنتج، وشاركنا اللي فريقنا محتاجه للتخصيص. بنبدأ نكتب بعد تأكيد الطلب، وطفلك يبقى بطل الحكاية باسمه وصورته واهتماماته.',
     },
-    { key: 'custom.action', label: 'زرار المنتج', type: 'text', fallback: 'ابدأ التخصيص' },
-    { key: 'custom.empty.title', label: 'لما مفيش منتجات — العنوان', type: 'text', fallback: 'القصص المخصصة لسه بتتجهّز' },
-    { key: 'custom.empty.text', label: 'لما مفيش منتجات — السطر', type: 'text', fallback: 'بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.' },
-    { key: 'custom.addons.title', label: 'قسم الإضافات — العنوان', type: 'text', fallback: 'إضافات اختيارية' },
+    {
+      key: 'custom.action',
+      label: 'زرار المنتج',
+      type: 'text',
+      fallback: 'ابدأ التخصيص',
+    },
+    {
+      key: 'custom.empty.title',
+      label: 'لما مفيش منتجات — العنوان',
+      type: 'text',
+      fallback: 'القصص المخصصة لسه بتتجهّز',
+    },
+    {
+      key: 'custom.empty.text',
+      label: 'لما مفيش منتجات — السطر',
+      type: 'text',
+      fallback: 'بنجهّز باقات التخصيص دلوقتي — ارجع لنا قريب.',
+    },
+    {
+      key: 'custom.addons.title',
+      label: 'قسم الإضافات — العنوان',
+      type: 'text',
+      fallback: 'إضافات اختيارية',
+    },
     {
       key: 'custom.addons.text',
       label: 'قسم الإضافات — الوصف',
@@ -1113,7 +1671,12 @@ const enhaLakCustom: ContentGroup = {
       type: 'text',
       fallback: 'الإضافات بتتختار وإنت بتخصّص القصة — مش بتتطلب لوحدها.',
     },
-    { key: 'custom.addons.badge', label: 'الكلمة جنب سعر كل إضافة', type: 'text', fallback: 'تُضاف أثناء التخصيص' },
+    {
+      key: 'custom.addons.badge',
+      label: 'الكلمة جنب سعر كل إضافة',
+      type: 'text',
+      fallback: 'تُضاف أثناء التخصيص',
+    },
   ],
 };
 
@@ -1127,8 +1690,18 @@ const enhaLakLibrary: ContentGroup = {
   path: '/enha-lak/library',
   note: 'الكتب نفسها من «المنتجات» ودور النشر — هنا نصوص الصفحة بس. الفلاتر والبحث ثابتين.',
   fields: [
-    { key: 'library.title', label: 'عنوان الصفحة', type: 'text', fallback: 'المكتبة العامة' },
-    { key: 'library.eyebrow', label: 'السطر الصغير تحت العنوان', type: 'text', fallback: 'قصة جاهزة… وغلاف يحمل اسم طفلك' },
+    {
+      key: 'library.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'المكتبة العامة',
+    },
+    {
+      key: 'library.eyebrow',
+      label: 'السطر الصغير تحت العنوان',
+      type: 'text',
+      fallback: 'قصة جاهزة… وغلاف يحمل اسم طفلك',
+    },
     {
       key: 'library.description',
       label: 'الفقرة التعريفية',
@@ -1136,9 +1709,24 @@ const enhaLakLibrary: ContentGroup = {
       fallback:
         'تصفّح القصص واختار اللي يناسب طفلك. محتوى القصة يفضل زي ما هو، والتخصيص على الغلاف والخيارات المتاحة بس.',
     },
-    { key: 'library.action', label: 'زرار الكتاب', type: 'text', fallback: 'تخصيص الغلاف' },
-    { key: 'library.details', label: 'رابط التفاصيل على الكتاب', type: 'text', fallback: 'عرض تفاصيل القصة' },
-    { key: 'library.empty.title', label: 'لما المكتبة فاضية — العنوان', type: 'text', fallback: 'المكتبة لسه بتتجهّز' },
+    {
+      key: 'library.action',
+      label: 'زرار الكتاب',
+      type: 'text',
+      fallback: 'تخصيص الغلاف',
+    },
+    {
+      key: 'library.details',
+      label: 'رابط التفاصيل على الكتاب',
+      type: 'text',
+      fallback: 'عرض تفاصيل القصة',
+    },
+    {
+      key: 'library.empty.title',
+      label: 'لما المكتبة فاضية — العنوان',
+      type: 'text',
+      fallback: 'المكتبة لسه بتتجهّز',
+    },
     {
       key: 'library.empty.text',
       label: 'لما المكتبة فاضية — السطر',
@@ -1158,7 +1746,12 @@ const enhaLakBox: ContentGroup = {
   path: '/enha-lak/subscription',
   note: 'الخطط وأسعارها ومزايا كل خطة من «خطط صندوق الرحلة» — هنا نصوص الصفحة بس.',
   fields: [
-    { key: 'box.title', label: 'عنوان الصفحة', type: 'text', fallback: 'صندوق الرحلة' },
+    {
+      key: 'box.title',
+      label: 'عنوان الصفحة',
+      type: 'text',
+      fallback: 'صندوق الرحلة',
+    },
     {
       key: 'box.description',
       label: 'الفقرة تحت العنوان',
@@ -1166,10 +1759,30 @@ const enhaLakBox: ContentGroup = {
       fallback:
         'اشتراك يضمن متعة متجددة لطفلك كل شهر، مع مفاجآت تُصنع خصيصًا له وتصله حتى باب المنزل.',
     },
-    { key: 'box.popular', label: 'شارة الخطة المميزة', type: 'text', fallback: 'الأكثر اختيارًا' },
-    { key: 'box.shippingNote', label: 'سطر الشحن تحت السعر', type: 'text', fallback: '+ شحن كل شهر حسب منطقتك' },
-    { key: 'box.action', label: 'زرار الخطة', type: 'text', fallback: 'اختر الخطة' },
-    { key: 'box.benefits.title', label: 'عنوان قسم «ماذا سأحصل عليه»', type: 'text', fallback: 'ماذا سأحصل عليه شهريًا؟' },
+    {
+      key: 'box.popular',
+      label: 'شارة الخطة المميزة',
+      type: 'text',
+      fallback: 'الأكثر اختيارًا',
+    },
+    {
+      key: 'box.shippingNote',
+      label: 'سطر الشحن تحت السعر',
+      type: 'text',
+      fallback: '+ شحن كل شهر حسب منطقتك',
+    },
+    {
+      key: 'box.action',
+      label: 'زرار الخطة',
+      type: 'text',
+      fallback: 'اختر الخطة',
+    },
+    {
+      key: 'box.benefits.title',
+      label: 'عنوان قسم «ماذا سأحصل عليه»',
+      type: 'text',
+      fallback: 'ماذا سأحصل عليه شهريًا؟',
+    },
     {
       key: 'box.benefit1',
       label: 'الميزة ١',
@@ -1177,8 +1790,18 @@ const enhaLakBox: ContentGroup = {
       fallback: 'قصة مخصصة جديدة',
       hint: 'المزايا التلاتة دي بتظهر كمان على أي خطة مالهاش مزايا مكتوبة.',
     },
-    { key: 'box.benefit2', label: 'الميزة ٢', type: 'text', fallback: 'أنشطة تفاعلية' },
-    { key: 'box.benefit3', label: 'الميزة ٣', type: 'text', fallback: 'هدية إضافية' },
+    {
+      key: 'box.benefit2',
+      label: 'الميزة ٢',
+      type: 'text',
+      fallback: 'أنشطة تفاعلية',
+    },
+    {
+      key: 'box.benefit3',
+      label: 'الميزة ٣',
+      type: 'text',
+      fallback: 'هدية إضافية',
+    },
   ],
 };
 
@@ -1192,21 +1815,101 @@ const support: ContentGroup = {
   path: '/support',
   note: 'رقم الواتساب والبريد من «الإعدادات العامة». الأسئلة بتتكتب كنص عادي بالشكل اللي تحت كل خانة.',
   fields: [
-    { key: 'support.title', label: 'العنوان الرئيسي', type: 'text', fallback: 'كيف يمكننا مساعدتك؟' },
-    { key: 'support.subtitle', label: 'الجملة تحت العنوان', type: 'text', fallback: 'ابحث عن إجابتك، أو تواصل معنا إذا لم تجد ما تحتاجه.' },
-    { key: 'support.search', label: 'نص خانة البحث', type: 'text', fallback: 'ابحث في الأسئلة: الدفع، الشحن، الجلسات، الملفات...' },
-    { key: 'support.faq.enhaLak', label: 'أسئلة «إنها لك»', type: 'longtext', fallback: DEFAULT_FAQ_ENHA_LAK, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
-    { key: 'support.faq.creativeWriting', label: 'أسئلة «بداية الرحلة»', type: 'longtext', fallback: DEFAULT_FAQ_CREATIVE_WRITING, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
-    { key: 'support.faq.aqlam', label: 'أسئلة «أقلام الرحلة»', type: 'longtext', fallback: DEFAULT_FAQ_AQLAM, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
-    { key: 'support.faq.partners', label: 'أسئلة «الشركاء»', type: 'longtext', fallback: DEFAULT_FAQ_PARTNERS, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
-    { key: 'support.faq.general', label: 'أسئلة «عامة»', type: 'longtext', fallback: DEFAULT_FAQ_GENERAL, hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.' },
-    { key: 'support.channels.title', label: 'عنوان قسم التواصل', type: 'text', fallback: 'قنوات التواصل' },
-    { key: 'support.whatsapp.text', label: 'واتساب — الوصف', type: 'text', fallback: 'راسلنا عبر واتساب' },
-    { key: 'support.email.text', label: 'البريد — الوصف', type: 'text', fallback: 'للشكاوى والمقترحات' },
-    { key: 'support.ticket.title', label: 'التذكرة — العنوان', type: 'text', fallback: 'افتح تذكرة دعم' },
-    { key: 'support.ticket.text', label: 'التذكرة — الوصف', type: 'text', fallback: 'لم تجد إجابة؟ أرسل لنا تذكرة وسنرد عليك في أقرب وقت.' },
-    { key: 'support.join.text', label: 'سطر «انضم لفريقنا» في آخر الصفحة', type: 'text', fallback: 'هل ترغب في الانضمام لفريقنا؟' },
-    { key: 'support.join.link', label: 'رابط «انضم لفريقنا»', type: 'text', fallback: 'قدم طلبك هنا' },
+    {
+      key: 'support.title',
+      label: 'العنوان الرئيسي',
+      type: 'text',
+      fallback: 'كيف يمكننا مساعدتك؟',
+    },
+    {
+      key: 'support.subtitle',
+      label: 'الجملة تحت العنوان',
+      type: 'text',
+      fallback: 'ابحث عن إجابتك، أو تواصل معنا إذا لم تجد ما تحتاجه.',
+    },
+    {
+      key: 'support.search',
+      label: 'نص خانة البحث',
+      type: 'text',
+      fallback: 'ابحث في الأسئلة: الدفع، الشحن، الجلسات، الملفات...',
+    },
+    {
+      key: 'support.faq.enhaLak',
+      label: 'أسئلة «إنها لك»',
+      type: 'longtext',
+      fallback: DEFAULT_FAQ_ENHA_LAK,
+      hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.',
+    },
+    {
+      key: 'support.faq.creativeWriting',
+      label: 'أسئلة «بداية الرحلة»',
+      type: 'longtext',
+      fallback: DEFAULT_FAQ_CREATIVE_WRITING,
+      hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.',
+    },
+    {
+      key: 'support.faq.aqlam',
+      label: 'أسئلة «أقلام الرحلة»',
+      type: 'longtext',
+      fallback: DEFAULT_FAQ_AQLAM,
+      hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.',
+    },
+    {
+      key: 'support.faq.partners',
+      label: 'أسئلة «الشركاء»',
+      type: 'longtext',
+      fallback: DEFAULT_FAQ_PARTNERS,
+      hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.',
+    },
+    {
+      key: 'support.faq.general',
+      label: 'أسئلة «عامة»',
+      type: 'longtext',
+      fallback: DEFAULT_FAQ_GENERAL,
+      hint: 'سؤال وإجابة لكل فقرة: سطر يبدأ بـ«س:» وسطر يبدأ بـ«ج:»، وسطر فاضي بين كل سؤال والتاني. امسح السؤال كله عشان يختفي. {مدة_الملفات} بتتبدّل بعدد أيام حفظ الملفات من الإعدادات.',
+    },
+    {
+      key: 'support.channels.title',
+      label: 'عنوان قسم التواصل',
+      type: 'text',
+      fallback: 'قنوات التواصل',
+    },
+    {
+      key: 'support.whatsapp.text',
+      label: 'واتساب — الوصف',
+      type: 'text',
+      fallback: 'راسلنا عبر واتساب',
+    },
+    {
+      key: 'support.email.text',
+      label: 'البريد — الوصف',
+      type: 'text',
+      fallback: 'للشكاوى والمقترحات',
+    },
+    {
+      key: 'support.ticket.title',
+      label: 'التذكرة — العنوان',
+      type: 'text',
+      fallback: 'افتح تذكرة دعم',
+    },
+    {
+      key: 'support.ticket.text',
+      label: 'التذكرة — الوصف',
+      type: 'text',
+      fallback: 'لم تجد إجابة؟ أرسل لنا تذكرة وسنرد عليك في أقرب وقت.',
+    },
+    {
+      key: 'support.join.text',
+      label: 'سطر «انضم لفريقنا» في آخر الصفحة',
+      type: 'text',
+      fallback: 'هل ترغب في الانضمام لفريقنا؟',
+    },
+    {
+      key: 'support.join.link',
+      label: 'رابط «انضم لفريقنا»',
+      type: 'text',
+      fallback: 'قدم طلبك هنا',
+    },
   ],
 };
 
@@ -1231,11 +1934,13 @@ export const CONTENT_GROUPS: ContentGroup[] = [
   terms,
 ];
 
-export const CONTENT_FIELDS: ContentField[] = CONTENT_GROUPS.flatMap((g) => g.fields);
+export const CONTENT_FIELDS: ContentField[] = CONTENT_GROUPS.flatMap(
+  (g) => g.fields
+);
 
 /** النصوص الأصلية — المرجع اللي الموقع بيرجع له لو الخانة مش متخزّنة. */
 export const CONTENT_DEFAULTS: Record<string, string> = Object.fromEntries(
-  CONTENT_FIELDS.map((f) => [f.key, f.fallback]),
+  CONTENT_FIELDS.map((f) => [f.key, f.fallback])
 );
 
 /** كل النصوص، جاهزة للقراءة بالمفتاح. */
