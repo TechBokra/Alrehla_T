@@ -82,6 +82,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         writingDialects={writingDialects}
         deliveryPaused={delivery.pause.paused}
         pauseMessage={delivery.pause.message}
+        delivery={delivery}
       />
     </div>
   );

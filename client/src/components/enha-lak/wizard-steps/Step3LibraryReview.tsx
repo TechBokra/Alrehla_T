@@ -94,8 +94,8 @@ export function Step3LibraryReview({
         >
           السابق
         </button>
-        <Button type="submit" accentColor="journey" pending={pending} pendingText="جارٍ الإضافة…">
-          إضافة للسلة
+        <Button type="submit" accentColor="journey" pending={pending} pendingText="لحظة…">
+          متابعة للدفع
         </Button>
       </div>
     </div>

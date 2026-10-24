@@ -19,6 +19,7 @@ import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { LibraryCustomizationWizard } from '@/components/enha-lak/LibraryCustomizationWizard';
+import { getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 import { requireShopper } from '@/lib/require-shopper';
 import { getMyAddonDiscount } from '@/data/domains/(client)/subscriptions/box';
 import { getActiveCustomizationFields } from '@/data/domains/(client)/products/customization-fields';
@@ -45,9 +46,11 @@ export default async function CustomLibraryPage({ params }: PageProps) {
 
   // الخانات بتتفلتر بالمنتج (ملف 12) — فلازم رقمه الأول.
   // ⚠️ مفيش أهداف هنا: تخصيص الغلاف مالوش خطوة «هدف القصة» أصلًا.
-  const [extraFields, addonDiscountPercent] = await Promise.all([
+  const [extraFields, addonDiscountPercent, delivery] = await Promise.all([
     getActiveCustomizationFields({ productId: product.id }),
     getMyAddonDiscount(),
+    // «هنوصّل فين؟» في خطوة الإضافات — كتاب المكتبة مطبوع ودايمًا بيتشحن.
+    getDeliveryCatalog(),
   ]);
 
   return (
@@ -58,6 +61,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
           addons={addons}
           addonDiscountPercent={addonDiscountPercent}
           extraFields={extraFields}
+          delivery={delivery}
         />
       </Section>
     </PageContainer>

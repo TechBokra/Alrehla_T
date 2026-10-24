@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
+import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
@@ -27,6 +28,8 @@ export default async function CheckoutPage() {
   const delivery = await getDeliveryCatalog();
   // بوابة ولا تحويل — الإعداد في اللوحة، والمفاتيح على الخادم.
   const payment = await getPaymentAvailability();
+  // نوع كل إضافة — عشان الدفع يمسك سلة قديمة فيها مطبوعة مع إلكتروني.
+  const addonFormats = Object.fromEntries((await getAddonProducts()).map((a) => [a.id, a.deliveryFormat]));
 
   // We pass the user to the client component to pre-fill info
   return (
@@ -42,6 +45,7 @@ export default async function CheckoutPage() {
         paymentQrUrl={settings.paymentQrUrl}
         delivery={delivery}
         payment={payment}
+        addonFormats={addonFormats}
       />
     </div>
   );

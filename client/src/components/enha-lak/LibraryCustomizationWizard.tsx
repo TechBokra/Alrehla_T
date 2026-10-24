@@ -16,6 +16,7 @@ import { WizardStepper } from './wizard-steps/WizardStepper';
 import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
 import { Step2CoverDetails } from './wizard-steps/Step2CoverDetails';
 import { Step3Addons } from './wizard-steps/Step3Addons';
+import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
 import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step3LibraryReview } from './wizard-steps/Step3LibraryReview';
 import Image from 'next/image';
@@ -85,7 +86,10 @@ export function LibraryCustomizationWizard({
   addons = [],
   addonDiscountPercent = 0,
   extraFields = [],
+  delivery,
 }: {
+  /** الدول والمناطق — «هنوصّل فين؟» قبل الدفع (قرار ٢٤ أكتوبر). */
+  delivery?: DeliveryCatalog;
   product: PersonalizedProduct;
   /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
   extraFields?: CustomizationField[];
@@ -317,7 +321,9 @@ export function LibraryCustomizationWizard({
     });
 
     sessionStorage.removeItem(`library_wizard_${product.id}`);
-    router.push('/cart');
+    // على الدفع على طول (قرار ٢٤ أكتوبر) — زي المعالج المخصّص. البند
+    // في السلة برضه، فلو رجع مايضيعش.
+    router.push('/enha-lak/checkout');
   };
 
   if (!isClient) return null;
@@ -384,7 +390,14 @@ export function LibraryCustomizationWizard({
                     تانية: النسخة التانية كانت هتفترق عنه أول ما حد
                     يعدّل في واحد منهم. */}
                 {currentStep === 3 && (
-                  <Step3Addons addons={addons} onNext={onNext} onPrev={onPrev} />
+                  <Step3Addons
+                    addons={addons}
+                    delivery={delivery}
+                    deliveryPaused={delivery?.pause.paused}
+                    pauseMessage={delivery?.pause.message}
+                    onNext={onNext}
+                    onPrev={onPrev}
+                  />
                 )}
                 {currentStep === 4 && (
                   <Step3LibraryReview

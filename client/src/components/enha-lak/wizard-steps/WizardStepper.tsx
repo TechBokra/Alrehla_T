@@ -3,7 +3,7 @@ import React from 'react';
 const steps = [
   { step: 1, label: 'البيانات' },
   { step: 2, label: 'تفاصيل القصة' },
-  { step: 3, label: 'الإضافات' },
+  { step: 3, label: 'النسخة والإضافات' },
   { step: 4, label: 'المراجعة' },
 ];
 

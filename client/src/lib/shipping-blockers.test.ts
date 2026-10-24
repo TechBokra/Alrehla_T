@@ -163,19 +163,18 @@ describe('الشاشات بتقرا النوع مش العدد', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '');
 
-  it('خطوة الإضافات بتقفل اللي بيتشحن وبس', () => {
+  // ⚠️ من ٢٤ أكتوبر: الإضافات بتتفلتر **بالنسخة** (`addon-availability`)،
+  //    والنسخة الإلكترونية مابتتشحنش خالص.
+  it('خطوة الإضافات بتعرض المسموح مع النسخة بس، وبتشيل الباقي من الاختيار', () => {
     const src = read('../components/enha-lak/wizard-steps/Step3Addons.tsx');
-    expect(src).toMatch(/addonNeedsShipping\(/);
+    expect(src).toMatch(/addonAllowedWith\(/);
+    expect(src).toMatch(/keepAllowedAddons\(/);
     expect(src).not.toMatch(/if \(deliveryPaused\) return;/);
   });
 
-  it('المراجعة وكارت النسخة بيحسبوا بالنوع', () => {
-    for (const rel of [
-      '../components/enha-lak/wizard-steps/Step4Review.tsx',
-      '../components/enha-lak/wizard-steps/FormatChooser.tsx',
-    ]) {
-      expect(read(rel), rel).toMatch(/selectedAddonsNeedShipping\(/);
-    }
+  it('المراجعة بتقول كل إضافة هتوصل إزاي، وكارت النسخة مابيوعدش بشحن', () => {
+    expect(read('../components/enha-lak/wizard-steps/Step4Review.tsx')).toMatch(/addonDeliveredAs\(/);
+    expect(read('../components/enha-lak/wizard-steps/FormatChooser.tsx')).not.toContain('والإضافات بتتشحن');
   });
 
   it('شاشة اللوحة فيها الاختيار التلاتي', () => {

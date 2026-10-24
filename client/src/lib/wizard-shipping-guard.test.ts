@@ -77,9 +77,9 @@ describe('خطوة الإضافات وقت إيقاف التوصيل', () => {
    *    ليها نوع. قبل كده كنت بقفل القايمة كلها، وده كان بيلغي ملف
    *    إلكتروني مالوش أي علاقة بالشحن.
    */
-  it('اللي بيتشحن بس هو اللي بيتقفل', () => {
-    expect(step3).toMatch(/addonNeedsShipping\(addon\)/);
-    expect(step3).toContain('غير متاحة — التوصيل متوقف مؤقتًا');
+  it('التوصيل المقفول بيقفل النسخ اللي بتتشحن، مش القايمة كلها', () => {
+    expect(step3).toMatch(/const physicalBlocked/);
+    expect(step3).toMatch(/deliveryPaused\s*\?\s*pauseText/);
     // ومفيش قفل أعمى على كل إضافة.
     expect(step3).not.toMatch(/if \(deliveryPaused\) return;/);
   });
@@ -95,19 +95,17 @@ describe('خطوة الإضافات وقت إيقاف التوصيل', () => {
 });
 
 describe('الشاشة مابتوعدش بوعد مش هينفَّذ', () => {
-  it('⚠️ سطر «هتدخل بيانات الشحن» مابيظهرش والتوصيل مقفول', () => {
+  it('⚠️ سطر «الخطوة الجاية: العنوان» مابيظهرش والتوصيل مقفول', () => {
     const step4 = read('../components/enha-lak/wizard-steps/Step4Review.tsx');
-    expect(step4).toMatch(/needs && deliveryPaused/);
-    expect(step4).toContain('مش هينفع يتطلب دلوقتي');
-    // الوعد القديم لسه موجود — بس في الفرع اللي بيتنفّذ فعلًا.
-    const promise = step4.indexOf('سيتم إدخال بيانات الشحن');
-    const guard = step4.indexOf('needs && deliveryPaused');
+    const guard = step4.indexOf('needsShipping && deliveryPaused');
+    const promise = step4.indexOf('الخطوة الجاية: العنوان بالتفصيل');
+    expect(guard).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(promise);
   });
 
-  it('⚠️ كارت «من غير شحن» بيقول الحقيقة لما يكون فيه إضافة', () => {
+  it('⚠️ كارت النسخة بيقفل المطبوع لما منطقة العميل مقفولة', () => {
     const chooser = read('../components/enha-lak/wizard-steps/FormatChooser.tsx');
-    expect(chooser).toMatch(/addonsForceShipping/);
-    expect(chooser).toContain('والإضافات بتتشحن لعنوانك');
+    expect(chooser).toMatch(/physicalBlocked/);
+    expect(chooser).toContain('مش متاحة لمنطقتك دلوقتي');
   });
 });

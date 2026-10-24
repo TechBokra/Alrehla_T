@@ -169,8 +169,19 @@ export function itemNeedsShipping(item: CartLike): boolean {
   return item.addonsNeedShipping ?? true;
 }
 
-/** الإضافة دي بتتشحن؟ الإلكترونية وحدها هي اللي لأ. */
-export function addonNeedsShipping(addon: { id?: string; deliveryFormat?: string }): boolean {
+/**
+ * الإضافة دي بتتشحن؟
+ *
+ * من غير `format`: الإلكترونية وحدها هي اللي لأ.
+ * مع نسخة **إلكترونية**: إضافة «الاتنين» بتوصل إلكترونية بس (قرار ٢٤
+ * أكتوبر — `addonDeliveredAs`)، فاللي بيتشحن المطبوعة بس. والمطبوعة
+ * أصلًا مش مسموحة مع الإلكتروني (`addonAllowedWith` + حارس القاعدة).
+ */
+export function addonNeedsShipping(
+  addon: { id?: string; deliveryFormat?: string },
+  format?: ItemFormat,
+): boolean {
+  if (format === 'electronic') return addon.deliveryFormat !== 'electronic' && addon.deliveryFormat !== 'both';
   return addon.deliveryFormat !== 'electronic';
 }
 
@@ -178,8 +189,9 @@ export function addonNeedsShipping(addon: { id?: string; deliveryFormat?: string
 export function selectedAddonsNeedShipping(
   addons: { id: string; deliveryFormat?: string }[],
   selectedIds: string[] = [],
+  format?: ItemFormat,
 ): boolean {
-  return addons.some((a) => selectedIds.includes(a.id) && addonNeedsShipping(a));
+  return addons.some((a) => selectedIds.includes(a.id) && addonNeedsShipping(a, format));
 }
 
 export function cartNeedsShipping(items: CartLike[]): boolean {

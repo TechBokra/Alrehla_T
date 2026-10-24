@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/utils';
 
 import React, { useState } from 'react';
 import { useCart, type CartItem } from '@/context/CartContext';
+import { loadDeliveryRegion } from '@/lib/delivery-region-store';
 import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
 import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
@@ -48,12 +49,18 @@ interface Props {
   paymentQrUrl?: string;
   /** الدول والمحافظات والمناطق وأسعارها وإيقاف التوصيل — من الأدمن. للعرض فقط: القاعدة هي الحارس. */
   delivery: DeliveryCatalog;
+  /**
+   * نوع كل إضافة (مطبوعة / إلكترونية / الاتنين) — عشان نمسك سلة قديمة
+   * فيها نسخة إلكترونية + إضافة مطبوعة **قبل** ما القاعدة ترفضها
+   * (`guard_order_item_addons` — قرار ٢٤ أكتوبر).
+   */
+  addonFormats?: Record<string, string>;
   /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
   payment: PaymentAvailability;
   user: UserType;
 }
 
-export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery, payment }: Props) {
+export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery, payment, addonFormats = {} }: Props) {
   // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
   //    فبنفصله هنا مرة واحدة.
   const gateway = payment.mode === 'gateway' ? payment : null;
@@ -125,7 +132,29 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   // رسالة سبب المنع تحت المنطقة (محافظة مقفولة، إلخ) غير إغلاق الدولة الكامل.
   const areaBlockedMessage =
     verdict && !verdict.available && !countryClosed.closed && shippingInfo.gov ? verdict.message : '';
-  const canContinue = shippingKnown && !electronicBlocked;
+  // ── سلة قديمة: نسخة إلكترونية + إضافة مطبوعة (قرار ٢٤ أكتوبر) ──
+  const addonConflicts = items.filter(
+    (i: CartItem) =>
+      i.format === 'electronic' && (i.addonIds ?? []).some((id) => addonFormats[id] === 'printed'),
+  );
+  const canContinue = shippingKnown && !electronicBlocked && addonConflicts.length === 0;
+
+  // ── المنطقة اللي اتختارت في المعالج ──────────────────────────
+  // «يكمّل الطلب مباشرة»: العميل اختار منطقته في خطوة ٣، فمانسألوش تاني.
+  // بنستعملها بس لو لسه موجودة في الكتالوج، ولو هو ماكتبش حاجة.
+  React.useEffect(() => {
+    const saved = loadDeliveryRegion();
+    if (!saved) return;
+    const exists = delivery.rates.some(
+      (r) => r.countryCode === saved.country && r.governorate === saved.gov && r.city === saved.city,
+    );
+    if (!exists) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ القراية بعد أول رسم عشان ماتختلفش عن نسخة الخادم.
+    setCountry(saved.country);
+    setShippingInfo((prev) => (prev.gov ? prev : { ...prev, gov: saved.gov, city: saved.city }));
+    // مرة واحدة عند الفتح بس — بعدها اختيار العميل هنا هو اللي يمشي.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ══ الشحن مقفول من اللوحة ═════════════════════════════════
      ملاحظة تامر (١٨ أكتوبر): «لما يكون الشحن مش مفعّل من لوحة
@@ -369,6 +398,33 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       <div className="lg:col-span-2 space-y-8">
         
         {/* Step 1: Shipping */}
+        {addonConflicts.length > 0 && (
+          <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
+            <p className="font-black">
+              {addonConflicts.length === 1 ? 'بند محتاج تعديل قبل الطلب' : 'بنود محتاجة تعديل قبل الطلب'}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">
+              النسخة الإلكترونية بتوصل على الإيميل من غير شحن، فالإضافات المطبوعة مابقتش بتتطلب معاها. عدّل البند واختار
+              إضافات إلكترونية أو نسخة مطبوعة.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {addonConflicts.map((i: CartItem) => (
+                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2">
+                  <span className="text-sm font-bold">{i.name}</span>
+                  {i.productSlug && (
+                    <Link
+                      href={`/enha-lak/custom/${encodeURIComponent(i.productSlug)}?step=3&edit=${encodeURIComponent(i.id)}`}
+                      className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-800 px-3 text-xs font-bold text-white hover:bg-amber-900"
+                    >
+                      عدّلها
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 1 ? 'border-rose-200 shadow-md' : 'bg-slate-50 opacity-60'}`}>
           <div className="flex items-center gap-4 mb-8">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 1 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>

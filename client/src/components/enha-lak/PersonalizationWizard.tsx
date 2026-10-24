@@ -5,6 +5,10 @@ import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
+import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
+import { physicalVerdict } from '@/lib/delivery';
+import { loadDeliveryRegion } from '@/lib/delivery-region-store';
+import { addonAllowedWith } from '@/lib/addon-availability';
 import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, selectedAddonsNeedShipping, type ItemFormat } from '@/lib/item-format';
 import React, { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -83,6 +87,7 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   dedicationText: { step: 2, label: 'الإهداء' },
   monthlyGoals: { step: 2, label: 'أهداف الشهور' },
   selectedAddonIds: { step: 3, label: 'الإضافات' },
+  format: { step: 3, label: 'نوع النسخة' },
   customizedAddonIds: { step: 3, label: 'تخصيص الإضافات' },
 };
 
@@ -97,7 +102,10 @@ export function PersonalizationWizard({
   writingDialects = [],
   deliveryPaused = false,
   pauseMessage = '',
+  delivery,
 }: {
+  /** الدول والمحافظات والمناطق — لـ«هنوصّل فين؟» في خطوة ٣ (قرار ٢٤ أكتوبر). */
+  delivery?: DeliveryCatalog;
   /** التوصيل متوقف من اللوحة — النسخة المطبوعة مش متاحة للطلب. */
   deliveryPaused?: boolean;
   pauseMessage?: string;
@@ -483,7 +491,33 @@ export function PersonalizationWizard({
      *    دلوقتي بيستعمل `itemNeedsShipping` — نفس الدالة اللي
      *    الدفع والقاعدة بيحسبوا بيها. فمفيش تعريفين للشحن.
      */
-    const addonsShip = selectedAddonsNeedShipping(addons, data.selectedAddonIds);
+    // ⚠️ بالنسخة: إضافة «الاتنين» مع الإلكتروني بتوصل إلكترونية (قرار ٢٤ أكتوبر).
+    const addonsShip = selectedAddonsNeedShipping(addons, data.selectedAddonIds, format);
+
+    // الإضافة المطبوعة مع الإلكتروني اترفضت في خطوة ٣ — ولو جت من حالة
+    // محفوظة قديمة، بنرجّعه هناك بدل ما القاعدة ترفض الطلب في الدفع.
+    if (data.selectedAddonIds.some((id) => {
+      const addon = addons.find((a) => a.id === id);
+      return addon ? !addonAllowedWith(addon, format) : false;
+    })) {
+      setUploadError('فيه إضافة مطبوعة مختارة مع النسخة الإلكترونية — راجع خطوة النسخة والإضافات.');
+      router.push(stepHref(3));
+      return;
+    }
+
+    // منطقة اتقفلت بعد ما اختارها (أو اتختارت على جهاز تاني).
+    if (delivery && itemNeedsShipping({ format, addonIds: data.selectedAddonIds, addonsNeedShipping: addonsShip })) {
+      const region = loadDeliveryRegion();
+      const verdict = region
+        ? physicalVerdict(delivery, { country: region.country, governorate: region.gov, city: region.city })
+        : null;
+      if (verdict && !verdict.available) {
+        setUploadError(`${verdict.message} — اختار النسخة الإلكترونية أو منطقة تانية من خطوة ٣.`);
+        router.push(stepHref(3));
+        return;
+      }
+    }
+
     if (
       deliveryPaused &&
       itemNeedsShipping({
@@ -628,7 +662,7 @@ export function PersonalizationWizard({
                   onPrev={handlePrev}
                 />
               )}
-              {currentStep === 3 && !subscription && <Step3Addons addons={addons} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
+              {currentStep === 3 && !subscription && <Step3Addons addons={addons} product={product} delivery={delivery} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds', 'format'])} onPrev={handlePrev} />}
               {(currentStep === 4 || (subscription && currentStep === 3)) && (
                 <Step4Review
                   onPrev={handlePrev}
