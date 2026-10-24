@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Compass } from 'lucide-react';
 import React from 'react';
-import { CartHeaderButton } from '@/components/cart/CartHeaderButton';
 import { HeaderAccount } from '@/components/layout/HeaderAccount';
 import { NavLinks, NavLinksMobile } from '@/components/layout/NavLinks';
 import { NavCollapseOnScroll } from '@/components/layout/NavCollapseOnScroll';
@@ -70,7 +69,8 @@ export default async function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <CartHeaderButton />
+          {/* زرار السلة جوّه `HeaderAccount`: بيتخفي لحسابات الشغل
+              (مدرب/مقدّم خدمة/ناشر/إدارة) — مايقدروش يطلبوا أصلًا. */}
           <HeaderAccount />
         </div>
       </header>

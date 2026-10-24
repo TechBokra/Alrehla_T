@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Bell, User } from 'lucide-react';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import type { UserRole } from '@/types';
+import { CartHeaderButton } from '@/components/cart/CartHeaderButton';
+import { staffPurchaseBlock } from '@/lib/buying-roles';
 
 type Session = {
   role: UserRole;
@@ -59,7 +61,8 @@ export function HeaderAccount() {
       })
       .catch(() => {
         // فشل الشبكة يعني نفضل على حالة الزائر — مش خطأ يتعرض.
-        if (alive) setSession({ role: 'visitor', fullName: '', unreadCount: 0 });
+        if (alive)
+          setSession({ role: 'visitor', fullName: '', unreadCount: 0 });
       });
     return () => {
       alive = false;
@@ -70,10 +73,13 @@ export function HeaderAccount() {
   // أثناء الانتظار: مساحة بنفس مقاس الزرار، بلا نص — عشان مفيش قفزة.
   if (!session) {
     return (
-      <div
-        className="h-10 w-24 animate-pulse rounded-full bg-slate-200/70"
-        aria-hidden="true"
-      />
+      <>
+        <CartHeaderButton />
+        <div
+          className="h-10 w-24 animate-pulse rounded-full bg-slate-200/70"
+          aria-hidden="true"
+        />
+      </>
     );
   }
 
@@ -81,19 +87,26 @@ export function HeaderAccount() {
 
   if (isVisitor) {
     return (
-      <Link
-        href="/sign-in"
-        prefetch={false}
-        className="flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-500 hover:shadow-lg hover:shadow-amber-500/20 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none"
-      >
-        <User className="h-4 w-4" />
-        <span className="hidden sm:inline">دخول</span>
-      </Link>
+      <>
+        <CartHeaderButton />
+        <Link
+          href="/sign-in"
+          prefetch={false}
+          className="flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-amber-500 hover:shadow-lg hover:shadow-amber-500/20 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <User className="h-4 w-4" />
+          <span className="hidden sm:inline">دخول</span>
+        </Link>
+      </>
     );
   }
 
+  // ⚠️ حساب الشغل مايطلبش (ملاحظة ١٨ أكتوبر) — السلة عنده طريق مسدود.
+  const canBuy = staffPurchaseBlock(session.role) === null;
+
   return (
     <>
+      {canBuy && <CartHeaderButton />}
       <Link
         href="/notifications"
         prefetch={false}
@@ -116,7 +129,9 @@ export function HeaderAccount() {
 
       <AccountMenu
         accountHref={ACCOUNT_HREF[session.role] ?? '/account'}
-        dashboardLabel={session.dashboardLabel || DASHBOARD_LABEL[session.role] || 'حسابي'}
+        dashboardLabel={
+          session.dashboardLabel || DASHBOARD_LABEL[session.role] || 'حسابي'
+        }
         displayName={session.fullName}
       />
     </>
