@@ -6,6 +6,8 @@ import { requireAdmin, requireUser } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins, notifyUser } from '@/lib/notifications';
 import { categoryLabel, validateIncident, type IncidentStatus } from '@/lib/incidents';
+import { adminAlertEmails, sendEmail } from '@/lib/email';
+import { SITE_URL } from '@/lib/site-url';
 
 /**
  * بلاغات الجلسات (قرار ٢٤ أكتوبر، بند ١١).
@@ -91,12 +93,34 @@ export async function reportIncident(params: {
     link: ADMIN_LINK,
   });
 
+  // ── العاجل: إيميل فوري للإدارة كمان (Resend) ────────────────
+  //
+  // ⚠️ فشل الإيميل مايوقعش البلاغ — البلاغ اتسجّل والإشعار جوّه
+  //    الموقع اتبعت. ولو المفتاح مش متظبط، بيتخطّى بهدوء.
+  let emailed = false;
+  if (checked.severity === 'urgent') {
+    const to = await adminAlertEmails();
+    const res = await sendEmail({
+      to,
+      subject: `🚨 بلاغ عاجل — ${categoryLabel(checked.category)}`,
+      lines: [
+        `${who}: ${user.fullName || '—'}`,
+        `الجلسة رقم ${session.session_number}`,
+        checked.description,
+        'البلاغ ده عاجل — محتاج حد يمسكه النهارده ويكلّم ولي الأمر.',
+      ],
+      link: { href: `${SITE_URL}${ADMIN_LINK}`, label: 'افتح البلاغات' },
+    });
+    emailed = res.sent;
+    if (!res.sent && res.reason !== 'no-key') console.error('urgent incident email not sent', res.reason);
+  }
+
   await logAuditAction({
     actorProfileId: user.id,
     action: 'session_incident_reported',
     entityType: 'Session',
     entityId: session.id,
-    metadata: { severity: checked.severity, category: checked.category, role },
+    metadata: { severity: checked.severity, category: checked.category, role, emailed },
   });
 
   revalidatePath(ADMIN_LINK);
