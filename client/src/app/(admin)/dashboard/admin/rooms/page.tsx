@@ -1,5 +1,11 @@
 import React from 'react';
-import { AlertTriangle, Radio, Gauge, CalendarClock, Clapperboard } from 'lucide-react';
+import {
+  AlertTriangle,
+  Radio,
+  Gauge,
+  CalendarClock,
+  Clapperboard,
+} from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getSessionsForAdmin } from '@/data/domains/(admin)/sessions/queries';
@@ -63,14 +69,15 @@ export default async function Page() {
   // ⚠️ **الفحص بيتعمل أول حاجة.** لو المفتاح مرفوض، باقي النداءات
   //    هترجع نفس الخطأ تلات مرات في تلات أماكن مختلفة — والإدارة
   //    بتقرا «فيه مشكلة» تلاتة من غير ما تعرف إيه هي.
-  const [check, sessions, settings, presence, usage, recordings] = await Promise.all([
-    checkDailyKey(),
-    getSessionsForAdmin(),
-    getSiteSettings(),
-    ready ? getPresence() : Promise.resolve(null),
-    ready ? getMonthUsage() : Promise.resolve(null),
-    ready ? listRecordings(100) : Promise.resolve(null),
-  ]);
+  const [check, sessions, settings, presence, usage, recordings] =
+    await Promise.all([
+      checkDailyKey(),
+      getSessionsForAdmin(),
+      getSiteSettings(),
+      ready ? getPresence() : Promise.resolve(null),
+      ready ? getMonthUsage() : Promise.resolve(null),
+      ready ? listRecordings(100) : Promise.resolve(null),
+    ]);
 
   const { upcoming, dayOfMonth } = await getRoomsTiming(sessions);
 
@@ -104,11 +111,15 @@ export default async function Page() {
   });
 
   const minutes = usage?.ok ? usage.data.participantMinutes : 0;
-  const percent = Math.min(100, Math.round((minutes / DAILY_FREE_MINUTES) * 100));
+  const percent = Math.min(
+    100,
+    Math.round((minutes / DAILY_FREE_MINUTES) * 100)
+  );
 
   // ⚠️ التقدير خطّي على أيام الشهر — تقريب صريح، مش تنبّؤ. بيتكتب
   //    جنبه إنه تقدير عشان محدّش يبني عليه قرار وهو فاكره رقمًا.
-  const projected = dayOfMonth > 0 ? Math.round((minutes / dayOfMonth) * 30) : 0;
+  const projected =
+    dayOfMonth > 0 ? Math.round((minutes / dayOfMonth) * 30) : 0;
 
   const liveRows = (presence?.ok ? presence.data : []).map((p) => {
     const session = sessions.find((s) => s.roomName === p.room);
@@ -130,7 +141,10 @@ export default async function Page() {
       ...s,
       sessionDisplay: `جلسة ${s.sessionNumber} · ${s.participantName}`,
       instructorDisplay: s.instructorName ?? 'لم يُسنَد',
-      dateDisplay: formatCairo(s.scheduledAt, { dateStyle: 'medium', timeStyle: 'short' }),
+      dateDisplay: formatCairo(s.scheduledAt, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }),
       statusDisplay: <StatusBadge type={view.badge} label={view.label} />,
       roomDisplay: s.roomName ? (
         <StatusBadge type="success" label="الغرفة جاهزة" />
@@ -146,7 +160,10 @@ export default async function Page() {
       ) : roomRecording.get(s.roomName) ? (
         <StatusBadge type="success" label="بتتسجّل" />
       ) : (
-        <StatusBadge type={wantRecording ? 'danger' : 'neutral'} label="مش بتتسجّل" />
+        <StatusBadge
+          type={wantRecording ? 'danger' : 'neutral'}
+          label="مش بتتسجّل"
+        />
       ),
     };
   });
@@ -157,17 +174,18 @@ export default async function Page() {
   //    مابيبدأش بالبادئة مش بتاعنا — الحساب ممكن يتشارك مع مشروع
   //    تاني، والشاشة دي مش بوابة على تسجيلاته.
   const ourRecordings = (recordings?.ok ? recordings.data : []).filter((r) =>
-    r.roomName.startsWith(SESSION_ROOM_PREFIX),
+    r.roomName.startsWith(SESSION_ROOM_PREFIX)
   );
 
   // اللي هيتمسح في أول تشغيل للمهمة — بيتعلّم عشان الإدارة تشوفه
   // **قبل** ما يروح، مش تكتشف غيابه بعدين.
   const dueIds = new Set(
     settings.sessionRecording.enabled
-      ? expiredRecordings(ourRecordings, settings.sessionRecording.retentionDays).map(
-          (r) => r.id,
-        )
-      : [],
+      ? expiredRecordings(
+          ourRecordings,
+          settings.sessionRecording.retentionDays
+        ).map((r) => r.id)
+      : []
   );
 
   const canDeleteRecordings = user?.role === 'super_admin';
@@ -232,7 +250,9 @@ export default async function Page() {
           <dl className="grid gap-2 text-xs font-bold text-rose-800 sm:grid-cols-3">
             <div className="rounded-xl bg-white/60 p-3">
               <dt className="text-rose-500">المتغيّر واصل؟</dt>
-              <dd className="mt-1">{check.fingerprint.present ? 'أيوه' : '**لأ**'}</dd>
+              <dd className="mt-1">
+                {check.fingerprint.present ? 'أيوه' : '**لأ**'}
+              </dd>
             </div>
             <div className="rounded-xl bg-white/60 p-3">
               <dt className="text-rose-500">أول حروفه</dt>
@@ -307,6 +327,12 @@ export default async function Page() {
         <h2 className="mb-1 flex items-center gap-2 text-lg font-black text-slate-800">
           <Gauge className="h-5 w-5 text-slate-400" />
           استهلاك الشهر
+          <a
+            href="/dashboard/admin/rooms/usage"
+            className="mr-auto text-sm font-bold text-emerald-700 hover:underline"
+          >
+            التفاصيل والتوقعات ←
+          </a>
         </h2>
         <p className="mb-6 text-sm font-medium text-slate-500">
           الحساب عند Daily بـ«دقيقة المشارك»: جلسة نص ساعة فيها اتنين = ٦٠
@@ -324,22 +350,33 @@ export default async function Page() {
                   / {DAILY_FREE_MINUTES.toLocaleString('ar-EG')} دقيقة مجانية
                 </span>
               </span>
-              <span className="text-sm font-bold text-slate-500">{percent}%</span>
+              <span className="text-sm font-bold text-slate-500">
+                {percent}%
+              </span>
             </div>
             <div className="mb-6 h-3 w-full overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full rounded-full ${
-                  percent >= 90 ? 'bg-rose-500' : percent >= 70 ? 'bg-amber-500' : 'bg-emerald-500'
+                  percent >= 90
+                    ? 'bg-rose-500'
+                    : percent >= 70
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
                 }`}
                 style={{ width: `${percent}%` }}
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <Stat label="جلسات الشهر" value={usage?.ok ? String(usage.data.meetings) : '—'} />
+              <Stat
+                label="جلسات الشهر"
+                value={usage?.ok ? String(usage.data.meetings) : '—'}
+              />
               <Stat
                 label="أطول جلسة"
-                value={usage?.ok ? `${usage.data.longestMeetingMinutes} دقيقة` : '—'}
+                value={
+                  usage?.ok ? `${usage.data.longestMeetingMinutes} دقيقة` : '—'
+                }
                 hint="رقم كبير غير متوقّع = غرفة فضلت مفتوحة"
               />
               <Stat
@@ -360,7 +397,8 @@ export default async function Page() {
 
         {settings.sessionRecording.enabled && (
           <p className="mt-6 border-t border-slate-100 pt-4 text-sm font-medium text-slate-500">
-            التسجيل شغّال، والاحتفاظ {retentionLabel(settings.sessionRecording.retentionDays)}.
+            التسجيل شغّال، والاحتفاظ{' '}
+            {retentionLabel(settings.sessionRecording.retentionDays)}.
             <strong className="text-slate-700">
               {' '}
               دقايق التسجيل بتتحاسب لوحدها ومش داخلة في المجاني.
@@ -406,9 +444,9 @@ export default async function Page() {
         <p className="mb-4 text-sm font-medium text-slate-500">
           {settings.sessionRecording.enabled ? (
             <>
-              الاحتفاظ {retentionLabel(settings.sessionRecording.retentionDays)}، وبعدها
-              التسجيل بيتمسح تلقائيًّا. ده اللي مكتوب لولي الأمر في السياسات
-              وفي شاشة الحجز.
+              الاحتفاظ {retentionLabel(settings.sessionRecording.retentionDays)}
+              ، وبعدها التسجيل بيتمسح تلقائيًّا. ده اللي مكتوب لولي الأمر في
+              السياسات وفي شاشة الحجز.
             </>
           ) : (
             <>
@@ -426,8 +464,11 @@ export default async function Page() {
           <AlertTriangle className="h-5 w-5 shrink-0 text-slate-400" />
           <span>
             رابط المشاهدة بيتولّد لحظة الضغط وبينتهي بعد ساعة، و
-            <strong className="text-slate-800"> كل فتحة بتتسجّل في التدقيق</strong> —
-            دي جلسات فيها أطفال.
+            <strong className="text-slate-800">
+              {' '}
+              كل فتحة بتتسجّل في التدقيق
+            </strong>{' '}
+            — دي جلسات فيها أطفال.
             {!canDeleteRecordings && ' والحذف لمدير النظام وحده.'}
           </span>
         </p>
@@ -459,7 +500,9 @@ export default async function Page() {
         {settings.sessionRecording.enabled && canDeleteRecordings && (
           <div className="mt-4">
             <PurgeNowButton
-              retentionLabel={retentionLabel(settings.sessionRecording.retentionDays)}
+              retentionLabel={retentionLabel(
+                settings.sessionRecording.retentionDays
+              )}
             />
           </div>
         )}
@@ -491,12 +534,22 @@ export default async function Page() {
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
       <p className="text-xs font-bold text-slate-500">{label}</p>
       <p className="mt-1 text-xl font-black text-slate-800">{value}</p>
-      {hint && <p className="mt-1 text-xs font-medium text-slate-400">{hint}</p>}
+      {hint && (
+        <p className="mt-1 text-xs font-medium text-slate-400">{hint}</p>
+      )}
     </div>
   );
 }

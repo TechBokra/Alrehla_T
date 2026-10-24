@@ -28,22 +28,48 @@ import type { AdminPermission } from '@/types';
  * `anyAdmin` = أي إداري عنده صلاحية واحدة على الأقل — لـ«مهامي»: اللي
  * مسند له حجوزات بس (من غير صلاحية الطلبات) لازم يلاقي مهامه برضه.
  */
-export type AdminTab = { label: string; href: string; permission: AdminPermission | 'anyAdmin' };
-export type AdminSection = { id: string; label: string; icon: string; tabs: AdminTab[] };
+export type AdminTab = {
+  label: string;
+  href: string;
+  permission: AdminPermission | 'anyAdmin';
+};
+export type AdminSection = {
+  id: string;
+  label: string;
+  icon: string;
+  tabs: AdminTab[];
+};
 export type AdminGroup = { title: string; sections: AdminSection[] };
 
 /** بعد الفلترة بالصلاحية — اللي بيوصل للمتصفح. */
 export type NavTab = { label: string; href: string };
-export type NavSection = { id: string; label: string; icon: string; href: string; tabs: NavTab[] };
+export type NavSection = {
+  id: string;
+  label: string;
+  icon: string;
+  href: string;
+  tabs: NavTab[];
+};
 export type NavGroup = { title: string; sections: NavSection[] };
 
 const A = '/dashboard/admin';
 
 const ALL_PERMISSIONS: AdminPermission[] = [
-  'canManageUsers', 'canManageInstructors', 'canManagePublishers', 'canManageCatalog',
-  'canManageSubscriptions', 'canManageOrders', 'canManageBookings', 'canManageSupport',
-  'canManageContent', 'canManageFinance', 'canManagePayments', 'canAssignWork',
-  'canViewAuditLogs', 'canManageStudio', 'canWorkStudio',
+  'canManageUsers',
+  'canManageInstructors',
+  'canManagePublishers',
+  'canManageCatalog',
+  'canManageSubscriptions',
+  'canManageOrders',
+  'canManageBookings',
+  'canManageSupport',
+  'canManageContent',
+  'canManageFinance',
+  'canManagePayments',
+  'canAssignWork',
+  'canViewAuditLogs',
+  'canManageStudio',
+  'canWorkStudio',
 ];
 
 export const ADMIN_NAV: AdminGroup[] = [
@@ -58,7 +84,11 @@ export const ADMIN_NAV: AdminGroup[] = [
         icon: 'ClipboardList',
         tabs: [
           { label: 'مهامي', href: `${A}/tasks`, permission: 'anyAdmin' },
-          { label: 'سير العمل والتوزيع', href: `${A}/tasks/workflow`, permission: 'canAssignWork' },
+          {
+            label: 'سير العمل والتوزيع',
+            href: `${A}/tasks/workflow`,
+            permission: 'canAssignWork',
+          },
         ],
       },
     ],
@@ -71,11 +101,23 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'المستخدمون',
         icon: 'Users',
         tabs: [
-          { label: 'المستخدمون والعائلات', href: `${A}/users`, permission: 'canManageUsers' },
+          {
+            label: 'المستخدمون والعائلات',
+            href: `${A}/users`,
+            permission: 'canManageUsers',
+          },
           // الشاشة نفسها بتتحقق إن اللي داخل مدير نظام — التبويب بيبان
           // للمشرف العام كمان ويشوف «غير مصرح». أحسن من شاشة محدش يعرفها.
-          { label: 'الأدوار والصلاحيات', href: `${A}/users/permissions`, permission: 'canManageUsers' },
-          { label: 'طلبات حذف الحسابات', href: `${A}/users/deletion-requests`, permission: 'canManageUsers' },
+          {
+            label: 'الأدوار والصلاحيات',
+            href: `${A}/users/permissions`,
+            permission: 'canManageUsers',
+          },
+          {
+            label: 'طلبات حذف الحسابات',
+            href: `${A}/users/deletion-requests`,
+            permission: 'canManageUsers',
+          },
         ],
       },
       {
@@ -83,10 +125,22 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'المدربون',
         icon: 'UserCheck',
         tabs: [
-          { label: 'المدربون', href: `${A}/instructors`, permission: 'canManageInstructors' },
+          {
+            label: 'المدربون',
+            href: `${A}/instructors`,
+            permission: 'canManageInstructors',
+          },
           // ⚠️ من غيرها الملفات والصور بتفضل معلَّقة للأبد.
-          { label: 'مراجعة الملفات', href: `${A}/instructors/review`, permission: 'canManageInstructors' },
-          { label: 'طلبات الانضمام', href: `${A}/join-requests`, permission: 'canManageSupport' },
+          {
+            label: 'مراجعة الملفات',
+            href: `${A}/instructors/review`,
+            permission: 'canManageInstructors',
+          },
+          {
+            label: 'طلبات الانضمام',
+            href: `${A}/join-requests`,
+            permission: 'canManageSupport',
+          },
         ],
       },
     ],
@@ -104,13 +158,41 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'منتجات المنصة',
         icon: 'Box',
         tabs: [
-          { label: 'المنتجات', href: `${A}/products/platform`, permission: 'canManagePublishers' },
-          { label: 'ترتيب «أنت البطل هنا»', href: `${A}/products/hero-order`, permission: 'canManageCatalog' },
-          { label: 'خانات التخصيص', href: `${A}/products/customization-fields`, permission: 'canManageCatalog' },
-          { label: 'أهداف التخصيص', href: `${A}/products/story-goals`, permission: 'canManageCatalog' },
-          { label: 'لهجات الكتابة', href: `${A}/products/writing-dialects`, permission: 'canManageCatalog' },
-          { label: 'الإضافات', href: `${A}/addons`, permission: 'canManageCatalog' },
-          { label: 'العروض والخصومات', href: `${A}/promotions`, permission: 'canManageCatalog' },
+          {
+            label: 'المنتجات',
+            href: `${A}/products/platform`,
+            permission: 'canManagePublishers',
+          },
+          {
+            label: 'ترتيب «أنت البطل هنا»',
+            href: `${A}/products/hero-order`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'خانات التخصيص',
+            href: `${A}/products/customization-fields`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'أهداف التخصيص',
+            href: `${A}/products/story-goals`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'لهجات الكتابة',
+            href: `${A}/products/writing-dialects`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'الإضافات',
+            href: `${A}/addons`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'العروض والخصومات',
+            href: `${A}/promotions`,
+            permission: 'canManageCatalog',
+          },
         ],
       },
       {
@@ -118,10 +200,22 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الناشرون',
         icon: 'BookOpen',
         tabs: [
-          { label: 'دور النشر', href: `${A}/publishers`, permission: 'canManagePublishers' },
-          { label: 'منتجات الناشرين', href: `${A}/products`, permission: 'canManagePublishers' },
+          {
+            label: 'دور النشر',
+            href: `${A}/publishers`,
+            permission: 'canManagePublishers',
+          },
+          {
+            label: 'منتجات الناشرين',
+            href: `${A}/products`,
+            permission: 'canManagePublishers',
+          },
           // ⚠️ من غيرها منتج الناشر المعلَّق بيفضل واقف عن البيع للأبد.
-          { label: 'مراجعة المنتجات', href: `${A}/products/review`, permission: 'canManageCatalog' },
+          {
+            label: 'مراجعة المنتجات',
+            href: `${A}/products/review`,
+            permission: 'canManageCatalog',
+          },
         ],
       },
       {
@@ -129,14 +223,34 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'طلبات المنتجات',
         icon: 'ShoppingCart',
         tabs: [
-          { label: 'الطلبات', href: `${A}/orders`, permission: 'canManageOrders' },
-          { label: 'أسعار الشحن', href: `${A}/settings/shipping`, permission: 'canManageOrders' },
+          {
+            label: 'الطلبات',
+            href: `${A}/orders`,
+            permission: 'canManageOrders',
+          },
+          {
+            label: 'أسعار الشحن',
+            href: `${A}/settings/shipping`,
+            permission: 'canManageOrders',
+          },
           // آراء العملاء في «إنها لك» — من «رأيك يهمنا» في حسابهم (ملف 10).
-          { label: 'آراء العملاء', href: `${A}/feedback/enha-lak`, permission: 'canManageSupport' },
+          {
+            label: 'آراء العملاء',
+            href: `${A}/feedback/enha-lak`,
+            permission: 'canManageSupport',
+          },
           // استوديو القصص: مسار إنتاج الطلبات المخصّصة بعد الدفع. تبويب في «طلبات
           // المنتجات» مش قسم لوحده (قاعدة القايمة فوق: الأقسام ≤ ١٦).
-          { label: 'استوديو القصص', href: `${A}/studio`, permission: 'canWorkStudio' },
-          { label: 'إعدادات الاستوديو', href: `${A}/studio/settings`, permission: 'canManageStudio' },
+          {
+            label: 'استوديو القصص',
+            href: `${A}/studio`,
+            permission: 'canWorkStudio',
+          },
+          {
+            label: 'إعدادات الاستوديو',
+            href: `${A}/studio/settings`,
+            permission: 'canManageStudio',
+          },
         ],
       },
       {
@@ -144,9 +258,21 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'صندوق الرحلة',
         icon: 'Package',
         tabs: [
-          { label: 'الاشتراكات', href: `${A}/subscriptions/box`, permission: 'canManageSubscriptions' },
-          { label: 'الخطط', href: `${A}/subscriptions/box/plans`, permission: 'canManageSubscriptions' },
-          { label: 'صناديق الشهر', href: `${A}/subscriptions/box/shipments`, permission: 'canManageSubscriptions' },
+          {
+            label: 'الاشتراكات',
+            href: `${A}/subscriptions/box`,
+            permission: 'canManageSubscriptions',
+          },
+          {
+            label: 'الخطط',
+            href: `${A}/subscriptions/box/plans`,
+            permission: 'canManageSubscriptions',
+          },
+          {
+            label: 'صناديق الشهر',
+            href: `${A}/subscriptions/box/shipments`,
+            permission: 'canManageSubscriptions',
+          },
         ],
       },
     ],
@@ -159,9 +285,21 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الباقات والاشتراكات',
         icon: 'LayoutDashboard',
         tabs: [
-          { label: 'باقات الكتابة', href: `${A}/writing/packages`, permission: 'canManageCatalog' },
-          { label: 'اشتراكات الباقات', href: `${A}/subscriptions/courses`, permission: 'canManageSubscriptions' },
-          { label: 'آراء العملاء', href: `${A}/feedback/creative-writing`, permission: 'canManageSupport' },
+          {
+            label: 'باقات الكتابة',
+            href: `${A}/writing/packages`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'اشتراكات الباقات',
+            href: `${A}/subscriptions/courses`,
+            permission: 'canManageSubscriptions',
+          },
+          {
+            label: 'آراء العملاء',
+            href: `${A}/feedback/creative-writing`,
+            permission: 'canManageSupport',
+          },
         ],
       },
       {
@@ -169,14 +307,44 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الجلسات',
         icon: 'Calendar',
         tabs: [
-          { label: 'الحجوزات', href: `${A}/bookings`, permission: 'canManageBookings' },
-          { label: 'التقويم', href: `${A}/bookings/calendar`, permission: 'canManageBookings' },
+          {
+            label: 'الحجوزات',
+            href: `${A}/bookings`,
+            permission: 'canManageBookings',
+          },
+          {
+            label: 'التقويم',
+            href: `${A}/bookings/calendar`,
+            permission: 'canManageBookings',
+          },
           // ⭐ (#LQMO) الأهل والمدرب بيطلبوا موعد تاني — الإدارة بتبتّ.
-          { label: 'طلبات تغيير المواعيد', href: `${A}/bookings/change-requests`, permission: 'canManageBookings' },
-          { label: 'الجلسات والتقارير', href: `${A}/sessions`, permission: 'canManageBookings' },
-          { label: 'الغرف المباشرة', href: `${A}/rooms`, permission: 'canManageBookings' },
+          {
+            label: 'طلبات تغيير المواعيد',
+            href: `${A}/bookings/change-requests`,
+            permission: 'canManageBookings',
+          },
+          {
+            label: 'الجلسات والتقارير',
+            href: `${A}/sessions`,
+            permission: 'canManageBookings',
+          },
+          {
+            label: 'الغرف المباشرة',
+            href: `${A}/rooms`,
+            permission: 'canManageBookings',
+          },
+          // ملاحظة تامر (٢٤ أكتوبر): استهلاك Daily والباقي من الحد المجاني.
+          {
+            label: 'استهلاك القاعة',
+            href: `${A}/rooms/usage`,
+            permission: 'canManageBookings',
+          },
           // «طلب مساعدة في الحجز» من حساب العميل — مكانه مع الجلسات (ملاحظة تامر).
-          { label: 'طلبات الجلسات المخصصة', href: `${A}/support/session-requests`, permission: 'canManageSupport' },
+          {
+            label: 'طلبات الجلسات المخصصة',
+            href: `${A}/support/session-requests`,
+            permission: 'canManageSupport',
+          },
         ],
       },
       {
@@ -184,10 +352,22 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الخدمات الإبداعية',
         icon: 'Sparkles',
         tabs: [
-          { label: 'الخدمات', href: `${A}/writing/services`, permission: 'canManageCatalog' },
-          { label: 'الطلبات', href: `${A}/orders/services`, permission: 'canManageOrders' },
+          {
+            label: 'الخدمات',
+            href: `${A}/writing/services`,
+            permission: 'canManageCatalog',
+          },
+          {
+            label: 'الطلبات',
+            href: `${A}/orders/services`,
+            permission: 'canManageOrders',
+          },
           // مين بيقدّم أي خدمة وبكام — المنصة والمدربون والمستقلون.
-          { label: 'مقدّمو الخدمة', href: `${A}/providers`, permission: 'canManageInstructors' },
+          {
+            label: 'مقدّمو الخدمة',
+            href: `${A}/providers`,
+            permission: 'canManageInstructors',
+          },
         ],
       },
     ],
@@ -200,11 +380,31 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'المحتوى',
         icon: 'FileText',
         tabs: [
-          { label: 'محتوى الصفحات', href: `${A}/content/pages`, permission: 'canManageContent' },
-          { label: 'المدونة', href: `${A}/content/blog`, permission: 'canManageContent' },
-          { label: 'آراء العملاء', href: `${A}/content/testimonials`, permission: 'canManageContent' },
-          { label: 'الإعلانات', href: `${A}/content/ads`, permission: 'canManageContent' },
-          { label: 'التقييمات', href: `${A}/reviews`, permission: 'canManageContent' },
+          {
+            label: 'محتوى الصفحات',
+            href: `${A}/content/pages`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'المدونة',
+            href: `${A}/content/blog`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'آراء العملاء',
+            href: `${A}/content/testimonials`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'الإعلانات',
+            href: `${A}/content/ads`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'التقييمات',
+            href: `${A}/reviews`,
+            permission: 'canManageContent',
+          },
         ],
       },
       {
@@ -213,10 +413,26 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'أقلام الرحلة',
         icon: 'PenLine',
         tabs: [
-          { label: 'الصندوق', href: `${A}/aqlam`, permission: 'canManageContent' },
-          { label: 'كل النصوص', href: `${A}/aqlam/posts`, permission: 'canManageContent' },
-          { label: 'الحسابات', href: `${A}/aqlam/people`, permission: 'canManageContent' },
-          { label: 'الإعدادات', href: `${A}/aqlam/settings`, permission: 'canManageContent' },
+          {
+            label: 'الصندوق',
+            href: `${A}/aqlam`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'كل النصوص',
+            href: `${A}/aqlam/posts`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'الحسابات',
+            href: `${A}/aqlam/people`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'الإعدادات',
+            href: `${A}/aqlam/settings`,
+            permission: 'canManageContent',
+          },
         ],
       },
       {
@@ -224,8 +440,16 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الصور',
         icon: 'Images',
         tabs: [
-          { label: 'صور الموقع', href: `${A}/content/images`, permission: 'canManageContent' },
-          { label: 'مخزن الصور', href: `${A}/media`, permission: 'canManageContent' },
+          {
+            label: 'صور الموقع',
+            href: `${A}/content/images`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'مخزن الصور',
+            href: `${A}/media`,
+            permission: 'canManageContent',
+          },
         ],
       },
       {
@@ -234,8 +458,16 @@ export const ADMIN_NAV: AdminGroup[] = [
         icon: 'Settings',
         tabs: [
           // رقم الدفع والـ QR وبيانات التواصل.
-          { label: 'الإعدادات العامة', href: `${A}/content/settings`, permission: 'canManageContent' },
-          { label: 'الإشعارات', href: `${A}/notifications`, permission: 'canManageContent' },
+          {
+            label: 'الإعدادات العامة',
+            href: `${A}/content/settings`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'الإشعارات',
+            href: `${A}/notifications`,
+            permission: 'canManageContent',
+          },
         ],
       },
     ],
@@ -248,7 +480,11 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'الدعم',
         icon: 'LifeBuoy',
         tabs: [
-          { label: 'رسائل الدعم', href: `${A}/support/tickets`, permission: 'canManageSupport' },
+          {
+            label: 'رسائل الدعم',
+            href: `${A}/support/tickets`,
+            permission: 'canManageSupport',
+          },
         ],
       },
       {
@@ -256,10 +492,26 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'المالية',
         icon: 'DollarSign',
         tabs: [
-          { label: 'مستحقات المدربين', href: `${A}/finance/instructor-payouts`, permission: 'canManageFinance' },
-          { label: 'مستحقات الناشرين', href: `${A}/finance/publisher-payouts`, permission: 'canManageFinance' },
-          { label: 'طلبات السحب', href: `${A}/finance/withdrawals`, permission: 'canManageFinance' },
-          { label: 'أكواد الخصم', href: `${A}/finance/discount-codes`, permission: 'canManageFinance' },
+          {
+            label: 'مستحقات المدربين',
+            href: `${A}/finance/instructor-payouts`,
+            permission: 'canManageFinance',
+          },
+          {
+            label: 'مستحقات الناشرين',
+            href: `${A}/finance/publisher-payouts`,
+            permission: 'canManageFinance',
+          },
+          {
+            label: 'طلبات السحب',
+            href: `${A}/finance/withdrawals`,
+            permission: 'canManageFinance',
+          },
+          {
+            label: 'أكواد الخصم',
+            href: `${A}/finance/discount-codes`,
+            permission: 'canManageFinance',
+          },
           // ⚠️ **التسعير والدفع كانوا متفرّقين على قسمين تانيين** —
           //    معادلات التسعير تحت «الباقات»، وإعدادات الدفع تحت
           //    «طلبات المنتجات». الاتنين قرارات مالية، والمسؤول عنهم
@@ -268,30 +520,52 @@ export const ADMIN_NAV: AdminGroup[] = [
           // ⚠️ والصلاحيات زيّ ما هي: الصفحتين لسه بيفحصوا
           //    `canManageCatalog` و`canManagePayments` جوّه. التبويب
           //    بيوَدّي، مش بيفتح.
-          { label: 'التسعير والمدفوعات', href: `${A}/settings/pricing`, permission: 'canManageFinance' },
+          {
+            label: 'التسعير والمدفوعات',
+            href: `${A}/settings/pricing`,
+            permission: 'canManageFinance',
+          },
         ],
       },
       {
         id: 'audit',
         label: 'السجلات والتدقيق',
         icon: 'ShieldAlert',
-        tabs: [{ label: 'السجلات والتدقيق', href: `${A}/audit-logs`, permission: 'canViewAuditLogs' }],
+        tabs: [
+          {
+            label: 'السجلات والتدقيق',
+            href: `${A}/audit-logs`,
+            permission: 'canViewAuditLogs',
+          },
+        ],
       },
     ],
   },
 ];
 
 /** القايمة بعد الصلاحيات: التبويب الممنوع بيتشال، والقسم الفاضي، والمجموعة الفاضية. */
-export function navFor(can: (p: AdminPermission) => boolean, nav: AdminGroup[] = ADMIN_NAV): NavGroup[] {
+export function navFor(
+  can: (p: AdminPermission) => boolean,
+  nav: AdminGroup[] = ADMIN_NAV
+): NavGroup[] {
   const anyAdmin = ALL_PERMISSIONS.some(can);
-  const allowed = (p: AdminTab['permission']) => (p === 'anyAdmin' ? anyAdmin : can(p));
+  const allowed = (p: AdminTab['permission']) =>
+    p === 'anyAdmin' ? anyAdmin : can(p);
   return nav
     .map((g) => ({
       title: g.title,
       sections: g.sections
         .map((s) => {
-          const tabs = s.tabs.filter((t) => allowed(t.permission)).map(({ label, href }) => ({ label, href }));
-          return { id: s.id, label: s.label, icon: s.icon, href: tabs[0]?.href ?? '', tabs };
+          const tabs = s.tabs
+            .filter((t) => allowed(t.permission))
+            .map(({ label, href }) => ({ label, href }));
+          return {
+            id: s.id,
+            label: s.label,
+            icon: s.icon,
+            href: tabs[0]?.href ?? '',
+            tabs,
+          };
         })
         .filter((s) => s.tabs.length > 0),
     }))
@@ -306,14 +580,16 @@ export function navFor(can: (p: AdminPermission) => boolean, nav: AdminGroup[] =
  */
 export function activeIn(
   groups: NavGroup[],
-  pathname: string,
+  pathname: string
 ): { section: NavSection; tab: NavTab } | null {
   let best: { section: NavSection; tab: NavTab } | null = null;
   for (const g of groups) {
     for (const section of g.sections) {
       for (const tab of section.tabs) {
-        const hit = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-        if (hit && (!best || tab.href.length > best.tab.href.length)) best = { section, tab };
+        const hit =
+          pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        if (hit && (!best || tab.href.length > best.tab.href.length))
+          best = { section, tab };
       }
     }
   }

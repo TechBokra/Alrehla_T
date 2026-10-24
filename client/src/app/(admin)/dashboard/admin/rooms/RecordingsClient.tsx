@@ -2,7 +2,11 @@
 
 import React, { useState, useTransition } from 'react';
 import { Play, Trash2, Loader2, ExternalLink, Eraser } from 'lucide-react';
-import { openRecording, removeRecording, purgeRecordingsNow } from '@/actions/recordings';
+import {
+  openRecording,
+  removeRecording,
+  purgeRecordingsNow,
+} from '@/actions/recordings';
 import { FormError } from '@/components/ui/FormError';
 import { BusyButton } from '@/components/forms/Form';
 
@@ -48,7 +52,11 @@ export function WatchRecordingButton({
         disabled={busy}
         className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
       >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+        {busy ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
         شاهد
         {!busy && <ExternalLink className="h-3.5 w-3.5 opacity-70" />}
       </button>
@@ -84,13 +92,14 @@ export function DeleteRecordingButton({
 
   // ⚠️ **الحذف لمدير النظام وحده**، والشرط متطبَّق في الأكشن كمان
   //    (قاعدة «ع»). إخفاء الزرّ راحة للعين مش حماية.
-  if (!canDelete) return <span className="text-xs font-medium text-slate-400">—</span>;
+  if (!canDelete)
+    return <span className="text-xs font-medium text-slate-400">—</span>;
 
   const remove = () => {
     const sure = window.confirm(
       `هتحذف تسجيل «${label}» نهائيًّا.\n\n` +
         'التسجيل ده هو الأثر الوحيد للّي حصل في الجلسة. لو جت شكوى بعد ' +
-        'كده، مفيش حاجة تتراجع.\n\nتأكيد؟',
+        'كده، مفيش حاجة تتراجع.\n\nتأكيد؟'
     );
     if (!sure) return;
 
@@ -107,7 +116,12 @@ export function DeleteRecordingButton({
 
   return (
     <div className="space-y-1">
-      <BusyButton variant="danger" busy={busy} pendingLabel="جارٍ الحذف…" onClick={remove}>
+      <BusyButton
+        variant="danger"
+        busy={busy}
+        pendingLabel="جارٍ الحذف…"
+        onClick={remove}
+      >
         <Trash2 className="h-4 w-4" />
         احذف
       </BusyButton>
@@ -134,7 +148,7 @@ export function PurgeNowButton({ retentionLabel }: { retentionLabel: string }) {
   const purge = () => {
     const sure = window.confirm(
       `هتحذف كل تسجيل عدّى عليه ${retentionLabel}، نهائيًّا ومن غير تراجع.\n\n` +
-        'ده اللي المهمة اليومية بتعمله — الزرّ ده بيشغّله دلوقتي بس.\n\nتأكيد؟',
+        'ده اللي المهمة اليومية بتعمله — الزرّ ده بيشغّله دلوقتي بس.\n\nتأكيد؟'
     );
     if (!sure) return;
 
@@ -150,7 +164,7 @@ export function PurgeNowButton({ retentionLabel }: { retentionLabel: string }) {
         setNotice(
           result.deleted === 0
             ? 'مفيش تسجيل عدّى المدة — مفيش حاجة اتحذفت.'
-            : `اتحذف ${result.deleted} تسجيل${result.failed ? ` · فشل ${result.failed}` : ''}.`,
+            : `اتحذف ${result.deleted} تسجيل${result.failed ? ` · فشل ${result.failed}` : ''}.`
         );
       } catch {
         setError(UNEXPECTED);
@@ -166,7 +180,12 @@ export function PurgeNowButton({ retentionLabel }: { retentionLabel: string }) {
           {notice}
         </p>
       )}
-      <BusyButton variant="secondary" busy={busy} pendingLabel="جارٍ الحذف…" onClick={purge}>
+      <BusyButton
+        variant="secondary"
+        busy={busy}
+        pendingLabel="جارٍ الحذف…"
+        onClick={purge}
+      >
         <Eraser className="h-4 w-4" />
         احذف المنتهي دلوقتي
       </BusyButton>

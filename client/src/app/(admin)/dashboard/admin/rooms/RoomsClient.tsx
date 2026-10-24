@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { Video, FlaskConical, Loader2, Wrench, ExternalLink } from 'lucide-react';
+import {
+  Video,
+  FlaskConical,
+  Loader2,
+  Wrench,
+  ExternalLink,
+} from 'lucide-react';
 import {
   ensureUpcomingRooms,
   joinSessionRoom,
@@ -59,7 +65,7 @@ export function RoomActions({ dailyReady }: { dailyReady: boolean }) {
         setNotice(
           result.created === 0 && result.failed === 0
             ? 'كل الجلسات القادمة ليها غرف خلاص.'
-            : `اتعمل ${result.created} غرفة${result.failed ? ` · فشل ${result.failed}` : ''}.`,
+            : `اتعمل ${result.created} غرفة${result.failed ? ` · فشل ${result.failed}` : ''}.`
         );
       } catch {
         setError(UNEXPECTED);
@@ -105,9 +111,9 @@ export function RoomActions({ dailyReady }: { dailyReady: boolean }) {
           فاضية، والاستنتاج الطبيعي «التسجيل باظ». السلوك كان صح
           والشاشة هي اللي كانت ساكتة. */}
       <p className="text-xs font-medium text-slate-500">
-        <strong className="text-slate-700">غرفة التجربة مابتتسجّلش</strong> — الغرض
-        منها تجربة الصوت والصورة والشبكة، وتسجيلها بيتحاسب بلا سبب. لو عايز
-        تجرّب التسجيل، اعمل جلسة من صفحة حجز واضغط «ادخل الغرفة».
+        <strong className="text-slate-700">غرفة التجربة مابتتسجّلش</strong> —
+        الغرض منها تجربة الصوت والصورة والشبكة، وتسجيلها بيتحاسب بلا سبب. لو
+        عايز تجرّب التسجيل، اعمل جلسة من صفحة حجز واضغط «ادخل الغرفة».
       </p>
     </div>
   );
@@ -128,7 +134,7 @@ export function RebuildRoomsButton({ count }: { count: number }) {
     const sure = window.confirm(
       `هيتعاد عمل ${count} غرفة عشان إعداد التسجيل فيها قديم.\n\n` +
         'الغرف القديمة هتتحذف وتتعمل جديدة. الدخول في الموقع بتذكرة ' +
-        'بتتولّد لحظة الضغط، فمفيش حد ماشي معاه رابط هيبوظ.\n\nتأكيد؟',
+        'بتتولّد لحظة الضغط، فمفيش حد ماشي معاه رابط هيبوظ.\n\nتأكيد؟'
     );
     if (!sure) return;
 
@@ -142,7 +148,7 @@ export function RebuildRoomsButton({ count }: { count: number }) {
           return;
         }
         setNotice(
-          `اتعاد عمل ${result.rebuilt} غرفة${result.failed ? ` · فشل ${result.failed}` : ''}.`,
+          `اتعاد عمل ${result.rebuilt} غرفة${result.failed ? ` · فشل ${result.failed}` : ''}.`
         );
       } catch {
         setError(UNEXPECTED);
@@ -158,7 +164,11 @@ export function RebuildRoomsButton({ count }: { count: number }) {
           {notice}
         </p>
       )}
-      <BusyButton busy={busy} pendingLabel={`أعِد عمل الغرف دي (${count})`} onClick={rebuild}>
+      <BusyButton
+        busy={busy}
+        pendingLabel={`أعِد عمل الغرف دي (${count})`}
+        onClick={rebuild}
+      >
         <Wrench className="h-4 w-4" />
         أعِد عمل الغرف دي ({count})
       </BusyButton>
@@ -194,7 +204,11 @@ export function JoinRoomButton({ sessionId }: { sessionId: string }) {
         disabled={busy}
         className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
       >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+        {busy ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Video className="h-4 w-4" />
+        )}
         ادخل الغرفة
         {!busy && <ExternalLink className="h-3.5 w-3.5 opacity-70" />}
       </button>

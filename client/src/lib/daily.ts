@@ -24,7 +24,8 @@
 
 const API = 'https://api.daily.co/v1';
 
-export type DailyResult<T> = { ok: true; data: T } | { ok: false; error: string };
+export type DailyResult<T> =
+  { ok: true; data: T } | { ok: false; error: string };
 
 /** فيه مفتاح مظبوط؟ الشاشات بتسأل الأول بدل ما تعرض زرًّا ما بيشتغلش. */
 export function isDailyConfigured(): boolean {
@@ -42,7 +43,11 @@ export function isDailyConfigured(): boolean {
  *    بيفرّق بين مفتاحين ومابيديش حد وسيلة يستخدم أي واحد فيهم.
  *    والشاشة اللي بتعرضها للإدارة وحدها.
  */
-export function dailyKeyFingerprint(): { present: boolean; prefix: string; length: number } {
+export function dailyKeyFingerprint(): {
+  present: boolean;
+  prefix: string;
+  length: number;
+} {
   const key = process.env.DAILY_API_KEY ?? '';
   return {
     present: key.length > 0,
@@ -91,7 +96,7 @@ export async function checkDailyKey(): Promise<DailyCheck> {
 
 async function call<T>(
   path: string,
-  init: RequestInit = {},
+  init: RequestInit = {}
 ): Promise<DailyResult<T>> {
   const key = process.env.DAILY_API_KEY;
   if (!key) {
@@ -220,7 +225,10 @@ export async function updateRoomTimes(params: {
   return call<DailyRoom>(`/rooms/${encodeURIComponent(params.roomName)}`, {
     method: 'POST',
     body: JSON.stringify({
-      properties: { nbf: start - 15 * 60, exp: start + params.durationMinutes * 60 + 30 * 60 },
+      properties: {
+        nbf: start - 15 * 60,
+        exp: start + params.durationMinutes * 60 + 30 * 60,
+      },
     }),
   });
 }
@@ -274,21 +282,24 @@ export async function deleteRoom(name: string): Promise<DailyResult<unknown>> {
  *    قايمة تسجيلات بتفضل فاضية.
  */
 export async function getRoomsRecording(
-  names: string[],
+  names: string[]
 ): Promise<Map<string, boolean>> {
   const out = new Map<string, boolean>();
 
   const results = await Promise.all(
     names.map(async (name) => {
       const result = await call<{ properties?: { enable_recording?: string } }>(
-        `/rooms/${encodeURIComponent(name)}`,
+        `/rooms/${encodeURIComponent(name)}`
       );
       // ⚠️ الفشل مابيتحوّلش لـ«مش بتسجّل». غرفة ماعرفناش حالتها
       //    بتتساب برّه الخريطة، والشاشة بتقول «مش متأكدين» بدل ما
       //    تطلع تحذيرًا كاذبًا يخلّي الإدارة تعيد تجهيز غرف سليمة.
       if (!result.ok) return null;
-      return [name, result.data.properties?.enable_recording === 'cloud'] as const;
-    }),
+      return [
+        name,
+        result.data.properties?.enable_recording === 'cloud',
+      ] as const;
+    })
   );
 
   for (const row of results) {
@@ -317,7 +328,8 @@ export async function createMeetingToken(params: {
   expiresAt: Date;
   startRecording?: boolean;
 }): Promise<DailyResult<{ token: string }>> {
-  const { roomName, userName, userId, isOwner, expiresAt, startRecording } = params;
+  const { roomName, userName, userId, isOwner, expiresAt, startRecording } =
+    params;
 
   return call<{ token: string }>('/meeting-tokens', {
     method: 'POST',
@@ -331,7 +343,9 @@ export async function createMeetingToken(params: {
         ...(startRecording ? { start_cloud_recording: true } : {}),
         // ⚠️ (ملاحظة الفريق، 10 أكتوبر) الطالب وولي الأمر: من غير مشاركة
         //    شاشة ومن غير زرار تسجيل. المدرب والإدارة (المالكين) زي ما هم.
-        ...(isOwner ? {} : { enable_screenshare: false, enable_recording_ui: false }),
+        ...(isOwner
+          ? {}
+          : { enable_screenshare: false, enable_recording_ui: false }),
       },
     }),
   });
@@ -347,11 +361,17 @@ export async function createMeetingToken(params: {
  *
  * فشل الطرد مابيوقفش الدخول — أسوأ حاجة يبان مرتين زي الأول.
  */
-export async function ejectUserFromRoom(roomName: string, userId: string): Promise<void> {
-  const result = await call<{ ejectedIds?: string[] }>(`/rooms/${encodeURIComponent(roomName)}/eject`, {
-    method: 'POST',
-    body: JSON.stringify({ user_ids: [userId] }),
-  });
+export async function ejectUserFromRoom(
+  roomName: string,
+  userId: string
+): Promise<void> {
+  const result = await call<{ ejectedIds?: string[] }>(
+    `/rooms/${encodeURIComponent(roomName)}/eject`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: [userId] }),
+    }
+  );
   if (!result.ok) console.error('Daily eject failed', result.error);
 }
 
@@ -372,7 +392,9 @@ export type DailyPresenceParticipant = {
  *    ما نسألش أكتر من مرة كل ١٥ ثانية. فالشاشة بتحدّث كل نص دقيقة —
  *    التحديث الأسرع مابيديش بيانات أجدد، بيستهلك بس.
  */
-export async function getPresence(): Promise<DailyResult<DailyPresenceParticipant[]>> {
+export async function getPresence(): Promise<
+  DailyResult<DailyPresenceParticipant[]>
+> {
   const result = await call<Record<string, unknown>>('/presence');
   if (!result.ok) return result;
 
@@ -406,6 +428,8 @@ export type DailyUsage = {
   longestMeetingMinutes: number;
   /** الفترة اللي الأرقام دي بتغطّيها. */
   since: string;
+  /** وصلنا للحد الأقصى للقراية — الرقم الحقيقي أكبر. */
+  truncated?: boolean;
 };
 
 type DailyMeeting = {
@@ -416,31 +440,40 @@ type DailyMeeting = {
   participants?: { duration?: number }[];
 };
 
+/** أقصى عدد جلسات بنقراه في الفترة الواحدة (١٠ صفحات × ١٠٠). */
+const USAGE_MAX_PAGES = 10;
+
 /**
- * استهلاك الشهر الحالي.
+ * الاستهلاك في فترة — من `start` لحد قبل `end` (ثواني يونكس).
  *
  * ⚠️ **بنجمع مدة كل مشارك، مش مدة الجلسة.** جلسة نص ساعة فيها
  *    اتنين = **ستين دقيقة مشارك** عند Daily، مش تلاتين. الخلط ده
  *    بيخلّي التقدير نص الحقيقة — واللي بيتبني عليه قرار «امتى
  *    نشترك».
  *
- * ⚠️ وبنقرا على صفحات: الحساب ممكن يكون فيه مئات الجلسات، والصفحة
- *    الواحدة محدودة. بنقف عند حد أقصى عشان الشاشة ما تعلّقش.
+ * ⚠️ بنبعت `timeframe_start/end` لـDaily **وكمان** بنفلتر هنا على
+ *    `start_time`. لو الفلتر عندهم اتجاهل لأي سبب، الرقم يفضل صح؛
+ *    والتوقف عند أول جلسة أقدم من الفترة بيحمي من قراية الحساب كله.
+ *
+ * ⚠️ لو وصلنا للحد الأقصى للصفحات، `truncated` بيبقى `true` والشاشة
+ *    بتقول إن الرقم أقل من الحقيقي — بدل ما تعرضه كأنه كامل.
  */
-export async function getMonthUsage(): Promise<DailyResult<DailyUsage>> {
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-  const since = Math.floor(monthStart.getTime() / 1000);
-
+export async function getUsageBetween(
+  start: number,
+  end: number
+): Promise<DailyResult<DailyUsage>> {
   let participantSeconds = 0;
   let meetings = 0;
   let longest = 0;
   let cursor: string | undefined;
+  let truncated = false;
 
-  // 10 صفحات × 100 = 1000 جلسة. أكتر من كده مش شاشة، ده تقرير.
-  for (let page = 0; page < 10; page++) {
-    const query = new URLSearchParams({ limit: '100' });
+  for (let page = 0; page < USAGE_MAX_PAGES; page++) {
+    const query = new URLSearchParams({
+      limit: '100',
+      timeframe_start: String(start),
+      timeframe_end: String(end),
+    });
     if (cursor) query.set('starting_after', cursor);
 
     const result = await call<{ data?: DailyMeeting[] }>(`/meetings?${query}`);
@@ -451,10 +484,11 @@ export async function getMonthUsage(): Promise<DailyResult<DailyUsage>> {
 
     let reachedOlder = false;
     for (const meeting of rows) {
-      if (meeting.start_time < since) {
+      if (meeting.start_time < start) {
         reachedOlder = true;
         continue;
       }
+      if (meeting.start_time >= end) continue;
       meetings += 1;
       longest = Math.max(longest, Math.round((meeting.duration ?? 0) / 60));
       for (const participant of meeting.participants ?? []) {
@@ -462,10 +496,11 @@ export async function getMonthUsage(): Promise<DailyResult<DailyUsage>> {
       }
     }
 
-    // الجلسات بتيجي من الأحدث للأقدم، فأول ما نعدّي أول الشهر نقف.
+    // الجلسات بتيجي من الأحدث للأقدم، فأول ما نعدّي بداية الفترة نقف.
     if (reachedOlder || rows.length < 100) break;
     cursor = rows[rows.length - 1]?.id;
     if (!cursor) break;
+    if (page === USAGE_MAX_PAGES - 1) truncated = true;
   }
 
   return {
@@ -474,13 +509,42 @@ export async function getMonthUsage(): Promise<DailyResult<DailyUsage>> {
       participantMinutes: Math.round(participantSeconds / 60),
       meetings,
       longestMeetingMinutes: longest,
-      since: monthStart.toISOString(),
+      since: new Date(start * 1000).toISOString(),
+      truncated,
     },
   };
 }
 
+/**
+ * حدود شهر ميلادي بتوقيت UTC — وده الشهر اللي Daily بيحسب عليه.
+ * `offset` = 0 للشهر الحالي، ‎-1 للي فات، وهكذا.
+ */
+export function monthBounds(
+  now: Date,
+  offset = 0
+): { start: number; end: number } {
+  const s = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1);
+  const e = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 1);
+  return { start: Math.floor(s / 1000), end: Math.floor(e / 1000) };
+}
+
+/** استهلاك الشهر الحالي. */
+export async function getMonthUsage(
+  now = new Date()
+): Promise<DailyResult<DailyUsage>> {
+  const { start, end } = monthBounds(now, 0);
+  return getUsageBetween(start, end);
+}
+
 /** الحد المجاني الشهري عند Daily — بيتقارن بيه في اللوحة. */
 export const DAILY_FREE_MINUTES = 10_000;
+
+/**
+ * سعر دقيقة المشارك بعد الحد المجاني (فيديو/صوت) بالدولار —
+ * من صفحة أسعار Daily (أكتوبر ٢٠٢٦). **تقدير للتخطيط، مش فاتورة**:
+ * التسجيل والبث والترجمة بيتحسبوا لوحدهم.
+ */
+export const DAILY_USD_PER_EXTRA_MINUTE = 0.004;
 
 // ── التسجيلات ────────────────────────────────────────────────
 
@@ -559,7 +623,9 @@ function toRecording(raw: RawRecording): DailyRecording {
  *    بضع مئات بيعلّقها. والمهمة اليومية بتستعمل نفس الدالة بسقف
  *    أعلى، لأن اللي مابيتقريش **مابيتحذفش** فيفضل مخزَّنًا للأبد.
  */
-export async function listRecordings(max = 200): Promise<DailyResult<DailyRecording[]>> {
+export async function listRecordings(
+  max = 200
+): Promise<DailyResult<DailyRecording[]>> {
   const out: DailyRecording[] = [];
   let cursor: string | undefined;
 
@@ -567,7 +633,9 @@ export async function listRecordings(max = 200): Promise<DailyResult<DailyRecord
     const query = new URLSearchParams({ limit: '100' });
     if (cursor) query.set('starting_after', cursor);
 
-    const result = await call<{ data?: RawRecording[] }>(`/recordings?${query}`);
+    const result = await call<{ data?: RawRecording[] }>(
+      `/recordings?${query}`
+    );
     if (!result.ok) return result;
 
     const rows = result.data?.data ?? [];
@@ -596,10 +664,10 @@ export async function listRecordings(max = 200): Promise<DailyResult<DailyRecord
  */
 export async function getRecordingLink(
   recordingId: string,
-  validForSecs = 3600,
+  validForSecs = 3600
 ): Promise<DailyResult<{ url: string; expiresAt: string }>> {
   const result = await call<{ download_link?: string; expires?: number }>(
-    `/recordings/${encodeURIComponent(recordingId)}/access-link?valid_for_secs=${validForSecs}`,
+    `/recordings/${encodeURIComponent(recordingId)}/access-link?valid_for_secs=${validForSecs}`
   );
   if (!result.ok) return result;
 
@@ -619,8 +687,12 @@ export async function getRecordingLink(
 }
 
 /** حذف تسجيل. **مالوش تراجع** — الحارس في `actions/recordings.ts`. */
-export async function deleteRecording(recordingId: string): Promise<DailyResult<unknown>> {
-  return call(`/recordings/${encodeURIComponent(recordingId)}`, { method: 'DELETE' });
+export async function deleteRecording(
+  recordingId: string
+): Promise<DailyResult<unknown>> {
+  return call(`/recordings/${encodeURIComponent(recordingId)}`, {
+    method: 'DELETE',
+  });
 }
 
 /**
@@ -644,7 +716,7 @@ export async function deleteRecording(recordingId: string): Promise<DailyResult<
 export function expiredRecordings(
   recordings: DailyRecording[],
   retentionDays: number,
-  now = Date.now(),
+  now = Date.now()
 ): DailyRecording[] {
   if (!(retentionDays > 0)) return [];
   const cutoff = now - retentionDays * 24 * 60 * 60 * 1000;
