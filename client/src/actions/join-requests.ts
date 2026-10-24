@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { joinRequestRoleLabel, joinNextStep, JOIN_ROLE_LABELS } from '@/lib/join-roles';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/phone';
+import { sendEmail } from '@/lib/email';
+import { toUrlToken } from '@/lib/join-token';
+import { SITE_URL } from '@/lib/site-url';
 
 export type JoinRequestResult =
   | { ok: true; nextHref?: string; nextLabel?: string }
@@ -133,7 +136,10 @@ export async function submitJoinRequest(params: {
   //    وبس. فالإدارة كانت بتفتح طلبًا عليه «تليفون» مكتوب فيه كلام،
   //    وماتقدرش تتواصل — والمتقدّم فاكر إنه سجّل صح.
   const phone = normalizePhone(params.phone);
-  if (params.phone?.trim() && !isValidPhone(params.phone)) {
+  // ⚠️ **الواتساب إلزامي** (قرار تامر، ٢٤ أكتوبر): المتقدّم مالوش حساب،
+  //    ورابط النقاش بيتبعتله عليه. طلب من غير رقم = متقدّم مانقدرش نوصله.
+  if (!params.phone?.trim()) return { ok: false, error: 'اكتب رقم الواتساب — بنتواصل معاك عليه.' };
+  if (!isValidPhone(params.phone)) {
     return { ok: false, error: PHONE_ERROR };
   }
 
@@ -176,7 +182,7 @@ export async function submitJoinRequest(params: {
 export async function postJoinRequestMessage(
   requestId: string,
   body: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; emailed: boolean } | { ok: false; error: string }> {
   let admin;
   try {
     admin = await requireAdmin('canManageSupport', 'غير مصرح لك بإدارة طلبات الانضمام');
@@ -216,6 +222,29 @@ export async function postJoinRequestMessage(
     entityId: requestId,
   });
 
+  // ⚠️ إيميل تلقائي بالرسالة والرابط (Resend شغّال) — جنب زرار الواتساب.
+  //    فشله مابيلغيش الرسالة: هي اتسجّلت، والإداري يقدر يبعت واتساب.
+  let emailed = false;
+  const { data: req } = await supabase
+    .from('join_requests')
+    .select('applicant_name, email, access_token')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (req?.email && req.access_token) {
+    const r = await sendEmail({
+      to: [req.email],
+      subject: 'رسالة جديدة على طلب انضمامك — الرحلة',
+      lines: [
+        `أهلًا ${req.applicant_name ?? ''} 🌿`,
+        'فريق الرحلة بعتلك رسالة على طلب انضمامك:',
+        text.length > 600 ? `${text.slice(0, 600)}…` : text,
+        'تقدر ترد من الرابط تحت — من غير ما تعمل حساب.',
+      ],
+      link: { href: `${SITE_URL}/join-us/r/${toUrlToken(req.access_token)}`, label: 'اقرا ورد' },
+    });
+    emailed = r.sent;
+  }
+
   revalidatePath(`/dashboard/admin/join-requests/${requestId}`);
-  return { ok: true };
+  return { ok: true, emailed };
 }

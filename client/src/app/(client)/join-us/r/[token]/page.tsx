@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { createPublicClient } from '@/lib/supabase/public';
 import { joinRequestRoleLabel } from '@/lib/join-roles';
 import { ApplicantThread, type ThreadMessage } from './ApplicantThread';
+import { fromUrlToken } from '@/lib/join-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,8 @@ const STATUS: Record<string, { label: string; type: 'success' | 'danger' | 'warn
  *    نفسه مقفول على الزائر تمامًا، فمفيش طريق يقرا بيها طلبًا تاني.
  */
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+  // ⚠️ الرابط بالشكل الآمن (من غير / و+) — بيرجع لأصله هنا. اقرا `lib/join-token`.
+  const token = fromUrlToken((await params).token);
   const supabase = createPublicClient();
   const { data, error } = await supabase.rpc('join_request_thread', { p_token: token });
 

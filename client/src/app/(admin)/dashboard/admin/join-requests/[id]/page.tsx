@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { toUrlToken } from '@/lib/join-token';
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getJoinRequests } from '@/data/domains/(admin)/join-requests/queries';
@@ -95,7 +96,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       createdAt: m.created_at,
     }));
     if (tokenRow?.access_token) {
-      shareUrl = `${SITE_URL}/join-us/r/${encodeURIComponent(tokenRow.access_token)}`;
+      shareUrl = `${SITE_URL}/join-us/r/${toUrlToken(tokenRow.access_token)}`;
     }
   }
 
@@ -269,6 +270,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           applicantName={target.applicantName}
           messages={messages}
           shareUrl={shareUrl}
+          phone={target.phone ?? ''}
         />
       </div>
     </div>

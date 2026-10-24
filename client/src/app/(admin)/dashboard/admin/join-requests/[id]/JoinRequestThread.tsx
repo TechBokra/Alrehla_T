@@ -5,6 +5,7 @@ import { Check, Copy, MessageSquare, Send } from 'lucide-react';
 import { postJoinRequestMessage } from '@/actions/join-requests';
 import { Field, TextArea, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
+import { whatsappLink } from '@/lib/join-token';
 
 export type ThreadMessage = {
   author: 'admin' | 'applicant';
@@ -27,7 +28,10 @@ export function JoinRequestThread({
   applicantName,
   messages,
   shareUrl,
+  phone = '',
 }: {
+  /** واتساب المتقدّم (إلزامي في الطلبات الجديدة). */
+  phone?: string;
   requestId: string;
   applicantName: string;
   messages: ThreadMessage[];
@@ -38,11 +42,13 @@ export function JoinRequestThread({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState('');
 
   const send = async () => {
     if (busy || !body.trim()) return;
     setBusy(true);
     setError('');
+    setSent('');
     try {
       const r = await postJoinRequestMessage(requestId, body);
       if (!r.ok) {
@@ -50,6 +56,7 @@ export function JoinRequestThread({
         return;
       }
       setBody('');
+      setSent(r.emailed ? 'اتبعتت، ووصله إيميل بالرابط. ابعتهوله على الواتساب كمان عشان يشوفها أسرع.' : 'اتبعتت. ابعتله الرابط على الواتساب.');
     } catch {
       setError('تعذّر إرسال الرسالة — جرّب تاني');
     } finally {
@@ -57,11 +64,13 @@ export function JoinRequestThread({
     }
   };
 
+  const invite = `أهلًا ${applicantName} 🌿\n\nعندنا سؤال على طلب انضمامك للرحلة. تقدر تقرا وترد من هنا:\n\n${shareUrl}\n\nفريق الرحلة`;
+  // ⚠️ واتساب بيفتح المحادثة والرسالة جاهزة — الإرسال نفسه بضغطة من الإداري.
+  const wa = shareUrl && phone ? whatsappLink(phone, invite) : null;
+
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(
-        `أهلًا ${applicantName} 🌿\n\nعندنا سؤال على طلب انضمامك للرحلة. تقدر تقرا وترد من هنا:\n\n${shareUrl}\n\nفريق الرحلة`,
-      );
+      await navigator.clipboard.writeText(invite);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -76,6 +85,18 @@ export function JoinRequestThread({
           <MessageSquare className="h-5 w-5 text-slate-500" />
           النقاش مع المتقدّم
         </h2>
+        <div className="flex flex-wrap gap-2">
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-black text-white transition-colors hover:bg-emerald-700"
+          >
+            <Send className="h-3.5 w-3.5" />
+            ابعت الرابط على واتساب
+          </a>
+        )}
         {shareUrl && (
           <button
             type="button"
@@ -86,11 +107,13 @@ export function JoinRequestThread({
             {copied ? 'اتنسخت' : 'انسخ رسالة فيها رابط النقاش'}
           </button>
         )}
+        </div>
       </div>
 
       <p className="mb-4 text-xs font-medium text-slate-500">
         المتقدّم لسه مالوش حساب، فبيقرا ويرد من رابط خاص. ابعتله الرابط مرة
-        واحدة وهو يفضل شغّال طول ما الطلب موجود.
+        واحدة على الواتساب وهو يفضل شغّال طول ما الطلب موجود — وكل رسالة منك
+        بيوصله بيها إيميل تلقائي فيه نفس الرابط.
       </p>
 
       {messages.length === 0 ? (
@@ -139,6 +162,11 @@ export function JoinRequestThread({
       </div>
 
       <FormError message={error} className="mt-3" />
+      {sent && !error && (
+        <p role="status" className="mt-3 text-sm font-bold text-emerald-800">
+          {sent}
+        </p>
+      )}
     </section>
   );
 }

@@ -42,7 +42,7 @@ export function JoinForm() {
         <div>
           <p className="font-black text-emerald-900">وصلنا طلبك.</p>
           <p className="text-sm font-medium text-emerald-800">
-            سنراجعه ونتواصل معك على البريد الذي أدخلته.
+            سنراجعه ونتواصل معك على الواتساب والبريد اللي كتبتهم.
           </p>
         </div>
       </div>
@@ -103,17 +103,26 @@ export function JoinForm() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700">رقم الهاتف</label>
+          <label htmlFor="join-phone" className="text-sm font-bold text-slate-700">
+            رقم الواتساب <span className="text-rose-600">*</span>
+          </label>
           <input
+            id="join-phone"
+            required
+            aria-required="true"
+            autoComplete="tel"
             type="tel"
                     inputMode="tel"
                     pattern={PHONE_INPUT_PROPS.pattern}
             dir="ltr"
             className={`${inputClass} text-right`}
-            placeholder="رقم الهاتف مع رمز الدولة"
+            placeholder="مثال: 01012345678 أو +9665…"
             value={form.phone}
             onChange={set('phone')}
           />
+          {/* ⚠️ إلزامي (قرار تامر، ٢٤ أكتوبر): المتقدّم مالوش حساب، والواتساب
+              هو أسرع طريق نوصله بيه — رابط النقاش بيتبعتله عليه. */}
+          <p className="text-xs font-medium text-slate-500">بنبعتلك عليه رابط متابعة طلبك والرد على أسئلتنا.</p>
         </div>
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700">الدور المطلوب</label>
