@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowUpDown, Book, Building2, Search, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
+import { productUnavailableReason } from '@/lib/product-availability';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
 import { AGE_BAND_ICONS } from '@/components/enha-lak/AgeBadge';
 import { Reveal } from '@/components/ui/Reveal';
@@ -81,6 +82,8 @@ export type LibraryTexts = {
 
 export function LibraryClient(props: {
   initialProducts: PersonalizedProduct[];
+  /** إيقاف التوصيل — كتب المكتبة بتتشحن بس (قرار ٢٤ أكتوبر). */
+  pause?: { paused: boolean; message: string };
   publishers: Publisher[];
   texts: LibraryTexts;
 }) {
@@ -93,6 +96,8 @@ export function LibraryClient(props: {
 
 function LibraryFromUrl(props: {
   initialProducts: PersonalizedProduct[];
+  /** إيقاف التوصيل — كتب المكتبة بتتشحن بس (قرار ٢٤ أكتوبر). */
+  pause?: { paused: boolean; message: string };
   publishers: Publisher[];
   texts: LibraryTexts;
 }) {
@@ -119,8 +124,11 @@ function LibraryView({
   publishers,
   initial,
   texts,
+  pause = { paused: false, message: '' },
 }: {
   initialProducts: PersonalizedProduct[];
+  /** إيقاف التوصيل — كتب المكتبة بتتشحن بس (قرار ٢٤ أكتوبر). */
+  pause?: { paused: boolean; message: string };
   publishers: Publisher[];
   initial: Filters;
   texts: LibraryTexts;
@@ -453,6 +461,7 @@ function LibraryView({
                 product={product}
                 publisherName={publishers.find((p) => p.id === product.publisherId)?.name}
                 cardHref={`/enha-lak/product/${product.slug}`}
+                unavailableReason={productUnavailableReason(product, pause)}
                 actionLabel={texts.action}
                 actionHref={`/enha-lak/custom-library/${product.slug}`}
                 detailsHref={`/enha-lak/product/${product.slug}`}

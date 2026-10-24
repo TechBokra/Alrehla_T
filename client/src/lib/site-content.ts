@@ -138,7 +138,7 @@ const home: ContentGroup = {
       key: 'home.step1.text',
       label: 'الخطوة 1 — الشرح',
       type: 'longtext',
-      fallback: 'تصفّح القصص والباقات واختر ما يناسب عمر طفلك واهتمامه.',
+      fallback: 'تصفّح المنتجات والباقات واختر ما يناسب عمر طفلك واهتمامه.',
     },
     {
       key: 'home.step2.title',

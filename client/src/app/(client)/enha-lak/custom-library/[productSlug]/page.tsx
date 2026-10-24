@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 
@@ -53,6 +54,31 @@ export default async function CustomLibraryPage({ params }: PageProps) {
     // «هنوصّل فين؟» في خطوة الإضافات — كتاب المكتبة مطبوع ودايمًا بيتشحن.
     getDeliveryCatalog(),
   ]);
+
+  // ⚠️ كتاب المكتبة بيتطبع وبيتشحن بس. والتوصيل متوقف = نقول ده هنا
+  //    **قبل** خطوات التخصيص، مش في آخرها (قرار ٢٤ أكتوبر). الكارت
+  //    وصفحة المنتج بيقولوه قبلها كمان؛ ده للرابط المباشر.
+  if (delivery.pause.paused) {
+    return (
+      <PageContainer className="!py-0 !space-y-0">
+        <Section containerClassName="mx-auto w-full max-w-2xl py-16">
+          <div className="rounded-3xl border border-amber-300 bg-amber-50 p-8 text-center">
+            <h1 className="text-2xl font-black text-amber-900">غير متاح مؤقتًا</h1>
+            <p className="mt-3 text-base font-medium leading-relaxed text-amber-900">
+              {delivery.pause.message.trim() || 'التوصيل متوقف مؤقتًا'} — والكتاب ده بيتطبع وبيتشحن، فبيرجع أول ما
+              التوصيل يفتح.
+            </p>
+            <Link
+              href="/enha-lak"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-6 py-3 font-bold text-white transition-colors hover:bg-amber-800"
+            >
+              تصفّح باقي المنتجات
+            </Link>
+          </div>
+        </Section>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer className="!py-0 !space-y-0">

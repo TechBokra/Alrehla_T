@@ -19,6 +19,8 @@ import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
+import { productUnavailableReason } from '@/lib/product-availability';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
 import { AddonCard } from '@/components/enha-lak/AddonCard';
 import { Reveal } from '@/components/ui/Reveal';
@@ -27,7 +29,7 @@ import { Reveal } from '@/components/ui/Reveal';
 export default async function CustomPage() {
   const allProducts = await getPersonalizedProducts();
   const customProducts = allProducts.filter((p) => p.category === 'custom');
-  const [addons, content] = await Promise.all([getAddonProducts(), getSiteContent()]);
+  const [addons, content, pause] = await Promise.all([getAddonProducts(), getSiteContent(), getDeliveryPause()]);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -53,6 +55,7 @@ export default async function CustomPage() {
                   product={product}
                   actionLabel={content['custom.action']}
                   actionHref={`/enha-lak/custom/${product.slug}`}
+                  unavailableReason={productUnavailableReason(product, pause)}
                   cardHref={`/enha-lak/product/${product.slug}`}
                   detailsHref={`/enha-lak/product/${product.slug}`}
                 />

@@ -1,31 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCart, type CartItem } from '@/context/CartContext';
-import { clearPendingOrder, loadPendingOrder } from '@/lib/pending-order-store';
+import { clearPendingOrder, loadPendingOrder, paidItemIds } from '@/lib/pending-order-store';
 import { takeDeferredItems } from '@/lib/cart-storage';
 
 /**
- * تفضية السلة بعد الدفع بالبوابة.
+ * صفحة «شكرًا» بعد البوابة: بنود الطلب ده بتتشال من السلة **على طول**،
+ * من غير ما نستنى تأكيد الدفع يوصل (الرجوع من البوابة ممكن يسبقه بثواني).
  *
- * ⚠️ **ده كان ناقص خالص.** مسار التحويل كان بيفضّي السلة بعد رفع
- *    الإيصال، لكن مسار XPay بيرجع العميل على صفحة التأكيد دي — ومفيش
- *    حاجة كانت بتفضّيها. فالعميل يدفع، ويرجع يلاقي نفس البنود في السلة
- *    جاهزة تتطلب تاني.
+ * ⚠️ **بيستنى `ready`.** النسخة الأولى كانت بتفضّي قبل ما السلة تتقري
+ *    من المتصفح، والسلة بعدها بتتقري وترجع كاملة (ALR-000068-QB).
  *
- * ⚠️ بتفضّي **بس** لو الطلب ده هو اللي اتسجّل من السلة دي (محفوظ في
- *    `pending-order-store`). كده فتح صفحة تأكيد طلب قديم من رابط
- *    مايمسحش سلة جديدة.
+ * ⚠️ بس لو الطلب ده هو اللي اتسجّل من السلة دي — رابط تأكيد طلب
+ *    قديم مايمسحش سلة جديدة.
  */
 export function ClearPaidCart({ orderId }: { orderId: string }) {
-  const { clearCart, addItem } = useCart();
+  const { ready, items, removeItems, addItem } = useCart();
+  const done = useRef(false);
   useEffect(() => {
+    if (!ready || done.current) return;
+    done.current = true;
     const pending = loadPendingOrder();
     if (!pending || pending.orderId !== orderId) return;
-    clearCart();
+    removeItems(paidItemIds(pending, items));
     clearPendingOrder();
-    // البنود اللي استنت طلب الاشتراك ترجع للسلة — نفس مسار التحويل.
     for (const item of takeDeferredItems<CartItem>()) addItem(item);
-  }, [orderId, clearCart, addItem]);
+  }, [ready, orderId, items, removeItems, addItem]);
   return null;
 }

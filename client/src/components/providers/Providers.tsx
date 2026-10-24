@@ -1,6 +1,7 @@
 'use client';
 import { CartProvider } from '@/context/CartContext';
 import { ReactNode } from 'react';
+import { PaidCartSweeper } from '@/components/checkout/PaidCartSweeper';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -9,6 +10,8 @@ export function Providers({ children }: { children: ReactNode }) {
           الصور اللي الأهل بيشاركوها ترويج ببلاش، والعلامة المائية عليها.
           والمنع ماكانش بيمنع لقطة الشاشة أصلًا. */}
       {children}
+      {/* بنود الطلبات اللي اتدفعت بتتشال من السلة في أي صفحة (٢٤ أكتوبر). */}
+      <PaidCartSweeper />
     </CartProvider>
   );
 }

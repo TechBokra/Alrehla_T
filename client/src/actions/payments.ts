@@ -294,6 +294,29 @@ export async function getResumableOrder(
   }
 }
 
+/**
+ * الطلب ده العميل خلّصه ولا لأ؟ — لتفضية السلة بعد الدفع.
+ *
+ *   placed  اتدفع أو مستني مراجعة إيصال أو بعده → بنوده تتشال من السلة
+ *   unpaid  لسه مستني دفع → السلة زي ما هي (وينفع يكمّله)
+ *   closed  اتلغى أو اترجع → السلة زي ما هي، والطلب المحفوظ يتنسي
+ *   unknown مانعرفش (شبكة/مش طلبه) → مانعملش حاجة
+ */
+export async function getOrderPaymentState(
+  orderId: string,
+): Promise<'placed' | 'unpaid' | 'closed' | 'unknown'> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from('orders').select('status').eq('id', orderId).maybeSingle();
+    if (!data) return 'unknown';
+    if (data.status === 'pending' || data.status === 'failed') return 'unpaid';
+    if (data.status === 'cancelled' || data.status === 'refunded') return 'closed';
+    return 'placed';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function savePaymentSettings(input: {
   provider: string;
   methods: string[];

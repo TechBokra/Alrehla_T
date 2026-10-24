@@ -75,7 +75,13 @@ export function ProductCard({
   detailsLabel = 'عرض التفاصيل',
   /** الكارت كله رابط لصفحة المنتج (شبكة المكتبة). */
   cardHref,
+  unavailableReason = null,
 }: {
+  /**
+   * المنتج مش بيتطلب دلوقتي (بالتوصيل بس والتوصيل متوقف — قرار ٢٤
+   * أكتوبر). الكارت بيقول ده **من برّه**، وزرار التخصيص بيتقفل.
+   */
+  unavailableReason?: string | null;
   product: PersonalizedProduct;
   publisherName?: string;
   actionLabel: string;
@@ -157,6 +163,12 @@ export function ProductCard({
         {/* «غلاف مخصص فقط» — المصفوفة التنفيذية §3.3 بتطلبها بالاسم:
             «مهمة جدًّا لمنع الالتباس». من غيرها الأب ممكن يفتكر إن
             كتاب المكتبة بيتكتب باسم ابنه زي «أنت البطل هنا». */}
+        {unavailableReason && (
+          <span className="pointer-events-none absolute top-3 left-3 rotate-2 rounded-full bg-slate-900/90 px-3 py-1 text-[11px] font-black text-white shadow-sm">
+            غير متاح مؤقتًا
+          </span>
+        )}
+
         {isLibrary && (
           <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-rose-800 shadow-sm ring-1 ring-rose-100">
             <Palette className="h-3.5 w-3.5" aria-hidden="true" />
@@ -247,13 +259,23 @@ export function ProductCard({
           )}
         </div>
 
-        <Button
-          href={actionHref}
-          accentColor="rose"
-          className="pointer-events-auto relative z-20 w-full justify-center"
-        >
-          {actionLabel}
-        </Button>
+        {unavailableReason ? (
+          // ⚠️ مش زرار مقفول من غير كلام: العميل لازم يعرف ليه.
+          <p
+            role="status"
+            className="pointer-events-none relative z-20 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-center text-xs font-bold leading-relaxed text-amber-900"
+          >
+            {unavailableReason} — بيرجع أول ما التوصيل يفتح.
+          </p>
+        ) : (
+          <Button
+            href={actionHref}
+            accentColor="rose"
+            className="pointer-events-auto relative z-20 w-full justify-center"
+          >
+            {actionLabel}
+          </Button>
+        )}
 
         {/* ⚠️ كان زرًّا تانيًا بعرض الكارت كله. زرّان متساويان في
             الحجم بيخلّوا العميل يقف يقارن بينهم — والزرّ ده مش

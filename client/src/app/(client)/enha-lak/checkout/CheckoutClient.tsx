@@ -370,6 +370,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
         reference: result.paymentReference,
         total: result.totalAmount,
         signature: cartSignature(items),
+        itemIds: items.map((i: CartItem) => i.id),
       });
 
       // البوابة: على صفحة الدفع على طول — من غير زرار «ادفع» تاني.

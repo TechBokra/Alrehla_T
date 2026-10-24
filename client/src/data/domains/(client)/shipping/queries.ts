@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import type {
   Country,
   DeliveryCatalog,
@@ -105,4 +106,24 @@ export async function getDeliveryCatalog(): Promise<DeliveryCatalog> {
     rates,
     pause: parsePause(pauseRes.data?.value),
   };
+}
+
+/**
+ * إيقاف التوصيل بس — لصفحات المنتجات (قرار ٢٤ أكتوبر: «المنتج اللي
+ * بالتوصيل بس يبان من برّه إنه مش متاح»).
+ *
+ * ⚠️ **بالعميل العام** (`createPublicClient`) مش بكوكيز الجلسة: الصفحات
+ *    دي بتتخزّن، وقراية الكوكيز كانت هتخليها تتبني مع كل زيارة. وزرار
+ *    الإيقاف في اللوحة بيجدّد كل الصفحات العامة (`refreshPublicPages`).
+ *
+ * ⚠️ لو القراية فشلت: «مش متوقف». المعالج والقاعدة بيمنعوا بعدها برضه.
+ */
+export async function getDeliveryPause(): Promise<DeliveryPause> {
+  try {
+    const supabase = createPublicClient();
+    const { data } = await supabase.from('site_settings').select('value').eq('key', 'delivery').maybeSingle();
+    return parsePause(data?.value);
+  } catch {
+    return { paused: false, message: '' };
+  }
 }

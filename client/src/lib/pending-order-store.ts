@@ -14,6 +14,11 @@ export type PendingOrder = {
   reference: string;
   total: number | null;
   signature: string;
+  /**
+   * أرقام بنود السلة اللي الطلب اتعمل منها — بعد الدفع بتتشال **هي بس**.
+   * لو العميل ضاف حاجة للسلة بعد ما سجّل الطلب، مابتضيعش.
+   */
+  itemIds?: string[];
   at: number;
 };
 
@@ -44,6 +49,7 @@ export function loadPendingOrder(): PendingOrder | null {
       reference: typeof v.reference === 'string' ? v.reference : '',
       total: typeof v.total === 'number' ? v.total : null,
       signature: v.signature,
+      itemIds: Array.isArray(v.itemIds) ? v.itemIds.filter((x): x is string => typeof x === 'string') : undefined,
       at: v.at,
     };
   } catch {
@@ -69,4 +75,16 @@ export function resumableFor(
   if (now - pending.at > PENDING_ORDER_TTL_MS) return null;
   if (pending.signature !== cartSignature(items)) return null;
   return pending;
+}
+
+/**
+ * البنود اللي تتشال بعد دفع الطلب المحفوظ.
+ * من غير `itemIds` (طلب اتحفظ بنسخة قديمة) بنشيل السلة كلها **بس** لو
+ * لسه هي هي بالظبط — غير كده مابنلمسش حاجة.
+ */
+export function paidItemIds(pending: PendingOrder, items: { id: string }[]): string[] {
+  if (pending.itemIds && pending.itemIds.length > 0) {
+    return items.filter((i) => pending.itemIds!.includes(i.id)).map((i) => i.id);
+  }
+  return pending.signature === cartSignature(items) ? items.map((i) => i.id) : [];
 }

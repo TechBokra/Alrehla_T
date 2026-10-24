@@ -615,14 +615,14 @@ export function PersonalizationWizard({
           <h1 className="text-2xl font-black text-amber-900">التوصيل متوقف مؤقتًا</h1>
           <p className="mt-3 text-base font-medium leading-relaxed text-amber-900">{pauseText}</p>
           <p className="mt-2 text-sm font-medium leading-relaxed text-amber-800">
-            القصة دي بتتطبع وبتتشحن، فمش هينفع تتطلب دلوقتي. تقدر تتصفّح القصص اللي ليها
-            نسخة إلكترونية، أو ترجع لما التوصيل يرجع.
+            المنتج ده بيتطبع وبيتشحن، فمش هينفع يتطلب دلوقتي. تقدر تتصفّح باقي المنتجات — اللي ليها
+            نسخة إلكترونية متاحة عادي — أو ترجع لما التوصيل يرجع.
           </p>
           <Link
             href="/enha-lak"
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-6 py-3 font-bold text-white transition-colors hover:bg-amber-800"
           >
-            تصفّح باقي القصص
+            تصفّح باقي المنتجات
           </Link>
         </div>
       </div>

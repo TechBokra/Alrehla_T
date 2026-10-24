@@ -78,6 +78,18 @@ interface CartContextType {
    *  "In real app, clearCart() would be here" — so every completed order left
    *  its items in the cart, ready to be ordered again. */
   clearCart: () => void;
+  /** يشيل بنود بعينها مرة واحدة — بعد دفع طلب اتسجّل منها. */
+  removeItems: (ids: string[]) => void;
+  /**
+   * السلة اتقرت من المتصفح؟
+   *
+   * ⚠️ **أي حاجة بتعدّل السلة أول ما الصفحة تفتح لازم تستنى ده.**
+   *    مكوّنات الصفحة بتشتغل **قبل** ما السلة تتقري (React بيشغّل
+   *    تأثيرات الأبناء قبل الأب). فتفضية السلة في صفحة «شكرًا» كانت
+   *    بتحصل على سلة لسه فاضية، وبعدها السلة تتقري وترجع كاملة —
+   *    وده بالظبط اللي حصل مع طلب ALR-000068-QB (٢٤ أكتوبر).
+   */
+  ready: boolean;
   itemCount: number;
   cartTotal: number;
 }
@@ -97,6 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   //    هيتحفظ **فوق** السلة المحفوظة قبل ما تتقري — فتضيع في نفس
   //    اللحظة اللي المفروض تتحمّل فيها.
   const loaded = useRef(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -112,6 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // التخزين مقفول (تصفّح خاص) — السلة تشتغل في الذاكرة زي الأول.
     }
     loaded.current = true;
+    setReady(true);
 
     const clear = () => setItems([]);
     window.addEventListener(CART_CLEAR_EVENT, clear);
@@ -163,12 +177,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const removeItems = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+  };
+
   const itemCount = items.length;
   const cartTotal = items.reduce((acc, i) => acc + i.price, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, replaceItem, updateQuantity, clearCart, itemCount, cartTotal }}
+      value={{ items, addItem, removeItem, replaceItem, updateQuantity, clearCart, removeItems, ready, itemCount, cartTotal }}
     >
       {children}
     </CartContext.Provider>

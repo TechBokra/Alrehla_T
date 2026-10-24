@@ -8,6 +8,8 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { pageMetadata } from '@/lib/seo';
 import { ProductCard } from '@/components/enha-lak/ProductCard';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
+import { productUnavailableReason } from '@/lib/product-availability';
 import { customizationPath } from '@/lib/product-categories';
 
 /**
@@ -35,6 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PublisherPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const publisher = await getPublisherBySlug(slug);
+  const pause = await getDeliveryPause();
 
   if (!publisher) {
     notFound();
@@ -97,6 +100,7 @@ export default async function PublisherPage({ params }: { params: Promise<{ slug
                   actionHref={custom?.href ?? `/enha-lak/product/${product.slug}`}
                   detailsHref={custom ? `/enha-lak/product/${product.slug}` : undefined}
                   detailsLabel="عرض تفاصيل القصة"
+                  unavailableReason={productUnavailableReason(product, pause)}
                 />
               );
             })}

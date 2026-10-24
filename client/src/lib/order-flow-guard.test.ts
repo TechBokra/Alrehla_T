@@ -68,4 +68,30 @@ describe('مسار الطلب', () => {
     const confirmation = read('../app/(client)/enha-lak/order-confirmation/page.tsx');
     expect(confirmation).toMatch(/<ClearPaidCart orderId=\{order\.id\} \/>/);
   });
+
+  it('⚠️ تفضية السلة بعد الدفع بتستنى السلة تتقري (ALR-000068-QB)', () => {
+    for (const rel of ['../components/checkout/ClearPaidCart.tsx', '../components/checkout/PaidCartSweeper.tsx']) {
+      const src = read(rel);
+      expect(src, rel).toMatch(/if \(!ready/);
+      // بنود الطلب بس — مش السلة كلها.
+      expect(src, rel).toMatch(/removeItems\(paidItemIds\(pending, items\)\)/);
+    }
+    expect(read('../components/providers/Providers.tsx')).toMatch(/<PaidCartSweeper \/>/);
+  });
+
+  it('المنتج اللي بالتوصيل بس والتوصيل متوقف: الإشارة من برّه، وماندخلش التخصيص', () => {
+    for (const rel of [
+      '../app/(client)/enha-lak/custom/page.tsx',
+      '../app/(client)/enha-lak/library/LibraryClient.tsx',
+      '../app/(client)/enha-lak/publisher/[slug]/page.tsx',
+    ]) {
+      expect(read(rel), rel).toMatch(/unavailableReason=\{productUnavailableReason\(product, pause\)\}/);
+    }
+    expect(read('../app/(client)/enha-lak/product/[slug]/page.tsx')).toMatch(/productUnavailableReason\(/);
+    expect(read('../app/(client)/enha-lak/custom-library/[productSlug]/page.tsx')).toMatch(/if \(delivery\.pause\.paused\)/);
+  });
+
+  it('«تصفّح باقي المنتجات» مش «القصص»', () => {
+    expect(read('../components/enha-lak/PersonalizationWizard.tsx')).not.toContain('باقي القصص');
+  });
 });

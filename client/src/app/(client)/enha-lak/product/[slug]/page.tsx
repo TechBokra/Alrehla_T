@@ -23,6 +23,8 @@ import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
 import { priceBlocks } from '@/lib/item-format';
+import { productUnavailableReason } from '@/lib/product-availability';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
 
 /**
  * ⚡ الصفحة بتتبني أول ما حد يفتحها، وبعدين **بتتخزّن** وتتبعت جاهزة من
@@ -71,6 +73,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);
+  // بالتوصيل بس والتوصيل متوقف؟ (قرار ٢٤ أكتوبر)
+  const unavailable = productUnavailableReason(product, await getDeliveryPause());
 
   // ترتيب الأسعار (الإلكترونية أولًا) من مصدر واحد مشترك مع الكارت.
   const prices = priceBlocks(product);
@@ -275,7 +279,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
                     دلوقتي المسار من التصنيف وحده — مصدر واحد في
                     `customizationPath`. */}
-                {customization ? (
+                {unavailable ? (
+                  // قرار ٢٤ أكتوبر: المنتج اللي بالتوصيل بس والتوصيل متوقف
+                  // بيقول ده هنا — مش بعد ما العميل يملا التخصيص.
+                  <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center">
+                    <p className="font-black text-amber-900">غير متاح مؤقتًا</p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed text-amber-900">
+                      {unavailable} — المنتج ده بيتشحن بس، وبيرجع أول ما التوصيل يفتح.
+                    </p>
+                    <Link
+                      href="/enha-lak"
+                      className="mt-3 inline-flex min-h-[44px] items-center text-sm font-bold text-amber-900 underline underline-offset-4"
+                    >
+                      تصفّح باقي المنتجات
+                    </Link>
+                  </div>
+                ) : customization ? (
                   <Button
                     href={customization.href}
                     accentColor="rose"
