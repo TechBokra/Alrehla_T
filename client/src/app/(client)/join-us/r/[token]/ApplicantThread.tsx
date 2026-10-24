@@ -99,7 +99,7 @@ export function ApplicantThread({
                   : 'ms-auto max-w-[85%] rounded-2xl rounded-es-sm bg-emerald-50 p-4'
               }
             >
-              <p className="mb-1 text-[11px] font-bold text-slate-500">
+              <p className="mb-1 text-xs font-bold text-slate-500">
                 {m.author === 'admin' ? 'فريق الرحلة' : applicantName}
                 {' · '}
                 {new Date(m.createdAt).toLocaleString('ar-EG', {

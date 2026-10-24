@@ -1,3 +1,4 @@
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
@@ -80,6 +81,9 @@ export default async function CustomLibraryPage({ params }: PageProps) {
     );
   }
 
+  // مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع (دراسة المنافسين).
+  const photoSettings = await getSiteSettings();
+
   return (
     <PageContainer className="!py-0 !space-y-0">
       <Section>
@@ -89,6 +93,7 @@ export default async function CustomLibraryPage({ params }: PageProps) {
           addonDiscountPercent={addonDiscountPercent}
           extraFields={extraFields}
           delivery={delivery}
+          photoRetentionDays={photoSettings.childPhotoRetentionDays}
         />
       </Section>
     </PageContainer>

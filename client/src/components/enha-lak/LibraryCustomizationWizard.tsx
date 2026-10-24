@@ -87,7 +87,10 @@ export function LibraryCustomizationWizard({
   addonDiscountPercent = 0,
   extraFields = [],
   delivery,
+  photoRetentionDays,
 }: {
+  /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
+  photoRetentionDays?: number;
   /** الدول والمناطق — «هنوصّل فين؟» قبل الدفع (قرار ٢٤ أكتوبر). */
   delivery?: DeliveryCatalog;
   product: PersonalizedProduct;
@@ -385,7 +388,7 @@ export function LibraryCustomizationWizard({
               )}
               <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)}>
                 {currentStep === 1 && <Step1ChildInfo onNext={onNext} />}
-                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} extraFields={extraFields} />}
+                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} extraFields={extraFields} photoRetentionDays={photoRetentionDays} />}
                 {/* نفس مكوّن الإضافات بتاع المسار المخصّص — مش نسخة
                     تانية: النسخة التانية كانت هتفترق عنه أول ما حد
                     يعدّل في واحد منهم. */}

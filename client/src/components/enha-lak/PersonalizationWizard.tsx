@@ -103,7 +103,10 @@ export function PersonalizationWizard({
   deliveryPaused = false,
   pauseMessage = '',
   delivery,
+  photoRetentionDays,
 }: {
+  /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
+  photoRetentionDays?: number;
   /** الدول والمحافظات والمناطق — لـ«هنوصّل فين؟» في خطوة ٣ (قرار ٢٤ أكتوبر). */
   delivery?: DeliveryCatalog;
   /** التوصيل متوقف من اللوحة — النسخة المطبوعة مش متاحة للطلب. */
@@ -653,6 +656,7 @@ export function PersonalizationWizard({
               {currentStep === 1 && <Step1ChildInfo onNext={() => handleNext(['familyMemberId', 'newChildName', 'newChildBirthDate', 'newChildGender'])} />}
               {currentStep === 2 && (
                 <Step2Details
+                  photoRetentionDays={photoRetentionDays}
                   monthlyGoals={subscription?.months}
                   extraFields={extraFields}
                   goals={goals}

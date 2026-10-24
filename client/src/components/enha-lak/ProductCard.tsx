@@ -164,13 +164,13 @@ export function ProductCard({
             «مهمة جدًّا لمنع الالتباس». من غيرها الأب ممكن يفتكر إن
             كتاب المكتبة بيتكتب باسم ابنه زي «أنت البطل هنا». */}
         {unavailableReason && (
-          <span className="pointer-events-none absolute top-3 left-3 rotate-2 rounded-full bg-slate-900/90 px-3 py-1 text-[11px] font-black text-white shadow-sm">
+          <span className="pointer-events-none absolute top-3 left-3 rotate-2 rounded-full bg-slate-900/90 px-3 py-1 text-xs font-black text-white shadow-sm">
             غير متاح مؤقتًا
           </span>
         )}
 
         {isLibrary && (
-          <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-rose-800 shadow-sm ring-1 ring-rose-100">
+          <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-rose-800 shadow-sm ring-1 ring-rose-100">
             <Palette className="h-3.5 w-3.5" aria-hidden="true" />
             غلاف مخصص فقط
           </span>
@@ -217,13 +217,13 @@ export function ProductCard({
             {product.features.slice(0, 2).map((feature, i) => (
               <li
                 key={i}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600"
               >
                 {feature}
               </li>
             ))}
             {product.features.length > 2 && (
-              <li className="px-1 py-0.5 text-[11px] font-bold text-slate-500">
+              <li className="px-1 py-0.5 text-xs font-bold text-slate-500">
                 +{product.features.length - 2}
               </li>
             )}
@@ -241,7 +241,7 @@ export function ProductCard({
             أولًا لما تكون متاحة، والمطبوعة سطرًا تحتها — عشان أرخص
             اختيار يبان، مش يتخبّى. */}
         <div className="pointer-events-none mt-auto mb-4 border-t border-slate-100 pt-4">
-          <span className="block text-[11px] font-bold tracking-wide text-slate-500">
+          <span className="block text-xs font-bold tracking-wide text-slate-500">
             {prices.headline.label}
           </span>
           <PriceTag
@@ -253,7 +253,7 @@ export function ProductCard({
             showEnds={false}
           />
           {prices.secondary && (
-            <span className="mt-1 block text-[11px] font-bold text-slate-500">
+            <span className="mt-1 block text-xs font-bold text-slate-500">
               {prices.secondary.label} بـ{prices.secondary.price} ج.م
             </span>
           )}

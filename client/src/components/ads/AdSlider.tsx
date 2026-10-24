@@ -95,7 +95,7 @@ export function AdSlider({
         </div>
 
         {/* ⚠️ الكلمة دي مش زينة ولا بتتشال — اقرا رأس الملف. */}
-        <span className="pointer-events-none absolute start-2 top-2 rounded-md bg-slate-900/70 px-2 py-0.5 text-[11px] font-bold text-white">
+        <span className="pointer-events-none absolute start-2 top-2 rounded-md bg-slate-900/70 px-2 py-0.5 text-xs font-bold text-white">
           إعلان
         </span>
       </div>

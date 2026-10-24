@@ -46,7 +46,7 @@ export function AddonCard({ addon, badge }: { addon: AddonProduct; badge: string
           <ImagePlaceholder label={addon.name} />
         )}
 
-        <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-emerald-800 shadow-sm ring-1 ring-emerald-100">
+        <span className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-sm ring-1 ring-emerald-100">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           باسم الطفل وصورته
         </span>
@@ -68,13 +68,13 @@ export function AddonCard({ addon, badge }: { addon: AddonProduct; badge: string
             {addon.features.slice(0, 2).map((feature, i) => (
               <li
                 key={i}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600"
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-bold text-slate-600"
               >
                 {feature}
               </li>
             ))}
             {addon.features.length > 2 && (
-              <li className="px-1 py-0.5 text-[11px] font-bold text-slate-500">
+              <li className="px-1 py-0.5 text-xs font-bold text-slate-500">
                 +{addon.features.length - 2}
               </li>
             )}
@@ -82,7 +82,7 @@ export function AddonCard({ addon, badge }: { addon: AddonProduct; badge: string
         )}
 
         <div className="pointer-events-none mt-auto mb-4 border-t border-slate-100 pt-4">
-          <span className="block text-[11px] font-bold tracking-wide text-slate-500">
+          <span className="block text-xs font-bold tracking-wide text-slate-500">
             {badge}
           </span>
           {/* شامل التخصيص — نفس الرقم اللي في خطوة الإضافات. */}

@@ -1,3 +1,4 @@
+import { PhotoPrivacyNote } from './PhotoPrivacyNote';
 import Image from 'next/image';
 import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
@@ -15,6 +16,7 @@ import {
 } from '@/lib/writing-style';
 
 export function Step2Details({
+  photoRetentionDays,
   onNext,
   onPrev,
   monthlyGoals,
@@ -23,6 +25,8 @@ export function Step2Details({
   writingStyles,
   writingDialects = [],
 }: {
+  /** مدة حفظ صورة الطفل (من الإعدادات) — لجملة الخصوصية. */
+  photoRetentionDays?: number;
   onNext: () => void;
   onPrev: () => void;
   /** خانات الإدارة (ملف 06). */
@@ -216,6 +220,7 @@ export function Step2Details({
         <div className="space-y-2">
           <label className="text-sm font-bold text-slate-700">الصورة الشخصية (إلزامي)</label>
           <p className="text-xs text-slate-500 mb-2">صورة واضحة للوجه ليتم رسم البطل بناءً عليها.</p>
+          <PhotoPrivacyNote days={photoRetentionDays} />
           <input 
             type="file" 
             accept="image/*"

@@ -1,3 +1,4 @@
+import { PhotoPrivacyNote } from './PhotoPrivacyNote';
 import Image from 'next/image';
 import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
@@ -10,7 +11,10 @@ export function Step2CoverDetails({
   onNext,
   onPrev,
   extraFields = [],
+  photoRetentionDays,
 }: {
+  /** مدة حفظ صورة الطفل (من الإعدادات) — لجملة الخصوصية. */
+  photoRetentionDays?: number;
   onNext: () => void;
   onPrev: () => void;
   /** خانات الإدارة (ملف 06). */
@@ -58,6 +62,7 @@ export function Step2CoverDetails({
         <label className="text-sm font-bold text-slate-700">
           الصورة الشخصية للغلاف <span className="text-danger">*</span>
         </label>
+        <PhotoPrivacyNote days={photoRetentionDays} />
         <p className="text-xs text-slate-500 mb-2">يمكنك إرفاق صورة شخصية ليتم إدراجها في الغلاف الداخلي أو الخارجي.</p>
         <input 
           type="file" 

@@ -210,7 +210,7 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, 
                       {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
                     </div>
                     <span
-                      className={`text-[11px] font-bold ${
+                      className={`text-xs font-bold ${
                         done ? 'text-slate-700' : 'text-slate-400'
                       }`}
                     >

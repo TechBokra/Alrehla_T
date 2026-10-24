@@ -371,6 +371,8 @@ export async function savePaymentSettings(input: {
     metadata: { provider: settings.provider, methods: settings.methods },
   });
 
+  // صفحات المنتجات بتعرض طرق الدفع (٢٤ أكتوبر) — لازم تتجدّد معاها.
+  refreshPublicPages();
   revalidatePath('/dashboard/admin/settings/pricing');
   return { ok: true };
 }

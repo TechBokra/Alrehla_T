@@ -53,7 +53,7 @@ export function HelpTip({ text, label = 'شرح' }: { text: React.ReactNode; lab
         onClick={() => setOpen((v) => !v)}
         onFocus={() => setHover(true)}
         onBlur={() => setHover(false)}
-        className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[11px] font-black text-slate-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-xs font-black text-slate-600 transition-colors hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
         ؟
       </button>

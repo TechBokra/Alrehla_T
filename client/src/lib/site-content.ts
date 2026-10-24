@@ -522,13 +522,13 @@ const enhaLak: ContentGroup = {
       key: 'enhaLak.step3.title',
       label: 'الخطوة ٣ — العنوان',
       type: 'text',
-      fallback: 'انتظر السحر',
+      fallback: 'نكتب قصتك وتراجعها',
     },
     {
       key: 'enhaLak.step3.text',
       label: 'الخطوة ٣ — الوصف',
       type: 'text',
-      fallback: 'فريقنا ينسج قصة مخصصة.',
+      fallback: 'بعد تأكيد الطلب يكتب فريقنا قصتك، وتصلك على حسابك لتراجعها وتوافق عليها أو تطلب تعديلًا قبل التنفيذ.',
     },
     {
       key: 'enhaLak.step4.title',

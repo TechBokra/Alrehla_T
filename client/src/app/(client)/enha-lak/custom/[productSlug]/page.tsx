@@ -1,3 +1,4 @@
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 
@@ -72,6 +73,9 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
     getDeliveryCatalog(),
   ]);
 
+  // مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع (دراسة المنافسين).
+  const photoSettings = await getSiteSettings();
+
   return (
     <div className="min-h-screen bg-slate-50">
       <PersonalizationWizard
@@ -84,6 +88,7 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
         deliveryPaused={delivery.pause.paused}
         pauseMessage={delivery.pause.message}
         delivery={delivery}
+        photoRetentionDays={photoSettings.childPhotoRetentionDays}
       />
     </div>
   );

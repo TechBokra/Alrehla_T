@@ -1,3 +1,4 @@
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 
@@ -60,6 +61,9 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
     ]
   };
 
+  // مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع (دراسة المنافسين).
+  const photoSettings = await getSiteSettings();
+
   return (
     <PageContainer className="!py-0 !space-y-0">
       <Section>
@@ -69,6 +73,7 @@ export default async function CustomSubscriptionPage({ params }: PageProps) {
         </div>
         {/* ملف 140: هدف لكل شهر، ومن غير إضافات بفلوس (قرار تامر). */}
         <PersonalizationWizard
+          photoRetentionDays={photoSettings.childPhotoRetentionDays}
           product={product}
           subscription={{ planId: tier.id, months: tier.durationMonths }}
           extraFields={extraFields}

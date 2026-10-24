@@ -68,7 +68,7 @@ export default async function AccountOverviewPage() {
               <Calendar className="h-6 w-6" />
             </div>
             <div>
-              <span className="mb-1 inline-block rounded-full bg-emerald-200/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-900">
+              <span className="mb-1 inline-block rounded-full bg-emerald-200/80 px-2.5 py-0.5 text-xs font-bold text-emerald-900">
                 جلستك القادمة القريبة
               </span>
               <h3 className="text-lg font-black text-emerald-950">
@@ -209,7 +209,7 @@ export default async function AccountOverviewPage() {
                       <h4 className="text-sm font-bold text-slate-800">
                         {order.serviceName}
                       </h4>
-                      <span className="text-[11px] font-bold text-slate-400">
+                      <span className="text-xs font-bold text-slate-400">
                         {formatDate(order.createdAt)}
                       </span>
                     </div>
@@ -264,7 +264,7 @@ export default async function AccountOverviewPage() {
             </div>
           </div>
 
-          <div className="mt-6 border-t border-slate-100 pt-4 text-[11px] font-medium text-slate-400">
+          <div className="mt-6 border-t border-slate-100 pt-4 text-xs font-medium text-slate-400">
             لأي استفسار أو مساعدة، يمكنك فتح تذكرة عبر قسم الدعم الفني.
           </div>
         </div>
