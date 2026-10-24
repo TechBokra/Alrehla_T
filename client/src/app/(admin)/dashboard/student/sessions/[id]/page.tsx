@@ -1,4 +1,5 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { ReportIncident } from '@/components/sessions/ReportIncident';
 import { SessionReportCard } from '@/components/sessions/SessionReportCard';
 import { getStudentSessionPageData } from '@/data/domains/(client)/sessions/page-data';
 import { FormError } from '@/components/ui/FormError';
@@ -100,6 +101,9 @@ export default async function StudentSessionPage({
         {canRequestChange && (
           <SessionChangeRequest sessionId={session.id} existing={change} scheduledAt={session.scheduledAt} />
         )}
+
+        {/* بند ١١ (٢٤ أكتوبر): بلاغ للإدارة. */}
+        <ReportIncident sessionId={session.id} />
 
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex gap-3 text-blue-800">
           <AlertCircle className="h-6 w-6 shrink-0" />

@@ -333,6 +333,8 @@ export const ADMIN_NAV: AdminGroup[] = [
             href: `${A}/rooms`,
             permission: 'canManageBookings',
           },
+          // بند ١١ (٢٤ أكتوبر): بلاغات المدربين والطلاب وأولياء الأمور.
+          { label: 'بلاغات الجلسات', href: `${A}/sessions/incidents`, permission: 'canManageBookings' },
           // ملاحظة تامر (٢٤ أكتوبر): استهلاك Daily والباقي من الحد المجاني.
           {
             label: 'استهلاك القاعة',

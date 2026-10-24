@@ -1,4 +1,5 @@
 import React from 'react';
+import { countOpenUrgentIncidents } from '@/data/domains/(admin)/sessions/incidents';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -94,6 +95,8 @@ export default async function AdminDashboard() {
     (slot) => !settings.images[slot.key as keyof typeof settings.images]
   );
   const packagesMissingDuration = packages.filter((p) => p.isActive && !p.sessionDuration);
+  // بند ١١ (٢٤ أكتوبر): العاجل اللي محدّش مسكه بيظهر أحمر فوق كل حاجة.
+  const urgentIncidents = await countOpenUrgentIncidents();
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
@@ -101,6 +104,18 @@ export default async function AdminDashboard() {
         <Activity className="h-8 w-8 text-amber-500" />
         لوحة تحكم الإدارة
       </h1>
+
+      {urgentIncidents > 0 && (
+        <Link
+          href="/dashboard/admin/sessions/incidents"
+          className="mb-8 block rounded-3xl border-2 border-rose-400 bg-rose-50 p-5 text-rose-900 hover:bg-rose-100"
+        >
+          <span className="text-lg font-black">
+            🚨 {urgentIncidents.toLocaleString('ar-EG')} بلاغ عاجل لسه محدّش مسكه
+          </span>
+          <span className="mt-1 block text-sm font-bold">افتح البلاغات وامسكه دلوقتي ←</span>
+        </Link>
+      )}
 
       <FormError
         message={
