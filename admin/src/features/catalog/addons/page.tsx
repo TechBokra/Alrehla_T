@@ -4,7 +4,6 @@ import { CatalogResource } from "../resource";
 import type { CatalogDefinition } from "../editor";
 import { addonCreate, addonUpdate, addonValues, type Addon } from "./model";
 const definition: CatalogDefinition<Addon> = {
-  resource: "addon_products",
   title: "إضافة",
   schema: addonSchema,
   createPayload: addonCreate,
@@ -16,6 +15,7 @@ const columns = catalogColumns<Addon>;
 export function AddonsPage() {
   return (
     <CatalogResource
+      resource="addon_products"
       definition={definition}
       title="الإضافات"
       description="إدارة الإضافات وأسعارها الشاملة للتخصيص. الإضافات الجديدة تُحفظ غير نشطة."

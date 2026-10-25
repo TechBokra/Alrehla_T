@@ -12,6 +12,13 @@
 
 ## System Boundaries
 
+### Resource page context (implemented)
+
+- `components/resources/resource-context.tsx` provides a page-scoped resource name, selected action/row ID, loaded row and open/close callbacks. Each `CatalogResource` mounts its own provider, keyed by resource.
+- `ResourceRowActions` and the create toolbar use that context; optional `rowActions` config supplies icon/handler definitions.
+- `ResourceDialogs` mounts one keyed dialog for create/edit/delete. Catalog fields and payload mapping remain in the catalog feature. The existing Refine provider owns database requests; context selection itself performs no requests.
+- Delete identity/name come from the loaded table rows. Edit reads and create/update mutations remain in `ResourceFormDialog`. No application-wide selected-row singleton is introduced.
+
 - `[folder]` — [What this folder owns and is responsible for]
 - `[folder]` — [What this folder owns and is responsible for]
 - `[folder]` — [What this folder owns and is responsible for]

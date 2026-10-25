@@ -109,6 +109,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import {
+  RowReorderingBoundary,
+  SortableDataRow,
+  DataTableDragHandle,
+  type RowReordering,
+} from "./row-reordering";
+import { useDirection } from "@/components/ui/direction";
 
 export type DataTableFilterOption = {
   label: string;
@@ -432,6 +439,8 @@ const shimmerKeyframes = (
   </style>
 );
 
+export type { RowReordering } from "./row-reordering";
+
 export type DataTableProps<TData> = {
   table: Table<TData>;
   isLoading?: boolean;
@@ -439,6 +448,8 @@ export type DataTableProps<TData> = {
   emptyState?: React.ReactNode;
   onRowClick?: (row: TData) => void;
   className?: string;
+  rowReordering?: RowReordering<TData>;
+  showViewOptions?: boolean;
 };
 
 export function DataTable<TData>({
@@ -448,30 +459,53 @@ export function DataTable<TData>({
   emptyState,
   onRowClick,
   className,
+  rowReordering,
+  showViewOptions = true,
 }: DataTableProps<TData>) {
-  const columnCount = table.getVisibleLeafColumns().length;
+  const dir = useDirection();
+  const columnCount =
+    table.getVisibleLeafColumns().length +
+    (rowReordering ? 1 : 0) +
+    (showViewOptions ? 1 : 0);
+  const disabled = Boolean(isLoading || rowReordering?.disabled);
+  if (rowReordering && !table.options.getRowId)
+    throw new Error("Row dragging requires stable row IDs.");
   const rows = table.getRowModel().rows;
   const showSkeleton = isLoading && loadingVariant !== "overlay";
   const showOverlay = isLoading && loadingVariant === "overlay";
 
-  return (
+  const content = (
     <div className={cn("relative rounded-md border", className)}>
       <TableRoot
+        dir={dir}
         className={cn(
           "table-fixed",
           showOverlay && "pointer-events-none opacity-60",
         )}
-        style={{ minWidth: table.getTotalSize() }}
+        style={{
+          minWidth:
+            table.getTotalSize() +
+            (rowReordering ? 48 : 0) +
+            (showViewOptions ? 50 : 0),
+        }}
       >
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
+              {rowReordering && (
+                <TableHead className="w-12 text-start">
+                  <span className="sr-only">نقل الصف</span>
+                </TableHead>
+              )}
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
                   colSpan={header.colSpan}
                   style={getColumnStyles(header.column)}
-                  className={getPinClass(header.column)}
+                  className={cn(
+                    getPinClass(header.column),
+                    `${dir === "rtl" ? "text-start" : "text-end"}`,
+                  )}
                 >
                   {header.isPlaceholder
                     ? null
@@ -481,9 +515,11 @@ export function DataTable<TData>({
                       )}
                 </TableHead>
               ))}
-              <TableHead className="max-w-xs">
-                <DataTableViewOptions table={table} />
-              </TableHead>
+              {showViewOptions && (
+                <TableHead className="w-[50px]">
+                  <DataTableViewOptions table={table} />
+                </TableHead>
+              )}
             </TableRow>
           ))}
         </TableHeader>
@@ -492,6 +528,7 @@ export function DataTable<TData>({
             Array.from({ length: table.getState().pagination.pageSize }).map(
               (_, rowIndex) => (
                 <TableRow key={rowIndex}>
+                  {rowReordering && <TableCell className="w-12" />}
                   {table.getVisibleLeafColumns().map((column) => (
                     <TableCell
                       key={column.id}
@@ -501,30 +538,65 @@ export function DataTable<TData>({
                       {loadingVariant === "shimmer" ? shimmerBar : skeletonBar}
                     </TableCell>
                   ))}
+                  {showViewOptions && <TableCell className="w-[50px]" />}
                 </TableRow>
               ),
             )
           ) : rows.length ? (
-            rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() ? "selected" : undefined}
-                onClick={
-                  onRowClick ? () => onRowClick(row.original) : undefined
-                }
-                className={onRowClick ? "cursor-pointer" : undefined}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    style={getColumnStyles(cell.column)}
-                    className={cn("overflow-hidden", getPinClass(cell.column))}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            rows.map((row) => {
+              const cells = (
+                <>
+                  {rowReordering && (
+                    <TableCell className="w-12">
+                      <DataTableDragHandle
+                        label={rowReordering.getRowLabel(row.original)}
+                        disabled={disabled}
+                      />
+                    </TableCell>
+                  )}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      style={getColumnStyles(cell.column)}
+                      className={cn(
+                        "overflow-hidden",
+                        getPinClass(cell.column),
+                      )}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                  {showViewOptions && <TableCell className="w-[50px]" />}
+                </>
+              );
+              const onClick = onRowClick
+                ? () => onRowClick(row.original)
+                : undefined;
+              return rowReordering ? (
+                <SortableDataRow
+                  key={row.id}
+                  id={row.id}
+                  disabled={disabled}
+                  selected={row.getIsSelected()}
+                  onClick={onClick}
+                  clickable={Boolean(onRowClick)}
+                >
+                  {cells}
+                </SortableDataRow>
+              ) : (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  onClick={onClick}
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                >
+                  {cells}
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={columnCount} className="h-24 text-center">
@@ -541,6 +613,17 @@ export function DataTable<TData>({
       )}
       {loadingVariant === "shimmer" && shimmerKeyframes}
     </div>
+  );
+  return rowReordering ? (
+    <RowReorderingBoundary
+      rows={rows}
+      config={rowReordering}
+      disabled={disabled}
+    >
+      {content}
+    </RowReorderingBoundary>
+  ) : (
+    content
   );
 }
 

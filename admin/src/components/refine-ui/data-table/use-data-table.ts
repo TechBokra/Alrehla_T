@@ -14,7 +14,7 @@ import {
   type UseDataTableProps,
 } from "@/components/block/shuip/data-table";
 import type { ColumnFiltersState, Updater } from "@tanstack/react-table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 const searchKey = "__data_table_search";
 const emptyRows: never[] = [];
@@ -56,11 +56,13 @@ export type UseDataTableOptions<TData extends BaseRecord> = Pick<
   mode?: "server" | "client";
   /** Required for global search in server mode; must name a text field. */
   searchField?: string;
+  /** Presentation-only mapping; never changes provider data. */
+  mapDisplayRows?: (rows: TData[]) => TData[];
 };
 
 /** Refine owns requests; Shuip owns rendering and local table features. */
 export function useDataTable<TData extends BaseRecord>({
-  refineCoreProps, mode = "server", searchField, ...options
+  refineCoreProps, mode = "server", searchField, mapDisplayRows, ...options
 }: UseDataTableOptions<TData>): UseTableReturnType<TData, HttpError> {
   const server = mode === "server";
   // Keep unfinished builder rows visible while only complete conditions reach the provider.
@@ -126,9 +128,11 @@ export function useDataTable<TData extends BaseRecord>({
     refineCore.setCurrentPage(1);
   }
 
+  const loadedRows = refineCore.tableQuery.data?.data ?? emptyRows;
+  const displayRows = useMemo(() => mapDisplayRows?.(loadedRows) ?? loadedRows, [loadedRows, mapDisplayRows]);
   const { table } = useShuipTable<TData>({
     ...options,
-    data: refineCore.tableQuery.data?.data ?? emptyRows,
+    data: displayRows,
     getRowId: (row, index) => String(row.id ?? index),
     enableGlobalFilter: !server || Boolean(searchField),
     ...(server ? {

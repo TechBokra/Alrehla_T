@@ -13,7 +13,6 @@ import {
 } from "./model";
 
 const definition: CatalogDefinition<Product> = {
-  resource: "personalized_products",
   title: "منتج للمنصة",
   schema: catalogSchema,
   createPayload: productCreate,
@@ -25,8 +24,8 @@ const categories = [
   { value: "library", label: "المكتبة" },
   { value: "custom", label: "قصة مخصصة" },
 ];
-function columns(edit: (id: string) => void): ColumnDef<Product, unknown>[] {
-  const columns = catalogColumns<Product>(edit);
+function columns(): ColumnDef<Product, unknown>[] {
+  const columns = catalogColumns<Product>();
   columns.splice(1, 0, {
     accessorKey: "category",
     meta: { label: "التصنيف", variant: "multiSelect", options: categories },
@@ -42,11 +41,19 @@ function columns(edit: (id: string) => void): ColumnDef<Product, unknown>[] {
 export function ProductsPage() {
   return (
     <CatalogResource
+      resource="personalized_products"
       definition={definition}
+      deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
       title="منتجات المنصة"
       description="إدارة منتجات المكتبة والقصص المخصصة. المنتجات الجديدة تُحفظ غير نشطة."
       columns={columns}
-      filters={[{ field: "owner_type", operator: "eq", value: "platform" }]}
+      refineCoreProps={{
+        filters: {
+          permanent: [
+            { field: "owner_type", operator: "eq", value: "platform" },
+          ],
+        },
+      }}
     />
   );
 }

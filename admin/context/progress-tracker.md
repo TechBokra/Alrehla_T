@@ -1,42 +1,47 @@
-# Admin progress
+# Progress Tracker
 
-## Current phase
+Update this file after every meaningful implementation
+change.
 
-Live staging product/add-on resource pages alongside the local UI previews.
+## Current Phase
+
+- [e.g. Not started / In progress / Complete]
+
+## Current Goal
+
+- [What you are building right now]
 
 ## Completed
 
-- Added the reusable resource-page/dialog foundation and platform/add-on product schemas, allowlisted payloads, and live list routes. Extracted a shared admin shell; live pages stay under the root provider while demo screens retain their own provider. Staging metadata read confirmed RLS, admin policies, and add-on Cloudinary/customization constraints; no database writes were performed.
-- Resource implementation passes route generation, TypeScript, production build, and all 25 Node unit/mocked checks. The build retains its existing large-chunk warning. Read-only staging checks also verified authenticated SELECT/INSERT/UPDATE grants and standard Cloudinary URL acceptance. Local authenticated Chrome checks covered both lists, form rendering/edit loading, validation, dirty cancellation, and no-results search; no valid form was submitted. Live save/invalidation remains unverified. Documentation is in `docs/resource-pages.md`; no migrations or production changes.
-- Completed the Refine/Shuip table composition with toolbar, advanced/faceted filtering, multi-sort, column visibility, saved views, both pagination variants, selection, loading/refetch, empty/no-results, and read-failure states. Added the paired `useDataTable` hook for client/server state translation; the local product preview uses it with the complete fixture dataset. Documented usage in `docs/data-table.md`. No staging resources or database writes were introduced.
-- The completed table composition passes TypeScript and `git diff --check`. Reviewed the Shuip documentation in the browser; application browser checks and automated tests were not run for this update.
-- Replaced the Refine data table's duplicated rendering with `components/block/shuip/data-table.tsx`. The adapter keeps the existing `UseTableReturnType` prop and Refine pagination; Shuip owns headers, rows, pinning, selection display, and loading. Supports Shuip loading variants, custom empty states, row clicks, and class names, with an Arabic default empty state. No provider or database changes.
-- The Refine/Shuip adapter passes TypeScript checking and `git diff --check`. No tests or browser checks were run for this component update.
-- Connected the installed Refine Devtools package through a development-only wrapper above all Refine contexts. `pnpm dev` now uses the Refine CLI to start Vite and the Devtools server; `pnpm devtools` runs the server separately. Documented usage in the README. No database changes.
-- Devtools integration passes TypeScript checking and `git diff --check`. No tests or live server/browser checks were run for this setup.
-- Moved browser-client ownership to `src/providers/supabase-client.ts` and wired the root Refine context to the official Supabase data provider. Preserved local demo providers, lazy configuration failures, and auth behavior. Added provider/auth regression checks under `tests/` and `docs/data-provider.md`. No database or live resource changes.
-- Verified the provider foundation with route regeneration, TypeScript, the production build, and 12 passing mocked/local tests. Both demo contexts retain their providers; create/edit/delete checks issue no network requests. Build reports a large-chunk warning; route generation reports a dependency circular-import warning. Real-account browser login remains outside these mocked checks.
-- Reorganized existing routes into folders with feature `route.tsx` layouts and `index.tsx` pages. Moved preview shells into parent layouts, preserved data-view search and legacy redirects, and kept auth callback handling compatible with trailing slashes. See `../docs/routing.md`.
-- Regenerated the route tree and verified all 11 previous navigation URLs remain available. TypeScript and the production build pass after the route reorganization.
-- Added Arabic `/sign-in` using the existing shadcn components and Refine `useLogin`.
-- Refactored sign-in to the existing TanStack `useAppForm` pattern with `form.AppField`, `Fields.Input`, and `form.SubmitButton`; shared inputs support autocomplete, direction, and an optional password visibility control.
-- Added a typed Supabase browser adapter and admin auth provider, using staging environment configuration.
-- Added role/archive checks, protected route navigation, real identity lookup, and local-session logout.
-- Preserved demo data providers for the existing UI previews.
-- Added provider tests and documented configuration and verification in `../docs/authentication.md`.
-- Verified the shared-form refactor with TypeScript, a production build, all eight provider tests, and browser checks for Arabic validation, bound input values, and password visibility. A real-account login remains unverified.
-- Added Google OAuth initiation through Refine, PKCE callback exchange, shared role/archive checks, and duplicate callback protection. Staging's public auth settings report Google disabled; provider credentials and redirect configuration are still required.
-- All 16 auth-provider tests pass. Browser checks confirm disabled-Google feedback, callback cancellation handling, and a retry link back to sign-in. Full Google account login awaits provider configuration.
+- Introduced resource-scoped `ResourceProvider`/`useResourceContext` for resource name, active create/edit/delete target, row ID/loaded row, delete eligibility and open/close actions. `ResourceDialogs` now hosts one keyed create/edit or delete dialog; `CatalogResource` no longer assembles conditional editor/delete props. `CatalogEditor`, create toolbar and row menus consume context. Optional `rowActions` supplies custom icon/handler definitions, while resource-specific deletion copy is passed from ProductsPage. Table rows remain the source for delete identity; no new reads/mutations or database changes were introduced.
+- Resource context refactor passes TypeScript, production build and `git diff --check`; existing chunk-size warning remains. No tests or browser checks were run for this change.
+- Made catalog table requests configurable through optional `searchField` and typed `refineCoreProps` props. Callers can provide pagination, filters, sorters, query options and provider metadata; the explicit `resource` prop remains the request target. Defaults remain name search, 20 rows, and sort_order/id ordering. Platform ownership filtering is now passed through ProductsPage's permanent Refine filters; add-ons need no request overrides. No new database logic or live mutations.
+- Configurable table props pass TypeScript, production build and `git diff --check`; existing chunk-size warning remains. No tests or browser checks were run for this change.
+- Simplified create/edit dialogs: `CatalogResource` now takes an explicit `resource` prop (products/add-ons pages provide their table names). `ResourceFormDialog` owns Refine `useOne`/`useCreate`/`useUpdate`, loading/refetch states, pending/error handling and list/detail invalidation. `CatalogEditor` retains explicit fields, Zod validation and allowlisted payload mapping through `useAppForm`. Save/Cancel live in the fixed dialog footer outside the scrolling form body; the external Save button targets the form ID. Removed the dirty-discard AlertDialog, navigation blocker and before-unload confirmation. Existing form values stay mounted during edit rechecks. No database changes or live saves were made.
+- Dialog refactor passes TypeScript, production build and `git diff --check`; existing large-chunk warning remains. No tests or browser checks were run for this change.
+- Added reusable `ResourceRowActions` and `createResourceActions({ onEdit, onDelete })`: icon-button dropdown actions receive each row's ID. Catalog products/add-ons use the actions column; Edit opens the existing dialog and Delete opens reusable `ResourceDeleteDialog` with pessimistic `useDelete` and query invalidation. At the user's request, deletion now takes its ID/name/eligibility directly from the loaded table row; `useOne` and pre/post-delete record fetches were removed. The dialog blocks duplicate submissions/dismissal while pending and keeps errors visible. Database RLS remains authoritative; the provider's successful delete response is used without a separate affected-row verification. Staging DELETE grants/admin policies and FK behavior were previously inspected read-only. No database changes or actual deletions were performed; no tests were added/run for this request.
+- Resource actions pass TypeScript, production build and `git diff --check`; existing large-chunk warning remains. Actual browser/delete interactions are unverified.
+- Added inline UI-only row dragging directly to the existing catalog products/add-ons resource table using Shuip and installed dnd-kit sensors. Removed the separate preview screen/button. Search, filters, sorting, pagination and create/edit stay on the same page. Dragged positions apply only to the loaded result in component memory; provider data is not mutated. No new queries, RPC calls, saved positions or order-business-state changes are part of this UI.
+- Reverted the previously deployed staging ordering RPC through `20261025172223_remove_catalog_ordering_rpc_ui_only` and verified the function is absent. Original staging migration was `20261025171225_reorder_catalog_records`; no catalog rows were changed and production was untouched. The earlier database-backed plan is superseded by UI-only scope.
+- UI-only implementation passes TypeScript, production build and `git diff --check`. The existing large-chunk build warning remains. Browser interactions were not verified because no browser was connected. No new tests were added/run for this reduced scope. Applied/reverted staging statements are archived in `client/supabase/maintenance/history/catalog-ordering-reverted.md` for history only, outside CLI migrations.
 
-- Extracted the root loading, error, and not-found screens into reusable `components/route-states/` components using shadcn Card, Skeleton, Badge, and Button, with Arabic RTL content and accessible status/error announcements.
+## In Progress
 
-## Boundaries
+- None yet.
 
-- Work in `admin/` for this feature was explicitly authorized after the earlier client-only handoff.
-- No database migrations or production database changes are part of sign-in.
-- The other context files referenced by `AGENTS.md` are missing. `docs/templates/` contains blank templates rather than project decisions. Use the source and authentication documentation for the implemented scope.
+## Next Up
 
-## Remaining verification
+- [First unit to build]
 
-- Complete a browser login/logout with a real staging admin account.
-- Replace demo data providers in separately scoped feature work.
+## Open Questions
+
+- [Any unresolved product or technical decisions]
+
+## Architecture Decisions
+
+- [Decisions made that affect the system design or
+  data model — include why the decision was made]
+
+## Session Notes
+
+- [Context needed to resume work in the next session]

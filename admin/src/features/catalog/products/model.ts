@@ -33,7 +33,6 @@ export function productUpdate(input: CatalogValues) {
     cover_image_url: value.imageUrl || null,
     category: value.category,
     is_active: value.isActive,
-    sort_order: Number(value.sortOrder),
     updated_at: new Date().toISOString(),
   } satisfies Database["public"]["Tables"]["personalized_products"]["Update"];
 }

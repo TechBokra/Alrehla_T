@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { Button } from "@/components/ui/button";
+import { ResourceRowActions } from "@/components/resources/resource-row-actions";
 import { Badge } from "@/components/ui/badge";
 
 export interface CatalogRow {
@@ -11,9 +10,10 @@ export interface CatalogRow {
   is_active: boolean;
   sort_order: number;
 }
-export function catalogColumns<TRecord extends CatalogRow>(
-  onEdit: (id: string) => void,
-): ColumnDef<TRecord, unknown>[] {
+export function catalogColumns<TRecord extends CatalogRow>(): ColumnDef<
+  TRecord,
+  unknown
+>[] {
   return [
     {
       accessorKey: "name",
@@ -68,16 +68,7 @@ export function catalogColumns<TRecord extends CatalogRow>(
       enableColumnFilter: false,
       enableHiding: false,
       header: "الإجراءات",
-      cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit(row.original.id)}
-        >
-          <Pencil data-icon="inline-start" />
-          تعديل
-        </Button>
-      ),
+      cell: ({ row }) => <ResourceRowActions id={row.original.id} />,
     },
   ];
 }
