@@ -18,6 +18,7 @@ import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
 import { Loading } from "@/components/route-states/loading";
 import { resources } from "@/features/catalog/resources";
+import { SiteBrandingProvider } from "@/features/site-branding/provider";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -67,7 +68,9 @@ function RootLayout() {
       options={{ disableTelemetry: true, disableRouteChangeHandler: true }}
     >
       <HeadContent />
-      <Outlet />
+      <SiteBrandingProvider>
+        <Outlet />
+      </SiteBrandingProvider>
     </Refine>
   );
 }
