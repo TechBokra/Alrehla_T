@@ -15,6 +15,7 @@ import { Route as DataViewRouteRouteImport } from './routes/data-view/route'
 import { Route as FieldsRouteRouteImport } from './routes/fields/route'
 import { Route as FormPrototypeRouteRouteImport } from './routes/form-prototype/route'
 import { Route as FormsRouteRouteImport } from './routes/forms/route'
+import { Route as NotificationsRouteRouteImport } from './routes/notifications/route'
 import { Route as ThemeRouteRouteImport } from './routes/theme/route'
 import { Route as UiPrimitivesRouteRouteImport } from './routes/ui-primitives/route'
 import { Route as CalendarIndexRouteImport } from './routes/calendar/index'
@@ -22,6 +23,7 @@ import { Route as DataViewIndexRouteImport } from './routes/data-view/index'
 import { Route as FieldsIndexRouteImport } from './routes/fields/index'
 import { Route as FormPrototypeIndexRouteImport } from './routes/form-prototype/index'
 import { Route as FormsIndexRouteImport } from './routes/forms/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
 import { Route as ThemeIndexRouteImport } from './routes/theme/index'
 import { Route as UiPrimitivesIndexRouteImport } from './routes/ui-primitives/index'
@@ -60,6 +62,11 @@ const FormsRouteRoute = FormsRouteRouteImport.update({
   path: '/forms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsRouteRoute = NotificationsRouteRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ThemeRouteRoute = ThemeRouteRouteImport.update({
   id: '/theme',
   path: '/theme',
@@ -94,6 +101,11 @@ const FormsIndexRoute = FormsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => FormsRouteRoute,
+} as any)
+const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NotificationsRouteRoute,
 } as any)
 const SignInIndexRoute = SignInIndexRouteImport.update({
   id: '/sign-in/',
@@ -138,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/fields': typeof FieldsRouteRouteWithChildren
   '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
   '/forms': typeof FormsRouteRouteWithChildren
+  '/notifications': typeof NotificationsRouteRouteWithChildren
   '/theme': typeof ThemeRouteRouteWithChildren
   '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
   '/calendar/': typeof CalendarIndexRoute
@@ -145,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/fields/': typeof FieldsIndexRoute
   '/form-prototype/': typeof FormPrototypeIndexRoute
   '/forms/': typeof FormsIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
@@ -161,6 +175,7 @@ export interface FileRoutesByTo {
   '/fields': typeof FieldsIndexRoute
   '/form-prototype': typeof FormPrototypeIndexRoute
   '/forms': typeof FormsIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/theme': typeof ThemeIndexRoute
   '/ui-primitives': typeof UiPrimitivesIndexRoute
@@ -177,6 +192,7 @@ export interface FileRoutesById {
   '/fields': typeof FieldsRouteRouteWithChildren
   '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
   '/forms': typeof FormsRouteRouteWithChildren
+  '/notifications': typeof NotificationsRouteRouteWithChildren
   '/theme': typeof ThemeRouteRouteWithChildren
   '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
   '/calendar/': typeof CalendarIndexRoute
@@ -184,6 +200,7 @@ export interface FileRoutesById {
   '/fields/': typeof FieldsIndexRoute
   '/form-prototype/': typeof FormPrototypeIndexRoute
   '/forms/': typeof FormsIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
@@ -201,6 +218,7 @@ export interface FileRouteTypes {
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
     | '/theme'
     | '/ui-primitives'
     | '/calendar/'
@@ -208,6 +226,7 @@ export interface FileRouteTypes {
     | '/fields/'
     | '/form-prototype/'
     | '/forms/'
+    | '/notifications/'
     | '/sign-in/'
     | '/theme/'
     | '/ui-primitives/'
@@ -224,6 +243,7 @@ export interface FileRouteTypes {
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
     | '/sign-in'
     | '/theme'
     | '/ui-primitives'
@@ -239,6 +259,7 @@ export interface FileRouteTypes {
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
     | '/theme'
     | '/ui-primitives'
     | '/calendar/'
@@ -246,6 +267,7 @@ export interface FileRouteTypes {
     | '/fields/'
     | '/form-prototype/'
     | '/forms/'
+    | '/notifications/'
     | '/sign-in/'
     | '/theme/'
     | '/ui-primitives/'
@@ -262,6 +284,7 @@ export interface RootRouteChildren {
   FieldsRouteRoute: typeof FieldsRouteRouteWithChildren
   FormPrototypeRouteRoute: typeof FormPrototypeRouteRouteWithChildren
   FormsRouteRoute: typeof FormsRouteRouteWithChildren
+  NotificationsRouteRoute: typeof NotificationsRouteRouteWithChildren
   ThemeRouteRoute: typeof ThemeRouteRouteWithChildren
   UiPrimitivesRouteRoute: typeof UiPrimitivesRouteRouteWithChildren
   CalendarIndexRoute: typeof CalendarIndexRoute
@@ -314,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FormsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/theme': {
       id: '/theme'
       path: '/theme'
@@ -362,6 +392,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/forms/'
       preLoaderRoute: typeof FormsIndexRouteImport
       parentRoute: typeof FormsRouteRoute
+    }
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof NotificationsRouteRoute
     }
     '/sign-in/': {
       id: '/sign-in/'
@@ -476,6 +513,17 @@ const FormsRouteRouteWithChildren = FormsRouteRoute._addFileChildren(
   FormsRouteRouteChildren,
 )
 
+interface NotificationsRouteRouteChildren {
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
+}
+
+const NotificationsRouteRouteChildren: NotificationsRouteRouteChildren = {
+  NotificationsIndexRoute: NotificationsIndexRoute,
+}
+
+const NotificationsRouteRouteWithChildren =
+  NotificationsRouteRoute._addFileChildren(NotificationsRouteRouteChildren)
+
 interface ThemeRouteRouteChildren {
   ThemeIndexRoute: typeof ThemeIndexRoute
 }
@@ -506,6 +554,7 @@ const rootRouteChildren: RootRouteChildren = {
   FieldsRouteRoute: FieldsRouteRouteWithChildren,
   FormPrototypeRouteRoute: FormPrototypeRouteRouteWithChildren,
   FormsRouteRoute: FormsRouteRouteWithChildren,
+  NotificationsRouteRoute: NotificationsRouteRouteWithChildren,
   ThemeRouteRoute: ThemeRouteRouteWithChildren,
   UiPrimitivesRouteRoute: UiPrimitivesRouteRouteWithChildren,
   CalendarIndexRoute: CalendarIndexRoute,

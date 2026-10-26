@@ -4,21 +4,14 @@ import { useStore } from "@tanstack/react-form";
 import type { z } from "zod";
 import { useAppForm } from "@/components/forms";
 import { FieldGroup } from "@/components/ui/field";
-import {
-  ResourceFormDialog,
-  type ResourceFormDialogContext,
-} from "@/components/resources/resource-form-dialog";
-import {
-  useResourceContext,
-  type ResourceEditorTarget,
-} from "@/components/resources/resource-context";
-import {
-  catalogError,
-  defaultCatalogValues,
-  type CatalogValues,
-} from "./model";
+import type { ResourceFormFieldsContext } from "@/components/resources/resource-editor";
+import { defaultCatalogValues } from "./model";
+import type { CatalogValues, AdminResourceName } from "@/lib/schema";
 
-export type CatalogResourceName = "personalized_products" | "addon_products";
+export type CatalogResourceName = Extract<
+  AdminResourceName,
+  "personalized_products" | "addon_products"
+>;
 export interface CatalogDefinition<TRecord extends BaseRecord> {
   title: string;
   schema: z.ZodType<CatalogValues>;
@@ -28,47 +21,17 @@ export interface CatalogDefinition<TRecord extends BaseRecord> {
   updatePayload: (values: CatalogValues) => Record<string, unknown>;
 }
 
-export function CatalogEditor<TRecord extends BaseRecord>({
-  definition,
-}: {
-  definition: CatalogDefinition<TRecord>;
-}) {
-  const { resource, target, close } = useResourceContext();
-  if (!target || target.action === "delete") return null;
-  return (
-    <ResourceFormDialog<TRecord>
-      resource={resource}
-      id={target.action === "edit" ? target.id : undefined}
-      title={`${target.action === "edit" ? "تعديل" : "إضافة"} ${definition.title}`}
-      canEdit={definition.canEdit}
-      getErrorMessage={catalogError}
-      onClose={close}
-    >
-      {(context) => (
-        <CatalogEditorForm
-          resource={resource}
-          definition={definition}
-          target={target}
-          {...context}
-        />
-      )}
-    </ResourceFormDialog>
-  );
-}
-
-function CatalogEditorForm<TRecord extends BaseRecord>({
+export function CatalogFormFields<TRecord extends BaseRecord>({
   resource,
+  action,
   definition,
-  target,
   record,
   formId,
   disabled,
   onSave,
 }: {
-  resource: string;
   definition: CatalogDefinition<TRecord>;
-  target: ResourceEditorTarget;
-} & ResourceFormDialogContext<TRecord>) {
+} & ResourceFormFieldsContext<TRecord>) {
   const [defaults] = useState(() =>
     record ? definition.fromRecord(record) : defaultCatalogValues(),
   );
@@ -78,7 +41,7 @@ function CatalogEditorForm<TRecord extends BaseRecord>({
     onSubmit: async ({ value }) => {
       const values = definition.schema.parse(value);
       await onSave(
-        target.action === "edit"
+        action === "edit"
           ? definition.updatePayload(values)
           : definition.createPayload(values),
       );
@@ -172,7 +135,7 @@ function CatalogEditorForm<TRecord extends BaseRecord>({
               />
             )}
           </form.AppField>
-          {target.action === "edit" && (
+          {action === "edit" && (
             <form.AppField name="isActive">
               {(Fields) => (
                 <Fields.Switch label="المنتج نشط" disabled={disabled} />

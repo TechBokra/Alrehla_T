@@ -37,7 +37,9 @@ export function useResourceContext() {
 }
 
 /** Each resource page owns its selection; nested pages cannot share dialog state. */
-export function ResourceProvider<TRecord extends BaseRecord & { id: string }>({
+export function ResourceScopeProvider<
+  TRecord extends BaseRecord & { id: string | number },
+>({
   resource,
   rows,
   canDelete,
@@ -69,7 +71,7 @@ export function ResourceProvider<TRecord extends BaseRecord & { id: string }>({
   );
   const close = useCallback(() => setTarget(null), []);
   const rowId = target && "id" in target ? target.id : undefined;
-  const selectedRow = rows.find((row) => row.id === rowId);
+  const selectedRow = rows.find((row) => String(row.id) === rowId);
   const canDeleteSelected = Boolean(selectedRow && canDelete(selectedRow));
   const value = useMemo(
     () => ({

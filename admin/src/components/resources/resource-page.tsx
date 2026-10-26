@@ -9,6 +9,9 @@ import type { RowReordering } from "@/components/block/shuip/data-table";
 import { useResourceContext } from "./resource-context";
 
 export function ResourcePage<TRecord extends BaseRecord>({
+  title,
+  description,
+  canCreate = true,
   table,
   children,
   storageKey,
@@ -16,6 +19,7 @@ export function ResourcePage<TRecord extends BaseRecord>({
 }: {
   title: string;
   description: string;
+  canCreate?: boolean;
   table: UseTableReturnType<TRecord, HttpError>;
   children?: ReactNode;
   storageKey: string;
@@ -24,6 +28,10 @@ export function ResourcePage<TRecord extends BaseRecord>({
   const { openCreate } = useResourceContext();
   return (
     <section className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {description && <p className="text-muted-foreground">{description}</p>}
+      </header>
       <DataTable
         table={table}
         rowReordering={rowReordering}
@@ -31,10 +39,12 @@ export function ResourcePage<TRecord extends BaseRecord>({
         toolbarVariant="inline-chips"
         paginationVariant="numbered"
         toolbarActions={
-          <Button onClick={openCreate}>
-            <Plus data-icon="inline-start" />
-            إضافة جديد
-          </Button>
+          canCreate ? (
+            <Button onClick={openCreate}>
+              <Plus data-icon="inline-start" />
+              إضافة جديد
+            </Button>
+          ) : null
         }
       />
       {children}

@@ -65,9 +65,9 @@ test("preview mutations stay local and nested contexts retain their own provider
     const showcase = await readFile(new URL("../src/features/component-showcase/layout.tsx", import.meta.url), "utf8");
     const prototype = await readFile(new URL("../src/features/form-prototype/refine-demo.tsx", import.meta.url), "utf8");
     const root = await readFile(new URL("../src/routes/__root.tsx", import.meta.url), "utf8");
-    assert.match(showcase, /dataProvider=\{previewDataProvider\}/);
+    assert.match(showcase, /default:\s*previewDataProvider/);
     assert.match(prototype, /dataProvider=\{provider\}/);
-    assert.match(root, /dataProvider=\{adminDataProvider\}/);
+    assert.match(root, /default:\s*adminDataProvider/);
   } finally { globalThis.fetch = originalFetch; }
 });
 

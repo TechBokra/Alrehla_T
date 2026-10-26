@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { catalogSchema } from "../model";
+import { productSchema } from "@/lib/schema";
 import { catalogColumns } from "../columns";
 import { CatalogResource } from "../resource";
 import type { CatalogDefinition } from "../editor";
@@ -14,7 +14,7 @@ import {
 
 const definition: CatalogDefinition<Product> = {
   title: "منتج للمنصة",
-  schema: catalogSchema,
+  schema: productSchema,
   createPayload: productCreate,
   updatePayload: productUpdate,
   fromRecord: productValues,

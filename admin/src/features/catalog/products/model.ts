@@ -1,5 +1,6 @@
 import type { Database } from "@/types/supabase";
-import { catalogSchema, productSlug, type CatalogValues } from "../model";
+import { productSlug } from "../model";
+import { productSchema, type CatalogValues } from "@/lib/schema";
 export type Product =
   Database["public"]["Tables"]["personalized_products"]["Row"];
 export function productValues(row: Product): CatalogValues {
@@ -17,7 +18,7 @@ export function productValues(row: Product): CatalogValues {
   };
 }
 export function productUpdate(input: CatalogValues) {
-  const value = catalogSchema.parse(input);
+  const value = productSchema.parse(input);
   return {
     name: value.name,
     short_description: value.description || null,

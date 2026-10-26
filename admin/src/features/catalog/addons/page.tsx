@@ -1,4 +1,4 @@
-import { addonSchema } from "../model";
+import { addonSchema } from "@/lib/schema";
 import { catalogColumns } from "../columns";
 import { CatalogResource } from "../resource";
 import type { CatalogDefinition } from "../editor";

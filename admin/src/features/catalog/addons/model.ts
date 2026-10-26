@@ -1,5 +1,6 @@
 import type { Database } from "@/types/supabase";
-import { addonSchema, productSlug, type CatalogValues } from "../model";
+import { productSlug } from "../model";
+import { addonSchema, type CatalogValues } from "@/lib/schema";
 export type Addon = Database["public"]["Tables"]["addon_products"]["Row"];
 export function addonValues(row: Addon): CatalogValues {
   return {

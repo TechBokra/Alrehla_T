@@ -1,11 +1,11 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import {
+  Bell,
   Blocks,
   ClipboardList,
   CircleHelp,
   FileCode2,
-  Home,
   Palette,
   Table2,
   TextCursorInput,
@@ -28,6 +28,7 @@ import {
   type ShowcaseSection,
 } from "@/features/component-showcase/sections";
 import { NavUser } from "./nav-user";
+import { SiteBranding } from "./site-branding";
 
 const sectionIcons = {
   theme: Palette,
@@ -56,7 +57,7 @@ export function AppSidebar({
   isLoggingOut,
   ...props
 }: AppSidebarProps) {
-  const pathname = useLocation({ select: location => location.pathname });
+  const pathname = useLocation({ select: (location) => location.pathname });
   return (
     <Sidebar side="right" collapsible="icon" {...props}>
       <SidebarHeader className="h-16 shrink-0 justify-center border-b border-sidebar-border px-2 py-2">
@@ -69,24 +70,48 @@ export function AppSidebar({
               className="justify-center"
             >
               <Link to="/" aria-label="الرئيسية">
-                <Home aria-hidden="true" />
+                <SiteBranding />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
+      <SidebarContent className="gap-1">
+        <SidebarGroup className="py-1">
           <SidebarGroupLabel>إدارة الكتالوج</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith("/catalog/products")} tooltip="منتجات المنصة"><Link to="/catalog/products"><Table2 /><span>منتجات المنصة</span></Link></SidebarMenuButton></SidebarMenuItem>
-              <SidebarMenuItem><SidebarMenuButton asChild isActive={pathname.startsWith("/catalog/addons")} tooltip="الإضافات"><Link to="/catalog/addons"><Blocks /><span>الإضافات</span></Link></SidebarMenuButton></SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  isActive={pathname.startsWith("/catalog/products")}
+                  tooltip="منتجات المنصة"
+                >
+                  <Link to="/catalog/products">
+                    <Table2 />
+                    <span>منتجات المنصة</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  isActive={pathname.startsWith("/catalog/addons")}
+                  tooltip="الإضافات"
+                >
+                  <Link to="/catalog/addons">
+                    <Blocks />
+                    <span>الإضافات</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
+        <SidebarGroup className="py-1">
           <SidebarGroupLabel>أقسام لوحة التحكم</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -97,6 +122,7 @@ export function AppSidebar({
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       asChild
+                      size="sm"
                       isActive={activeSection === item.id}
                       tooltip={item.label}
                     >
@@ -115,12 +141,16 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
+        <SidebarGroup className="mt-auto py-1">
           <SidebarGroupLabel>روابط سريعة</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="ألوان وخطوط التصميم">
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  tooltip="ألوان وخطوط التصميم"
+                >
                   <Link to="/theme">
                     <Palette />
                     <span>ألوان وخطوط التصميم</span>
@@ -128,7 +158,7 @@ export function AppSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="مكوّنات الواجهة">
+                <SidebarMenuButton asChild size="sm" tooltip="مكوّنات الواجهة">
                   <Link to="/ui-primitives">
                     <CircleHelp />
                     <span>مكوّنات الواجهة</span>
@@ -140,7 +170,7 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-3">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <NavUser user={user} isLoggingOut={isLoggingOut} signOut={logOut} />
       </SidebarFooter>
       <SidebarRail />

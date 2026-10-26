@@ -1,10 +1,24 @@
 import type { RouterProvider } from "@refinedev/core";
-import { Link, useLocation, useNavigate, useRouter } from "@tanstack/react-router";
-import { catalogResources } from "@/features/catalog/resources";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
+import { resources as catalogResources } from "@/features/catalog/resources";
 
 export function resolveAdminPath(to: string) {
   const path = to.replace(/\/+$/, "") || "/";
-  return ["/theme", "/sign-in", "/catalog/products", "/catalog/addons"].includes(path) ? path : "/sign-in";
+  return [
+    "/",
+    "/theme",
+    "/sign-in",
+    "/catalog/products",
+    "/catalog/addons",
+    "/notifications",
+  ].includes(path)
+    ? path
+    : "/sign-in";
 }
 
 export const authRouterProvider: RouterProvider = {
@@ -24,9 +38,18 @@ export const authRouterProvider: RouterProvider = {
     const location = useLocation();
     return () => {
       const path = location.pathname.replace(/\/+$/, "");
-      const resource = catalogResources.find(resource => resource.list === path);
-      return { pathname: location.pathname, ...(resource ? { resource, action: "list" as const } : {}) };
+      const resource = catalogResources.find(
+        (resource) => resource.list === path,
+      );
+      return {
+        pathname: location.pathname,
+        ...(resource ? { resource, action: "list" as const } : {}),
+      };
     };
   },
-  Link: ({ to, children, ...props }) => <Link to={to} {...props}>{children}</Link>,
+  Link: ({ to, children, ...props }) => (
+    <Link to={to} {...props}>
+      {children}
+    </Link>
+  ),
 };

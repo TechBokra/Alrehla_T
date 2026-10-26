@@ -1,12 +1,12 @@
 import type { AuthProvider } from "@refinedev/core";
-import { z } from "zod";
 import type { Database } from "@/types/supabase";
-import { signInSchema } from "@/lib/schema";
+import {
+  signInSchema,
+  googleSignInSchema,
+  type SignInValues,
+} from "@/lib/schema";
 
-
-
-export type SignInValues = z.infer<typeof signInSchema>;
-export type AdminLoginValues = SignInValues | { providerName: "google" };
+export type { SignInValues, AdminLoginValues } from "@/lib/schema";
 export class GoogleProviderDisabledError extends Error {}
 export type AdminProfile = Pick<
   Database["public"]["Tables"]["user_profiles"]["Row"],
@@ -14,7 +14,9 @@ export type AdminProfile = Pick<
 >;
 
 export interface AuthGateway {
-  signIn(values: SignInValues): Promise<{ userId?: string; errorCode?: string }>;
+  signIn(
+    values: SignInValues,
+  ): Promise<{ userId?: string; errorCode?: string }>;
   startGoogleSignIn(): Promise<void>;
   exchangeCode(code: string): Promise<void>;
   getUser(): Promise<{ id: string; email?: string } | null>;
@@ -33,8 +35,8 @@ function failure(message: string) {
 function isAdmin(profile: AdminProfile | null): profile is AdminProfile {
   return Boolean(
     profile &&
-      !profile.archived_at &&
-      (profile.role === "super_admin" || profile.role === "general_supervisor"),
+    !profile.archived_at &&
+    (profile.role === "super_admin" || profile.role === "general_supervisor"),
   );
 }
 
@@ -45,17 +47,26 @@ async function validateAdminSession(gateway: AuthGateway) {
 }
 
 function credentialMessage(code: string) {
-  if (code === "email_not_confirmed") return "أكّد بريدك الإلكتروني قبل تسجيل الدخول.";
-  if (code === "over_request_rate_limit") return "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.";
+  if (code === "email_not_confirmed")
+    return "أكّد بريدك الإلكتروني قبل تسجيل الدخول.";
+  if (code === "over_request_rate_limit")
+    return "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.";
   if (code === "network_error") return connectionMessage;
   return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
 }
 
-export function createAdminAuthProvider(getGateway: () => AuthGateway | null): AuthProvider {
+export function createAdminAuthProvider(
+  getGateway: () => AuthGateway | null,
+): AuthProvider {
   return {
     login: async (values: unknown) => {
-      if (typeof values === "object" && values !== null && "providerName" in values) {
-        if (values.providerName !== "google") return failure("طريقة تسجيل الدخول غير مدعومة.");
+      if (
+        typeof values === "object" &&
+        values !== null &&
+        "providerName" in values
+      ) {
+        if (!googleSignInSchema.safeParse(values).success)
+          return failure("طريقة تسجيل الدخول غير مدعومة.");
         const gateway = getGateway();
         if (!gateway) return failure(authConfigurationMessage);
         try {
@@ -64,9 +75,13 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null): A
           return { success: true };
         } catch (error) {
           if (error instanceof GoogleProviderDisabledError) {
-            return failure("تسجيل الدخول باستخدام Google غير مفعّل حاليًا. تواصل مع مسؤول المنصة أو استخدم كلمة المرور.");
+            return failure(
+              "تسجيل الدخول باستخدام Google غير مفعّل حاليًا. تواصل مع مسؤول المنصة أو استخدم كلمة المرور.",
+            );
           }
-          return failure("تعذّر فتح تسجيل الدخول باستخدام Google. حاول مرة أخرى أو استخدم كلمة المرور.");
+          return failure(
+            "تعذّر فتح تسجيل الدخول باستخدام Google. حاول مرة أخرى أو استخدم كلمة المرور.",
+          );
         }
       }
       const parsed = signInSchema.safeParse(values);
@@ -78,7 +93,9 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null): A
       try {
         const result = await gateway.signIn(parsed.data);
         if (result.errorCode || !result.userId) {
-          return failure(credentialMessage(result.errorCode ?? "invalid_credentials"));
+          return failure(
+            credentialMessage(result.errorCode ?? "invalid_credentials"),
+          );
         }
         signedIn = true;
         const profile = await gateway.getProfile(result.userId);
@@ -96,7 +113,8 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null): A
     check: async () => {
       const gateway = getGateway();
       try {
-        if (gateway && await validateAdminSession(gateway)) return { authenticated: true };
+        if (gateway && (await validateAdminSession(gateway)))
+          return { authenticated: true };
       } catch {
         // Deny access if either the verified user or profile cannot be loaded.
       }
@@ -130,7 +148,9 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null): A
   };
 }
 
-export function createGoogleCallbackHandler(getGateway: () => AuthGateway | null) {
+export function createGoogleCallbackHandler(
+  getGateway: () => AuthGateway | null,
+) {
   type LoginResponse = Awaited<ReturnType<AuthProvider["login"]>>;
   let previous: { code: string; result: Promise<LoginResponse> } | undefined;
 
@@ -141,21 +161,36 @@ export function createGoogleCallbackHandler(getGateway: () => AuthGateway | null
     try {
       await gateway.exchangeCode(code);
       exchanged = true;
-      if (!await validateAdminSession(gateway)) {
+      if (!(await validateAdminSession(gateway))) {
         await gateway.signOut();
         return failure("هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة.");
       }
       return { success: true, redirectTo: "/theme" };
     } catch {
       if (exchanged) await gateway.signOut().catch(() => undefined);
-      return failure("تعذّر إكمال تسجيل الدخول باستخدام Google. ارجع إلى صفحة الدخول وحاول مرة أخرى.");
+      return failure(
+        "تعذّر إكمال تسجيل الدخول باستخدام Google. ارجع إلى صفحة الدخول وحاول مرة أخرى.",
+      );
     }
   }
 
-  return (params: { code?: string; error?: string }): Promise<LoginResponse> => {
-    if (params.error) return Promise.resolve(failure("لم يكتمل تسجيل الدخول باستخدام Google. يمكنك المحاولة مرة أخرى."));
+  return (params: {
+    code?: string;
+    error?: string;
+  }): Promise<LoginResponse> => {
+    if (params.error)
+      return Promise.resolve(
+        failure(
+          "لم يكتمل تسجيل الدخول باستخدام Google. يمكنك المحاولة مرة أخرى.",
+        ),
+      );
     const code = params.code;
-    if (!code) return Promise.resolve(failure("رابط تسجيل الدخول غير صالح أو انتهت صلاحيته. حاول تسجيل الدخول مرة أخرى."));
+    if (!code)
+      return Promise.resolve(
+        failure(
+          "رابط تسجيل الدخول غير صالح أو انتهت صلاحيته. حاول تسجيل الدخول مرة أخرى.",
+        ),
+      );
     // OAuth codes are single use. Router invalidation must not exchange the same code twice.
     if (previous?.code === code) return previous.result;
     const result = complete(code);

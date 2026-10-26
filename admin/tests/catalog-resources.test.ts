@@ -271,7 +271,7 @@ test("live pages use root provider and demos retain their own contexts", async (
     readFile(new URL(`../src/${path}`, import.meta.url), "utf8");
   assert.match(
     await read("routes/__root.tsx"),
-    /resources=\{catalogResources\}/,
+    /resources=\{resources\}/,
   );
   assert.doesNotMatch(
     await read("routes/catalog/route.tsx"),
@@ -279,7 +279,7 @@ test("live pages use root provider and demos retain their own contexts", async (
   );
   assert.match(
     await read("features/component-showcase/layout.tsx"),
-    /dataProvider=\{previewDataProvider\}/,
+    /default:\s*previewDataProvider/,
   );
   assert.match(
     await read("features/form-prototype/refine-demo.tsx"),

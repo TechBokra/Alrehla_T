@@ -12,11 +12,12 @@ import { NotFound } from "@/components/route-states/not-found";
 import { adminAuthProvider } from "@/features/auth/supabase";
 import { getSupabaseClient } from "@/providers/supabase-client";
 import { adminDataProvider } from "@/providers/data-provider";
+import { notificationsDataProvider } from "@/features/notifications/data-provider";
 import { authRouterProvider } from "@/features/auth/router-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
 import { Loading } from "@/components/route-states/loading";
-import { catalogResources } from "@/features/catalog/resources";
+import { resources } from "@/features/catalog/resources";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -53,8 +54,12 @@ function RootLayout() {
 
   return (
     <Refine
-      resources={catalogResources}
-      dataProvider={adminDataProvider}
+      resources={resources}
+      dataProvider={{
+        default: adminDataProvider,
+        siteSettings: adminDataProvider,
+        notifications: notificationsDataProvider,
+      }}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}
       notificationProvider={notificationProvider}
