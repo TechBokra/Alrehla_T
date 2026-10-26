@@ -5,7 +5,6 @@ import { Package, Store } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { adminAuthProvider } from "@/features/auth/supabase";
 import { notificationsDataProvider } from "@/features/notifications/data-provider";
-import { adminDataProvider } from "@/providers/data-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { previewDataProvider, previewRouterProvider } from "./demo-provider";
 import { showcaseNavigation, type ShowcaseSection } from "./sections";
@@ -43,7 +42,6 @@ export function ShowcaseLayout({
       resources={resources}
       dataProvider={{
         default: previewDataProvider,
-        siteSettings: adminDataProvider,
         notifications: notificationsDataProvider,
       }}
       authProvider={adminAuthProvider}
