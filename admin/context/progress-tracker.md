@@ -13,6 +13,8 @@ change.
 
 ## Completed
 
+- Added `admin/vercel.json` with Vercel's documented Vite SPA rewrite to `/index.html`, addressing direct-route/refresh 404s before TanStack Router loads. Documented the admin project's Root Directory (`admin`), Vite preset, `pnpm build`, `dist` output, and redeployment requirement in `admin/README.md`. The Next.js `client/vercel.json` is unchanged. JSON parsing and whitespace checks passed; no deployment or live URL verification was performed, and no tests were added/run.
+
 - Added sidebar branding from the existing `site_settings.general` logo/favicon fields through a shared named Refine provider. Expanded sidebar shows logo + site icon; collapsed sidebar keeps the icon. Missing/broken image fallback and browser-tab favicon synchronization are included. Replaced the header's demo-dependent Refine home link with a shadcn Breadcrumb using TanStack Router Link to `/`, and allowed `/` in the auth router adapter. No new database writes or schema changes. TypeScript, production build and whitespace checks passed; the existing bundle-size warning remains. No tests were added or run.
 
 - Compacted the desktop sidebar: expanded width is now 14rem (224px), down from 16rem (256px), via `AdminLayout`'s SidebarProvider CSS variable. Navigation uses the existing small menu-button variant, tighter content/group spacing and smaller footer padding. Collapsing, RTL, tooltips and the mobile drawer retain their existing behavior. No generated UI primitives were modified. TypeScript, production build and whitespace checks passed; the existing bundle-size warning remains. No tests were added or run.
