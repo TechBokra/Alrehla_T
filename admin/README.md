@@ -25,6 +25,22 @@ pnpm generate:routes
 `typecheck` regenerates the TanStack route tree before running TypeScript.
 `src/routeTree.gen.ts` is generated; do not edit it by hand.
 
+## Vercel deployment
+
+For the admin Vercel project, set **Root Directory** to `admin`, use the **Vite**
+framework preset, **Build Command** `pnpm build`, and **Output Directory** `dist`.
+
+`vercel.json` rewrites incoming application paths to `/index.html` so TanStack
+Router can handle direct visits and refreshes on routes such as
+`/catalog/products`, `/notifications`, and `/auth/callback`. Without this SPA
+fallback, Vercel looks for a static file at the route and can return
+`404 NOT_FOUND` before the application loads. See the
+[Vercel Vite SPA guide](https://vercel.com/docs/frameworks/frontend/vite#using-vite-to-make-spas).
+
+Deploy the updated configuration to make it effective; existing deployments are
+not changed by editing this file locally. The separate `client/vercel.json`
+belongs to the Next.js application and must not receive this SPA rewrite.
+
 ## Development tools
 
 `pnpm dev` starts Vite and the Refine Devtools server (port `5001`). Open the
