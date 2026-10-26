@@ -1,0 +1,363 @@
+{
+  "environment": "staging",
+  "account": "ahmed",
+  "project": {
+    "name": "Alrehla_T",
+    "reference": "nznfawbcgfwpftbiqima",
+    "region": "eu-west-1",
+    "postgresVersion": "17.11.0.003"
+  },
+  "capturedAtUtc": "2026-10-21 21:28:30 UTC",
+  "schemaScope": "public",
+  "exports": {
+    "database.types.ts": {
+      "status": "exported",
+      "sha256": "b3c1e39ee3b51f4b815bb5c301a3fcae097596b7708cd75c11983ffadc43d796",
+      "source": "Supabase generate_typescript_types",
+      "includes": [
+        "tables",
+        "views",
+        "functions",
+        "enums",
+        "relationships"
+      ]
+    },
+    "schema.sql": {
+      "status": "pending",
+      "sha256": null,
+      "reason": "Complete schema dump not captured: the CLI in this execution environment has no access token and Docker daemon is unavailable. Use the authenticated CLI with Docker to export it."
+    }
+  },
+  "appliedMigrations": [
+    {
+      "version": "20261012173847",
+      "name": "alrehla_staging_initial_schema_01"
+    },
+    {
+      "version": "20261012174109",
+      "name": "alrehla_staging_schema_02"
+    },
+    {
+      "version": "20261012174112",
+      "name": "alrehla_staging_schema_04"
+    },
+    {
+      "version": "20261012174114",
+      "name": "alrehla_staging_schema_05"
+    },
+    {
+      "version": "20261012174117",
+      "name": "alrehla_staging_schema_06"
+    },
+    {
+      "version": "20261012174119",
+      "name": "alrehla_staging_schema_07"
+    },
+    {
+      "version": "20261012174122",
+      "name": "alrehla_staging_schema_08"
+    },
+    {
+      "version": "20261012174133",
+      "name": "alrehla_staging_schema_09"
+    },
+    {
+      "version": "20261012174136",
+      "name": "alrehla_staging_schema_10"
+    },
+    {
+      "version": "20261012174138",
+      "name": "alrehla_staging_schema_11"
+    },
+    {
+      "version": "20261012174141",
+      "name": "alrehla_staging_schema_12"
+    },
+    {
+      "version": "20261012174144",
+      "name": "alrehla_staging_schema_13"
+    },
+    {
+      "version": "20261012174147",
+      "name": "alrehla_staging_schema_14"
+    },
+    {
+      "version": "20261012174149",
+      "name": "alrehla_staging_schema_15"
+    },
+    {
+      "version": "20261012174152",
+      "name": "alrehla_staging_schema_16"
+    },
+    {
+      "version": "20261012174155",
+      "name": "alrehla_staging_schema_17"
+    },
+    {
+      "version": "20261012174200",
+      "name": "alrehla_staging_schema_19"
+    },
+    {
+      "version": "20261012174209",
+      "name": "alrehla_staging_schema_20"
+    },
+    {
+      "version": "20261012193308",
+      "name": "stale_order_notification_outbox"
+    },
+    {
+      "version": "20261012193430",
+      "name": "order_payment_and_fulfillment_states"
+    },
+    {
+      "version": "20261012193921",
+      "name": "drop_duplicate_site_settings_index"
+    },
+    {
+      "version": "20261012194741",
+      "name": "enable_rls_for_new_public_tables"
+    },
+    {
+      "version": "20261013172327",
+      "name": "reliable_private_file_lifecycle"
+    },
+    {
+      "version": "20261013172637",
+      "name": "private_file_service_role_policies"
+    },
+    {
+      "version": "20261013172850",
+      "name": "index_private_file_cleanup_references"
+    },
+    {
+      "version": "20261013173016",
+      "name": "sync_legacy_private_file_deletion"
+    },
+    {
+      "version": "20261013174839",
+      "name": "verify_private_file_upload_size"
+    },
+    {
+      "version": "20261013180656",
+      "name": "harden_private_file_retry_and_capacity"
+    },
+    {
+      "version": "20261014203320",
+      "name": "geo_shipping_countries_governorates"
+    },
+    {
+      "version": "20261014203437",
+      "name": "writing_style_and_price_promotions"
+    },
+    {
+      "version": "20261014203924",
+      "name": "order_rpcs_country_writing_style_promotions"
+    },
+    {
+      "version": "20261014205714",
+      "name": "security_hardening_notifications_trigger_fns"
+    },
+    {
+      "version": "20261015040933",
+      "name": "payment_method_apple_pay"
+    },
+    {
+      "version": "20261015041003",
+      "name": "order_transition_apple_pay_proof"
+    },
+    {
+      "version": "20261015043432",
+      "name": "customer_cancels_own_order"
+    },
+    {
+      "version": "20261015050000",
+      "name": "blog_posts_draft_flag_and_visibility"
+    },
+    {
+      "version": "20261015060000",
+      "name": "xpay_payment_gateway"
+    },
+    {
+      "version": "20261015070000",
+      "name": "payments_permission"
+    },
+    {
+      "version": "20261015071231",
+      "name": "customer_cancel_passes_order_guard"
+    },
+    {
+      "version": "20261015110000",
+      "name": "delete_instructor_guarded"
+    },
+    {
+      "version": "20261015120000",
+      "name": "assign_work_permission"
+    },
+    {
+      "version": "20261015140000",
+      "name": "gateway_for_creative_writing"
+    },
+    {
+      "version": "20261015150000",
+      "name": "attach_session_never_blocks_payment"
+    },
+    {
+      "version": "20261015160000",
+      "name": "revert_gateway_attach_to_working"
+    },
+    {
+      "version": "20261015170000",
+      "name": "cw_gateway_text_ids"
+    },
+    {
+      "version": "20261015200000",
+      "name": "aqlam_foundation"
+    },
+    {
+      "version": "20261016010000",
+      "name": "story_studio_foundation"
+    },
+    {
+      "version": "20261016020000",
+      "name": "story_studio_tasks_backfill"
+    },
+    {
+      "version": "20261016030000",
+      "name": "task_deadlines_stage_catalog"
+    },
+    {
+      "version": "20261016040000",
+      "name": "workflow_engine_unified_distribution"
+    },
+    {
+      "version": "20261016050000",
+      "name": "studio_product_routes"
+    },
+    {
+      "version": "20261016060000",
+      "name": "box_shipment_tasks"
+    },
+    {
+      "version": "20261016090000",
+      "name": "instructor_students_paid_only"
+    },
+    {
+      "version": "20261016100000",
+      "name": "admin_cancel_course_booking"
+    },
+    {
+      "version": "20261016110000",
+      "name": "customer_cancels_booking_and_service"
+    },
+    {
+      "version": "20261016120000",
+      "name": "aqlam_profile_edit"
+    },
+    {
+      "version": "20261016120100",
+      "name": "delete_instructor_text_ids"
+    },
+    {
+      "version": "20261016130000",
+      "name": "withdrawal_closes_payouts"
+    },
+    {
+      "version": "20261016140000",
+      "name": "instructor_hidden_status"
+    },
+    {
+      "version": "20261016150000",
+      "name": "transfer_instructor_work"
+    },
+    {
+      "version": "20261016160000",
+      "name": "unified_payout_ledger"
+    },
+    {
+      "version": "20261016180000",
+      "name": "aqlam_writer_page_same_name"
+    },
+    {
+      "version": "20261017000000",
+      "name": "aqlam_comment_pen_name"
+    },
+    {
+      "version": "20261017000100",
+      "name": "provider_formula_and_transfer"
+    },
+    {
+      "version": "20261017010000",
+      "name": "join_request_thread"
+    },
+    {
+      "version": "20261017120000",
+      "name": "aqlam_public_views_anon_fix"
+    },
+    {
+      "version": "20261017180000",
+      "name": "aqlam_policy_decisions"
+    },
+    {
+      "version": "20261017220000",
+      "name": "aqlam_pinned_posts"
+    },
+    {
+      "version": "20261017230000",
+      "name": "ads"
+    },
+    {
+      "version": "20261017235000",
+      "name": "certification_read_only_for_instructor"
+    },
+    {
+      "version": "20261018100000",
+      "name": "aqlam_config"
+    },
+    {
+      "version": "20261018120000",
+      "name": "staff_accounts_do_not_buy"
+    },
+    {
+      "version": "20261018150000",
+      "name": "story_preview_and_client_approval"
+    }
+  ],
+  "publicObjectCounts": {
+    "tables": 91,
+    "columns": 983,
+    "constraints": 422,
+    "enums": 18,
+    "functions": 206,
+    "indexes": 213,
+    "policies": 226,
+    "triggers": 68,
+    "views": 3
+  },
+  "extensions": [
+    {
+      "extname": "pg_stat_statements",
+      "extversion": "1.11",
+      "schema_name": "extensions"
+    },
+    {
+      "extname": "pgcrypto",
+      "extversion": "1.3",
+      "schema_name": "extensions"
+    },
+    {
+      "extname": "plpgsql",
+      "extversion": "1.0",
+      "schema_name": "pg_catalog"
+    },
+    {
+      "extname": "supabase_vault",
+      "extversion": "0.3.1",
+      "schema_name": "vault"
+    },
+    {
+      "extname": "uuid-ossp",
+      "extversion": "1.1",
+      "schema_name": "extensions"
+    }
+  ]
+}

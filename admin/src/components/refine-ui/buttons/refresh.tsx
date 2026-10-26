@@ -69,7 +69,7 @@ export const RefreshButton = React.forwardRef<
                 "animate-spin": loading,
               })}
             />
-            <span>{label ?? "Refresh"}</span>
+            <span>{label ?? "تحديث"}</span>
           </div>
         )}
       </Button>

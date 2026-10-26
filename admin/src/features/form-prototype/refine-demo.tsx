@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,18 +41,23 @@ import {
 import { useAppForm } from "@/components/forms";
 
 const productValuesSchema = z.object({
-  title: z.string().trim().min(2, "Enter at least two characters."),
-  sku: z.string().trim().min(3, "Enter at least three characters."),
-  price: z.number().positive("Price must be greater than zero."),
-  inventory: z.number().int().min(0, "Inventory cannot be negative."),
+  title: z.string().trim().min(2, "اكتب حرفين على الأقل."),
+  sku: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
+  price: z.number().positive("السعر لازم يكون أكبر من صفر."),
+  inventory: z.number().int().min(0, "المخزون لا يمكن أن يكون أقل من صفر."),
   status: z.enum(["draft", "active"]),
 });
 
 type ProductValues = z.infer<typeof productValuesSchema>;
 type FormAction = "create" | "edit";
+const operationLabels = {
+  getOne: "تحميل السجل",
+  create: "إنشاء سجل",
+  update: "تحديث سجل",
+} as const;
 
 const createValues: ProductValues = {
-  title: "New cotton scarf",
+  title: "وشاح قطني جديد",
   sku: "ACC-301",
   price: 28,
   inventory: 20,
@@ -118,14 +124,14 @@ function RefineProductForm({
           form.reset(savedValues);
           setSaveMessage({
             kind: "success",
-            text: `${action === "create" ? "Created" : "Updated"} ${record.title}.`,
+            text: `${action === "create" ? "تم إنشاء" : "تم تحديث"} ${record.title}.`,
           });
           if (action === "create") onCreated(record);
         }
       } catch (error) {
         setSaveMessage({
           kind: "error",
-          text: error instanceof Error ? error.message : "Save failed.",
+          text: error instanceof Error ? error.message : "تعذّر الحفظ.",
         });
       } finally {
         inFlight.current = false;
@@ -151,21 +157,20 @@ function RefineProductForm({
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Refine useForm</Badge>
+          <Badge variant="outline">نموذج Refine</Badge>
           <Badge variant="secondary">
-            {action === "create" ? "Create" : `Edit ${id}`}
+            {action === "create" ? "إنشاء" : `تعديل ${id}`}
           </Badge>
           {isSubmitting ? (
             <Badge>
               <LoaderCircle className="animate-spin" data-icon="inline-start" />
-              Saving
+              جارٍ الحفظ
             </Badge>
           ) : null}
         </div>
-        <CardTitle>Product {action}</CardTitle>
+        <CardTitle>{action === "create" ? "إنشاء منتج" : "تعديل منتج"}</CardTitle>
         <CardDescription>
-          Refine loads and saves the record. The local TanStack form owns field
-          state, validation, and dirty values.
+          يتولى Refine تحميل السجل وحفظه، بينما يدير النموذج الحقول والتحقق والتغييرات.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -175,7 +180,7 @@ function RefineProductForm({
             role="status"
           >
             <LoaderCircle className="animate-spin" />
-            Loading product from the local provider…
+            جارٍ تحميل المنتج من مصدر البيانات المحلي…
           </div>
         ) : null}
         {action === "edit" ? (
@@ -187,7 +192,7 @@ function RefineProductForm({
             onClick={() => void query?.refetch()}
           >
             <RefreshCw data-icon="inline-start" />
-            Refresh edit record
+            تحديث بيانات المنتج
           </Button>
         ) : null}
         <form.AppForm>
@@ -204,7 +209,7 @@ function RefineProductForm({
               <form.AppField name="title">
                 {(field) => (
                   <field.Input
-                    label="Product title"
+                    label="اسم المنتج"
                     disabled={Boolean(loadingRecord) || isSubmitting}
                   />
                 )}
@@ -212,7 +217,7 @@ function RefineProductForm({
               <form.AppField name="sku">
                 {(field) => (
                   <field.GroupedInput
-                    label="SKU · Input group"
+                    label="كود المنتج"
                     prefix="SKU"
                     disabled={Boolean(loadingRecord) || isSubmitting}
                   />
@@ -221,7 +226,7 @@ function RefineProductForm({
               <form.AppField name="price">
                 {(field) => (
                   <field.Number
-                    label="Price"
+                    label="السعر"
                     min={0.01}
                     step={0.01}
                     disabled={Boolean(loadingRecord) || isSubmitting}
@@ -231,7 +236,7 @@ function RefineProductForm({
               <form.AppField name="inventory">
                 {(field) => (
                   <field.Number
-                    label="Inventory"
+                    label="المخزون"
                     min={0}
                     disabled={Boolean(loadingRecord) || isSubmitting}
                   />
@@ -240,11 +245,11 @@ function RefineProductForm({
               <form.AppField name="status">
                 {(field) => (
                   <field.Select
-                    label="Status"
+                    label="الحالة"
                     disabled={Boolean(loadingRecord) || isSubmitting}
                     options={[
-                      { value: "draft", label: "Draft" },
-                      { value: "active", label: "Active" },
+                      { value: "draft", label: "مسودة" },
+                      { value: "active", label: "نشط" },
                     ]}
                   />
                 )}
@@ -252,7 +257,7 @@ function RefineProductForm({
             </FieldGroup>
             <details className="rounded-xl border p-4">
               <summary className="cursor-pointer text-sm font-medium">
-                Current TanStack values
+                القيم الحالية للنموذج
               </summary>
               <form.Subscribe selector={(state: any) => state.values}>
                 {(values: ProductValues) => (
@@ -282,7 +287,7 @@ function RefineProductForm({
             ) : null}
             <form.FormActions>
               <form.SubmitButton>
-                {action === "create" ? "Create product" : "Save product"}
+                {action === "create" ? "إنشاء المنتج" : "حفظ المنتج"}
               </form.SubmitButton>
               <form.ResetButton />
               <form.UnsavedChangesIndicator />
@@ -309,10 +314,9 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Provider request and response</CardTitle>
+        <CardTitle>طلب واستجابة مصدر البيانات</CardTitle>
         <CardDescription>
-          Refine calls this local in-memory data provider. There is no HTTP
-          endpoint.
+          يتصل Refine بمصدر بيانات محلي في الذاكرة، ولا يوجد اتصال بخادم.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -320,8 +324,8 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
           <>
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Operation · {latestRequest.operation}({latestRequest.resource}
-                {latestRequest.id ? `, id: ${latestRequest.id}` : ""})
+                العملية · {operationLabels[latestRequest.operation]} ({latestRequest.resource === "products" ? "المنتجات" : latestRequest.resource}
+                {latestRequest.id ? `، المعرّف: ${latestRequest.id}` : ""})
               </p>
               <pre className="overflow-auto rounded-xl bg-muted p-4 text-xs">
                 {JSON.stringify(latestRequest.variables ?? {}, null, 2)}
@@ -329,7 +333,7 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
             </div>
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Response
+                الاستجابة
               </p>
               <pre className="overflow-auto rounded-xl bg-muted p-4 text-xs">
                 {latestResult?.error ??
@@ -343,12 +347,12 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Submit the create or edit form to inspect its provider operation.
+            أرسل نموذج الإنشاء أو التعديل لمراجعة العملية التي نُفذت.
           </p>
         )}
         <div className="border-t pt-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Recent provider events
+            أحدث عمليات مصدر البيانات
           </p>
           <div className="flex flex-col gap-2">
             {events.slice(0, 5).map((event, index) => (
@@ -357,7 +361,7 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
                 className="flex flex-wrap items-center justify-between gap-2 text-xs"
               >
                 <span>
-                  {event.operation} · {event.id ?? "new record"}
+                  {operationLabels[event.operation]} · {event.id ?? "سجل جديد"}
                 </span>
                 <span
                   className={
@@ -365,10 +369,10 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
                   }
                 >
                   {event.error
-                    ? "failed"
+                    ? "فشل"
                     : event.response
-                      ? "complete"
-                      : "requested"}
+                      ? "اكتمل"
+                      : "قيد التنفيذ"}
                 </span>
               </div>
             ))}
@@ -411,6 +415,7 @@ export function RefineFormDemo() {
     <Refine
       resources={[{ name: "products" }]}
       dataProvider={provider}
+      i18nProvider={arabicEgyptI18nProvider}
       options={{
         disableTelemetry: true,
         syncWithLocation: false,
@@ -463,23 +468,21 @@ function ProductDemoContent({
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Refine · local provider</Badge>
-          <Badge variant="secondary">No backend</Badge>
+          <Badge variant="outline">Refine · مصدر بيانات محلي</Badge>
+          <Badge variant="secondary">بدون خادم</Badge>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          Refine create and edit
+          إنشاء المنتجات وتعديلها باستخدام Refine
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Refine&apos;s headless useForm chooses create or update and loads the
-          edit record. Its onFinish passes validated values to the in-memory
-          provider; TanStack Form continues to own the fields.
+          يحدد Refine ما إذا كانت العملية إنشاءً أو تعديلًا، ويحمل بيانات المنتج. ثم يرسل القيم التي تم التحقق منها إلى مصدر البيانات المحلي.
         </p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Choose a form action</CardTitle>
+          <CardTitle>اختار إجراء النموذج</CardTitle>
           <CardDescription>
-            Changing the action or selected record starts a fresh form instance.
+            يؤدي تغيير الإجراء أو السجل المحدد إلى بدء نموذج جديد.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-4">
@@ -489,14 +492,14 @@ function ProductDemoContent({
               variant={action === "create" ? "default" : "outline"}
               onClick={() => onActionChange("create")}
             >
-              Create
+              إنشاء
             </Button>
             <Button
               type="button"
               variant={action === "edit" ? "default" : "outline"}
               onClick={() => onActionChange("edit")}
             >
-              Edit existing
+              تعديل منتج موجود
             </Button>
           </div>
           {action === "edit" ? (
@@ -505,7 +508,7 @@ function ProductDemoContent({
                 className="text-sm font-medium"
                 htmlFor="prototype-product-select"
               >
-                Product record
+                سجل المنتج
               </label>
               <Select value={currentId} onValueChange={onSelectedIdChange}>
                 <SelectTrigger id="prototype-product-select">
@@ -528,7 +531,7 @@ function ProductDemoContent({
             variant={failureArmed ? "destructive" : "outline"}
             onClick={onArmFailure}
           >
-            {failureArmed ? "Next save will fail" : "Fail next save"}
+            {failureArmed ? "عملية الحفظ التالية ستفشل" : "محاكاة فشل الحفظ التالي"}
           </Button>
         </CardContent>
       </Card>

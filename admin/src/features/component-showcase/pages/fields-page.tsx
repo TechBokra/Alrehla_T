@@ -1,4 +1,3 @@
-import { ShowcaseLayout } from "../showcase-layout";
 import { AllFieldsForm } from "./all-fields-form";
 import { SignInForm } from "@/components/refine-ui/form/sign-in-form";
 import { SignUpForm } from "@/components/refine-ui/form/sign-up-form";
@@ -16,23 +15,23 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-export function FieldsPage({ activeSection }: { activeSection: "fields" }) {
+export function FieldsPage() {
   return (
-    <ShowcaseLayout activeSection={activeSection}>
+    <>
       <AllFieldsForm />
       <Collapsible className="flex flex-col gap-4">
         <CollapsibleTrigger asChild>
           <Button type="button" variant="outline" className="self-start">
-            Refine authentication examples
+            أمثلة تسجيل الدخول باستخدام Refine
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="grid gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Refine sign in</CardTitle>
+                <CardTitle>تسجيل الدخول باستخدام Refine</CardTitle>
                 <CardDescription>
-                  Separate local authentication example.
+                  مثال منفصل لتسجيل الدخول المحلي.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -41,10 +40,8 @@ export function FieldsPage({ activeSection }: { activeSection: "fields" }) {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Refine sign up</CardTitle>
-                <CardDescription>
-                  Separate local registration example.
-                </CardDescription>
+                <CardTitle>إنشاء حساب باستخدام Refine</CardTitle>
+                <CardDescription>مثال منفصل لإنشاء حساب محلي.</CardDescription>
               </CardHeader>
               <CardContent>
                 <SignUpForm />
@@ -53,6 +50,6 @@ export function FieldsPage({ activeSection }: { activeSection: "fields" }) {
           </div>
         </CollapsibleContent>
       </Collapsible>
-    </ShowcaseLayout>
+    </>
   );
 }

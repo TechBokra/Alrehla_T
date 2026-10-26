@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useLogout } from "@refinedev/core";
+
 import {
   LoaderCircle,
   LogOut,
@@ -25,9 +25,8 @@ import {
   UserRound,
 } from "lucide-react";
 import { useId, useState } from "react";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { Switch } from "./ui/switch";
+import { Button } from "./ui/button";
 
 type UserIdentity = {
   name?: string;
@@ -38,17 +37,14 @@ type UserIdentity = {
 type NavUserProps = {
   user: UserIdentity;
   signOut?: () => void;
+  isLoggingOut?: boolean;
 };
 
 type ActiveDialog = "profile" | "settings" | null;
 
-const signOutMessage =
-  "Demo sign-out completed. No real session is active in this preview.";
-
-export function NavUser({ user, signOut }: NavUserProps) {
+export function NavUser({ user, signOut, isLoggingOut }: NavUserProps) {
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
-  const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
   const themeSwitchId = useId();
   const darkModeEnabled =
@@ -56,27 +52,9 @@ export function NavUser({ user, signOut }: NavUserProps) {
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
       : theme === "dark";
 
-  const name = user.name?.trim() || "Preview Admin";
-  const email = user.email?.trim() || "admin@example.test";
+  const name = user.name?.trim() || "حساب الإدارة";
+  const email = user.email?.trim() || "";
   const avatar = user.avatar?.trim();
-
-  const handleSignOut = () => {
-    if (isLoggingOut) return;
-
-    if (signOut) {
-      signOut();
-      toast.info(signOutMessage);
-      return;
-    }
-
-    logout(
-      { redirectPath: false },
-      {
-        onSuccess: () => toast.info(signOutMessage),
-        onError: () => toast.error("Demo sign-out could not be completed."),
-      }
-    );
-  };
 
   const avatarMark = (
     <Avatar className="size-8 rounded-lg">
@@ -96,11 +74,11 @@ export function NavUser({ user, signOut }: NavUserProps) {
               size="lg"
               disabled={isLoggingOut}
               tooltip={name}
-              aria-label={`User menu for ${name}`}
+              aria-label={`قائمة المستخدم ${name}`}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               {avatarMark}
-              <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+              <div className="grid min-w-0 flex-1 text-right text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-medium">{name}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {email}
@@ -110,12 +88,12 @@ export function NavUser({ user, signOut }: NavUserProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-64"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : "left"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+              <div className="flex items-center gap-2 px-2 py-2 text-right text-sm">
                 {avatarMark}
                 <div className="grid min-w-0 flex-1 leading-tight">
                   <span className="truncate font-medium">{name}</span>
@@ -129,11 +107,11 @@ export function NavUser({ user, signOut }: NavUserProps) {
             <DropdownMenuGroup>
               <DropdownMenuItem onSelect={() => setActiveDialog("profile")}>
                 <UserRound />
-                Profile
+                الملف الشخصي
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setActiveDialog("settings")}>
                 <Settings2 />
-                Settings
+                الإعدادات
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuGroup className="flex min-h-9 items-center gap-2 px-2">
@@ -149,7 +127,7 @@ export function NavUser({ user, signOut }: NavUserProps) {
                 <Switch
                   id={themeSwitchId}
                   role="menuitemcheckbox"
-                  aria-label="Dark mode"
+                  aria-label="الوضع الداكن"
                   checked={darkModeEnabled}
                   onCheckedChange={(checked) =>
                     setTheme(checked ? "dark" : "light")
@@ -165,16 +143,19 @@ export function NavUser({ user, signOut }: NavUserProps) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                variant="destructive"
+                asChild
+                className="w-full"
                 disabled={isLoggingOut}
-                onSelect={handleSignOut}
+                onSelect={signOut}
               >
-                {isLoggingOut ? (
-                  <LoaderCircle className="animate-spin" />
-                ) : (
-                  <LogOut />
-                )}
-                {isLoggingOut ? "Signing out…" : "Sign out"}
+                <Button variant="destructive">
+                  {isLoggingOut ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج"}
+                  {isLoggingOut ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <LogOut />
+                  )}
+                </Button>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

@@ -10,141 +10,287 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CalendarRouteImport } from './routes/calendar'
-import { Route as DataViewRouteImport } from './routes/data-view'
-import { Route as FieldsRouteImport } from './routes/fields'
-import { Route as FormPrototypeRouteImport } from './routes/form-prototype'
-import { Route as FormsRouteImport } from './routes/forms'
-import { Route as ThemeRouteImport } from './routes/theme'
-import { Route as UiPrimitivesRouteImport } from './routes/ui-primitives'
-import { Route as SectionsSectionRouteImport } from './routes/sections.$section'
+import { Route as CatalogRouteRouteImport } from './routes/catalog/route'
+import { Route as DataViewRouteRouteImport } from './routes/data-view/route'
+import { Route as FieldsRouteRouteImport } from './routes/fields/route'
+import { Route as FormPrototypeRouteRouteImport } from './routes/form-prototype/route'
+import { Route as FormsRouteRouteImport } from './routes/forms/route'
+import { Route as NotificationsRouteRouteImport } from './routes/notifications/route'
+import { Route as ThemeRouteRouteImport } from './routes/theme/route'
+import { Route as UiPrimitivesRouteRouteImport } from './routes/ui-primitives/route'
+import { Route as CalendarIndexRouteImport } from './routes/calendar/index'
+import { Route as DataViewIndexRouteImport } from './routes/data-view/index'
+import { Route as FieldsIndexRouteImport } from './routes/fields/index'
+import { Route as FormPrototypeIndexRouteImport } from './routes/form-prototype/index'
+import { Route as FormsIndexRouteImport } from './routes/forms/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
+import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
+import { Route as ThemeIndexRouteImport } from './routes/theme/index'
+import { Route as UiPrimitivesIndexRouteImport } from './routes/ui-primitives/index'
+import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
+import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
+import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
+import { Route as SectionsSectionIndexRouteImport } from './routes/sections/$section/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const CatalogRouteRoute = CatalogRouteRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DataViewRoute = DataViewRouteImport.update({
+const DataViewRouteRoute = DataViewRouteRouteImport.update({
   id: '/data-view',
   path: '/data-view',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FieldsRoute = FieldsRouteImport.update({
+const FieldsRouteRoute = FieldsRouteRouteImport.update({
   id: '/fields',
   path: '/fields',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FormPrototypeRoute = FormPrototypeRouteImport.update({
+const FormPrototypeRouteRoute = FormPrototypeRouteRouteImport.update({
   id: '/form-prototype',
   path: '/form-prototype',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FormsRoute = FormsRouteImport.update({
+const FormsRouteRoute = FormsRouteRouteImport.update({
   id: '/forms',
   path: '/forms',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ThemeRoute = ThemeRouteImport.update({
+const NotificationsRouteRoute = NotificationsRouteRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThemeRouteRoute = ThemeRouteRouteImport.update({
   id: '/theme',
   path: '/theme',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UiPrimitivesRoute = UiPrimitivesRouteImport.update({
+const UiPrimitivesRouteRoute = UiPrimitivesRouteRouteImport.update({
   id: '/ui-primitives',
   path: '/ui-primitives',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SectionsSectionRoute = SectionsSectionRouteImport.update({
-  id: '/sections/$section',
-  path: '/sections/$section',
+const CalendarIndexRoute = CalendarIndexRouteImport.update({
+  id: '/calendar/',
+  path: '/calendar/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataViewIndexRoute = DataViewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DataViewRouteRoute,
+} as any)
+const FieldsIndexRoute = FieldsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FieldsRouteRoute,
+} as any)
+const FormPrototypeIndexRoute = FormPrototypeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FormPrototypeRouteRoute,
+} as any)
+const FormsIndexRoute = FormsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FormsRouteRoute,
+} as any)
+const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NotificationsRouteRoute,
+} as any)
+const SignInIndexRoute = SignInIndexRouteImport.update({
+  id: '/sign-in/',
+  path: '/sign-in/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThemeIndexRoute = ThemeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ThemeRouteRoute,
+} as any)
+const UiPrimitivesIndexRoute = UiPrimitivesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UiPrimitivesRouteRoute,
+} as any)
+const AuthCallbackIndexRoute = AuthCallbackIndexRouteImport.update({
+  id: '/auth/callback/',
+  path: '/auth/callback/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogAddonsIndexRoute = CatalogAddonsIndexRouteImport.update({
+  id: '/addons/',
+  path: '/addons/',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
+const CatalogProductsIndexRoute = CatalogProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
+const SectionsSectionIndexRoute = SectionsSectionIndexRouteImport.update({
+  id: '/sections/$section/',
+  path: '/sections/$section/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/data-view': typeof DataViewRoute
-  '/fields': typeof FieldsRoute
-  '/form-prototype': typeof FormPrototypeRoute
-  '/forms': typeof FormsRoute
-  '/theme': typeof ThemeRoute
-  '/ui-primitives': typeof UiPrimitivesRoute
-  '/sections/$section': typeof SectionsSectionRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
+  '/data-view': typeof DataViewRouteRouteWithChildren
+  '/fields': typeof FieldsRouteRouteWithChildren
+  '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
+  '/forms': typeof FormsRouteRouteWithChildren
+  '/notifications': typeof NotificationsRouteRouteWithChildren
+  '/theme': typeof ThemeRouteRouteWithChildren
+  '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
+  '/calendar/': typeof CalendarIndexRoute
+  '/data-view/': typeof DataViewIndexRoute
+  '/fields/': typeof FieldsIndexRoute
+  '/form-prototype/': typeof FormPrototypeIndexRoute
+  '/forms/': typeof FormsIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
+  '/sign-in/': typeof SignInIndexRoute
+  '/theme/': typeof ThemeIndexRoute
+  '/ui-primitives/': typeof UiPrimitivesIndexRoute
+  '/auth/callback/': typeof AuthCallbackIndexRoute
+  '/catalog/addons/': typeof CatalogAddonsIndexRoute
+  '/catalog/products/': typeof CatalogProductsIndexRoute
+  '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/data-view': typeof DataViewRoute
-  '/fields': typeof FieldsRoute
-  '/form-prototype': typeof FormPrototypeRoute
-  '/forms': typeof FormsRoute
-  '/theme': typeof ThemeRoute
-  '/ui-primitives': typeof UiPrimitivesRoute
-  '/sections/$section': typeof SectionsSectionRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
+  '/calendar': typeof CalendarIndexRoute
+  '/data-view': typeof DataViewIndexRoute
+  '/fields': typeof FieldsIndexRoute
+  '/form-prototype': typeof FormPrototypeIndexRoute
+  '/forms': typeof FormsIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
+  '/sign-in': typeof SignInIndexRoute
+  '/theme': typeof ThemeIndexRoute
+  '/ui-primitives': typeof UiPrimitivesIndexRoute
+  '/auth/callback': typeof AuthCallbackIndexRoute
+  '/catalog/addons': typeof CatalogAddonsIndexRoute
+  '/catalog/products': typeof CatalogProductsIndexRoute
+  '/sections/$section': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/calendar': typeof CalendarRoute
-  '/data-view': typeof DataViewRoute
-  '/fields': typeof FieldsRoute
-  '/form-prototype': typeof FormPrototypeRoute
-  '/forms': typeof FormsRoute
-  '/theme': typeof ThemeRoute
-  '/ui-primitives': typeof UiPrimitivesRoute
-  '/sections/$section': typeof SectionsSectionRoute
+  '/catalog': typeof CatalogRouteRouteWithChildren
+  '/data-view': typeof DataViewRouteRouteWithChildren
+  '/fields': typeof FieldsRouteRouteWithChildren
+  '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
+  '/forms': typeof FormsRouteRouteWithChildren
+  '/notifications': typeof NotificationsRouteRouteWithChildren
+  '/theme': typeof ThemeRouteRouteWithChildren
+  '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
+  '/calendar/': typeof CalendarIndexRoute
+  '/data-view/': typeof DataViewIndexRoute
+  '/fields/': typeof FieldsIndexRoute
+  '/form-prototype/': typeof FormPrototypeIndexRoute
+  '/forms/': typeof FormsIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
+  '/sign-in/': typeof SignInIndexRoute
+  '/theme/': typeof ThemeIndexRoute
+  '/ui-primitives/': typeof UiPrimitivesIndexRoute
+  '/auth/callback/': typeof AuthCallbackIndexRoute
+  '/catalog/addons/': typeof CatalogAddonsIndexRoute
+  '/catalog/products/': typeof CatalogProductsIndexRoute
+  '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/calendar'
+    | '/catalog'
     | '/data-view'
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
     | '/theme'
     | '/ui-primitives'
-    | '/sections/$section'
+    | '/calendar/'
+    | '/data-view/'
+    | '/fields/'
+    | '/form-prototype/'
+    | '/forms/'
+    | '/notifications/'
+    | '/sign-in/'
+    | '/theme/'
+    | '/ui-primitives/'
+    | '/auth/callback/'
+    | '/catalog/addons/'
+    | '/catalog/products/'
+    | '/sections/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/catalog'
     | '/calendar'
     | '/data-view'
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
+    | '/sign-in'
     | '/theme'
     | '/ui-primitives'
+    | '/auth/callback'
+    | '/catalog/addons'
+    | '/catalog/products'
     | '/sections/$section'
   id:
     | '__root__'
     | '/'
-    | '/calendar'
+    | '/catalog'
     | '/data-view'
     | '/fields'
     | '/form-prototype'
     | '/forms'
+    | '/notifications'
     | '/theme'
     | '/ui-primitives'
-    | '/sections/$section'
+    | '/calendar/'
+    | '/data-view/'
+    | '/fields/'
+    | '/form-prototype/'
+    | '/forms/'
+    | '/notifications/'
+    | '/sign-in/'
+    | '/theme/'
+    | '/ui-primitives/'
+    | '/auth/callback/'
+    | '/catalog/addons/'
+    | '/catalog/products/'
+    | '/sections/$section/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CalendarRoute: typeof CalendarRoute
-  DataViewRoute: typeof DataViewRoute
-  FieldsRoute: typeof FieldsRoute
-  FormPrototypeRoute: typeof FormPrototypeRoute
-  FormsRoute: typeof FormsRoute
-  ThemeRoute: typeof ThemeRoute
-  UiPrimitivesRoute: typeof UiPrimitivesRoute
-  SectionsSectionRoute: typeof SectionsSectionRoute
+  CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
+  DataViewRouteRoute: typeof DataViewRouteRouteWithChildren
+  FieldsRouteRoute: typeof FieldsRouteRouteWithChildren
+  FormPrototypeRouteRoute: typeof FormPrototypeRouteRouteWithChildren
+  FormsRouteRoute: typeof FormsRouteRouteWithChildren
+  NotificationsRouteRoute: typeof NotificationsRouteRouteWithChildren
+  ThemeRouteRoute: typeof ThemeRouteRouteWithChildren
+  UiPrimitivesRouteRoute: typeof UiPrimitivesRouteRouteWithChildren
+  CalendarIndexRoute: typeof CalendarIndexRoute
+  SignInIndexRoute: typeof SignInIndexRoute
+  AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
+  SectionsSectionIndexRoute: typeof SectionsSectionIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -156,75 +302,265 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/data-view': {
       id: '/data-view'
       path: '/data-view'
       fullPath: '/data-view'
-      preLoaderRoute: typeof DataViewRouteImport
+      preLoaderRoute: typeof DataViewRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fields': {
       id: '/fields'
       path: '/fields'
       fullPath: '/fields'
-      preLoaderRoute: typeof FieldsRouteImport
+      preLoaderRoute: typeof FieldsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/form-prototype': {
       id: '/form-prototype'
       path: '/form-prototype'
       fullPath: '/form-prototype'
-      preLoaderRoute: typeof FormPrototypeRouteImport
+      preLoaderRoute: typeof FormPrototypeRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forms': {
       id: '/forms'
       path: '/forms'
       fullPath: '/forms'
-      preLoaderRoute: typeof FormsRouteImport
+      preLoaderRoute: typeof FormsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/theme': {
       id: '/theme'
       path: '/theme'
       fullPath: '/theme'
-      preLoaderRoute: typeof ThemeRouteImport
+      preLoaderRoute: typeof ThemeRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ui-primitives': {
       id: '/ui-primitives'
       path: '/ui-primitives'
       fullPath: '/ui-primitives'
-      preLoaderRoute: typeof UiPrimitivesRouteImport
+      preLoaderRoute: typeof UiPrimitivesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sections/$section': {
-      id: '/sections/$section'
+    '/calendar/': {
+      id: '/calendar/'
+      path: '/calendar'
+      fullPath: '/calendar/'
+      preLoaderRoute: typeof CalendarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-view/': {
+      id: '/data-view/'
+      path: '/'
+      fullPath: '/data-view/'
+      preLoaderRoute: typeof DataViewIndexRouteImport
+      parentRoute: typeof DataViewRouteRoute
+    }
+    '/fields/': {
+      id: '/fields/'
+      path: '/'
+      fullPath: '/fields/'
+      preLoaderRoute: typeof FieldsIndexRouteImport
+      parentRoute: typeof FieldsRouteRoute
+    }
+    '/form-prototype/': {
+      id: '/form-prototype/'
+      path: '/'
+      fullPath: '/form-prototype/'
+      preLoaderRoute: typeof FormPrototypeIndexRouteImport
+      parentRoute: typeof FormPrototypeRouteRoute
+    }
+    '/forms/': {
+      id: '/forms/'
+      path: '/'
+      fullPath: '/forms/'
+      preLoaderRoute: typeof FormsIndexRouteImport
+      parentRoute: typeof FormsRouteRoute
+    }
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof NotificationsRouteRoute
+    }
+    '/sign-in/': {
+      id: '/sign-in/'
+      path: '/sign-in'
+      fullPath: '/sign-in/'
+      preLoaderRoute: typeof SignInIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/theme/': {
+      id: '/theme/'
+      path: '/'
+      fullPath: '/theme/'
+      preLoaderRoute: typeof ThemeIndexRouteImport
+      parentRoute: typeof ThemeRouteRoute
+    }
+    '/ui-primitives/': {
+      id: '/ui-primitives/'
+      path: '/'
+      fullPath: '/ui-primitives/'
+      preLoaderRoute: typeof UiPrimitivesIndexRouteImport
+      parentRoute: typeof UiPrimitivesRouteRoute
+    }
+    '/auth/callback/': {
+      id: '/auth/callback/'
+      path: '/auth/callback'
+      fullPath: '/auth/callback/'
+      preLoaderRoute: typeof AuthCallbackIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalog/addons/': {
+      id: '/catalog/addons/'
+      path: '/addons'
+      fullPath: '/catalog/addons/'
+      preLoaderRoute: typeof CatalogAddonsIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/products/': {
+      id: '/catalog/products/'
+      path: '/products'
+      fullPath: '/catalog/products/'
+      preLoaderRoute: typeof CatalogProductsIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/sections/$section/': {
+      id: '/sections/$section/'
       path: '/sections/$section'
-      fullPath: '/sections/$section'
-      preLoaderRoute: typeof SectionsSectionRouteImport
+      fullPath: '/sections/$section/'
+      preLoaderRoute: typeof SectionsSectionIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface CatalogRouteRouteChildren {
+  CatalogAddonsIndexRoute: typeof CatalogAddonsIndexRoute
+  CatalogProductsIndexRoute: typeof CatalogProductsIndexRoute
+}
+
+const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
+  CatalogAddonsIndexRoute: CatalogAddonsIndexRoute,
+  CatalogProductsIndexRoute: CatalogProductsIndexRoute,
+}
+
+const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
+  CatalogRouteRouteChildren,
+)
+
+interface DataViewRouteRouteChildren {
+  DataViewIndexRoute: typeof DataViewIndexRoute
+}
+
+const DataViewRouteRouteChildren: DataViewRouteRouteChildren = {
+  DataViewIndexRoute: DataViewIndexRoute,
+}
+
+const DataViewRouteRouteWithChildren = DataViewRouteRoute._addFileChildren(
+  DataViewRouteRouteChildren,
+)
+
+interface FieldsRouteRouteChildren {
+  FieldsIndexRoute: typeof FieldsIndexRoute
+}
+
+const FieldsRouteRouteChildren: FieldsRouteRouteChildren = {
+  FieldsIndexRoute: FieldsIndexRoute,
+}
+
+const FieldsRouteRouteWithChildren = FieldsRouteRoute._addFileChildren(
+  FieldsRouteRouteChildren,
+)
+
+interface FormPrototypeRouteRouteChildren {
+  FormPrototypeIndexRoute: typeof FormPrototypeIndexRoute
+}
+
+const FormPrototypeRouteRouteChildren: FormPrototypeRouteRouteChildren = {
+  FormPrototypeIndexRoute: FormPrototypeIndexRoute,
+}
+
+const FormPrototypeRouteRouteWithChildren =
+  FormPrototypeRouteRoute._addFileChildren(FormPrototypeRouteRouteChildren)
+
+interface FormsRouteRouteChildren {
+  FormsIndexRoute: typeof FormsIndexRoute
+}
+
+const FormsRouteRouteChildren: FormsRouteRouteChildren = {
+  FormsIndexRoute: FormsIndexRoute,
+}
+
+const FormsRouteRouteWithChildren = FormsRouteRoute._addFileChildren(
+  FormsRouteRouteChildren,
+)
+
+interface NotificationsRouteRouteChildren {
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
+}
+
+const NotificationsRouteRouteChildren: NotificationsRouteRouteChildren = {
+  NotificationsIndexRoute: NotificationsIndexRoute,
+}
+
+const NotificationsRouteRouteWithChildren =
+  NotificationsRouteRoute._addFileChildren(NotificationsRouteRouteChildren)
+
+interface ThemeRouteRouteChildren {
+  ThemeIndexRoute: typeof ThemeIndexRoute
+}
+
+const ThemeRouteRouteChildren: ThemeRouteRouteChildren = {
+  ThemeIndexRoute: ThemeIndexRoute,
+}
+
+const ThemeRouteRouteWithChildren = ThemeRouteRoute._addFileChildren(
+  ThemeRouteRouteChildren,
+)
+
+interface UiPrimitivesRouteRouteChildren {
+  UiPrimitivesIndexRoute: typeof UiPrimitivesIndexRoute
+}
+
+const UiPrimitivesRouteRouteChildren: UiPrimitivesRouteRouteChildren = {
+  UiPrimitivesIndexRoute: UiPrimitivesIndexRoute,
+}
+
+const UiPrimitivesRouteRouteWithChildren =
+  UiPrimitivesRouteRoute._addFileChildren(UiPrimitivesRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CalendarRoute: CalendarRoute,
-  DataViewRoute: DataViewRoute,
-  FieldsRoute: FieldsRoute,
-  FormPrototypeRoute: FormPrototypeRoute,
-  FormsRoute: FormsRoute,
-  ThemeRoute: ThemeRoute,
-  UiPrimitivesRoute: UiPrimitivesRoute,
-  SectionsSectionRoute: SectionsSectionRoute,
+  CatalogRouteRoute: CatalogRouteRouteWithChildren,
+  DataViewRouteRoute: DataViewRouteRouteWithChildren,
+  FieldsRouteRoute: FieldsRouteRouteWithChildren,
+  FormPrototypeRouteRoute: FormPrototypeRouteRouteWithChildren,
+  FormsRouteRoute: FormsRouteRouteWithChildren,
+  NotificationsRouteRoute: NotificationsRouteRouteWithChildren,
+  ThemeRouteRoute: ThemeRouteRouteWithChildren,
+  UiPrimitivesRouteRoute: UiPrimitivesRouteRouteWithChildren,
+  CalendarIndexRoute: CalendarIndexRoute,
+  SignInIndexRoute: SignInIndexRoute,
+  AuthCallbackIndexRoute: AuthCallbackIndexRoute,
+  SectionsSectionIndexRoute: SectionsSectionIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

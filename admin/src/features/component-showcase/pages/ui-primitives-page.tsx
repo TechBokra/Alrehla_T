@@ -110,15 +110,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ShowcaseLayout } from "../showcase-layout";
 
 function ActionsSection() {
   return (
     <section id="actions" className="scroll-mt-24 space-y-5">
       <SectionHeading
-        eyebrow="Refine · mutations"
-        title="Resource actions"
-        description="These are the generated Refine buttons. Navigation is intentionally inert here; delete and refresh use only the local preview provider."
+        eyebrow="إجراءات البيانات"
+        title="إجراءات المنتجات"
+        description="أزرار Refine معروضة هنا للتجربة. التنقل غير مفعّل، والحذف والتحديث يعملان على بيانات المعاينة المحلية فقط."
       />
       <Card className="rounded-[24px] shadow-sm">
         <CardHeader className="border-b bg-muted/20 py-4">
@@ -128,49 +127,61 @@ function ActionsSection() {
                 <Package className="size-5" />
               </span>
               <div>
-                <CardTitle className="text-sm">Products resource</CardTitle>
+                <CardTitle className="text-sm">المنتجات</CardTitle>
                 <CardDescription className="mt-1">
-                  Record · prd-104 · Linen market tote
+                  سجل · prd-104 · حقيبة قماش يومية
                 </CardDescription>
               </div>
             </div>
-            <Badge variant="outline">Refine button components</Badge>
+            <Badge variant="outline">أزرار Refine</Badge>
           </div>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2.5 p-5">
-          <CreateButton resource="products" />
+          <CreateButton resource="products">إنشاء منتج</CreateButton>
           <EditButton
             resource="products"
             recordItemId="prd-104"
             variant="outline"
-          />
+          >
+            تعديل
+          </EditButton>
           <ShowButton
             resource="products"
             recordItemId="prd-104"
             variant="outline"
-          />
+          >
+            عرض التفاصيل
+          </ShowButton>
           <CloneButton
             resource="products"
             recordItemId="prd-104"
             variant="outline"
-          />
-          <ListButton resource="products" variant="ghost" />
-          <RefreshButton resource="products" variant="secondary" />
-          <DeleteButton resource="products" recordItemId="prd-104" />
+          >
+            نسخ
+          </CloneButton>
+          <ListButton resource="products" variant="ghost">
+            قائمة المنتجات
+          </ListButton>
+          <RefreshButton resource="products" variant="secondary">
+            تحديث
+          </RefreshButton>
+          <DeleteButton resource="products" recordItemId="prd-104">
+            حذف
+          </DeleteButton>
         </CardContent>
       </Card>
       <div className="grid gap-3 sm:grid-cols-3">
         <ActionNote
-          title="Create / edit / clone"
-          text="Resource-aware links and action labels come from Refine context."
+          title="إنشاء وتعديل ونسخ"
+          text="تأتي الروابط وعناوين الإجراءات من إعدادات Refine."
         />
         <ActionNote
-          title="Delete"
-          text="Shows the generated confirmation popover before invoking deleteOne."
+          title="حذف"
+          text="يعرض رسالة تأكيد قبل حذف العنصر التجريبي."
         />
         <ActionNote
-          title="Refresh"
-          text="Invalidates the local resource query and shows the pending state."
+          title="تحديث"
+          text="يحدّث بيانات المعاينة ويعرض حالة الانتظار."
         />
       </div>
     </section>
@@ -185,37 +196,37 @@ function PrimitivesSection() {
   return (
     <section id="primitives" className="scroll-mt-24 space-y-5">
       <SectionHeading
-        eyebrow="Shadcn · primitives"
-        title="Controls, overlays, and feedback"
-        description="The installed primitives shown in their intended context: interactive menus, dialogs, calendar popover, command palette, and status states."
+        eyebrow="Shadcn · عناصر الواجهة"
+        title="عناصر التحكم والنوافذ والتنبيهات"
+        description="مكوّنات تفاعلية تشمل القوائم والنوافذ والتقويم والبحث وحالات الإشعارات."
       />
       <div className="grid gap-4 xl:grid-cols-2">
         <Card className="rounded-[24px] shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">
-              Buttons, badges, and identity
+              الأزرار والحالات والهوية
             </CardTitle>
             <CardDescription>
-              Variants and everyday account/status controls.
+              أشكال الأزرار وعناصر الحساب والحالة.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-wrap gap-2">
               <Button>
-                <Plus /> Primary
+                <Plus /> أساسي
               </Button>
-              <Button variant="secondary">Secondary</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
-              <Button variant="destructive">Destructive</Button>
-              <Button variant="link">Link style</Button>
+              <Button variant="secondary">ثانوي</Button>
+              <Button variant="outline">محدد بإطار</Button>
+              <Button variant="ghost">شفاف</Button>
+              <Button variant="destructive">تحذير</Button>
+              <Button variant="link">كرابط</Button>
             </div>
             <Separator />
             <div className="flex flex-wrap items-center gap-2">
-              <Badge>New</Badge>
-              <Badge variant="secondary">Active</Badge>
-              <Badge variant="outline">Draft</Badge>
-              <Badge variant="destructive">Needs attention</Badge>
+              <Badge>جديد</Badge>
+              <Badge variant="secondary">نشط</Badge>
+              <Badge variant="outline">مسودة</Badge>
+              <Badge variant="destructive">يتطلب الانتباه</Badge>
               <Avatar className="ml-2 size-9">
                 <AvatarFallback>MC</AvatarFallback>
               </Avatar>
@@ -236,40 +247,39 @@ function PrimitivesSection() {
 
         <Card className="rounded-[24px] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Overlays and navigation</CardTitle>
+            <CardTitle className="text-base">النوافذ والتنقل</CardTitle>
             <CardDescription>
-              Dialog, sheet, dropdown, popover, tooltip, and collapsible
-              patterns.
+              أمثلة للنوافذ والألواح والقوائم والتلميحات والعناصر القابلة للطي.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-2.5">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline">
-                  <Plus /> New item
+                  <Plus /> عنصر جديد
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Create a preview item</DialogTitle>
+                  <DialogTitle>إنشاء عنصر تجريبي</DialogTitle>
                   <DialogDescription>
-                    This dialog is a UI sample; it does not save to a server.
+                    هذه نافذة للتجربة فقط، ولن تُحفظ البيانات على الخادم.
                   </DialogDescription>
                 </DialogHeader>
                 <Field>
-                  <FieldLabel htmlFor="dialog-item-name">Name</FieldLabel>
+                  <FieldLabel htmlFor="dialog-item-name">الاسم</FieldLabel>
                   <Input
                     id="dialog-item-name"
-                    placeholder="e.g. Summer collection"
+                    placeholder="مثال: مجموعة الصيف"
                   />
                 </Field>
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline">إلغاء</Button>
                   </DialogClose>
                   <DialogClose asChild>
-                    <Button onClick={() => toast.success("Preview saved")}>
-                      Save preview
+                    <Button onClick={() => toast.success("تم حفظ المعاينة")}>
+                      حفظ المعاينة
                     </Button>
                   </DialogClose>
                 </DialogFooter>
@@ -279,28 +289,28 @@ function PrimitivesSection() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline">
-                  <Trash2 data-icon="inline-start" /> Delete preview
+                  <Trash2 data-icon="inline-start" /> حذف المعاينة
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this preview item?</AlertDialogTitle>
+                  <AlertDialogTitle>حذف العنصر التجريبي؟</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This confirmation is only a component demo. It will not
-                    delete a product or call the commerce API.
+                    هذه الرسالة للتجربة فقط، ولن تحذف منتجًا أو تتصل بنظام
+                    المتجر.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
                   <AlertDialogAction
                     variant="destructive"
                     onClick={() =>
-                      toast.info("Destructive action confirmed", {
-                        description: "Preview only — no data was deleted.",
+                      toast.info("تم تأكيد الإجراء", {
+                        description: "معاينة فقط — لم يتم حذف أي بيانات.",
                       })
                     }
                   >
-                    Delete preview
+                    حذف المعاينة
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -308,34 +318,32 @@ function PrimitivesSection() {
 
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline">Open sheet</Button>
+                <Button variant="outline">فتح اللوحة</Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>Quick settings</SheetTitle>
+                  <SheetTitle>إعدادات سريعة</SheetTitle>
                   <SheetDescription>
-                    Slide-over panel for secondary controls.
+                    لوحة جانبية لإعدادات إضافية.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="space-y-4 px-4">
                   <Field orientation="horizontal">
                     <Checkbox id="sheet-notifications" defaultChecked />
                     <FieldLabel htmlFor="sheet-notifications">
-                      Email notifications
+                      تنبيهات البريد الإلكتروني
                     </FieldLabel>
                   </Field>
                   <Field>
-                    <FieldLabel>Default collection</FieldLabel>
+                    <FieldLabel>المجموعة الافتراضية</FieldLabel>
                     <Select defaultValue="accessories">
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value="accessories">
-                            Accessories
-                          </SelectItem>
-                          <SelectItem value="home">Home & living</SelectItem>
+                          <SelectItem value="accessories">إكسسوارات</SelectItem>
+                          <SelectItem value="home">المنزل والمعيشة</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
@@ -347,23 +355,23 @@ function PrimitivesSection() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
-                  <MoreHorizontal /> More
+                  <MoreHorizontal /> المزيد
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuLabel>Product actions</DropdownMenuLabel>
+                <DropdownMenuLabel>إجراءات المنتج</DropdownMenuLabel>
                 <DropdownMenuItem>
-                  <PencilIcon /> Edit details
+                  <PencilIcon /> تعديل التفاصيل
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <CreditCard /> View payments
+                  <CreditCard /> عرض المدفوعات
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuCheckboxItem
                   checked={showDrafts}
                   onCheckedChange={setShowDrafts}
                 >
-                  Show drafts
+                  عرض المسودات
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -372,7 +380,7 @@ function PrimitivesSection() {
               <PopoverTrigger asChild>
                 <Button variant="outline">
                   <CalendarDays />{" "}
-                  {date ? date.toLocaleDateString() : "Pick a date"}
+                  {date ? date.toLocaleDateString("ar-EG") : "اختار تاريخًا"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -383,34 +391,34 @@ function PrimitivesSection() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Help">
+                  <Button variant="ghost" size="icon" aria-label="مساعدة">
                     <LifeBuoy />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Contextual help tooltip</TooltipContent>
+                <TooltipContent>مساعدة مرتبطة بالعنصر</TooltipContent>
               </Tooltip>
             </TooltipProvider>
 
             <Button variant="outline" onClick={() => setCommandOpen(true)}>
-              <CommandIcon /> Command menu{" "}
+              <CommandIcon /> قائمة الأوامر{" "}
               <kbd className="ml-2 rounded border px-1.5 py-0.5 text-[10px]">
                 ⌘K
               </kbd>
             </Button>
             <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
               <Command>
-                <CommandInput placeholder="Search a page or action…" />
+                <CommandInput placeholder="ابحث عن صفحة أو إجراء…" />
                 <CommandList>
-                  <CommandEmpty>No matching action.</CommandEmpty>
-                  <CommandGroup heading="Quick actions">
+                  <CommandEmpty>لا توجد إجراءات مطابقة.</CommandEmpty>
+                  <CommandGroup heading="إجراءات سريعة">
                     <CommandItem onSelect={() => setCommandOpen(false)}>
-                      <Search /> Search products
+                      <Search /> البحث عن منتجات
                     </CommandItem>
                     <CommandItem onSelect={() => setCommandOpen(false)}>
-                      <Plus /> Create product
+                      <Plus /> إنشاء منتج
                     </CommandItem>
                     <CommandItem onSelect={() => setCommandOpen(false)}>
-                      <Check /> Review orders
+                      <Check /> مراجعة الطلبات
                     </CommandItem>
                   </CommandGroup>
                 </CommandList>
@@ -419,12 +427,11 @@ function PrimitivesSection() {
 
             <Collapsible className="w-full rounded-2xl border px-4 py-3">
               <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-medium">
-                Collapsible panel{" "}
+                لوحة قابلة للطي{" "}
                 <ChevronRight className="size-4 transition-transform data-[state=open]:rotate-90" />
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-3 text-sm text-muted-foreground">
-                Use disclosure for secondary settings without leaving the
-                current page.
+                اعرض الإعدادات الإضافية دون مغادرة الصفحة.
               </CollapsibleContent>
             </Collapsible>
           </CardContent>
@@ -433,51 +440,50 @@ function PrimitivesSection() {
 
       <Card className="rounded-[24px] shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base">Interaction state</CardTitle>
+          <CardTitle className="text-base">حالات التفاعل</CardTitle>
           <CardDescription>
-            Try the theme toggle in the app header, or fire a local toast.
+            جرّب تغيير المظهر من رأس الصفحة أو اعرض إشعارًا تجريبيًا.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
           <Button
             onClick={() =>
-              toast.success("Changes saved", {
-                description:
-                  "This toast is rendered by the installed notification UI.",
+              toast.success("تم حفظ التغييرات", {
+                description: "يظهر هذا الإشعار عبر مكوّن التنبيهات المثبّت.",
               })
             }
           >
-            <Check /> Show success toast
+            <Check /> إظهار إشعار نجاح
           </Button>
           <Button
             variant="secondary"
             onClick={() =>
-              toast.info("New product draft", {
-                description: "Sonner info state from the shared app toaster.",
+              toast.info("مسودة منتج جديدة", {
+                description: "مثال لإشعار معلومات داخل التطبيق.",
               })
             }
           >
-            Show info toast
+            إظهار إشعار معلومات
           </Button>
           <Button
             variant="outline"
             onClick={() =>
-              toast.warning("Review inventory", {
-                description: "A low-stock warning example.",
+              toast.warning("راجع المخزون", {
+                description: "مثال على تنبيه بانخفاض المخزون.",
               })
             }
           >
-            Show warning toast
+            إظهار إشعار تحذير
           </Button>
           <Button
             variant="outline"
             onClick={() =>
-              toast.error("Could not save", {
-                description: "Example error notification state.",
+              toast.error("تعذّر الحفظ", {
+                description: "مثال على إشعار خطأ.",
               })
             }
           >
-            Show error state
+            إظهار إشعار خطأ
           </Button>
           <Button
             variant="outline"
@@ -485,18 +491,18 @@ function PrimitivesSection() {
               toast.promise(
                 new Promise<void>((resolve) => window.setTimeout(resolve, 700)),
                 {
-                  loading: "Saving local preview…",
-                  success: "Local preview saved",
-                  error: "Preview could not be saved",
-                }
+                  loading: "جارٍ حفظ المعاينة…",
+                  success: "تم حفظ المعاينة",
+                  error: "تعذّر حفظ المعاينة",
+                },
               )
             }
           >
-            Show promise lifecycle
+            تجربة حالة الحفظ
           </Button>
           <div className="ml-auto flex items-center gap-2 rounded-2xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
             <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
-            <span>Preview provider connected</span>
+            <span>مصدر بيانات المعاينة متصل</span>
           </div>
         </CardContent>
       </Card>
@@ -526,7 +532,7 @@ function SectionHeading({
       </div>
       <span className="hidden items-center gap-1 whitespace-nowrap text-xs text-muted-foreground lg:inline-flex">
         <WandSparkles className="size-3.5" />
-        Component preview
+        معاينة للمكوّن
       </span>
     </div>
   );
@@ -545,17 +551,11 @@ function PencilIcon() {
   return <Pencil className="size-4" />;
 }
 
-export function UiPrimitivesPage({
-  activeSection,
-}: {
-  activeSection: "ui-primitives";
-}) {
+export function UiPrimitivesPage() {
   return (
-    <ShowcaseLayout activeSection={activeSection}>
-      <>
-        <ActionsSection />
-        <PrimitivesSection />
-      </>
-    </ShowcaseLayout>
+    <>
+      <ActionsSection />
+      <PrimitivesSection />
+    </>
   );
 }

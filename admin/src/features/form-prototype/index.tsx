@@ -25,11 +25,11 @@ return (
       void form.handleSubmit()
     }}>
       <form.AppField name="title">
-        {(field) => <field.Input label="Title" />}
+        {(field) => <field.Input label="اسم المنتج" />}
       </form.AppField>
       <form.FormActions>
-        <form.SubmitButton>Save</form.SubmitButton>
-        <form.ResetButton />
+        <form.SubmitButton>حفظ</form.SubmitButton>
+        <form.ResetButton>إعادة ضبط</form.ResetButton>
       </form.FormActions>
     </form>
   </form.AppForm>
@@ -40,17 +40,15 @@ export function FormPrototypePage() {
     <div className="flex flex-col gap-12">
       <header className="flex flex-col gap-4 border-b pb-8">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">PROTOTYPE · APP LOCAL</Badge>
+          <Badge variant="outline">نموذج تجريبي · محلي</Badge>
           <Badge variant="secondary">TanStack Form</Badge>
           <Badge variant="secondary">Refine</Badge>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-          Composable forms
+          نماذج قابلة لإعادة الاستخدام
         </h1>
         <p className="max-w-3xl text-muted-foreground">
-          Explore a typed TanStack form hook with pre-bound controls, then see
-          Refine connect validated values to create and edit operations. Every
-          record and save on this page is an in-memory preview.
+          جرّب حقول TanStack المرتبطة بالنموذج، ثم شاهد كيف يربط Refine القيم التي تم التحقق منها بعمليات الإنشاء والتعديل. كل السجلات وعمليات الحفظ هنا تجريبية ومحلية.
         </p>
       </header>
 
@@ -58,12 +56,10 @@ export function FormPrototypePage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Code2 className="text-primary" />
-            <CardTitle>Composition pattern</CardTitle>
+            <CardTitle>طريقة تركيب النموذج</CardTitle>
           </div>
           <CardDescription>
-            The field name is checked against the form&apos;s TypeScript value
-            shape; its registered component reads its value from the matching
-            field context.
+            يتم التحقق من اسم الحقل ومطابقته لقيم النموذج، ويقرأ كل مكوّن قيمته من سياق الحقل المرتبط به.
           </CardDescription>
         </CardHeader>
         <CardContent>
