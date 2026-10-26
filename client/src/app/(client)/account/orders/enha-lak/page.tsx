@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ImageIcon } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { productOrderStatus } from '@/lib/order-status';
-import { getMyImageReviews } from '@/data/domains/(client)/story-preview/queries';
+import { getMyImageReviews, getMyImageReviewsByOrder } from '@/data/domains/(client)/story-preview/queries';
 import { awaitingImageCount, waitDays } from '@/lib/image-review';
 import { effectiveDeliveryDays, expectedReadyDate } from '@/lib/delivery-days';
 import { getOrders } from '@/data/domains/(client)/orders/queries';
@@ -50,11 +50,15 @@ export default async function EnhaLakOrdersPage() {
   const liveOrders = allOrders.filter((o) => o.status === 'paid' || o.status === 'preparing');
   // صور البطل لكل طلب شغّال: كام صورة مستنية قراره، وكام يوم استنّاه
   // (بيتضاف على ميعاد التجهيز — قرار ٢٥ أكتوبر). الفشل = فاضي.
-  const reviewsByOrder = Object.fromEntries(
-    await Promise.all(
-      liveOrders.map(async (o) => [o.id, await getMyImageReviews(o.id).catch(() => [])] as const),
-    ),
-  );
+  // ⚠️ نداء واحد لكل الطلبات (٢٧ أكتوبر)؛ ولو الترحيل لسه، طلب طلب زي الأول.
+  const batched = liveOrders.length > 0 ? await getMyImageReviewsByOrder() : new Map();
+  const reviewsByOrder = batched
+    ? Object.fromEntries(liveOrders.map((o) => [o.id, batched.get(o.id) ?? []] as const))
+    : Object.fromEntries(
+        await Promise.all(
+          liveOrders.map(async (o) => [o.id, await getMyImageReviews(o.id).catch(() => [])] as const),
+        ),
+      );
   const awaitingByOrder: Record<string, number> = Object.fromEntries(
     Object.entries(reviewsByOrder).map(([id, rows]) => [id, awaitingImageCount(rows)]),
   );

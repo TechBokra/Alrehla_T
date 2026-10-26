@@ -124,12 +124,16 @@ export async function listFolderAssets(
   let cursor: string | undefined;
   let truncated = false;
 
-  for (let page = 0; page < 10; page++) {
+  // ⚠️ كانت 10 صفحات × 100 — يعني فوق 500/1000 صورة المسح الليلي كان
+  //    بيتخطّى كل ليلة في صمت (خريطة البيانات، ٢٧ أكتوبر). دلوقتي صفحات
+  //    بـ500 (حد Cloudinary) لحد `maxAssets`.
+  const pageSize = Math.min(500, Math.max(1, maxAssets));
+  for (let page = 0; page < Math.ceil(maxAssets / pageSize) + 1; page++) {
     const query = new URLSearchParams({
       type: 'upload',
       // ⚠️ القيد على المجلّد — مش فلترة بعد القراءة.
       prefix: `${FOLDER}/`,
-      max_results: '100',
+      max_results: String(pageSize),
     });
     if (cursor) query.set('next_cursor', cursor);
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
+import Link from 'next/link';
 import { getAuditLogs } from '@/data/domains/(admin)/audit/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
@@ -8,13 +9,19 @@ import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canViewAuditLogs')) {
     return <Unauthorized />;
   }
 
-  const logs = await getAuditLogs();
+  const sp = await searchParams;
+  const page = Math.max(1, Number(Array.isArray(sp.page) ? sp.page[0] : sp.page) || 1);
+  const { logs, hasNext } = await getAuditLogs(page);
   
   const formatted = logs.map(l => ({
     ...l,
@@ -39,6 +46,24 @@ export default async function Page() {
       </div>
       
       <SimpleDataTable columns={columns} data={formatted} />
+
+      <nav aria-label="صفحات السجل" className="mt-6 flex items-center justify-between gap-3">
+        {page > 1 ? (
+          <Link href={`?page=${page - 1}`} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            → الأحدث
+          </Link>
+        ) : (
+          <span />
+        )}
+        <span className="text-sm font-bold text-slate-500">صفحة {page.toLocaleString('ar-EG')}</span>
+        {hasNext ? (
+          <Link href={`?page=${page + 1}`} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            الأقدم ←
+          </Link>
+        ) : (
+          <span />
+        )}
+      </nav>
     </div>
   );
 }

@@ -5061,6 +5061,18 @@ export type Database = {
       }
       training_submit_final: { Args: { p_course: string; p_answers: Json }; Returns: Json }
       training_reset_progress: { Args: { p_user: string; p_course: string }; Returns: undefined }
+      ops_retention_sweep: { Args: never; Returns: Json }
+      my_story_image_reviews_all: {
+        Args: never
+        Returns: {
+          order_id: string
+          order_item_id: string
+          status: string
+          sent_at: string
+          decided_at: string | null
+          character_approved: boolean | null
+        }[]
+      }
       story_image_send: {
         Args: { p_project_id: string; p_note?: string | null }
         Returns: string

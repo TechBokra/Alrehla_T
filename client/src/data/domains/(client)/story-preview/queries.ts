@@ -99,3 +99,37 @@ export async function getMyImageReviews(orderId: string): Promise<ImageReviewRow
   }));
 }
 
+
+/**
+ * صور البطل لكل طلبات العميل الشغّالة — **نداء واحد** (خريطة البيانات،
+ * ٢٧ أكتوبر). كانت صفحة «طلباتي» بتنادي لكل طلب لوحده.
+ * قبل ترحيل 20261027100000 بترجع `null` والصفحة بترجع للطريقة القديمة.
+ */
+export async function getMyImageReviewsByOrder(): Promise<Map<string, ImageReviewRow[]> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('my_story_image_reviews_all');
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') return null;
+    console.error('Error reading image reviews (all)', error);
+    return new Map();
+  }
+  const out = new Map<string, ImageReviewRow[]>();
+  for (const r of data ?? []) {
+    const list = out.get(r.order_id) ?? [];
+    list.push({
+      projectId: '',
+      orderItemId: r.order_item_id,
+      productId: '',
+      reviewId: '',
+      imageUrl: '',
+      staffNote: null,
+      status: r.status,
+      sentAt: r.sent_at,
+      decidedAt: r.decided_at,
+      clientNote: null,
+      characterApproved: r.character_approved === true,
+    });
+    out.set(r.order_id, list);
+  }
+  return out;
+}

@@ -31,9 +31,15 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // ⚠️ `getClaims` مش `getUser` (خريطة البيانات، ٢٧ أكتوبر): بيتحقق من التوكن
+  //    محليًا لو مفاتيح التوقيع غير متماثلة، فمفيش رحلة لخادم الدخول مع كل فتحة
+  //    لوحة — ولو المفاتيح متماثلة بيرجع لنفس طلب `getUser`. وبيجدّد الجلسة زي
+  //    `getUser` بالظبط. الصفحة نفسها بتتحقق تاني من `getCurrentUser`.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  const user = claims?.sub
+    ? { id: claims.sub, app_metadata: (claims.app_metadata ?? {}) as Record<string, unknown> }
+    : null;
 
   // ⚠️ **التحويل بياخد الكوكيز المتجدّدة معاه** (ملاحظة م. محمد): لو
   //    `getUser` جدّد الجلسة، الكوكيز الجديدة بتتحط على `supabaseResponse`

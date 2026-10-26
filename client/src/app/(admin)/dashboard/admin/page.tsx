@@ -70,7 +70,8 @@ export default async function AdminDashboard() {
   const { orders, failed: ordersLoadFailed } = ordersResult;
 
   const reviewQueue = queueAll.filter((item) => hasAdminPermission(user, item.permission));
-  const logs = hasAdminPermission(user, 'canViewAuditLogs') ? await getAuditLogs() : [];
+  // ⚠️ الصفحة بتعرض 8 — كانت بتجيب 200 (خريطة البيانات، ٢٧ أكتوبر).
+  const logs = hasAdminPermission(user, 'canViewAuditLogs') ? (await getAuditLogs(1, 8)).logs : [];
 
   // ---------- أسماء أصحاب أحدث الطلبات ----------
   // قبل كده الجدول كان بيعرض جزء من رقم الحساب في خانة الاسم.

@@ -35,7 +35,8 @@ export async function runMediaCleanup(now = new Date()): Promise<CleanupRun> {
 
   const settings = (await getSiteSettings()).mediaCleanup;
 
-  const listed = await listFolderAssets();
+  // حتى 10 آلاف صورة في التشغيلة (كانت 500 — فوقها المسح كان بيقف في صمت).
+  const listed = await listFolderAssets(10_000);
   if (!listed.ok) return { ok: false, error: listed.error };
   const scan = await getMediaScan();
   if (!scan.complete) {
@@ -72,14 +73,18 @@ export async function runMediaCleanup(now = new Date()): Promise<CleanupRun> {
 
   const tracked = Object.keys(plan.ledger).length;
   if (!settings.enabled) return { ok: true, tracked, deleted: [], skipped: 'المسح التلقائي مقفول من الإعدادات' };
-  if (listed.data.truncated) return { ok: true, tracked, deleted: [], skipped: 'قايمة الصور أكبر من الحد' };
+  // ⚠️ التخطّي مابقاش صامت: الإدارة بتتبلّغ إن المسح ماشتغلش وليه.
+  const skip = async (why: string): Promise<CleanupRun> => {
+    await notifyAdmins({
+      title: 'المسح التلقائي للصور اتخطّى الليلة دي',
+      message: why,
+      link: '/dashboard/admin/media',
+    });
+    return { ok: true, tracked, deleted: [], skipped: why };
+  };
+  if (listed.data.truncated) return skip('قايمة الصور أكبر من 10 آلاف — محتاجة مراجعة الحد.');
   if (assets.length > 0 && orphanIds.length > assets.length / 2) {
-    return {
-      ok: true,
-      tracked,
-      deleted: [],
-      skipped: 'أكتر من نص الصور متسابة — محتاجة مراجعة بإيد من «مكتبة الوسائط»',
-    };
+    return skip('أكتر من نص الصور متسابة — محتاجة مراجعة بإيد من «مكتبة الوسائط».');
   }
   const due = plan.due;
   if (due.length === 0) return { ok: true, tracked, deleted: [] };
