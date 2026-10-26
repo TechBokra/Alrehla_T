@@ -48,11 +48,11 @@ alter table public.join_requests
 -- الطلبات القديمة بتاخد مفاتيح كمان، عشان الإدارة تقدر تفتح نقاشًا
 -- على طلب قديم من غير ما المتقدّم يعيد التقديم.
 update public.join_requests
-   set access_token = encode(gen_random_bytes(32), 'base64')
+   set access_token = encode(extensions.gen_random_bytes(32), 'base64')
  where access_token is null;
 
 alter table public.join_requests
-  alter column access_token set default encode(gen_random_bytes(32), 'base64');
+  alter column access_token set default encode(extensions.gen_random_bytes(32), 'base64');
 
 alter table public.join_requests
   alter column access_token set not null;

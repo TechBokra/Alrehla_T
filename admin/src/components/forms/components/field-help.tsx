@@ -22,7 +22,7 @@ export function FieldHelp({
           type="button"
           variant="ghost"
           size="icon-xs"
-          aria-label={"Help for " + label}
+          aria-label={"مساعدة حول " + label}
         >
           <CircleHelp aria-hidden="true" />
         </Button>

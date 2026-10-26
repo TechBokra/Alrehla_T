@@ -8,7 +8,7 @@ export function UnsavedChangesIndicator() {
     <form.Subscribe selector={(state: any) => state.isDirty}>
       {(isDirty: boolean) => (
         <span className="text-sm text-muted-foreground" role="status">
-          {isDirty ? "Unsaved changes" : "All changes saved"}
+          {isDirty ? "تغييرات غير محفوظة" : "تم حفظ كل التغييرات"}
         </span>
       )}
     </form.Subscribe>

@@ -23,53 +23,53 @@ import { useAppForm } from "@/components/forms";
 
 const choices = {
   collection: [
-    { value: "accessories", label: "Accessories" },
-    { value: "home", label: "Home & living" },
-    { value: "apparel", label: "Apparel" },
+    { value: "accessories", label: "إكسسوارات" },
+    { value: "home", label: "المنزل والمعيشة" },
+    { value: "apparel", label: "ملابس" },
   ],
   status: [
-    { value: "draft", label: "Draft" },
-    { value: "active", label: "Active" },
-    { value: "archived", label: "Archived" },
+    { value: "draft", label: "مسودة" },
+    { value: "active", label: "نشط" },
+    { value: "archived", label: "مؤرشف" },
   ],
   channels: [
-    { value: "storefront", label: "Storefront" },
-    { value: "marketplace", label: "Marketplace" },
-    { value: "pos", label: "Point of sale" },
+    { value: "storefront", label: "المتجر الإلكتروني" },
+    { value: "marketplace", label: "سوق إلكتروني" },
+    { value: "pos", label: "نقطة البيع" },
   ],
   layout: [
-    { value: "grid", label: "Grid" },
-    { value: "list", label: "List" },
-    { value: "compact", label: "Compact" },
+    { value: "grid", label: "شبكة" },
+    { value: "list", label: "قائمة" },
+    { value: "compact", label: "مضغوط" },
   ],
   placements: [
-    { value: "storefront", label: "Storefront" },
-    { value: "email", label: "Email" },
-    { value: "social", label: "Social" },
+    { value: "storefront", label: "المتجر الإلكتروني" },
+    { value: "email", label: "البريد الإلكتروني" },
+    { value: "social", label: "منصات التواصل" },
   ],
   tags: [
     {
       value: "new-arrival",
-      label: "New arrival",
-      description: "Recently added to the catalog",
+      label: "وصل حديثًا",
+      description: "أُضيف مؤخرًا إلى الكتالوج",
     },
     {
       value: "best-seller",
-      label: "Best seller",
-      description: "A customer favorite",
+      label: "الأكثر مبيعًا",
+      description: "مفضّل لدى العملاء",
     },
     {
       value: "sustainable",
-      label: "Sustainable",
-      description: "Made with considered materials",
+      label: "مستدام",
+      description: "مصنوع بخامات صديقة للبيئة",
     },
-    { value: "handmade", label: "Handmade", description: "Crafted by hand" },
+    { value: "handmade", label: "صناعة يدوية", description: "مصنوع يدويًا" },
     {
       value: "limited-edition",
-      label: "Limited edition",
-      description: "Available in a limited run",
+      label: "إصدار محدود",
+      description: "متوفر بكمية محدودة",
     },
-    { value: "sale", label: "Sale", description: "Currently discounted" },
+    { value: "sale", label: "تخفيض", description: "ضمن عرض حالي" },
   ],
 } as const;
 
@@ -103,16 +103,14 @@ export function AllFieldsForm() {
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">createFormHook</Badge>
+          <Badge variant="outline">إنشاء خطّاف للنموذج</Badge>
           <Badge variant="secondary">TanStack Form + Zod</Badge>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          All fields, one typed form
+          كل الحقول في نموذج واحد
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Each control is bound through the local hook registry. Edit the
-          values, inspect live form state, and submit to see the serialized
-          output. Attachments stay in browser memory; this form sends nothing.
+          كل عنصر مرتبط بالنموذج المحلي. عدّل القيم وراجع حالة النموذج ثم أرسله لمشاهدة النتيجة. تظل المرفقات في ذاكرة المتصفح ولا يتم رفعها.
         </p>
       </div>
 
@@ -129,11 +127,10 @@ export function AllFieldsForm() {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Text, numbers, and dates</CardTitle>
+                <CardTitle>النصوص والأرقام والتواريخ</CardTitle>
                 <CardDescription>
-                  The same app fields adapt their primitive to each value type.
-                  Descriptions appear beside visible labels; fields without a
-                  label show them below the control.
+                  تتغير عناصر الحقول نفسها حسب نوع القيمة. تظهر المساعدة بجوار
+                  العنوان، أو أسفل العنصر إذا لم يكن له عنوان ظاهر.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -141,40 +138,40 @@ export function AllFieldsForm() {
                   <form.AppField name="title">
                     {(field) => (
                       <field.Input
-                        label="Product name · Input"
-                        description="Use a clear customer-facing name; this appears in the catalog and product pages."
+                        label="اسم المنتج · إدخال نصي"
+                        description="اكتب اسمًا واضحًا يظهر للعملاء في الكتالوج وصفحات المنتجات."
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="email">
-                    {(field) => <field.Input label="Email" type="email" />}
+                    {(field) => <field.Input label="البريد الإلكتروني" type="email" />}
                   </form.AppField>
                   <form.AppField name="password">
                     {(field) => (
-                      <field.Input label="Demo password" type="password" />
+                      <field.Input label="كلمة مرور تجريبية" type="password" />
                     )}
                   </form.AppField>
                   <form.AppField name="search">
                     {(field) => (
                       <field.GroupedInput
-                        ariaLabel="Search · Input group"
-                        description="Search by product name or SKU. Help appears below the control when its visible label is omitted."
-                        prefix="Find"
+                        ariaLabel="بحث · مجموعة الإدخال"
+                        description="ابحث باسم المنتج أو كوده. تظهر المساعدة أسفل الحقل عند عدم كتابة عنوان له."
+                        prefix="بحث"
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="website">
                     {(field) => (
-                      <field.Input label="Website · URL" type="url" />
+                      <field.Input label="الموقع الإلكتروني · رابط" type="url" />
                     )}
                   </form.AppField>
                   <form.AppField name="phone">
-                    {(field) => <field.Input label="Telephone" type="tel" />}
+                    {(field) => <field.Input label="رقم الهاتف" type="tel" />}
                   </form.AppField>
                   <form.AppField name="quantity">
                     {(field) => (
                       <field.Number
-                        label="Quantity · Number"
+                        label="الكمية · رقم"
                         min={1}
                         max={10000}
                       />
@@ -182,26 +179,26 @@ export function AllFieldsForm() {
                   </form.AppField>
                   <form.AppField name="price">
                     {(field) => (
-                      <field.Number label="Price" min={0} step={0.01} />
+                      <field.Number label="السعر" min={0} step={0.01} />
                     )}
                   </form.AppField>
                   <form.AppField name="launchDate">
-                    {(field) => <field.Date label="Launch date · Date" />}
+                    {(field) => <field.Date label="تاريخ الإطلاق · تاريخ" />}
                   </form.AppField>
                   <form.AppField name="launchTime">
-                    {(field) => <field.Time label="Launch time · Time" />}
+                    {(field) => <field.Time label="وقت الإطلاق · وقت" />}
                   </form.AppField>
                   <form.AppField name="color">
-                    {(field) => <field.Color label="Accent color · Color" />}
+                    {(field) => <field.Color label="اللون المميز · لون" />}
                   </form.AppField>
                   <form.AppField name="verificationCode">
-                    {(field) => <field.OTP label="Verification code · OTP" />}
+                    {(field) => <field.OTP label="رمز التحقق · لمرة واحدة" />}
                   </form.AppField>
                 </FieldGroup>
                 <div className="mt-5">
                   <form.AppField name="description">
                     {(field) => (
-                      <field.Textarea label="Description · Textarea" rows={4} />
+                      <field.Textarea label="الوصف · نص متعدد الأسطر" rows={4} />
                     )}
                   </form.AppField>
                 </div>
@@ -210,10 +207,10 @@ export function AllFieldsForm() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Choices and tags</CardTitle>
+                <CardTitle>الاختيارات والوسوم</CardTitle>
                 <CardDescription>
-                  Select, native select, searchable choice, and tag checkbox
-                  patterns.
+                  أمثلة لقوائم الاختيار والقوائم الأصلية والبحث والوسوم بمربعات
+                  التحديد.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -221,7 +218,7 @@ export function AllFieldsForm() {
                   <form.AppField name="collection">
                     {(field) => (
                       <field.Select
-                        label="Collection · Select"
+                        label="المجموعة · قائمة اختيار"
                         options={choices.collection}
                       />
                     )}
@@ -229,7 +226,7 @@ export function AllFieldsForm() {
                   <form.AppField name="status">
                     {(field) => (
                       <field.NativeSelect
-                        label="Status · Native select"
+                        label="الحالة · قائمة أصلية"
                         options={choices.status}
                       />
                     )}
@@ -237,7 +234,7 @@ export function AllFieldsForm() {
                   <form.AppField name="category">
                     {(field) => (
                       <field.Combobox
-                        label="Category · Searchable combobox"
+                        label="الفئة · بحث واختيار"
                         options={choices.collection}
                       />
                     )}
@@ -245,8 +242,8 @@ export function AllFieldsForm() {
                   <form.AppField name="channels">
                     {(field) => (
                       <field.CheckboxGroup
-                        label="Sales channels · Checkbox group"
-                        description="Choose where this product can be discovered or purchased."
+                        label="قنوات البيع · مربعات تحديد"
+                        description="اختار الأماكن التي يمكن للعملاء العثور على المنتج أو شراؤه منها."
                         options={choices.channels}
                       />
                     )}
@@ -254,8 +251,8 @@ export function AllFieldsForm() {
                   <form.AppField name="publishingStatus">
                     {(field) => (
                       <field.RadioGroup
-                        label="Publishing status · Radio group"
-                        description="Draft stays hidden, active is available, and archived is retired."
+                        label="حالة النشر · أزرار اختيار"
+                        description="المسودة مخفية، والنشط متاح، والمؤرشف لم يعد مستخدمًا."
                         options={choices.status}
                       />
                     )}
@@ -263,10 +260,10 @@ export function AllFieldsForm() {
                   <form.AppField name="tags">
                     {(field) => (
                       <field.Tags
-                        label="Product tags · Searchable checkbox popover"
+                        label="وسوم المنتج · قائمة قابلة للبحث"
                         options={[...choices.tags]}
                         maxVisibleTags={2}
-                        description="Choose one to five tags. Extra selections appear as +N; all tag IDs remain in the value."
+                        description="اختار من وسم إلى ٥ وسوم. تظهر الاختيارات الإضافية كرقم، وتظل كل المعرفات ضمن البيانات."
                       />
                     )}
                   </form.AppField>
@@ -276,10 +273,10 @@ export function AllFieldsForm() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Boolean and composed controls</CardTitle>
+                <CardTitle>مفاتيح التحكم والاختيارات المركّبة</CardTitle>
                 <CardDescription>
-                  Checkboxes, switches, sliders, and single or multiple toggle
-                  groups.
+                  مربعات التحديد والمفاتيح وشرائط التمرير ومجموعات الاختيار
+                  الفردية أو المتعددة.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -287,23 +284,23 @@ export function AllFieldsForm() {
                   <form.AppField name="published">
                     {(field) => (
                       <field.Checkbox
-                        label="Published · Checkbox"
-                        description="Published products can appear on enabled sales channels."
+                        label="منشور · مربع تحديد"
+                        description="يمكن أن تظهر المنتجات المنشورة في قنوات البيع المتاحة."
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="notifications">
                     {(field) => (
                       <field.Switch
-                        label="Notifications · Switch"
-                        description="Send notifications when product previews change."
+                        label="التنبيهات · مفتاح"
+                        description="أرسل تنبيهًا عند تغيير معاينة المنتج."
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="discount">
                     {(field) => (
                       <field.Slider
-                        label="Discount · Slider"
+                        label="الخصم · شريط التمرير"
                         min={0}
                         max={100}
                       />
@@ -312,16 +309,16 @@ export function AllFieldsForm() {
                   <form.AppField name="featured">
                     {(field) => (
                       <field.Toggle
-                        ariaLabel="Featured product toggle"
-                        description="Mark this product for featured placements. Help appears below an unlabeled control."
+                        ariaLabel="تفعيل المنتج المميز"
+                        description="ضع المنتج ضمن المنتجات المميزة. تظهر المساعدة أسفل الحقل عند عدم كتابة عنوان له."
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="layout">
                     {(field) => (
                       <field.ToggleGroup
-                        label="Layout · Single toggle group"
-                        description="Choose how products appear in the catalog preview."
+                        label="طريقة العرض · اختيار واحد"
+                        description="اختار طريقة ظهور المنتجات في معاينة الكتالوج."
                         options={choices.layout}
                       />
                     )}
@@ -329,7 +326,7 @@ export function AllFieldsForm() {
                   <form.AppField name="placements">
                     {(field) => (
                       <field.ToggleGroup
-                        label="Placements · Multiple toggle group"
+                        label="أماكن الظهور · اختيار متعدد"
                         options={choices.placements}
                         multiple
                       />
@@ -341,19 +338,18 @@ export function AllFieldsForm() {
 
             <Card>
               <CardHeader>
-                <CardTitle>File attachments</CardTitle>
+                <CardTitle>المرفقات</CardTitle>
                 <CardDescription>
-                  Select up to five files, then remove them individually. No
-                  upload runs.
+                  اختر حتى خمسة ملفات ثم أزل كل ملف على حدة. لا يتم رفع أي ملف.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form.AppField name="attachments">
                   {(field) => (
                     <field.Attachments
-                      label="Attach files"
+                      label="إرفاق ملفات"
                       maxFiles={5}
-                      description="Files remain local to this browser tab. Submitted output contains metadata only."
+                      description="تظل الملفات في ذاكرة علامة التبويب الحالية. تحتوي النتيجة على بيانات الملفات فقط."
                     />
                   )}
                 </form.AppField>
@@ -362,8 +358,8 @@ export function AllFieldsForm() {
 
             <form.FormErrorSummary />
             <form.FormActions>
-              <form.SubmitButton>Validate and submit</form.SubmitButton>
-              <form.ResetButton>Reset values</form.ResetButton>
+              <form.SubmitButton>تحقق وأرسل</form.SubmitButton>
+              <form.ResetButton>إعادة ضبط القيم</form.ResetButton>
               <form.UnsavedChangesIndicator />
             </form.FormActions>
           </form>
@@ -372,9 +368,9 @@ export function AllFieldsForm() {
         <div className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-20">
           <Card>
             <CardHeader>
-              <CardTitle>Live state</CardTitle>
+              <CardTitle>الحالة الحالية</CardTitle>
               <CardDescription>
-                Current values and validation update while editing.
+                تتحدث القيم والتحققات أثناء تعديل النموذج.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -389,10 +385,10 @@ export function AllFieldsForm() {
                       <Badge
                         variant={isFormValid ? "secondary" : "destructive"}
                       >
-                        {isFormValid ? "Valid" : "Needs attention"}
+                        {isFormValid ? "صالح" : "يحتاج إلى مراجعة"}
                       </Badge>
                       <Badge variant="outline">
-                        {isSubmitting ? "Submitting" : "Idle"}
+                        {isSubmitting ? "جارٍ الإرسال" : "جاهز"}
                       </Badge>
                     </div>
                     <pre className="max-h-[420px] overflow-auto rounded-xl bg-muted p-4 text-xs leading-relaxed">
@@ -406,9 +402,9 @@ export function AllFieldsForm() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Last successful submit</CardTitle>
+              <CardTitle>آخر إرسال ناجح</CardTitle>
               <CardDescription>
-                Invalid submissions leave the last output visible.
+                ستظل آخر نتيجة ظاهرة عند وجود أخطاء في الإرسال.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -423,7 +419,7 @@ export function AllFieldsForm() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Submit a valid form to capture its JSON values.
+                  أرسل نموذجًا صحيحًا لعرض قيمه بصيغة JSON.
                 </p>
               )}
             </CardContent>

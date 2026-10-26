@@ -2,60 +2,72 @@ import {
   createRootRoute,
   HeadContent,
   Outlet,
-  type ErrorComponentProps,
+  redirect,
+  useRouter,
 } from "@tanstack/react-router";
-import { AlertCircle, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { Refine } from "@refinedev/core";
+import { RootError } from "@/components/route-states/global-error";
+import { NotFound } from "@/components/route-states/not-found";
+import { adminAuthProvider } from "@/features/auth/supabase";
+import { getSupabaseClient } from "@/providers/supabase-client";
+import { adminDataProvider } from "@/providers/data-provider";
+import { notificationsDataProvider } from "@/features/notifications/data-provider";
+import { authRouterProvider } from "@/features/auth/router-provider";
+import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
+import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
+import { Loading } from "@/components/route-states/loading";
+import { resources } from "@/features/catalog/resources";
 
 export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    const pathname = location.pathname.replace(/\/+$/, "") || "/";
+    // The OAuth callback must exchange its code before any session guard runs.
+    if (pathname === "/auth/callback") return;
+    const { authenticated } = await adminAuthProvider.check();
+    if (pathname === "/sign-in") {
+      if (authenticated) throw redirect({ to: "/theme", replace: true });
+      return;
+    }
+    if (!authenticated) throw redirect({ to: "/sign-in", replace: true });
+  },
   component: RootLayout,
-  pendingComponent: RootPending,
+  pendingComponent: Loading,
   errorComponent: RootError,
   notFoundComponent: NotFound,
 });
 
 function RootLayout() {
+  const router = useRouter();
+  const notificationProvider = useNotificationProvider();
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    const subscription = supabase?.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        queueMicrotask(() => {
+          void router.invalidate();
+        });
+      }
+    });
+    return () => subscription?.data.subscription.unsubscribe();
+  }, [router]);
+
   return (
-    <>
+    <Refine
+      resources={resources}
+      dataProvider={{
+        default: adminDataProvider,
+        siteSettings: adminDataProvider,
+        notifications: notificationsDataProvider,
+      }}
+      authProvider={adminAuthProvider}
+      routerProvider={authRouterProvider}
+      notificationProvider={notificationProvider}
+      i18nProvider={arabicEgyptI18nProvider}
+      options={{ disableTelemetry: true, disableRouteChangeHandler: true }}
+    >
       <HeadContent />
       <Outlet />
-    </>
-  );
-}
-
-function RootPending() {
-  return (
-    <div className="grid min-h-svh place-items-center bg-background text-sm text-muted-foreground">
-      Loading Calesee Admin…
-    </div>
-  );
-}
-
-function RootError({ error, reset }: ErrorComponentProps) {
-  return (
-    <main className="grid min-h-svh place-items-center bg-background p-6">
-      <section className="max-w-md rounded-3xl border bg-card p-8 text-card-foreground shadow-sm">
-        <AlertCircle className="mb-4 size-6 text-destructive" />
-        <h1 className="text-lg font-semibold">The admin preview ran into a problem</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{String(error)}</p>
-        <Button className="mt-6" onClick={reset}>
-          <RotateCcw /> Try again
-        </Button>
-      </section>
-    </main>
-  );
-}
-
-function NotFound() {
-  return (
-    <main className="grid min-h-svh place-items-center bg-background p-6">
-      <section className="max-w-md rounded-3xl border bg-card p-8 text-center shadow-sm">
-        <p className="text-sm font-medium text-primary">404 · Not found</p>
-        <h1 className="mt-2 text-2xl font-semibold">That page isn’t here.</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Use the component navigation to return to the preview workspace.
-        </p>
-      </section>
-    </main>
+    </Refine>
   );
 }

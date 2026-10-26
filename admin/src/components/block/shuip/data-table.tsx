@@ -1,0 +1,2165 @@
+"use client";
+
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  type Column,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type ColumnPinningState,
+  flexRender,
+  getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  type OnChangeFn,
+  type PaginationState,
+  type Row,
+  type RowData,
+  type RowSelectionState,
+  type SortingState,
+  type Table,
+  useReactTable,
+  type VisibilityState,
+} from "@tanstack/react-table";
+import {
+  ArrowDown,
+  ArrowDownUp,
+  ArrowUp,
+  Bookmark,
+  CheckIcon,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUpDown,
+  EyeOff,
+  GripVertical,
+  Inbox,
+  ListFilter,
+  Loader2,
+  Plus,
+  PlusCircle,
+  Settings2,
+  Trash2,
+  X,
+} from "lucide-react";
+import * as React from "react";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  Table as TableRoot,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import {
+  RowReorderingBoundary,
+  SortableDataRow,
+  DataTableDragHandle,
+  type RowReordering,
+} from "./row-reordering";
+import { useDirection } from "@/components/ui/direction";
+
+export type DataTableFilterOption = {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  count?: number;
+};
+
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    label?: string;
+    placeholder?: string;
+    filterOperator?: string;
+    variant?: "text" | "number" | "date" | "select" | "multiSelect";
+    options?: DataTableFilterOption[];
+    icon?: React.ComponentType<{ className?: string }>;
+  }
+}
+
+export type FilterVariant = NonNullable<DataTableColumnMetaVariant>;
+type DataTableColumnMetaVariant =
+  | "text"
+  | "number"
+  | "date"
+  | "select"
+  | "multiSelect";
+
+export type FilterOperator =
+  | "contains"
+  | "notContains"
+  | "is"
+  | "isNot"
+  | "isEmpty"
+  | "isNotEmpty"
+  | "eq"
+  | "ne"
+  | "gt"
+  | "lt"
+  | "gte"
+  | "lte"
+  | "before"
+  | "after"
+  | "onOrBefore"
+  | "onOrAfter"
+  | "isAnyOf"
+  | "isNoneOf";
+
+export type FilterCondition = { operator: FilterOperator; value: unknown };
+
+const OPERATOR_LABELS: Record<FilterOperator, string> = {
+  contains: "يحتوي على",
+  notContains: "لا يحتوي على",
+  is: "يساوي",
+  isNot: "لا يساوي",
+  isEmpty: "فارغ",
+  isNotEmpty: "غير فارغ",
+  eq: "=",
+  ne: "≠",
+  gt: ">",
+  lt: "<",
+  gte: "≥",
+  lte: "≤",
+  before: "قبل",
+  after: "بعد",
+  onOrBefore: "في أو قبل",
+  onOrAfter: "في أو بعد",
+  isAnyOf: "أحد الخيارات",
+  isNoneOf: "ليس من الخيارات",
+};
+
+const OPERATORS_BY_VARIANT: Record<FilterVariant, FilterOperator[]> = {
+  text: ["contains", "notContains", "is", "isNot", "isEmpty", "isNotEmpty"],
+  number: ["eq", "ne", "gt", "lt", "gte", "lte", "isEmpty", "isNotEmpty"],
+  date: ["is", "before", "after", "onOrBefore", "onOrAfter", "isEmpty"],
+  select: ["is", "isNot", "isAnyOf", "isNoneOf"],
+  multiSelect: ["isAnyOf", "isNoneOf", "is", "isNot"],
+};
+
+const MULTI_VALUE_OPERATORS: FilterOperator[] = ["isAnyOf", "isNoneOf"];
+
+function operatorTakesValue(operator: FilterOperator): boolean {
+  return operator !== "isEmpty" && operator !== "isNotEmpty";
+}
+
+function isFilterCondition(value: unknown): value is FilterCondition {
+  return typeof value === "object" && value !== null && "operator" in value;
+}
+
+function conditionIsEmpty(condition: FilterCondition): boolean {
+  if (!operatorTakesValue(condition.operator)) return false;
+  const { value } = condition;
+  return (
+    value == null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+export const dataTableFilterFn = <TData,>(
+  row: Row<TData>,
+  columnId: string,
+  filterValue: unknown,
+): boolean => {
+  if (Array.isArray(filterValue)) {
+    const cell = row.getValue(columnId);
+    return filterValue.length === 0 || filterValue.includes(cell);
+  }
+  if (!isFilterCondition(filterValue)) return true;
+  const { operator, value } = filterValue;
+  if (conditionIsEmpty(filterValue)) return true;
+
+  const cell = row.getValue(columnId);
+  const text = String(cell ?? "").toLowerCase();
+  const target = String(value ?? "").toLowerCase();
+
+  switch (operator) {
+    case "isEmpty":
+      return cell == null || cell === "";
+    case "isNotEmpty":
+      return !(cell == null || cell === "");
+    case "contains":
+      return text.includes(target);
+    case "notContains":
+      return !text.includes(target);
+    case "is":
+      return text === target;
+    case "isNot":
+      return text !== target;
+    case "eq":
+      return Number(cell) === Number(value);
+    case "ne":
+      return Number(cell) !== Number(value);
+    case "gt":
+      return Number(cell) > Number(value);
+    case "lt":
+      return Number(cell) < Number(value);
+    case "gte":
+      return Number(cell) >= Number(value);
+    case "lte":
+      return Number(cell) <= Number(value);
+    case "before":
+      return new Date(String(cell)) < new Date(String(value));
+    case "after":
+      return new Date(String(cell)) > new Date(String(value));
+    case "onOrBefore":
+      return new Date(String(cell)) <= new Date(String(value));
+    case "onOrAfter":
+      return new Date(String(cell)) >= new Date(String(value));
+    case "isAnyOf":
+      return Array.isArray(value) ? value.includes(cell) : true;
+    case "isNoneOf":
+      return Array.isArray(value) ? !value.includes(cell) : true;
+    default:
+      return true;
+  }
+};
+
+export type UseDataTableProps<TData> = {
+  data: TData[];
+  columns: ColumnDef<TData, unknown>[];
+  pageCount?: number;
+  getRowId?: (row: TData, index: number) => string;
+  enableRowSelection?: boolean;
+  enableColumnPinning?: boolean;
+  enableGlobalFilter?: boolean;
+  initialState?: {
+    pagination?: PaginationState;
+    sorting?: SortingState;
+    columnVisibility?: VisibilityState;
+    columnPinning?: ColumnPinningState;
+  };
+  state?: {
+    pagination?: PaginationState;
+    sorting?: SortingState;
+    columnFilters?: ColumnFiltersState;
+    globalFilter?: string;
+  };
+  onPaginationChange?: OnChangeFn<PaginationState>;
+  onSortingChange?: OnChangeFn<SortingState>;
+  onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
+  onGlobalFilterChange?: OnChangeFn<string>;
+};
+
+export function useDataTable<TData>(props: UseDataTableProps<TData>) {
+  const {
+    data,
+    columns,
+    pageCount,
+    getRowId,
+    enableRowSelection = false,
+    enableColumnPinning = false,
+    enableGlobalFilter = true,
+    initialState,
+  } = props;
+
+  const manual = pageCount != null;
+
+  const [sorting, setSorting] = React.useState<SortingState>(
+    initialState?.sorting ?? [],
+  );
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  );
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>(initialState?.columnVisibility ?? {});
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [pagination, setPagination] = React.useState<PaginationState>(
+    initialState?.pagination ?? { pageIndex: 0, pageSize: 10 },
+  );
+  const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>(
+    () => ({
+      left: initialState?.columnPinning?.left ?? [],
+      right: initialState?.columnPinning?.right ?? [],
+    }),
+  );
+
+  const currentSorting = props.state?.sorting ?? sorting;
+  const currentColumnFilters = props.state?.columnFilters ?? columnFilters;
+  const currentGlobalFilter = props.state?.globalFilter ?? globalFilter;
+
+  const table = useReactTable<TData>({
+    data,
+    columns,
+    pageCount: pageCount ?? undefined,
+    defaultColumn: { filterFn: dataTableFilterFn },
+    autoResetPageIndex: false,
+    state: {
+      sorting: currentSorting,
+      columnFilters: currentColumnFilters,
+      globalFilter: currentGlobalFilter,
+      columnVisibility,
+      rowSelection,
+      pagination: props.state?.pagination ?? pagination,
+      columnPinning,
+    },
+    enableRowSelection,
+    enableColumnPinning,
+    enableGlobalFilter,
+    getRowId,
+    manualPagination: manual,
+    manualSorting: manual,
+    manualFiltering: manual,
+    onSortingChange: props.onSortingChange ?? setSorting,
+    onColumnFiltersChange: props.onColumnFiltersChange ?? setColumnFilters,
+    onGlobalFilterChange: props.onGlobalFilterChange ?? setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: props.onPaginationChange ?? setPagination,
+    onColumnPinningChange: setColumnPinning,
+    getCoreRowModel: getCoreRowModel(),
+    ...(manual
+      ? {}
+      : {
+          getSortedRowModel: getSortedRowModel(),
+          getFilteredRowModel: getFilteredRowModel(),
+          getPaginationRowModel: getPaginationRowModel(),
+          getFacetedRowModel: getFacetedRowModel(),
+          getFacetedUniqueValues: getFacetedUniqueValues(),
+        }),
+  });
+
+  // TanStack queues the reset of the page from the render that computes the rows, and a React that renders in slices,
+  // as it does when it hydrates, runs that microtask before the component has mounted. The reset runs here instead,
+  // from a layout effect so that no frame shows a page the new rows do not reach, and only when the rows can have
+  // changed. The inputs are compared through a ref, not a dependency array: an array would also run the effect on
+  // mount and on the second run of strict mode, and send a table that starts on `initialState.pagination` back to
+  // its first page.
+  const rowInputs = [
+    data,
+    currentSorting,
+    currentColumnFilters,
+    currentGlobalFilter,
+  ];
+  const previousRowInputs = React.useRef(rowInputs);
+  React.useLayoutEffect(() => {
+    const previous = previousRowInputs.current;
+    previousRowInputs.current = rowInputs;
+    if (manual) return;
+    if (rowInputs.every((input, index) => Object.is(input, previous[index])))
+      return;
+    table.resetPageIndex();
+  });
+
+  return { table };
+}
+
+function getColumnStyles<TData>(column: Column<TData>): React.CSSProperties {
+  const pinned = column.getIsPinned();
+  return {
+    width: column.getSize(),
+    ...(pinned
+      ? {
+          position: "sticky",
+          left: pinned === "left" ? column.getStart("left") : undefined,
+          right: pinned === "right" ? column.getAfter("right") : undefined,
+          zIndex: 1,
+        }
+      : {}),
+  };
+}
+
+function getPinClass<TData>(column: Column<TData>): string | undefined {
+  return column.getIsPinned() ? "bg-background" : undefined;
+}
+
+const skeletonBar = <Skeleton className="h-5 w-full" />;
+
+const shimmerBar = (
+  <div className="relative h-5 w-full overflow-hidden rounded bg-muted">
+    <div
+      className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-foreground/10 to-transparent motion-reduce:hidden"
+      style={{ animation: "shuip-dt-shimmer 1.5s infinite" }}
+    />
+  </div>
+);
+
+const shimmerKeyframes = (
+  <style>
+    {"@keyframes shuip-dt-shimmer{100%{transform:translateX(100%)}}"}
+  </style>
+);
+
+export type { RowReordering } from "./row-reordering";
+
+export type DataTableProps<TData> = {
+  table: Table<TData>;
+  isLoading?: boolean;
+  loadingVariant?: "skeleton" | "overlay" | "shimmer";
+  emptyState?: React.ReactNode;
+  onRowClick?: (row: TData) => void;
+  className?: string;
+  rowReordering?: RowReordering<TData>;
+  showViewOptions?: boolean;
+};
+
+export function DataTable<TData>({
+  table,
+  isLoading,
+  loadingVariant = "skeleton",
+  emptyState,
+  onRowClick,
+  className,
+  rowReordering,
+  showViewOptions = true,
+}: DataTableProps<TData>) {
+  const dir = useDirection();
+  const columnCount =
+    table.getVisibleLeafColumns().length +
+    (rowReordering ? 1 : 0) +
+    (showViewOptions ? 1 : 0);
+  const disabled = Boolean(isLoading || rowReordering?.disabled);
+  if (rowReordering && !table.options.getRowId)
+    throw new Error("Row dragging requires stable row IDs.");
+  const rows = table.getRowModel().rows;
+  const showSkeleton = isLoading && loadingVariant !== "overlay";
+  const showOverlay = isLoading && loadingVariant === "overlay";
+
+  const content = (
+    <div className={cn("relative rounded-md border", className)}>
+      <TableRoot
+        dir={dir}
+        className={cn(
+          "table-fixed",
+          showOverlay && "pointer-events-none opacity-60",
+        )}
+        style={{
+          minWidth:
+            table.getTotalSize() +
+            (rowReordering ? 48 : 0) +
+            (showViewOptions ? 50 : 0),
+        }}
+      >
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {rowReordering && (
+                <TableHead className="w-12 text-start">
+                  <span className="sr-only">نقل الصف</span>
+                </TableHead>
+              )}
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
+                  colSpan={header.colSpan}
+                  style={getColumnStyles(header.column)}
+                  className={cn(
+                    getPinClass(header.column),
+                    `${dir === "rtl" ? "text-start" : "text-end"}`,
+                  )}
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                </TableHead>
+              ))}
+              {showViewOptions && (
+                <TableHead className="w-[50px]">
+                  <DataTableViewOptions table={table} />
+                </TableHead>
+              )}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {showSkeleton ? (
+            Array.from({ length: table.getState().pagination.pageSize }).map(
+              (_, rowIndex) => (
+                <TableRow key={rowIndex}>
+                  {rowReordering && <TableCell className="w-12" />}
+                  {table.getVisibleLeafColumns().map((column) => (
+                    <TableCell
+                      key={column.id}
+                      style={getColumnStyles(column)}
+                      className={getPinClass(column)}
+                    >
+                      {loadingVariant === "shimmer" ? shimmerBar : skeletonBar}
+                    </TableCell>
+                  ))}
+                  {showViewOptions && <TableCell className="w-[50px]" />}
+                </TableRow>
+              ),
+            )
+          ) : rows.length ? (
+            rows.map((row) => {
+              const cells = (
+                <>
+                  {rowReordering && (
+                    <TableCell className="w-12">
+                      <DataTableDragHandle
+                        label={rowReordering.getRowLabel(row.original)}
+                        disabled={disabled}
+                      />
+                    </TableCell>
+                  )}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      style={getColumnStyles(cell.column)}
+                      className={cn(
+                        "overflow-hidden",
+                        getPinClass(cell.column),
+                      )}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                  {showViewOptions && <TableCell className="w-[50px]" />}
+                </>
+              );
+              const onClick = onRowClick
+                ? () => onRowClick(row.original)
+                : undefined;
+              return rowReordering ? (
+                <SortableDataRow
+                  key={row.id}
+                  id={row.id}
+                  disabled={disabled}
+                  selected={row.getIsSelected()}
+                  onClick={onClick}
+                  clickable={Boolean(onRowClick)}
+                >
+                  {cells}
+                </SortableDataRow>
+              ) : (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  onClick={onClick}
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                >
+                  {cells}
+                </TableRow>
+              );
+            })
+          ) : (
+            <TableRow>
+              <TableCell colSpan={columnCount} className="h-24 text-center">
+                {emptyState ?? "لا توجد نتائج."}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </TableRoot>
+      {showOverlay && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      {loadingVariant === "shimmer" && shimmerKeyframes}
+    </div>
+  );
+  return rowReordering ? (
+    <RowReorderingBoundary
+      rows={rows}
+      config={rowReordering}
+      disabled={disabled}
+    >
+      {content}
+    </RowReorderingBoundary>
+  ) : (
+    content
+  );
+}
+
+export type DataTableEmptyProps = {
+  variant?: "text" | "illustrated" | "with-action";
+  title?: string;
+  description?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  action?: React.ReactNode;
+};
+
+export function DataTableEmpty({
+  variant = "text",
+  title = "لا توجد نتائج",
+  description,
+  icon: Icon = Inbox,
+  action,
+}: DataTableEmptyProps) {
+  if (variant === "text") {
+    return <span className="text-muted-foreground text-sm">{title}</span>;
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
+      <div className="flex size-12 items-center justify-center rounded-full bg-muted/50">
+        <Icon className="size-6 text-muted-foreground" />
+      </div>
+      <div className="space-y-1">
+        <p className="text-balance font-medium text-sm">{title}</p>
+        {description && (
+          <p className="mx-auto max-w-xs text-balance text-muted-foreground text-sm">
+            {description}
+          </p>
+        )}
+      </div>
+      {variant === "with-action" && action}
+    </div>
+  );
+}
+
+export type DataTableColumnHeaderProps<TData, TValue> = {
+  column: Column<TData, TValue>;
+  title: string;
+  className?: string;
+};
+
+export function DataTableColumnHeader<TData, TValue>({
+  column,
+  title,
+  className,
+}: DataTableColumnHeaderProps<TData, TValue>) {
+  if (!column.getCanSort() && !column.getCanHide()) {
+    return <div className={className}>{title}</div>;
+  }
+
+  const sorted = column.getIsSorted();
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("-ms-3 h-8", className)}
+        >
+          <span>{title}</span>
+          {sorted === "desc" ? (
+            <ArrowDown className="ms-2 size-4" />
+          ) : sorted === "asc" ? (
+            <ArrowUp className="ms-2 size-4" />
+          ) : (
+            <ChevronsUpDown className="ms-2 size-4" />
+          )}
+          {sorted && column.getSortIndex() >= 1 && (
+            <span className="ms-1 rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground tabular-nums">
+              {column.getSortIndex() + 1}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex w-40 flex-col gap-0.5 p-1">
+        {column.getCanSort() && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+              onClick={() => column.toggleSorting(false)}
+            >
+              <ArrowUp className="me-2 size-3.5 text-muted-foreground/70" />{" "}
+              تصاعدي
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+              onClick={() => column.toggleSorting(true)}
+            >
+              <ArrowDown className="me-2 size-3.5 text-muted-foreground/70" />{" "}
+              تنازلي
+            </Button>
+          </>
+        )}
+        {column.getCanHide() && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start"
+            onClick={() => column.toggleVisibility(false)}
+          >
+            <EyeOff className="me-2 size-3.5 text-muted-foreground/70" /> إخفاء
+          </Button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export type DataTableFacetedFilterProps<TData, TValue> = {
+  column?: Column<TData, TValue>;
+  title?: string;
+  options: DataTableFilterOption[];
+};
+
+export function DataTableFacetedFilter<TData, TValue>({
+  column,
+  title,
+  options,
+}: DataTableFacetedFilterProps<TData, TValue>) {
+  const facets = column?.getFacetedUniqueValues();
+  const filterValue = column?.getFilterValue();
+  const selectedValues = new Set<string>(
+    Array.isArray(filterValue)
+      ? filterValue
+      : isFilterCondition(filterValue) &&
+          ["is", "isAnyOf"].includes(filterValue.operator)
+        ? Array.isArray(filterValue.value)
+          ? filterValue.value
+          : [String(filterValue.value ?? "")]
+        : [],
+  );
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 border-dashed">
+          <PlusCircle className="me-2 size-4" />
+          {title}
+          {selectedValues.size > 0 && (
+            <>
+              <Separator orientation="vertical" className="mx-2 h-4" />
+              <span className="rounded-sm bg-secondary px-1 font-normal text-xs">
+                {selectedValues.size}
+              </span>
+            </>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-0" align="start">
+        <Command>
+          <CommandInput placeholder={title} />
+          <CommandList>
+            <CommandEmpty>لا توجد نتائج.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = selectedValues.has(option.value);
+                return (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => {
+                      const next = new Set(selectedValues);
+                      if (isSelected) next.delete(option.value);
+                      else next.add(option.value);
+                      const filterValues = Array.from(next);
+                      column?.setFilterValue(
+                        filterValues.length ? filterValues : undefined,
+                      );
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex size-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible",
+                      )}
+                    >
+                      <CheckIcon className="size-3.5" />
+                    </div>
+                    {option.icon && (
+                      <option.icon className="me-2 size-4 text-muted-foreground" />
+                    )}
+                    <span>{option.label}</span>
+                    {(facets?.get(option.value) ?? 0) > 0 && (
+                      <span className="ml-auto flex size-4 items-center justify-center font-mono text-xs">
+                        {facets?.get(option.value)}
+                      </span>
+                    )}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            {selectedValues.size > 0 && (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    onSelect={() => column?.setFilterValue(undefined)}
+                    className="justify-center text-center"
+                  >
+                    مسح الفلاتر
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function DataTableViewOptions<TData>({
+  table,
+}: {
+  table: Table<TData>;
+}) {
+  const columns = table
+    .getAllColumns()
+    .filter(
+      (column) =>
+        typeof column.accessorFn !== "undefined" && column.getCanHide(),
+    );
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto hidden h-8 lg:flex"
+        >
+          <Settings2 className="me-2 size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-44 p-0">
+        <Command>
+          <CommandInput placeholder="ابحث عن عمود..." />
+          <CommandList>
+            <CommandEmpty>لا توجد أعمدة.</CommandEmpty>
+            <CommandGroup>
+              {columns.map((column) => (
+                <CommandItem
+                  key={column.id}
+                  onSelect={() =>
+                    column.toggleVisibility(!column.getIsVisible())
+                  }
+                >
+                  <CheckIcon
+                    className={cn(
+                      "mr-2 size-4",
+                      column.getIsVisible() ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="truncate">
+                    {column.columnDef.meta?.label ?? column.id}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+type FilterChip = { key: string; label: string; onRemove: () => void };
+
+function getFilterChips<TData>(table: Table<TData>): FilterChip[] {
+  const chips: FilterChip[] = [];
+  const globalFilter = table.getState().globalFilter as string;
+  if (globalFilter) {
+    chips.push({
+      key: "global",
+      label: `بحث: ${globalFilter}`,
+      onRemove: () => table.setGlobalFilter(""),
+    });
+  }
+  for (const filter of table.getState().columnFilters) {
+    const column = table.getColumn(filter.id);
+    const meta = column?.columnDef.meta;
+    const columnLabel = meta?.label ?? filter.id;
+    if (isFilterCondition(filter.value)) {
+      const condition = filter.value;
+      const value = Array.isArray(condition.value)
+        ? condition.value
+            .map(
+              (item) =>
+                meta?.options?.find((option) => option.value === item)?.label ??
+                String(item),
+            )
+            .join("، ")
+        : (meta?.options?.find((option) => option.value === condition.value)
+            ?.label ?? String(condition.value ?? ""));
+      chips.push({
+        key: filter.id,
+        label: `${columnLabel}: ${OPERATOR_LABELS[condition.operator]} ${operatorTakesValue(condition.operator) ? value : ""}`,
+        onRemove: () => column?.setFilterValue(undefined),
+      });
+      continue;
+    }
+    const values = Array.isArray(filter.value)
+      ? (filter.value as string[])
+      : [filter.value as string];
+    for (const value of values) {
+      const optionLabel =
+        meta?.options?.find((option) => option.value === value)?.label ??
+        String(value);
+      chips.push({
+        key: `${filter.id}-${value}`,
+        label: `${columnLabel}: ${optionLabel}`,
+        onRemove: () => {
+          const next = values.filter((item) => item !== value);
+          column?.setFilterValue(next.length ? next : undefined);
+        },
+      });
+    }
+  }
+  return chips;
+}
+
+export type DataTableToolbarProps<TData> = {
+  table: Table<TData>;
+  searchPlaceholder?: string;
+  variant?: "default" | "inline-chips" | "minimal";
+  children?: React.ReactNode;
+};
+
+export function DataTableToolbar<TData>({
+  table,
+  searchPlaceholder = "ابحث...",
+  variant = "default",
+  children,
+}: DataTableToolbarProps<TData>) {
+  const isFiltered =
+    table.getState().columnFilters.length > 0 ||
+    Boolean(table.getState().globalFilter);
+  const showFacets = variant !== "minimal";
+  const showChips = variant === "inline-chips";
+  const filterableColumns = table
+    .getAllColumns()
+    .filter(
+      (column) => column.getCanFilter() && column.columnDef.meta?.variant,
+    );
+  const chips = showChips ? getFilterChips(table) : [];
+
+  const clearAll = () => {
+    table.resetColumnFilters();
+    table.setGlobalFilter("");
+  };
+
+  return (
+    <div className="flex flex-col gap-2 ">
+      <div className="flex flex-wrap items-center gap-2">
+        {table.options.enableGlobalFilter !== false && (
+          <Input
+            aria-label={searchPlaceholder}
+            placeholder={searchPlaceholder}
+            value={(table.getState().globalFilter as string) ?? ""}
+            onChange={(event) => table.setGlobalFilter(event.target.value)}
+            className="h-8 w-40 lg:w-56"
+          />
+        )}
+        {showFacets &&
+          filterableColumns.map((column) => {
+            const meta = column.columnDef.meta;
+            if (
+              (meta?.variant === "select" || meta?.variant === "multiSelect") &&
+              meta.options
+            ) {
+              return (
+                <DataTableFacetedFilter
+                  key={column.id}
+                  column={column}
+                  title={meta.label ?? column.id}
+                  options={meta.options}
+                />
+              );
+            }
+            return null;
+          })}
+        {isFiltered && !showChips && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2"
+            onClick={clearAll}
+          >
+            مسح <X className="ms-2 size-4" />
+          </Button>
+        )}
+        {children}
+      </div>
+      {showChips && chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {chips.map((chip) => (
+            <span
+              key={chip.key}
+              className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pr-1 pl-2 text-secondary-foreground text-xs"
+            >
+              {chip.label}
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                aria-label={`إزالة ${chip.label}`}
+                className="flex size-4 items-center justify-center rounded-full hover:bg-background/60"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={clearAll}
+          >
+            مسح الكل
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getPaginationRange(
+  currentPage: number,
+  pageCount: number,
+  siblings = 1,
+): (number | "ellipsis")[] {
+  const totalPageNumbers = siblings * 2 + 5;
+  if (pageCount <= totalPageNumbers) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const leftSibling = Math.max(currentPage - siblings, 1);
+  const rightSibling = Math.min(currentPage + siblings, pageCount);
+  const showLeftEllipsis = leftSibling > 2;
+  const showRightEllipsis = rightSibling < pageCount - 1;
+  const edgeCount = 3 + 2 * siblings;
+
+  if (!showLeftEllipsis && showRightEllipsis) {
+    return [
+      ...Array.from({ length: edgeCount }, (_, index) => index + 1),
+      "ellipsis",
+      pageCount,
+    ];
+  }
+  if (showLeftEllipsis && !showRightEllipsis) {
+    return [
+      1,
+      "ellipsis",
+      ...Array.from(
+        { length: edgeCount },
+        (_, index) => pageCount - edgeCount + 1 + index,
+      ),
+    ];
+  }
+  return [
+    1,
+    "ellipsis",
+    ...Array.from(
+      { length: rightSibling - leftSibling + 1 },
+      (_, index) => leftSibling + index,
+    ),
+    "ellipsis",
+    pageCount,
+  ];
+}
+
+export type DataTablePaginationProps<TData> = {
+  table: Table<TData>;
+  pageSizeOptions?: number[];
+  variant?: "simple" | "numbered";
+  /** Server total; otherwise computed from the complete local row model. */
+  total?: number;
+};
+
+export function DataTablePagination<TData>({
+  table,
+  pageSizeOptions = [10, 20, 30, 40, 50],
+  variant = "simple",
+  total,
+}: DataTablePaginationProps<TData>) {
+  const pageSize = table.getState().pagination.pageSize;
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageCount = Math.max(table.getPageCount(), 1);
+  const options = pageSizeOptions.includes(pageSize)
+    ? pageSizeOptions
+    : [...pageSizeOptions, pageSize].sort((a, b) => a - b);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="text-muted-foreground text-sm">
+        {new Intl.NumberFormat("ar-EG").format(
+          total ?? table.getFilteredRowModel().rows.length,
+        )}{" "}
+        صفوف
+        {table.options.enableRowSelection && (
+          <>
+            {" "}
+            · المحدد في الصفحة:{" "}
+            {new Intl.NumberFormat("ar-EG").format(
+              table.getFilteredSelectedRowModel().rows.length,
+            )}
+          </>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm">الصفوف في الصفحة</p>
+          <Select
+            value={`${pageSize}`}
+            onValueChange={(value: string | null) =>
+              value !== null && table.setPageSize(Number(value))
+            }
+          >
+            <SelectTrigger className="h-8 w-[72px]">
+              <SelectValue placeholder={pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              <SelectGroup>
+                {options.map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        {variant === "numbered" ? (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              aria-label="الصفحة السابقة"
+            >
+              <ChevronLeft className="rtl:rotate-180" />
+            </Button>
+            {getPaginationRange(pageIndex + 1, pageCount).map((page, index) =>
+              page === "ellipsis" ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="flex size-8 items-center justify-center text-muted-foreground text-sm"
+                >
+                  &hellip;
+                </span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={page === pageIndex + 1 ? "default" : "ghost"}
+                  size="icon-sm"
+                  className="tabular-nums"
+                  aria-current={page === pageIndex + 1 ? "page" : undefined}
+                  onClick={() => table.setPageIndex(page - 1)}
+                >
+                  {new Intl.NumberFormat("ar-EG").format(page)}
+                </Button>
+              ),
+            )}
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              aria-label="الصفحة التالية"
+            >
+              <ChevronRight className="rtl:rotate-180" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center font-medium text-sm">
+              الصفحة {new Intl.NumberFormat("ar-EG").format(pageIndex + 1)} من{" "}
+              {new Intl.NumberFormat("ar-EG").format(pageCount)}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="hidden lg:flex"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+                aria-label="الصفحة الأولى"
+              >
+                <ChevronsLeft className="rtl:rotate-180" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                aria-label="الصفحة السابقة"
+              >
+                <ChevronLeft className="rtl:rotate-180" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                aria-label="الصفحة التالية"
+              >
+                <ChevronRight className="rtl:rotate-180" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="hidden lg:flex"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+                aria-label="الصفحة الأخيرة"
+              >
+                <ChevronsRight className="rtl:rotate-180" />
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export type DataTableLoadMoreProps = {
+  onLoadMore: () => void;
+  hasMore: boolean;
+  mode?: "button" | "infinite";
+  isLoading?: boolean;
+  loaded?: number;
+  total?: number;
+};
+
+export function DataTableLoadMore({
+  onLoadMore,
+  hasMore,
+  mode = "button",
+  isLoading = false,
+  loaded,
+  total,
+}: DataTableLoadMoreProps) {
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const onLoadMoreRef = React.useRef(onLoadMore);
+
+  // Resynchronised on commit, never during render: a discarded render must not
+  // leave its callback where the observer can call it.
+  React.useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  });
+
+  React.useEffect(() => {
+    if (mode !== "infinite" || !hasMore || isLoading) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMoreRef.current();
+      },
+      { rootMargin: "120px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [mode, hasMore, isLoading]);
+
+  const count =
+    loaded != null && total != null
+      ? `عرض ${new Intl.NumberFormat("ar-EG").format(loaded)} من ${new Intl.NumberFormat("ar-EG").format(total)}`
+      : null;
+
+  if (mode === "infinite") {
+    return (
+      <div className="flex min-h-9 flex-col items-center justify-center gap-2 py-4 text-muted-foreground text-sm">
+        {hasMore ? (
+          <>
+            <div ref={sentinelRef} aria-hidden className="h-px w-full" />
+            {isLoading && <Loader2 className="size-4 animate-spin" />}
+          </>
+        ) : (
+          <span>وصلت لنهاية القائمة</span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-2 py-4">
+      {hasMore ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onLoadMore}
+          disabled={isLoading}
+        >
+          {isLoading && <Loader2 className="me-2 size-4 animate-spin" />}
+          عرض المزيد
+        </Button>
+      ) : (
+        <span className="text-muted-foreground text-sm">
+          وصلت لنهاية القائمة
+        </span>
+      )}
+      {count && <span className="text-muted-foreground text-xs">{count}</span>}
+    </div>
+  );
+}
+
+type FilterField = {
+  id: string;
+  label: string;
+  variant: FilterVariant;
+  options?: DataTableFilterOption[];
+};
+type SortField = { id: string; label: string };
+
+function getFilterableFields<TData>(table: Table<TData>): FilterField[] {
+  return table
+    .getAllColumns()
+    .filter((column) => column.getCanFilter() && column.columnDef.meta?.variant)
+    .map((column) => ({
+      id: column.id,
+      label: column.columnDef.meta?.label ?? column.id,
+      variant: column.columnDef.meta?.variant as FilterVariant,
+      options: column.columnDef.meta?.options,
+    }));
+}
+
+function getSortableFields<TData>(table: Table<TData>): SortField[] {
+  return table
+    .getAllColumns()
+    .filter((column) => column.getCanSort())
+    .map((column) => ({
+      id: column.id,
+      label: column.columnDef.meta?.label ?? column.id,
+    }));
+}
+
+function defaultOperatorFor(variant: FilterVariant): FilterOperator {
+  return OPERATORS_BY_VARIANT[variant][0];
+}
+
+function defaultValueFor(variant: FilterVariant): unknown {
+  return MULTI_VALUE_OPERATORS.includes(defaultOperatorFor(variant)) ? [] : "";
+}
+
+function useReorderSensors() {
+  return useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+}
+
+function SortableRow({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn("flex items-center gap-2", isDragging && "opacity-60")}
+    >
+      <button
+        type="button"
+        className="shrink-0 cursor-grab touch-none text-muted-foreground/50 active:cursor-grabbing"
+        aria-label="إعادة الترتيب"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="size-4" />
+      </button>
+      {children}
+    </div>
+  );
+}
+
+function FieldSelect({
+  fields,
+  value,
+  onChange,
+}: {
+  fields: { id: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Select
+      value={value}
+      onValueChange={(next: string | null) => next !== null && onChange(next)}
+    >
+      <SelectTrigger className="h-8 w-[120px] shrink-0">
+        <SelectValue>
+          {fields.find((field) => field.id === value)?.label ?? value}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {fields.map((field) => (
+            <SelectItem key={field.id} value={field.id}>
+              {field.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function OperatorSelect({
+  variant,
+  value,
+  onChange,
+}: {
+  variant: FilterVariant;
+  value: FilterOperator;
+  onChange: (value: FilterOperator) => void;
+}) {
+  return (
+    <Select
+      value={value}
+      onValueChange={(next: string | null) =>
+        next !== null && onChange(next as FilterOperator)
+      }
+    >
+      <SelectTrigger className="h-8 w-[136px] shrink-0">
+        <SelectValue>{OPERATOR_LABELS[value] ?? value}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {OPERATORS_BY_VARIANT[variant].map((operator) => (
+            <SelectItem key={operator} value={operator}>
+              {OPERATOR_LABELS[operator]}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function MultiSelectValue({
+  options,
+  selected,
+  onChange,
+}: {
+  options: DataTableFilterOption[];
+  selected: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const toggle = (value: string) =>
+    onChange(
+      selected.includes(value)
+        ? selected.filter((item) => item !== value)
+        : [...selected, value],
+    );
+  const label =
+    selected.length === 0
+      ? "اختار..."
+      : selected.length === 1
+        ? (options.find((option) => option.value === selected[0])?.label ??
+          selected[0])
+        : `تم اختيار ${new Intl.NumberFormat("ar-EG").format(selected.length)}`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 flex-1 justify-between font-normal"
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDown className="ms-1 size-3.5 shrink-0 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-48 p-1">
+        <div className="flex flex-col gap-0.5">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => toggle(option.value)}
+              className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+            >
+              <Checkbox
+                checked={selected.includes(option.value)}
+                className="pointer-events-none"
+              />
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FilterValueControl({
+  field,
+  condition,
+  onChange,
+}: {
+  field: FilterField;
+  condition: FilterCondition;
+  onChange: (value: unknown) => void;
+}) {
+  if (!operatorTakesValue(condition.operator)) {
+    return (
+      <div
+        className="h-8 flex-1 rounded-md border border-dashed bg-muted/30"
+        aria-hidden
+      />
+    );
+  }
+
+  if (
+    (field.variant === "select" || field.variant === "multiSelect") &&
+    field.options
+  ) {
+    if (MULTI_VALUE_OPERATORS.includes(condition.operator)) {
+      const selected = Array.isArray(condition.value)
+        ? (condition.value as string[])
+        : [];
+      return (
+        <MultiSelectValue
+          options={field.options}
+          selected={selected}
+          onChange={onChange}
+        />
+      );
+    }
+    const selectedValue = (condition.value as string) ?? "";
+    return (
+      <Select
+        value={selectedValue}
+        onValueChange={(next: string | null) => onChange(next ?? "")}
+      >
+        <SelectTrigger className="h-8 flex-1">
+          <SelectValue placeholder="Select…">
+            {field.options.find((option) => option.value === selectedValue)
+              ?.label ??
+              (selectedValue || undefined)}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {field.options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  return (
+    <Input
+      value={(condition.value as string) ?? ""}
+      onChange={(event) => onChange(event.target.value)}
+      type={
+        field.variant === "number"
+          ? "number"
+          : field.variant === "date"
+            ? "date"
+            : "text"
+      }
+      placeholder="القيمة"
+      className="h-8 flex-1"
+    />
+  );
+}
+
+function FilterBuilder<TData>({ table }: { table: Table<TData> }) {
+  const fields = getFilterableFields(table);
+  const columnFilters = table.getState().columnFilters;
+
+  const rows = columnFilters
+    .map((columnFilter) => {
+      const field = fields.find(
+        (candidate) => candidate.id === columnFilter.id,
+      );
+      if (!field) return null;
+      const condition = isFilterCondition(columnFilter.value)
+        ? columnFilter.value
+        : {
+            operator: defaultOperatorFor(field.variant),
+            value: columnFilter.value,
+          };
+      return { field, condition };
+    })
+    .filter(
+      (row): row is { field: FilterField; condition: FilterCondition } =>
+        row !== null,
+    );
+
+  const setCondition = (columnId: string, condition: FilterCondition) => {
+    table.setColumnFilters((current) => [
+      ...current.filter((item) => item.id !== columnId),
+      { id: columnId, value: condition },
+    ]);
+  };
+
+  const removeCondition = (columnId: string) =>
+    table.setColumnFilters((current) =>
+      current.filter((item) => item.id !== columnId),
+    );
+
+  const changeField = (oldId: string, newId: string) => {
+    const field = fields.find((candidate) => candidate.id === newId);
+    if (!field) return;
+    table.setColumnFilters((current) => [
+      ...current.filter((item) => item.id !== oldId && item.id !== newId),
+      {
+        id: newId,
+        value: {
+          operator: defaultOperatorFor(field.variant),
+          value: defaultValueFor(field.variant),
+        },
+      },
+    ]);
+  };
+
+  const changeOperator = (
+    field: FilterField,
+    previous: FilterCondition,
+    operator: FilterOperator,
+  ) => {
+    const wasMulti = Array.isArray(previous.value);
+    const willMulti = MULTI_VALUE_OPERATORS.includes(operator);
+    const value = willMulti
+      ? wasMulti
+        ? previous.value
+        : []
+      : wasMulti
+        ? ""
+        : previous.value;
+    setCondition(field.id, { operator, value });
+  };
+
+  const addCondition = () => {
+    const used = new Set(columnFilters.map((item) => item.id));
+    const next = fields.find((field) => !used.has(field.id));
+    if (!next) return;
+    setCondition(next.id, {
+      operator: defaultOperatorFor(next.variant),
+      value: defaultValueFor(next.variant),
+    });
+  };
+
+  const allUsed =
+    fields.length > 0 &&
+    fields.every((field) => columnFilters.some((item) => item.id === field.id));
+
+  const sensors = useReorderSensors();
+  const dndId = React.useId();
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    table.setColumnFilters((current) => {
+      const oldIndex = current.findIndex((item) => item.id === active.id);
+      const newIndex = current.findIndex((item) => item.id === over.id);
+      if (oldIndex < 0 || newIndex < 0) return current;
+      return arrayMove(current, oldIndex, newIndex);
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.length === 0 ? (
+        <p className="px-1 py-2 text-muted-foreground text-sm">
+          لا توجد فلاتر مطبقة على العرض.
+        </p>
+      ) : (
+        <DndContext
+          id={dndId}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={rows.map((row) => row.field.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex flex-col gap-2">
+              {rows.map((row, index) => (
+                <SortableRow key={row.field.id} id={row.field.id}>
+                  <span className="w-12 shrink-0 text-muted-foreground text-sm">
+                    {index === 0 ? "حيث" : "و"}
+                  </span>
+                  <FieldSelect
+                    fields={fields}
+                    value={row.field.id}
+                    onChange={(value) => changeField(row.field.id, value)}
+                  />
+                  <OperatorSelect
+                    variant={row.field.variant}
+                    value={row.condition.operator}
+                    onChange={(operator) =>
+                      changeOperator(row.field, row.condition, operator)
+                    }
+                  />
+                  <FilterValueControl
+                    field={row.field}
+                    condition={row.condition}
+                    onChange={(value) =>
+                      setCondition(row.field.id, { ...row.condition, value })
+                    }
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-muted-foreground"
+                    onClick={() => removeCondition(row.field.id)}
+                    aria-label="إزالة الفلتر"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </SortableRow>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+      <div className="flex items-center justify-between pt-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-muted-foreground"
+          onClick={addCondition}
+          disabled={allUsed}
+        >
+          <Plus className="me-1.5 size-4" /> إضافة فلتر
+        </Button>
+        {rows.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-muted-foreground"
+            onClick={() => table.setColumnFilters([])}
+          >
+            <Trash2 className="me-1.5 size-4" /> مسح
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export type DataTableFilterMenuProps<TData> = {
+  table: Table<TData>;
+  variant?: "popover" | "dialog";
+};
+
+function FilterMenuButton({
+  count,
+  showChevron = false,
+  ...props
+}: React.ComponentProps<typeof Button> & {
+  count: number;
+  showChevron?: boolean;
+}) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 border-dashed"
+      {...props}
+    >
+      <ListFilter className="me-2 size-4" /> تصفية
+      {count > 0 && (
+        <span className="ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs">
+          {count}
+        </span>
+      )}
+      {showChevron && (
+        <ChevronDown className="ms-1 size-3.5 text-muted-foreground" />
+      )}
+    </Button>
+  );
+}
+
+export function DataTableFilterMenu<TData>({
+  table,
+  variant = "popover",
+}: DataTableFilterMenuProps<TData>) {
+  const count = table.getState().columnFilters.length;
+
+  if (variant === "dialog") {
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <FilterMenuButton count={count} />
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>الفلاتر</DialogTitle>
+            <DialogDescription>
+              اعرض الصفوف التي تطابق كل الشروط.
+            </DialogDescription>
+          </DialogHeader>
+          <FilterBuilder table={table} />
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => table.setColumnFilters([])}
+            >
+              مسح الكل
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <FilterMenuButton count={count} showChevron />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[min(560px,calc(100vw-2rem))] p-2"
+      >
+        <FilterBuilder table={table} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SortBuilder<TData>({ table }: { table: Table<TData> }) {
+  const fields = getSortableFields(table);
+  const sorting = table.getState().sorting;
+
+  const setDir = (id: string, desc: boolean) =>
+    table.setSorting((current) =>
+      current.map((sort) => (sort.id === id ? { ...sort, desc } : sort)),
+    );
+
+  const remove = (id: string) =>
+    table.setSorting((current) => current.filter((sort) => sort.id !== id));
+
+  const changeField = (oldId: string, newId: string) =>
+    table.setSorting((current) => [
+      ...current.filter((sort) => sort.id !== oldId && sort.id !== newId),
+      { id: newId, desc: false },
+    ]);
+
+  const add = () => {
+    const used = new Set(sorting.map((sort) => sort.id));
+    const next = fields.find((field) => !used.has(field.id));
+    if (next)
+      table.setSorting((current) => [...current, { id: next.id, desc: false }]);
+  };
+
+  const allUsed =
+    fields.length > 0 &&
+    fields.every((field) => sorting.some((sort) => sort.id === field.id));
+
+  const sensors = useReorderSensors();
+  const dndId = React.useId();
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    table.setSorting((current) => {
+      const oldIndex = current.findIndex((sort) => sort.id === active.id);
+      const newIndex = current.findIndex((sort) => sort.id === over.id);
+      if (oldIndex < 0 || newIndex < 0) return current;
+      return arrayMove(current, oldIndex, newIndex);
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {sorting.length === 0 ? (
+        <p className="px-1 py-2 text-muted-foreground text-sm">
+          لا يوجد ترتيب مطبق على العرض.
+        </p>
+      ) : (
+        <DndContext
+          id={dndId}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sorting.map((sort) => sort.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex flex-col gap-2">
+              {sorting.map((sort, index) => (
+                <SortableRow key={sort.id} id={sort.id}>
+                  <span className="w-12 shrink-0 text-muted-foreground text-sm">
+                    {index === 0 ? "رتّب" : "ثم"}
+                  </span>
+                  <FieldSelect
+                    fields={fields}
+                    value={sort.id}
+                    onChange={(value) => changeField(sort.id, value)}
+                  />
+                  <Select
+                    value={sort.desc ? "desc" : "asc"}
+                    onValueChange={(value: string | null) =>
+                      value !== null && setDir(sort.id, value === "desc")
+                    }
+                  >
+                    <SelectTrigger className="h-8 flex-1">
+                      <SelectValue>
+                        {sort.desc ? "تنازلي" : "تصاعدي"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="asc">تصاعدي</SelectItem>
+                        <SelectItem value="desc">تنازلي</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-muted-foreground"
+                    onClick={() => remove(sort.id)}
+                    aria-label="إزالة الترتيب"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </SortableRow>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+      <div className="pt-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 px-2 text-muted-foreground"
+          onClick={add}
+          disabled={allUsed}
+        >
+          <Plus className="me-1.5 size-4" /> إضافة ترتيب
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function DataTableSortMenu<TData>({ table }: { table: Table<TData> }) {
+  const count = table.getState().sorting.length;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 border-dashed">
+          <ArrowDownUp className="me-2 size-4" /> ترتيب
+          {count > 0 && (
+            <span className="ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs">
+              {count}
+            </span>
+          )}
+          <ChevronDown className="ms-1 size-3.5 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[min(420px,calc(100vw-2rem))] p-2"
+      >
+        <SortBuilder table={table} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export type DataTableView = {
+  name: string;
+  filters: ColumnFiltersState;
+  sorting: SortingState;
+};
+
+export type DataTableViewsProps<TData> = {
+  table: Table<TData>;
+  storageKey: string;
+};
+
+export function DataTableViews<TData>({
+  table,
+  storageKey,
+}: DataTableViewsProps<TData>) {
+  const key = `shuip:dt-views:${storageKey}`;
+  const [views, setViews] = React.useState<DataTableView[]>([]);
+  const [name, setName] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) setViews(JSON.parse(raw) as DataTableView[]);
+    } catch {
+      setViews([]);
+    }
+  }, [key]);
+
+  const persist = (next: DataTableView[]) => {
+    setViews(next);
+    try {
+      localStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
+  const save = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const view: DataTableView = {
+      name: trimmed,
+      filters: table.getState().columnFilters,
+      sorting: table.getState().sorting,
+    };
+    persist([...views.filter((current) => current.name !== trimmed), view]);
+    setName("");
+    setSaving(false);
+  };
+
+  const apply = (view: DataTableView) => {
+    table.setColumnFilters(view.filters);
+    table.setSorting(view.sorting);
+  };
+
+  const remove = (viewName: string) =>
+    persist(views.filter((current) => current.name !== viewName));
+
+  return (
+    <Popover onOpenChange={(open) => !open && setSaving(false)}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8">
+          <Bookmark className="me-2 size-4" /> طرق العرض
+          {views.length > 0 && (
+            <span className="ms-2 rounded-sm bg-secondary px-1.5 font-normal text-xs">
+              {views.length}
+            </span>
+          )}
+          <ChevronDown className="ms-1 size-3.5 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-60 p-1">
+        <div className="flex flex-col gap-0.5">
+          {views.length === 0 ? (
+            <p className="px-2 py-1.5 text-muted-foreground text-sm">
+              لا توجد طرق عرض محفوظة.
+            </p>
+          ) : (
+            views.map((view) => (
+              <div key={view.name} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => apply(view)}
+                  className="flex-1 truncate rounded-sm px-2 py-1.5 text-start text-sm hover:bg-accent"
+                >
+                  {view.name}
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 text-muted-foreground"
+                  onClick={() => remove(view.name)}
+                  aria-label={`حذف ${view.name}`}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+        <Separator className="my-1" />
+        {saving ? (
+          <div className="flex items-center gap-1.5 p-1">
+            <Input
+              autoFocus
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && save()}
+              placeholder="اسم طريقة العرض"
+              className="h-8"
+            />
+            <Button
+              size="sm"
+              className="h-8"
+              onClick={save}
+              disabled={!name.trim()}
+            >
+              حفظ
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            onClick={() => setSaving(true)}
+          >
+            <Plus className="me-2 size-4" /> حفظ طريقة العرض الحالية
+          </Button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}

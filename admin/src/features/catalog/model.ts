@@ -1,0 +1,47 @@
+import type { CatalogValues } from "@/lib/schema";
+// Compatibility exports for existing callers; definitions live only in lib/schema.
+export { productSchema as catalogSchema, addonSchema } from "@/lib/schema";
+export type { CatalogValues } from "@/lib/schema";
+
+export function defaultCatalogValues(): CatalogValues {
+  return {
+    name: "",
+    description: "",
+    longDescription: "",
+    price: "",
+    electronicPrice: "",
+    imageUrl: "",
+    category: "library",
+    isActive: false,
+    sortOrder: "0",
+  };
+}
+export function productSlug(
+  name: string,
+  suffix = crypto.randomUUID().slice(0, 8),
+) {
+  const base =
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "") || "product";
+  return `${base}-${suffix}`;
+}
+export function catalogError(error: unknown): string {
+  const value = error as {
+    code?: string;
+    statusCode?: number;
+    status?: number;
+  } | null;
+  if (value?.code === "23505")
+    return "رابط المنتج مستخدم بالفعل. حاول الإنشاء مرة أخرى.";
+  if (
+    value?.code === "42501" ||
+    [401, 403].includes(value?.statusCode ?? value?.status ?? 0)
+  )
+    return "ليس لديك صلاحية لحفظ هذا السجل.";
+  if (value?.code === "23514")
+    return "تعذّر الحفظ لأن البيانات لا تطابق قواعد المنتج.";
+  return "تعذّر حفظ البيانات. القيم محفوظة في النموذج؛ حاول مرة أخرى.";
+}

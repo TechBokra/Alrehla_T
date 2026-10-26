@@ -85,7 +85,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
           },
         )}
       />
-      <span className="sr-only">Toggle theme (Light → Dark → System)</span>
+      <span className="sr-only">تغيير المظهر: فاتح ثم داكن ثم تلقائي</span>
     </Button>
   );
 }

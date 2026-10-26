@@ -33,7 +33,7 @@ export type ProviderEvent = {
 const seedProducts: PrototypeProduct[] = [
   {
     id: "demo-204",
-    title: "Linen market tote",
+    title: "حقيبة قماش يومية",
     sku: "BAG-204",
     price: 34,
     inventory: 128,
@@ -41,7 +41,7 @@ const seedProducts: PrototypeProduct[] = [
   },
   {
     id: "demo-203",
-    title: "Everyday ceramic mug",
+    title: "كوب سيراميك يومي",
     sku: "HOME-203",
     price: 22,
     inventory: 76,
@@ -70,7 +70,7 @@ export function createPrototypeDataProvider({
     getOne: async ({ id }: GetOneParams) => {
       const record = products.find((product) => product.id === String(id));
       if (!record)
-        throw new Error(`No prototype product found for ${String(id)}.`);
+        throw new Error(`لم يتم العثور على منتج تجريبي بالمعرّف ${String(id)}.`);
       publish({
         operation: "getOne",
         resource: "products",
@@ -92,7 +92,7 @@ export function createPrototypeDataProvider({
       await pause();
       if (shouldFail()) {
         event.error =
-          "Simulated provider failure. The form values are still available.";
+          "فشل تجريبي في مصدر البيانات. ما زالت قيم النموذج متاحة.";
         publish({ ...event });
         throw new Error(event.error);
       }
@@ -118,13 +118,13 @@ export function createPrototypeDataProvider({
       await pause();
       if (shouldFail()) {
         event.error =
-          "Simulated provider failure. The form values are still available.";
+          "فشل تجريبي في مصدر البيانات. ما زالت قيم النموذج متاحة.";
         publish({ ...event });
         throw new Error(event.error);
       }
       const index = products.findIndex((product) => product.id === String(id));
       if (index < 0)
-        throw new Error(`No prototype product found for ${String(id)}.`);
+        throw new Error(`لم يتم العثور على منتج تجريبي بالمعرّف ${String(id)}.`);
       const record = { ...products[index]!, ...submitted, id: String(id) };
       products[index] = record;
       event.response = { data: record };

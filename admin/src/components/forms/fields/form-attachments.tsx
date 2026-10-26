@@ -59,7 +59,7 @@ export function FormAttachments({
         }}
       />
       {files.length > 0 ? (
-        <AttachmentGroup aria-label="Selected attachments">
+        <AttachmentGroup aria-label="المرفقات المحددة">
           {files.map((file, index) => (
             <Attachment
               key={file.name + "-" + file.lastModified + "-" + index}
@@ -71,14 +71,13 @@ export function FormAttachments({
               <AttachmentContent>
                 <AttachmentTitle>{file.name}</AttachmentTitle>
                 <AttachmentDescription>
-                  {file.type || "Unknown type"} · {file.size.toLocaleString()}{" "}
-                  bytes
+                  {file.type || "نوع غير معروف"} · {new Intl.NumberFormat("ar-EG").format(file.size)} بايت
                 </AttachmentDescription>
               </AttachmentContent>
               <AttachmentActions>
                 <AttachmentAction
                   type="button"
-                  aria-label={"Remove " + file.name}
+                  aria-label={"إزالة " + file.name}
                   onClick={() =>
                     field.handleChange(
                       files.filter((_, fileIndex) => fileIndex !== index)
@@ -92,7 +91,7 @@ export function FormAttachments({
           ))}
         </AttachmentGroup>
       ) : (
-        <FieldDescription>No attachments selected.</FieldDescription>
+        <FieldDescription>لم يتم اختيار مرفقات.</FieldDescription>
       )}
     </FieldFrame>
   );

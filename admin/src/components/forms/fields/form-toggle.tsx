@@ -36,7 +36,7 @@ export function FormToggle({
         onBlur={field.handleBlur}
         onPressedChange={field.handleChange}
       >
-        {field.state.value ? "Enabled" : "Disabled"}
+        {field.state.value ? "مفعّل" : "غير مفعّل"}
       </Toggle>
     </FieldFrame>
   );

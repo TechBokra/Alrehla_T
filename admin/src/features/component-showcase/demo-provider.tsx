@@ -28,7 +28,7 @@ export type DemoProduct = {
 let demoProducts: DemoProduct[] = [
   {
     id: "prd-104",
-    title: "Linen market tote",
+    title: "حقيبة قماش يومية",
     sku: "BAG-104",
     status: "Active",
     inventory: 128,
@@ -36,7 +36,7 @@ let demoProducts: DemoProduct[] = [
   },
   {
     id: "prd-103",
-    title: "Everyday ceramic mug",
+    title: "كوب سيراميك يومي",
     sku: "HOME-103",
     status: "Active",
     inventory: 76,
@@ -44,7 +44,7 @@ let demoProducts: DemoProduct[] = [
   },
   {
     id: "prd-102",
-    title: "Soft-knit lounge set",
+    title: "طقم ملابس منزلي ناعم",
     sku: "APP-102",
     status: "Draft",
     inventory: 0,
@@ -52,7 +52,7 @@ let demoProducts: DemoProduct[] = [
   },
   {
     id: "prd-101",
-    title: "Studio candle — cedar",
+    title: "شمعة عطرية برائحة الأرز",
     sku: "HOME-101",
     status: "Active",
     inventory: 42,
@@ -60,7 +60,7 @@ let demoProducts: DemoProduct[] = [
   },
   {
     id: "prd-100",
-    title: "Canvas weekender",
+    title: "حقيبة سفر قماشية",
     sku: "BAG-100",
     status: "Active",
     inventory: 19,
@@ -68,11 +68,15 @@ let demoProducts: DemoProduct[] = [
   },
 ];
 
+export function getDemoProducts(): DemoProduct[] {
+  return demoProducts.map((product) => ({ ...product }));
+}
+
 export const previewDataProvider: DataProvider = {
   getList: async <TData extends BaseRecord = BaseRecord>(
     params: GetListParams,
   ): Promise<GetListResponse<TData>> => {
-    const pageSize = params.pagination?.pageSize ?? demoProducts.length;
+    const pageSize = params.pagination?.mode === "off" ? demoProducts.length : params.pagination?.pageSize ?? demoProducts.length;
     const currentPage = params.pagination?.currentPage ?? 1;
     const start = (currentPage - 1) * pageSize;
 
@@ -93,7 +97,7 @@ export const previewDataProvider: DataProvider = {
     const variables = params.variables as Record<string, unknown>;
     const record = {
       id: `prd-${Date.now()}`,
-      title: String(variables.title ?? "Preview product"),
+      title: String(variables.title ?? "منتج تجريبي"),
       sku: String(variables.sku ?? "PREVIEW-001"),
       status: "Draft" as const,
       inventory: Number(variables.inventory ?? 0),
@@ -143,7 +147,7 @@ export const previewAuthProvider: AuthProvider = {
   register: async () => ({ success: true }),
   getIdentity: async () => ({
     id: "preview-admin",
-    name: "Preview Admin",
+    name: "مشرف تجريبي",
     email: "admin@example.test",
   }),
 };
