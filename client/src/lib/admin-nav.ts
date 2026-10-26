@@ -545,6 +545,12 @@ export const ADMIN_NAV: AdminGroup[] = [
             href: `${A}/audit-logs`,
             permission: 'canViewAuditLogs',
           },
+          // خريطة البيانات وصحة النظام (طلب تامر، ٢٧ أكتوبر).
+          {
+            label: 'خريطة البيانات',
+            href: `${A}/system-map`,
+            permission: 'canViewAuditLogs',
+          },
         ],
       },
     ],
