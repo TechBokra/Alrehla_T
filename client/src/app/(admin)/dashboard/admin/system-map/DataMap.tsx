@@ -1,15 +1,17 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   MAP_COLUMNS,
   MAP_FLOWS,
   MAP_NODES,
-  STATE_CHIP,
-  STATE_LABELS,
-  type Hotspot,
-  type HotState,
+  SEV_CHIP,
+  SEV_FILL,
+  SEV_LABELS,
+  type Finding,
   type MapNode,
+  type Severity,
 } from '@/lib/data-map';
 
 const W = 190;
@@ -22,12 +24,6 @@ const GROUP_STROKE: Record<MapNode['group'], string> = {
   vercel: '#2b3340',
   supa: '#1f8a5b',
   ext: '#8a5a1f',
-};
-const STATE_FILL: Record<HotState, string> = {
-  open: '#c2372b',
-  action: '#b26a00',
-  fixed: '#2c7a3f',
-  deferred: '#64748b',
 };
 
 const nodeById = Object.fromEntries(MAP_NODES.map((n) => [n.id, n]));
@@ -57,12 +53,14 @@ function midOf(d: string): { x: number; y: number } {
   return { x: (x0 + 3 * x1 + 3 * x2 + x3) / 8, y: (y0 + 3 * y1 + 3 * y2 + y3) / 8 };
 }
 
-type Selection = { kind: 'intro' } | { kind: 'node'; id: string } | { kind: 'hot'; n: number };
+type Selection = { kind: 'intro' } | { kind: 'node'; id: string } | { kind: 'hot'; id: string };
 
 /**
- * الخريطة التفاعلية — نفس خريطة البيانات، والنقاط ملوّنة بالحالة الحيّة.
+ * الخريطة التفاعلية. الدواير = نتيجة الفحص الحي بس (اللي اتصلح مابيظهرش).
  */
-export function DataMap({ hotspots }: { hotspots: Hotspot[] }) {
+export function DataMap({ findings }: { findings: Finding[] }) {
+  // رقم كل نقطة = ترتيبها في القايمة (نفس الرقم تحت الخريطة).
+  const numbered = findings.map((f, i) => ({ ...f, n: i + 1 }));
   const [flowId, setFlowId] = useState<string | null>(null);
   const [sel, setSel] = useState<Selection>({ kind: 'intro' });
 
@@ -80,10 +78,10 @@ export function DataMap({ hotspots }: { hotspots: Hotspot[] }) {
 
   const flow = MAP_FLOWS.find((f) => f.id === flowId) ?? null;
   const used = new Set(flow?.steps.flatMap(([a, b]) => [a, b]) ?? []);
-  const highlighted = new Set(sel.kind === 'hot' ? (hotspots.find((h) => h.n === sel.n)?.on ?? []) : sel.kind === 'node' ? [sel.id] : []);
+  const highlighted = new Set(sel.kind === 'hot' ? (numbered.find((h) => h.id === sel.id)?.on ?? []) : sel.kind === 'node' ? [sel.id] : []);
 
-  const pinsByNode = new Map<string, Hotspot[]>();
-  for (const h of hotspots) {
+  const pinsByNode = new Map<string, (Finding & { n: number })[]>();
+  for (const h of numbered) {
     const id = h.on[0];
     pinsByNode.set(id, [...(pinsByNode.get(id) ?? []), h]);
   }
@@ -189,10 +187,10 @@ export function DataMap({ hotspots }: { hotspots: Hotspot[] }) {
                 const cx = p.x - W / 2 + 4 + i * 22;
                 const cy = p.y - H / 2 - 2;
                 return (
-                  <g key={h.n} className="cursor-pointer" onClick={() => setSel({ kind: 'hot', n: h.n })}>
-                    <circle cx={cx} cy={cy} r={10} fill={STATE_FILL[h.state]} stroke="#fff" strokeWidth={2} />
+                  <g key={h.id} className="cursor-pointer" onClick={() => setSel({ kind: 'hot', id: h.id })}>
+                    <circle cx={cx} cy={cy} r={10} fill={SEV_FILL[h.sev]} stroke="#fff" strokeWidth={2} />
                     <text x={cx} y={cy + 4} textAnchor="middle" fill="#fff" fontSize={11} fontWeight={700}>
-                      {h.state === 'fixed' ? '✓' : h.n}
+                      {h.n}
                     </text>
                   </g>
                 );
@@ -202,15 +200,15 @@ export function DataMap({ hotspots }: { hotspots: Hotspot[] }) {
         </div>
 
         <aside className="space-y-3 rounded-3xl border border-slate-200 bg-white p-5 lg:sticky lg:top-24" aria-live="polite">
-          <Panel sel={sel} flowId={flowId} hotspots={hotspots} onSel={setSel} onFlow={setFlowId} />
+          <Panel sel={sel} flowId={flowId} findings={numbered} onSel={setSel} onFlow={setFlowId} />
         </aside>
       </div>
 
       <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-600">
-        {(['open', 'action', 'fixed', 'deferred'] as HotState[]).map((s) => (
+        {(['high', 'mid', 'low'] as Severity[]).map((s) => (
           <span key={s} className="inline-flex items-center gap-1.5">
-            <i className="inline-block h-3 w-3 rounded-full" style={{ background: STATE_FILL[s] }} />
-            {STATE_LABELS[s]}
+            <i className="inline-block h-3 w-3 rounded-full" style={{ background: SEV_FILL[s] }} />
+            {SEV_LABELS[s]}
           </span>
         ))}
         {(Object.keys(GROUP_STROKE) as MapNode['group'][]).map((g) => (
@@ -242,44 +240,50 @@ function FlowButton({ active, onClick, children }: { active: boolean; onClick: (
 function Panel({
   sel,
   flowId,
-  hotspots,
+  findings,
   onSel,
   onFlow,
 }: {
   sel: Selection;
   flowId: string | null;
-  hotspots: Hotspot[];
+  findings: (Finding & { n: number })[];
   onSel: (s: Selection) => void;
   onFlow: (id: string) => void;
 }) {
   if (sel.kind === 'hot') {
-    const h = hotspots.find((x) => x.n === sel.n)!;
-    return (
-      <>
-        <p className="text-xs font-black text-slate-500">نقطة تكدّس {h.n}</p>
-        <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-black ${STATE_CHIP[h.state]}`}>{STATE_LABELS[h.state]}</span>
-        <h2 className="text-lg font-black text-slate-900">{h.title}</h2>
-        {h.live && <p className="rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-800">{h.live}</p>}
-        <p className="text-sm font-medium leading-relaxed text-slate-700">{h.why}</p>
-        <p className="rounded-xl bg-emerald-50 p-3 text-sm font-medium leading-relaxed text-emerald-950">
-          <span className="block text-xs font-black text-emerald-800">الحل</span>
-          {h.fix}
-        </p>
-      </>
-    );
+    const h = findings.find((x) => x.id === sel.id);
+    if (h) {
+      return (
+        <>
+          <p className="text-xs font-black text-slate-500">نقطة {h.n}</p>
+          <span className={`inline-block rounded-full px-3 py-0.5 text-xs font-black ${SEV_CHIP[h.sev]}`}>{SEV_LABELS[h.sev]}</span>
+          <h2 className="text-lg font-black text-slate-900">{h.title}</h2>
+          <p className="rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-800">{h.evidence}</p>
+          <p className="rounded-xl bg-emerald-50 p-3 text-sm font-medium leading-relaxed text-emerald-950">
+            <span className="block text-xs font-black text-emerald-800">الإصلاح المقترح</span>
+            {h.fix}
+          </p>
+          {h.href && (
+            <Link href={h.href} className="inline-block text-sm font-black text-emerald-800 hover:underline">
+              {h.hrefLabel ?? 'افتح'} ←
+            </Link>
+          )}
+        </>
+      );
+    }
   }
   if (sel.kind === 'node') {
     const n = nodeById[sel.id];
     const flows = MAP_FLOWS.filter((f) => f.steps.some(([a, b]) => a === n.id || b === n.id));
-    const hots = hotspots.filter((h) => h.on.includes(n.id));
+    const hots = findings.filter((h) => h.on.includes(n.id));
     return (
       <>
         <p className="text-xs font-black text-slate-500">{MAP_COLUMNS[n.col].label}</p>
         <h2 className="text-lg font-black text-slate-900">{n.title}</h2>
         <p className="text-sm text-slate-600">{n.sub}</p>
         {hots.map((h) => (
-          <button key={h.n} type="button" onClick={() => onSel({ kind: 'hot', n: h.n })} className="block text-start text-sm font-bold text-emerald-800 hover:underline">
-            {h.n}. {h.title} — {STATE_LABELS[h.state]}
+          <button key={h.id} type="button" onClick={() => onSel({ kind: 'hot', id: h.id })} className="block text-start text-sm font-bold text-emerald-800 hover:underline">
+            {h.n}. {h.title}
           </button>
         ))}
         <p className="text-sm text-slate-600">بيعدّي عليه:</p>
@@ -310,18 +314,19 @@ function Panel({
       </>
     );
   }
-  const open = hotspots.filter((h) => h.state === 'open' || h.state === 'action');
   return (
     <>
-      <p className="text-xs font-black text-slate-500">إزاي تقراها</p>
+      <p className="text-xs font-black text-slate-500">نتيجة الفحص</p>
       <h2 className="text-lg font-black text-slate-900">
-        {open.length === 0 ? 'مفيش نقطة محتاجة شغل دلوقتي' : `${open.length} نقطة محتاجة انتباه`}
+        {findings.length === 0 ? 'مفيش تكدّس دلوقتي' : `${findings.length} نقطة محتاجة انتباه`}
       </h2>
       <p className="text-sm leading-relaxed text-slate-700">
-        اختار مسار من فوق عشان تشوف خطواته بالترتيب، أو دوس على أي صندوق أو دايرة ملوّنة. الدواير بتتلوّن من أرقام القاعدة لحظة فتح الصفحة.
+        {findings.length === 0
+          ? 'الفحص ماطلّعش أي مشكلة. شغّله تاني بعد فترة، أو لما تحس إن حاجة بطيئة.'
+          : 'دوس على أي نقطة تشوف الدليل والإصلاح. اختار مسار من فوق تشوف خطواته.'}
       </p>
-      {open.map((h) => (
-        <button key={h.n} type="button" onClick={() => onSel({ kind: 'hot', n: h.n })} className={`block w-full rounded-xl px-3 py-2 text-start text-sm font-bold ${STATE_CHIP[h.state]}`}>
+      {findings.map((h) => (
+        <button key={h.id} type="button" onClick={() => onSel({ kind: 'hot', id: h.id })} className={`block w-full rounded-xl px-3 py-2 text-start text-sm font-bold ${SEV_CHIP[h.sev]}`}>
           {h.n}. {h.title}
         </button>
       ))}

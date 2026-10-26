@@ -122,21 +122,29 @@ export const MAP_FLOWS: MapFlow[] = [
   ] },
 ];
 
-// ══ نقاط التكدّس ══════════════════════════════════════════════
+// ══ فاحص التكدّس الحي ════════════════════════════════════════
+//
+// ⚠️ قرار تامر (٢٧ أكتوبر): «اللي اتصلح مايفضلش ظاهر — الأداة نشغّلها بعد
+//    فترة وتطلّع نقاط التكدّس والإصلاحات الممكنة». فمفيش قايمة ثابتة: كل
+//    قاعدة تحت بتبص على الأرقام الحيّة (`ops_health`)، ولو لقت مشكلة بترجّع
+//    «نقطة» فيها الدليل والإصلاح. لو مفيش مشكلة، مفيش نقطة.
+//
+//    إضافة فحص جديد = قاعدة جديدة في `RULES`.
 
-export type HotState = 'open' | 'action' | 'fixed' | 'deferred';
 export type Severity = 'high' | 'mid' | 'low';
 
-export type Hotspot = {
-  n: number;
+export type Finding = {
+  id: string;
   sev: Severity;
+  /** الصناديق اللي بتتعلّم على الخريطة. */
   on: string[];
   title: string;
-  why: string;
+  /** الأرقام اللي خلّت الفحص يطلّعها. */
+  evidence: string;
   fix: string;
-  state: HotState;
-  /** سطر حيّ من الأرقام. */
-  live: string;
+  /** رابط الشاشة اللي فيها الإصلاح. */
+  href?: string;
+  hrefLabel?: string;
 };
 
 export type OpsHealth = {
@@ -155,6 +163,16 @@ export type OpsHealth = {
   checks: { audit_index: boolean; retention: boolean; autoassign: boolean; batch_reviews: boolean };
   slow: { mean_ms: number; calls: number; q: string }[];
   hot: { calls: number; total_ms: number; q: string }[];
+  /** من ترحيل 20261027130000 — ممكن تغيب قبله. */
+  seq_heavy?: { t: string; rows: number; seq_scan: number; idx_scan: number }[];
+  queues?: {
+    cancel_days: number;
+    orders_pending_stale: number;
+    join_requests_old: number;
+    tickets_old: number;
+    image_reviews_old: number;
+  };
+  payments?: { failed_7d: number; paid_7d: number };
 };
 
 export const LINE_LABELS: Record<string, string> = {
@@ -165,102 +183,254 @@ export const LINE_LABELS: Record<string, string> = {
   courses: 'الكورسات',
 };
 
+/** حدود الفحص — هنا عشان تتغيّر من مكان واحد. */
+export const LIMITS = {
+  slowMs: 150,
+  slowMinCalls: 20,
+  connectionsShare: 0.7,
+  dbSizeMb: 4000,
+  notificationsRows: 50_000,
+  auditRows: 200_000,
+  failedPaymentsShare: 0.2,
+};
+
 const ar = (n: number) => n.toLocaleString('ar-EG');
+const A = '/dashboard/admin';
 
-/** حالة كل نقطة من الأرقام الحيّة. */
-export function hotspotsFrom(h: OpsHealth | null): Hotspot[] {
-  const overdue = h?.tasks.reduce((s, t) => s + t.overdue, 0) ?? 0;
-  const unassigned = h?.tasks.reduce((s, t) => s + t.unassigned, 0) ?? 0;
-  const oldest = h?.tasks
-    .map((t) => (t.oldest_due ? Date.parse(t.oldest_due) : NaN))
-    .filter(Number.isFinite)
-    .sort((a, b) => a - b)[0];
-  const oldestDays = oldest ? Math.floor((Date.now() - oldest) / 86_400_000) : 0;
-  const studioPool = (h?.studio.rules ?? 0) > 0;
+type Rule = (h: OpsHealth) => Finding | Finding[] | null;
 
-  return [
-    {
-      n: 1, sev: 'high', on: ['tStudio', 'admin'],
-      title: 'طابور الشغل: المتأخر والمسؤولين',
-      why: 'كل طلب «أنت البطل» بيعمل مشروع ومهمة. لو مفيش مسؤول أو محدش بيفتح المهام، الطلب بيقف والعميل مستني.',
-      fix: 'اتصلح التوزيع (المهام بتروح لمسؤولي الخط، وتوزيع تلقائي بالأقل شغلًا) + ملخّص بالإيميل كل صباح. فاضل: تحديد المحرّرين والمشرفين الفنيين لكل مرحلة في «توزيع المهام».',
-      state: !h ? 'open' : unassigned > 0 ? 'open' : !studioPool || overdue > 0 ? 'action' : 'fixed',
-      live: !h
-        ? 'الأرقام مش متاحة.'
-        : `${ar(overdue)} مهمة متأخرة${oldestDays ? ` (أقدمها ${ar(oldestDays)} يوم)` : ''} · ${ar(unassigned)} من غير مسؤول · ${ar(h.studio.no_owner)} مشروع قصة من غير محرّر/مشرف · ناس الاستوديو في «توزيع المهام»: ${ar(h.studio.rules)}`,
-    },
-    {
-      n: 2, sev: 'mid', on: ['actions', 'pub'],
-      title: 'أي حفظ في اللوحة بيمسح كاش الموقع كله',
-      why: 'refreshPublicPages بيحدّث كل الصفحات العامة مع أي تعديل. مع زيارات كتير، أول الزوار بعد كل تعديل بيبنوا الصفحات من جديد.',
-      fix: 'تحديث بالعلامات (منتجات/مدربين/محتوى/إعدادات) — مؤجّل لقبل أول حملة إعلانات.',
-      state: 'deferred',
-      live: 'مؤجّل بقرار — الزيارات الحالية صغيرة.',
-    },
-    {
-      n: 3, sev: 'mid', on: ['proxy', 'auth', 'dash'],
-      title: 'رحلات الدخول مع كل فتحة لوحة',
-      why: 'الحارس والصفحة كانوا بيسألوا خادم الدخول، وبيانات المستخدم كانت بتتقري كذا مرة في نفس الصفحة.',
-      fix: 'getClaims في الحارس، وgetCurrentUser مرة واحدة لكل طلب.',
-      state: 'fixed',
-      live: h?.hot?.length ? `أكتر استعلام متكرر: ${h.hot[0].q} (${ar(h.hot[0].calls)} مرة)` : 'اتصلح.',
-    },
-    {
-      n: 4, sev: 'mid', on: ['tLogs'],
-      title: 'سجل التدقيق',
-      why: 'الشاشة كانت بتجيب 200 صف بترتيب التاريخ من غير فهرس.',
-      fix: 'فهرس على التاريخ + صفحات + الرئيسية بتجيب 8 بس.',
-      state: h?.checks.audit_index ? 'fixed' : 'open',
-      live: h ? `${ar(h.rows.audit_logs ?? 0)} سطر في السجل` : '',
-    },
-    {
-      n: 5, sev: 'mid', on: ['crons', 'cloud'],
-      title: 'مسح الصور الليلي',
-      why: 'كان بيقف في صمت فوق 500 صورة.',
-      fix: 'لحد 10 آلاف صورة، 5 دقايق، وإشعار لو اتخطّى.',
-      state: 'fixed',
-      live: 'اتصلح في الكود.',
-    },
-    {
-      n: 6, sev: 'low', on: ['tLogs'],
-      title: 'جداول بتكبر للأبد',
-      why: 'الإشعارات والسجلات مالهاش مدة حفظ.',
-      fix: 'كل ليلة: مسح الإشعارات المقروءة الأقدم من 90 يوم، وأرشفة السجل الأقدم من سنة.',
-      state: h?.checks.retention ? 'fixed' : 'open',
-      live: h
-        ? `${ar(h.rows.notifications ?? 0)} إشعار · ${ar(h.rows.notifications_old_read ?? 0)} مستني المسح الليلة الجاية`
-        : '',
-    },
-    {
-      n: 7, sev: 'low', on: ['dash'],
-      title: '«طلباتي» نداء لكل طلب',
-      why: 'صور البطل كانت بتتسأل لكل طلب لوحده.',
-      fix: 'نداء واحد لكل الطلبات.',
-      state: h?.checks.batch_reviews ? 'fixed' : 'open',
-      live: '',
-    },
-    {
-      n: 8, sev: 'low', on: ['actions', 'resend'],
-      title: 'الإيميلات جوّه العملية نفسها',
-      why: 'الزرار بيستنى Resend يرد. مشكلة بس مع الإرسال الجماعي.',
-      fix: 'طابور إرسال — مؤجّل لحد ما يبقى فيه إرسال جماعي.',
-      state: 'deferred',
-      live: 'مؤجّل بقرار.',
-    },
-  ];
+const RULES: Rule[] = [
+  // ── الشغل ─────────────────────────────────────────────────
+  (h) =>
+    h.tasks
+      .filter((t) => t.unassigned > 0)
+      .map((t) => ({
+        id: `unassigned-${t.line}`,
+        sev: 'high' as const,
+        on: [t.line === 'studio' ? 'tStudio' : t.line === 'box' || t.line === 'enha_lak' ? 'tOrders' : 'tSessions', 'admin'],
+        title: `مهام «${LINE_LABELS[t.line] ?? t.line}» من غير مسؤول`,
+        evidence: `${ar(t.unassigned)} مهمة مفتوحة مالهاش حد.`,
+        fix: 'حدّد مسؤولين للخط في «توزيع المهام»، أو اسند المهام دي بإيدك.',
+        href: `${A}/tasks/assignments`,
+        hrefLabel: 'توزيع المهام',
+      })),
+  (h) => {
+    const late = h.tasks.filter((t) => t.overdue > 0);
+    if (late.length === 0) return null;
+    const total = late.reduce((s, t) => s + t.overdue, 0);
+    const oldest = late
+      .map((t) => (t.oldest_due ? Date.parse(t.oldest_due) : NaN))
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b)[0];
+    const days = oldest ? Math.floor((Date.now() - oldest) / 86_400_000) : 0;
+    return {
+      id: 'overdue',
+      sev: days >= 3 ? 'high' : 'mid',
+      on: ['tStudio', 'admin'],
+      title: 'مهام عدّت ميعادها',
+      evidence: `${ar(total)} مهمة متأخرة${days ? `، أقدمها من ${ar(days)} يوم` : ''} — ${late
+        .map((t) => `${LINE_LABELS[t.line] ?? t.line}: ${ar(t.overdue)}`)
+        .join('، ')}.`,
+      fix: 'افتح «المهام» واقفل اللي خلص فعلًا، وحرّك أو أعد إسناد الباقي. لو المتأخر متكرّر في خط واحد، المدة المحدّدة للمرحلة دي أقصر من الواقع — عدّلها من «مراحل الشغل».',
+      href: `${A}/tasks`,
+      hrefLabel: 'المهام',
+    };
+  },
+  (h) =>
+    h.studio.no_owner > 0 && h.studio.rules === 0
+      ? {
+          id: 'studio-pool',
+          sev: 'mid',
+          on: ['tStudio'],
+          title: 'الاستوديو مالوش محرّرين متحدّدين',
+          evidence: `${ar(h.studio.no_owner)} مشروع قصة من غير محرّر/مشرف فني، و«توزيع المهام» مافيهوش حد للاستوديو.`,
+          fix: 'اربط المحرّرين بدور «محرر قصص» والرسامين بـ«مشرف فني»، وحدّدهم لمراحل الاستوديو في «توزيع المهام» — المشاريع الجديدة هتتوزّع عليهم تلقائي بالأقل شغلًا.',
+          href: `${A}/tasks/assignments`,
+          hrefLabel: 'توزيع المهام',
+        }
+      : null,
+
+  // ── طوابير بتستنى بشر ──────────────────────────────────────
+  (h) =>
+    h.queues && h.queues.join_requests_old > 0
+      ? {
+          id: 'join-requests',
+          sev: 'mid',
+          on: ['tPeople', 'applicant'],
+          title: 'طلبات انضمام مستنية رد',
+          evidence: `${ar(h.queues.join_requests_old)} طلب عدّى عليه أكتر من ٣ أيام من غير قرار.`,
+          fix: 'رد عليهم من صفحة الطلب (الرسالة بتوصلهم إيميل، وفيه زرار واتساب) أو اقبل/ارفض.',
+          href: `${A}/join-requests`,
+          hrefLabel: 'طلبات الانضمام',
+        }
+      : null,
+  (h) =>
+    h.queues && h.queues.tickets_old > 0
+      ? {
+          id: 'tickets',
+          sev: 'mid',
+          on: ['admin', 'customer'],
+          title: 'تذاكر دعم من غير رد',
+          evidence: `${ar(h.queues.tickets_old)} تذكرة مفتوحة من أكتر من يومين.`,
+          fix: 'رد على التذاكر — العميل اللي مستني رد هو أكتر واحد ممكن يلغي.',
+          href: `${A}/support/tickets`,
+          hrefLabel: 'رسائل الدعم',
+        }
+      : null,
+  (h) =>
+    h.queues && h.queues.image_reviews_old > 0
+      ? {
+          id: 'image-reviews',
+          sev: 'low',
+          on: ['customer', 'tStudio'],
+          title: 'صور بطل مستنية موافقة العميل',
+          evidence: `${ar(h.queues.image_reviews_old)} صورة اتبعتت من أكتر من ٣ أيام ومحدش رد.`,
+          fix: 'كلّم ولي الأمر على الواتساب يفتح «طلباتي» ويوافق — كل يوم انتظار بيأخّر ميعاد التسليم.',
+          href: `${A}/studio`,
+          hrefLabel: 'الاستوديو',
+        }
+      : null,
+  (h) =>
+    h.queues && h.queues.orders_pending_stale > 0
+      ? {
+          id: 'stale-orders',
+          sev: 'mid',
+          on: ['crons', 'tOrders'],
+          title: 'طلبات معلّقة عدّت مدة الإلغاء',
+          evidence: `${ar(h.queues.orders_pending_stale)} طلب مستني دفع من أكتر من ${ar(h.queues.cancel_days + 1)} يوم — المهمة الليلية المفروض كانت لغتهم.`,
+          fix: 'غالبًا المهمة اليومية «stale-orders» مابتشتغلش: راجع CRON_SECRET على Vercel وسجل المهام هناك.',
+        }
+      : null,
+
+  // ── الدفع ─────────────────────────────────────────────────
+  (h) => {
+    const p = h.payments;
+    if (!p) return null;
+    const total = p.failed_7d + p.paid_7d;
+    if (p.failed_7d < 3 || p.failed_7d / Math.max(total, 1) < LIMITS.failedPaymentsShare) return null;
+    return {
+      id: 'payments',
+      sev: 'high',
+      on: ['xpay', 'webhook'],
+      title: 'محاولات دفع بتفشل',
+      evidence: `${ar(p.failed_7d)} محاولة فشلت من ${ar(total)} آخر ٧ أيام.`,
+      fix: 'راجع إعدادات بوابة XPay ومفاتيحها على Vercel، وسجل الدفع في صفحة الطلبات. لو البوابة واقفة، حوّل مؤقتًا للتحويل اليدوي من «التسعير والمدفوعات».',
+      href: `${A}/settings/pricing`,
+      hrefLabel: 'التسعير والمدفوعات',
+    };
+  },
+
+  // ── القاعدة ───────────────────────────────────────────────
+  (h) =>
+    h.slow
+      .filter((s) => s.mean_ms >= LIMITS.slowMs && s.calls >= LIMITS.slowMinCalls)
+      .map((s) => ({
+        id: `slow-${s.q}`,
+        sev: s.mean_ms >= 500 ? ('high' as const) : ('mid' as const),
+        on: ['rest', 'rpc'],
+        title: `عملية بطيئة في القاعدة: ${s.q}`,
+        evidence: `متوسط ${ar(s.mean_ms)} م.ث في ${ar(s.calls)} نداء.`,
+        fix: /^[a-z_0-9]+$/.test(s.q)
+          ? `لو «${s.q}» جدول: غالبًا ناقصه فهرس على العمود اللي بيترتّب أو بيتفلتر بيه، أو الشاشة بتجيب صفوف كتير مرة واحدة (محتاجة صفحات). لو دالة: محتاجة مراجعة استعلاماتها.`
+          : 'محتاجة مراجعة الاستعلام ده والفهارس اللي بيستخدمها.',
+      })),
+  (h) =>
+    (h.seq_heavy ?? []).map((t) => ({
+      id: `seq-${t.t}`,
+      sev: 'mid' as const,
+      on: ['rest', 'tLogs'],
+      title: `جدول كبير بيتقري بلف كامل: ${t.t}`,
+      evidence: `${ar(t.rows)} صف — اتقري بلف كامل ${ar(t.seq_scan)} مرة مقابل ${ar(t.idx_scan)} بفهرس.`,
+      fix: `محتاج فهرس على الأعمدة اللي الشاشات بتفلتر أو بترتّب بيها في «${t.t}».`,
+    })),
+  (h) =>
+    h.connections >= h.max_connections * LIMITS.connectionsShare
+      ? {
+          id: 'connections',
+          sev: 'high',
+          on: ['rest'],
+          title: 'الاتصالات بالقاعدة قربت من الحد',
+          evidence: `${ar(h.connections)} من ${ar(h.max_connections)}.`,
+          fix: 'راجع أي حاجة بتفتح اتصالات مباشرة (سكربتات، أدوات خارجية)، أو كبّر الباقة على Supabase.',
+        }
+      : null,
+  (h) =>
+    h.db_size_mb >= LIMITS.dbSizeMb
+      ? {
+          id: 'db-size',
+          sev: 'mid',
+          on: ['tLogs'],
+          title: 'حجم القاعدة كبير',
+          evidence: `${ar(h.db_size_mb)} ميجا.`,
+          fix: 'راجع أكبر الجداول ومدد الحفظ، وحدود الباقة على Supabase.',
+        }
+      : null,
+  (h) =>
+    (h.rows.notifications_old_read ?? 0) > 1000 || (h.rows.notifications ?? 0) > LIMITS.notificationsRows
+      ? {
+          id: 'retention',
+          sev: 'low',
+          on: ['crons', 'tLogs'],
+          title: 'الإشعارات القديمة مابتتمسحش',
+          evidence: `${ar(h.rows.notifications ?? 0)} إشعار، منهم ${ar(h.rows.notifications_old_read ?? 0)} مقروء وأقدم من ٩٠ يوم.`,
+          fix: 'المسح بيحصل في المهمة اليومية «task-deadlines» — راجع إنها شغّالة على Vercel.',
+        }
+      : null,
+  (h) =>
+    (h.rows.audit_logs ?? 0) > LIMITS.auditRows
+      ? {
+          id: 'audit-size',
+          sev: 'low',
+          on: ['tLogs'],
+          title: 'سجل التدقيق كبير',
+          evidence: `${ar(h.rows.audit_logs ?? 0)} سطر.`,
+          fix: 'الأرشفة بتنقل اللي أقدم من سنة — لو الحجم كبير من غير ما يكون قديم، فيه عملية بتكتب في السجل أكتر من اللازم.',
+        }
+      : null,
+  (h) =>
+    !h.checks.audit_index || !h.checks.retention || !h.checks.autoassign || !h.checks.batch_reviews
+      ? {
+          id: 'missing-migrations',
+          sev: 'high',
+          on: ['rpc'],
+          title: 'تحديثات قاعدة ناقصة',
+          evidence: [
+            !h.checks.audit_index && 'فهرس السجل',
+            !h.checks.retention && 'الحفظ الليلي',
+            !h.checks.autoassign && 'التوزيع التلقائي',
+            !h.checks.batch_reviews && 'صور البطل المجمّعة',
+          ]
+            .filter(Boolean)
+            .join('، '),
+          fix: 'شغّل ترحيل 20261027100000_ops_assignment_and_retention في Supabase.',
+        }
+      : null,
+];
+
+const SEV_ORDER: Record<Severity, number> = { high: 0, mid: 1, low: 2 };
+
+/** الفحص: بيرجّع المشاكل الحالية بس، مرتّبة بالخطورة. */
+export function detectFindings(h: OpsHealth | null): Finding[] {
+  if (!h) return [];
+  const out: Finding[] = [];
+  for (const rule of RULES) {
+    try {
+      const r = rule(h);
+      if (Array.isArray(r)) out.push(...r);
+      else if (r) out.push(r);
+    } catch {
+      /* قاعدة واحدة بايظة ماتوقفش الفحص */
+    }
+  }
+  return out.sort((a, b) => SEV_ORDER[a.sev] - SEV_ORDER[b.sev]);
 }
 
-export const STATE_LABELS: Record<HotState, string> = {
-  open: 'محتاج تصليح',
-  action: 'محتاج خطوة منكم',
-  fixed: 'اتصلح',
-  deferred: 'مؤجّل',
-};
+export const SEV_LABELS: Record<Severity, string> = { high: 'عاجل', mid: 'مهم', low: 'متابعة' };
 
-/** ألوان شارة الحالة (Tailwind) — هنا مش في المكوّن، عشان صفحة الخادم تقراها. */
-export const STATE_CHIP: Record<HotState, string> = {
-  open: 'bg-rose-50 text-rose-800',
-  action: 'bg-amber-50 text-amber-900',
-  fixed: 'bg-emerald-50 text-emerald-800',
-  deferred: 'bg-slate-100 text-slate-700',
+/** ألوان الشارة (Tailwind) — هنا مش في المكوّن، عشان صفحة الخادم تقراها. */
+export const SEV_CHIP: Record<Severity, string> = {
+  high: 'bg-rose-50 text-rose-800',
+  mid: 'bg-amber-50 text-amber-900',
+  low: 'bg-slate-100 text-slate-700',
 };
+export const SEV_FILL: Record<Severity, string> = { high: '#c2372b', mid: '#b26a00', low: '#64748b' };

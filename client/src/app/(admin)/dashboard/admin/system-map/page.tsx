@@ -5,8 +5,10 @@ import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { createClient } from '@/lib/supabase/server';
 import { hasAdminPermission } from '@/lib/utils';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
-import { LINE_LABELS, STATE_CHIP, STATE_LABELS, hotspotsFrom, type OpsHealth } from '@/lib/data-map';
+import Link from 'next/link';
+import { LINE_LABELS, SEV_CHIP, SEV_LABELS, detectFindings, type OpsHealth } from '@/lib/data-map';
 import { DataMap } from './DataMap';
+import { RescanButton } from './RescanButton';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'خريطة البيانات', robots: { index: false } };
@@ -27,7 +29,8 @@ export default async function SystemMapPage() {
   const { data, error } = await supabase.rpc('ops_health');
   const health = error ? null : (data as unknown as OpsHealth);
   if (error && error.code !== 'PGRST202') console.error('ops_health', error);
-  const hotspots = hotspotsFrom(health);
+  // ⚠️ الفحص بيطلّع المشاكل الحالية بس — اللي اتصلح مابيظهرش (قرار تامر).
+  const findings = detectFindings(health);
 
   const overdue = health?.tasks.reduce((s, t) => s + t.overdue, 0) ?? 0;
   const open = health?.tasks.reduce((s, t) => s + t.open, 0) ?? 0;
@@ -35,10 +38,16 @@ export default async function SystemMapPage() {
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 space-y-8 px-4 py-10 sm:px-6">
       <DashboardPageHeader title="خريطة البيانات" />
-      <p className="-mt-4 max-w-3xl font-medium leading-relaxed text-slate-600">
-        كل طريق بتمشي فيه البيانات في الموقع، ونقاط التكدّس ملوّنة بحالتها الحالية. الأرقام من القاعدة لحظة فتح الصفحة
-        {health ? ` (${new Date(health.at).toLocaleTimeString('ar-EG', { timeZone: PLATFORM_TIMEZONE, timeStyle: 'short' })})` : ''}.
-      </p>
+      <div className="-mt-4 flex flex-wrap items-center justify-between gap-4">
+        <p className="max-w-3xl font-medium leading-relaxed text-slate-600">
+          فاحص حي: كل ما تفتح الصفحة أو تدوس «افحص تاني»، بيقرا أرقام القاعدة ويطلّع نقاط التكدّس الموجودة دلوقتي بس، ومعاها
+          الإصلاح المقترح. اللي اتصلح بيختفي لوحده.
+          {health
+            ? ` آخر فحص: ${new Date(health.at).toLocaleString('ar-EG', { timeZone: PLATFORM_TIMEZONE, dateStyle: 'medium', timeStyle: 'short' })}.`
+            : ''}
+        </p>
+        <RescanButton />
+      </div>
 
       {!health && (
         <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">
@@ -65,25 +74,41 @@ export default async function SystemMapPage() {
         </div>
       )}
 
-      <DataMap hotspots={hotspots} />
+      <DataMap findings={findings} />
 
       <section className="space-y-3" aria-labelledby="hots-h">
         <h2 id="hots-h" className="text-xl font-black text-slate-900">
-          نقاط التكدّس
+          نتيجة الفحص
         </h2>
-        <ul className="space-y-2">
-          {hotspots.map((h) => (
-            <li key={h.n} className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_8rem] sm:items-start">
-              <span className="font-black tabular-nums text-slate-400">{ar(h.n)}</span>
-              <div>
-                <p className="font-black text-slate-900">{h.title}</p>
-                {h.live && <p className="mt-1 text-sm font-bold text-slate-700">{h.live}</p>}
-              </div>
-              <p className="text-sm font-medium leading-relaxed text-slate-600">{h.fix}</p>
-              <span className={`h-fit w-fit rounded-full px-3 py-1 text-xs font-black ${STATE_CHIP[h.state]}`}>{STATE_LABELS[h.state]}</span>
-            </li>
-          ))}
-        </ul>
+        {!health ? null : findings.length === 0 ? (
+          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 font-bold text-emerald-900">
+            مفيش تكدّس دلوقتي. افحص تاني بعد فترة، أو لما تحس إن حاجة بطيئة أو طلبات واقفة.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {findings.map((f, i) => (
+              <li
+                key={f.id}
+                className="grid gap-2 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(0,1.2fr)_7rem] sm:items-start"
+              >
+                <span className="font-black tabular-nums text-slate-400">{(i + 1).toLocaleString('ar-EG')}</span>
+                <div>
+                  <p className="font-black text-slate-900">{f.title}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-700">{f.evidence}</p>
+                </div>
+                <div className="text-sm font-medium leading-relaxed text-slate-600">
+                  {f.fix}
+                  {f.href && (
+                    <Link href={f.href} className="ms-2 font-black text-emerald-800 hover:underline">
+                      {f.hrefLabel ?? 'افتح'} ←
+                    </Link>
+                  )}
+                </div>
+                <span className={`h-fit w-fit rounded-full px-3 py-1 text-xs font-black ${SEV_CHIP[f.sev]}`}>{SEV_LABELS[f.sev]}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {health && (

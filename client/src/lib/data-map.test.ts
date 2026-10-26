@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAP_FLOWS, MAP_NODES, hotspotsFrom, type OpsHealth } from './data-map';
+import { MAP_FLOWS, MAP_NODES, detectFindings, type OpsHealth } from './data-map';
 
 const base: OpsHealth = {
   at: '2026-10-27T00:00:00Z', db_size_mb: 23, connections: 19, max_connections: 60, tables: 97, functions: 220,
@@ -20,15 +20,30 @@ describe('خريطة البيانات', () => {
     }
   });
 
-  it('مهام من غير مسؤول = «محتاج تصليح»، ومن غير ناس للاستوديو = «محتاج خطوة منكم»', () => {
-    expect(hotspotsFrom({ ...base, tasks: [{ ...base.tasks[0], unassigned: 3 }] })[0].state).toBe('open');
-    expect(hotspotsFrom(base)[0].state).toBe('action');
-    expect(hotspotsFrom({ ...base, tasks: [], studio: { ...base.studio, rules: 2 } })[0].state).toBe('fixed');
+  it('بيطلّع المشاكل الحالية بس', () => {
+    const ids = detectFindings(base).map((f) => f.id);
+    expect(ids).toContain('overdue');
+    expect(ids).toContain('studio-pool');
+    expect(ids).not.toContain('unassigned-studio');
   });
 
-  it('من غير أرقام: الصفحة بتشتغل والبنود المعتمدة على القاعدة مفتوحة', () => {
-    const h = hotspotsFrom(null);
-    expect(h).toHaveLength(8);
-    expect(h[3].state).toBe('open');
+  it('⚠️ اللي اتصلح مابيظهرش: مفيش متأخر ولا ناقص = مفيش نقاط', () => {
+    const clean: OpsHealth = { ...base, tasks: [], studio: { ...base.studio, no_owner: 0 } };
+    expect(detectFindings(clean)).toEqual([]);
   });
+
+  it('مهام من غير مسؤول = عاجل، والترتيب بالخطورة', () => {
+    const f = detectFindings({ ...base, tasks: [{ ...base.tasks[0], unassigned: 3 }] });
+    expect(f[0].sev).toBe('high');
+  });
+
+  it('عملية بطيئة متكرّرة بتطلع، والنادرة لأ', () => {
+    const clean: OpsHealth = { ...base, tasks: [], studio: { ...base.studio, no_owner: 0 } };
+    expect(detectFindings({ ...clean, slow: [{ q: 'audit_logs', mean_ms: 300, calls: 50 }] })[0].id).toBe('slow-audit_logs');
+    expect(detectFindings({ ...clean, slow: [{ q: 'cron_fn', mean_ms: 300, calls: 5 }] })).toEqual([]);
+  });
+
+  it('من غير أرقام: مفيش نقاط (الصفحة بتقول إن الأرقام مش متاحة)', () => {
+    expect(detectFindings(null)).toEqual([]);
+});
 });
