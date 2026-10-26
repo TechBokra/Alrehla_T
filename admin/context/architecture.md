@@ -14,8 +14,9 @@
 
 ### Site branding and home navigation
 
-- `SiteBranding` reads only the site name, logo and favicon JSON fields from `site_settings` / `general` through a named `siteSettings` Refine provider registered in both live and showcase contexts. Both use the existing authenticated Supabase client; showcase default data remains local. Missing or failed images fall back to the site name/book icon.
-- The sidebar header shows the favicon plus logo when expanded, and the favicon when collapsed. A scoped effect adds the configured favicon to the browser tab and removes its own link on unmount/change. Only HTTP/HTTPS image URLs are accepted. No configuration writes are made.
+- `features/site-branding/SiteBrandingProvider` (implemented in `provider.tsx`) mounts inside root Refine above the route outlet. It reads only site name/logo/favicon from `site_settings` / `general` using the root named `siteSettings` provider and the shared authenticated Supabase client. The existing route guard permits the read only on protected pages; sign-in and OAuth callback disable it. It starts alongside layout identity loading, without waiting for `useGetIdentity`, and never blocks page rendering.
+- Root Refine owns the in-memory cache: five-minute freshness, thirty-minute retention, no polling or window-focus refetch. Branding context crosses nested showcase Refine boundaries, so showcase does not register or query its own branding provider. Demo default providers remain local. Full page refresh reloads branding; no localStorage or static asset export is used.
+- `SiteBranding` renders only the logo in the expanded sidebar (including the mobile drawer) and only the favicon in the collapsed sidebar. Fixed-size shadcn Skeletons cover initial metadata/image loading; background data refresh retains the previous result. Empty/failed images fall back to the site name/book icon. A scoped effect synchronizes the browser favicon and removes its own link on unmount/change. Only HTTP/HTTPS image URLs are accepted. No configuration writes are made.
 - The header uses shadcn Breadcrumb with TanStack Router's Link for `/`, including on showcase pages where the demo Refine Link intentionally suppresses navigation. `/` remains the existing redirect to `/theme`; the auth router's allowlist accepts `/` too.
 
 ### Header notifications (implemented)

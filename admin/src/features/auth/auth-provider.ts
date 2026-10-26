@@ -57,9 +57,57 @@ function credentialMessage(code: string) {
 
 export function createAdminAuthProvider(
   getGateway: () => AuthGateway | null,
-): AuthProvider {
+  now = Date.now,
+): AuthProvider & {
+  invalidateSession(): void;
+  subscribeSession(listener: () => void): () => void;
+  getSessionVersion(): number;
+} {
+  type Session = { user: { id: string; email?: string }; profile: AdminProfile };
+  let version = 0;
+  let cached: { session: Session; expiresAt: number } | undefined;
+  let pending: Promise<Session | null> | undefined;
+  const listeners = new Set<() => void>();
+
+  function invalidateSession() {
+    version++;
+    cached = undefined;
+    pending = undefined;
+    listeners.forEach((listener) => listener());
+  }
+
+  async function readSession(): Promise<Session | null> {
+    if (cached && now() < cached.expiresAt) return cached.session;
+    if (pending) return pending;
+    const gateway = getGateway();
+    if (!gateway) return null;
+    const startedVersion = version;
+    const request = (async () => {
+      const user = await gateway.getUser();
+      if (!user || version !== startedVersion) return null;
+      const profile = await gateway.getProfile(user.id);
+      if (version !== startedVersion || !isAdmin(profile)) return null;
+      const session = { user, profile };
+      cached = { session, expiresAt: now() + 60_000 };
+      return session;
+    })();
+    pending = request;
+    try {
+      return await request;
+    } finally {
+      if (pending === request) pending = undefined;
+    }
+  }
+
   return {
+    invalidateSession,
+    getSessionVersion: () => version,
+    subscribeSession: (listener) => {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
+    },
     login: async (values: unknown) => {
+      invalidateSession();
       if (
         typeof values === "object" &&
         values !== null &&
@@ -111,9 +159,8 @@ export function createAdminAuthProvider(
       }
     },
     check: async () => {
-      const gateway = getGateway();
       try {
-        if (gateway && (await validateAdminSession(gateway)))
+        if (await readSession())
           return { authenticated: true };
       } catch {
         // Deny access if either the verified user or profile cannot be loaded.
@@ -121,6 +168,7 @@ export function createAdminAuthProvider(
       return { authenticated: false, redirectTo: "/sign-in" };
     },
     logout: async () => {
+      invalidateSession();
       const gateway = getGateway();
       if (!gateway) return failure(authConfigurationMessage);
       try {
@@ -131,12 +179,9 @@ export function createAdminAuthProvider(
       }
     },
     getIdentity: async () => {
-      const gateway = getGateway();
-      if (!gateway) return null;
-      const user = await gateway.getUser();
-      if (!user) return null;
-      const profile = await gateway.getProfile(user.id);
-      if (!isAdmin(profile)) return null;
+      const session = await readSession();
+      if (!session) return null;
+      const { user, profile } = session;
       return {
         id: profile.id,
         name: profile.full_name,

@@ -44,6 +44,10 @@ change.
 - Reverted the previously deployed staging ordering RPC through `20261025172223_remove_catalog_ordering_rpc_ui_only` and verified the function is absent. Original staging migration was `20261025171225_reorder_catalog_records`; no catalog rows were changed and production was untouched. The earlier database-backed plan is superseded by UI-only scope.
 - UI-only implementation passes TypeScript, production build and `git diff --check`. The existing large-chunk build warning remains. Browser interactions were not verified because no browser was connected. No new tests were added/run for this reduced scope. Applied/reverted staging statements are archived in `client/supabase/maintenance/history/catalog-ordering-reverted.md` for history only, outside CLI migrations.
 
+- Implemented root `SiteBrandingProvider` above the route outlet: protected-route branding reads start without waiting for user identity, stay disabled on sign-in/OAuth, and share the root Refine result across live/showcase layouts. Removed the nested showcase branding provider. Memory cache uses five-minute freshness and thirty-minute retention without polling/window-focus refetch; refresh reloads it. No database or persistent-storage changes.
+- Sidebar branding now shows only the logo when expanded (including mobile drawer) and only the favicon when collapsed, with fixed-size initial/image Skeletons, cached-image completion handling and empty/failed image fallbacks. Existing data remains during background refetch; browser favicon synchronization is owned by the shared provider.
+- Verification: TypeScript and production build passed; five focused tests passed for route gating, cache configuration/reuse, empty/invalid fields, expanded/collapsed rendering and root/showcase wiring. Existing large-chunk warning remains. Live browser verification was blocked by Chrome returning `Debugger unattached`; actual image load/error events, mobile sizing and interactive sidebar toggle were not verified in-browser.
+
 ## In Progress
 
 - None yet.

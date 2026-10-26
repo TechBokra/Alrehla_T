@@ -19,6 +19,7 @@ import { useNotificationProvider } from "@/components/refine-ui/notification/use
 import { Loading } from "@/components/route-states/loading";
 import { resources } from "@/features/catalog/resources";
 import { SiteBrandingProvider } from "@/features/site-branding/provider";
+import { AdminIdentityProvider } from "@/features/auth/identity-provider";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -69,7 +70,9 @@ function RootLayout() {
     >
       <HeadContent />
       <SiteBrandingProvider>
-        <Outlet />
+        <AdminIdentityProvider>
+          <Outlet />
+        </AdminIdentityProvider>
       </SiteBrandingProvider>
     </Refine>
   );
