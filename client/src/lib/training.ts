@@ -17,11 +17,27 @@
 
 export const FOUNDATION_COURSE_ID = 'foundation';
 
-/** الوقت المتوقع لإنجاز التأهيل كله (طلب تامر، ٢٤ أكتوبر). */
-export const TRAINING_ESTIMATE = 'من ٤٥ إلى ٦٠ دقيقة';
+/**
+ * الافتراضي لو الإعدادات لسه ماوصلتش (قبل ترحيل 20261027090000).
+ * القيم الحقيقية من لوحة التحكم ← «التأهيل التأسيسي» (قرار تامر، ٢٧ أكتوبر).
+ */
+export const DEFAULT_ESTIMATE = { min: 45, max: 60 };
+export const DEFAULT_IDLE_MINUTES = 3;
 
-/** بعد كام دقيقة من غير تفاعل الوقت يتوقف عن الحساب. */
-export const TRAINING_IDLE_MINUTES = 3;
+const AR_COUNT: Record<number, string> = { 1: 'دقيقة واحدة', 2: 'دقيقتين', 3: 'ثلاث دقائق', 4: 'أربع دقائق', 5: 'خمس دقائق', 10: 'عشر دقائق' };
+
+/** «ثلاث دقائق» / «١٥ دقيقة» — بالفصحى زي نص الصفحة. */
+export function minutesLabel(n: number): string {
+  if (AR_COUNT[n]) return AR_COUNT[n];
+  const ar = n.toLocaleString('ar-EG');
+  return n <= 10 ? `${ar} دقائق` : `${ar} دقيقة`;
+}
+
+/** «من ٤٥ إلى ٦٠ دقيقة» (أو «حوالي ٣٠ دقيقة» لو الرقمين واحد). */
+export function estimateLabel(min: number, max: number): string {
+  const ar = (n: number) => n.toLocaleString('ar-EG');
+  return min === max ? `حوالي ${ar(min)} دقيقة` : `من ${ar(min)} إلى ${ar(max)} دقيقة`;
+}
 
 /** مكان المدرب في الصفحات — بيتفتكر على الجهاز (التقدّم نفسه في حسابه). */
 export type TrainingPosition = { module: number; page: number };
@@ -105,6 +121,10 @@ export type LearnerCourse = {
   modules: TrainingModule[];
   finalQuestions: TrainingQuestion[];
   progress: TrainingProgress | null;
+  /** من لوحة التحكم — ممكن تغيب قبل الترحيل، فالقراءة بالافتراضي. */
+  estimateMin?: number;
+  estimateMax?: number;
+  idleMinutes?: number;
   /** false = إداري بيعاين (التصحيح شغّال، ومفيش حفظ). */
   learner: boolean;
 };
@@ -130,7 +150,12 @@ export type FinalResult = {
   criticalTotal: number;
   passed: boolean;
   passPct: number;
-  rows: ReviewRow[];
+  /**
+   * نتيجة كل مجال، والوحدات اللي محتاجة مراجعة (أرقام من 0).
+   * ⚠️ مفيش إجابات صحيحة ولا صح/غلط لكل سؤال — قرار تامر (٢٧ أكتوبر).
+   */
+  topics?: { topic: string; correct: number; total: number }[];
+  reviewModules?: number[];
 };
 
 export function moduleDone(progress: TrainingProgress | null, index: number): boolean {

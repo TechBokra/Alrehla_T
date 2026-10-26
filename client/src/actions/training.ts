@@ -146,6 +146,37 @@ export async function saveTrainingSettings(
   const title = String(formData.get('title') ?? '').trim();
   if (title.length < 3 || title.length > 200) return { ok: false, error: 'اكتب اسم الدورة.', field: 'title' };
 
+  const num = (name: string, min: number, max: number) => {
+    const n = Number(formData.get(name));
+    return Number.isInteger(n) && n >= min && n <= max ? n : null;
+  };
+  const estimateMin = num('estimateMin', 1, 1000);
+  const estimateMax = num('estimateMax', 1, 1000);
+  const idleMinutes = num('idleMinutes', 1, 60);
+  if (estimateMin === null) return { ok: false, error: 'رقم دقايق صحيح.', field: 'estimateMin' };
+  if (estimateMax === null || estimateMax < estimateMin) {
+    return { ok: false, error: 'لازم يبقى أكبر من أو يساوي «من».', field: 'estimateMax' };
+  }
+  if (idleMinutes === null) return { ok: false, error: 'من ١ لـ ٦٠ دقيقة.', field: 'idleMinutes' };
+
+  // ربط المجالات بالوحدات — من الخانات `tm_<مجال>_<وحدة>` وأسماء المجالات
+  // من القاعدة (مش من المتصفح).
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from('training_courses')
+    .select('content')
+    .eq('id', FOUNDATION_COURSE_ID)
+    .maybeSingle();
+  const content = (current?.content ?? {}) as { topics?: unknown; modules?: unknown[] };
+  const topics = Array.isArray(content.topics) ? content.topics.filter((t): t is string => typeof t === 'string') : [];
+  const moduleCount = Array.isArray(content.modules) ? content.modules.length : 0;
+  const topicModules: Record<string, number[]> = {};
+  topics.forEach((t, ti) => {
+    topicModules[t] = Array.from({ length: moduleCount }, (_, mi) => mi).filter(
+      (mi) => formData.get(`tm_${ti}_${mi}`) === 'on',
+    );
+  });
+
   const patch = {
     title,
     module_pass_pct: modulePass,
@@ -156,15 +187,34 @@ export async function saveTrainingSettings(
     updated_at: new Date().toISOString(),
     updated_by: user.id,
   };
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const extra = {
+    estimate_min_minutes: estimateMin,
+    estimate_max_minutes: estimateMax,
+    idle_minutes: idleMinutes,
+    topic_modules: topicModules,
+  };
+  let { data, error } = await supabase
     .from('training_courses')
-    .update(patch)
+    .update({ ...patch, ...extra })
     .eq('id', FOUNDATION_COURSE_ID)
     .select('id')
     .maybeSingle();
+  // ⚠️ قبل ترحيل 20261027090000 الأعمدة الجديدة مش موجودة — نحفظ الباقي ونقول.
+  let partial = false;
+  if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+    partial = true;
+    ({ data, error } = await supabase
+      .from('training_courses')
+      .update(patch)
+      .eq('id', FOUNDATION_COURSE_ID)
+      .select('id')
+      .maybeSingle());
+  }
   if (error) return { ok: false, error: missing(error.code) ? NOT_SET_UP : 'تعذّر الحفظ.' };
   if (!data) return { ok: false, error: 'الحفظ ماوصلش للقاعدة — راجع الصلاحيات.' };
+  if (partial) {
+    return { ok: false, error: 'اتحفظ النجاح والتفعيل بس — الوقت وربط المجالات محتاجين ترحيل 20261027090000.' };
+  }
 
   await logAuditAction({
     actorProfileId: user.id,
@@ -172,7 +222,7 @@ export async function saveTrainingSettings(
     action: 'training_settings_updated',
     entityType: 'TrainingCourse',
     entityId: FOUNDATION_COURSE_ID,
-    metadata: patch,
+    metadata: { ...patch, ...extra },
   });
   revalidatePath('/dashboard/admin/instructors/training');
   revalidatePath('/dashboard/instructor/training');

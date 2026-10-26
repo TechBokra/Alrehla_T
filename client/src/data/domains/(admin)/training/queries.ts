@@ -1,6 +1,8 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import {
+  DEFAULT_ESTIMATE,
+  DEFAULT_IDLE_MINUTES,
   FOUNDATION_COURSE_ID,
   readProgress,
   type CourseContent,
@@ -36,6 +38,15 @@ export async function getLearnerCourse(courseId = FOUNDATION_COURSE_ID): Promise
   return { state: 'ok', data: { ...raw, progress: readProgress(raw.progress) } };
 }
 
+function readTopicModules(raw: unknown): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(v)) out[k] = v.filter((n): n is number => Number.isInteger(n));
+  }
+  return out;
+}
+
 export type AdminCourse = {
   id: string;
   title: string;
@@ -47,6 +58,13 @@ export type AdminCourse = {
   requiredForActivation: boolean;
   isActive: boolean;
   updatedAt: string;
+  estimateMin: number;
+  estimateMax: number;
+  idleMinutes: number;
+  /** المجال ← أرقام الوحدات (من 0) — للتقرير «راجع الوحدات دي». */
+  topicModules: Record<string, number[]>;
+  /** الأعمدة دي جت مع ترحيل 20261027090000 — لو لسه، الشاشة بتقول. */
+  settingsReady: boolean;
 };
 
 export async function getAdminCourse(courseId = FOUNDATION_COURSE_ID): Promise<TrainingLoad<AdminCourse | null>> {
@@ -71,6 +89,11 @@ export async function getAdminCourse(courseId = FOUNDATION_COURSE_ID): Promise<T
       requiredForActivation: data.required_for_activation,
       isActive: data.is_active,
       updatedAt: data.updated_at,
+      estimateMin: data.estimate_min_minutes ?? DEFAULT_ESTIMATE.min,
+      estimateMax: data.estimate_max_minutes ?? DEFAULT_ESTIMATE.max,
+      idleMinutes: data.idle_minutes ?? DEFAULT_IDLE_MINUTES,
+      topicModules: readTopicModules(data.topic_modules),
+      settingsReady: data.idle_minutes !== undefined,
     },
   };
 }

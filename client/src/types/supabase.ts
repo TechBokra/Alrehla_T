@@ -3778,6 +3778,10 @@ export type Database = {
           critical_required: boolean
           required_for_activation: boolean
           is_active: boolean
+          estimate_min_minutes: number
+          estimate_max_minutes: number
+          idle_minutes: number
+          topic_modules: Json
           updated_at: string
           updated_by: string | null
         }
@@ -3791,6 +3795,10 @@ export type Database = {
           critical_required?: boolean
           required_for_activation?: boolean
           is_active?: boolean
+          estimate_min_minutes?: number
+          estimate_max_minutes?: number
+          idle_minutes?: number
+          topic_modules?: Json
           updated_at?: string
           updated_by?: string | null
         }
@@ -3804,6 +3812,10 @@ export type Database = {
           critical_required?: boolean
           required_for_activation?: boolean
           is_active?: boolean
+          estimate_min_minutes?: number
+          estimate_max_minutes?: number
+          idle_minutes?: number
+          topic_modules?: Json
           updated_at?: string
           updated_by?: string | null
         }

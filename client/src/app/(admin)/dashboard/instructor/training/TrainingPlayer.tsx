@@ -14,12 +14,13 @@ import {
   allModulesDone,
   doneCount,
   moduleDone,
-  topicStats,
   finalDraftKey,
   positionKey,
   validPosition,
-  TRAINING_ESTIMATE,
-  TRAINING_IDLE_MINUTES,
+  DEFAULT_ESTIMATE,
+  DEFAULT_IDLE_MINUTES,
+  estimateLabel,
+  minutesLabel,
   type FinalResult,
   type LearnerCourse,
   type ModuleResult,
@@ -82,12 +83,13 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
   //    ظاهرة. بعد ٣ دقايق من غير تفاعل الحساب بيقف وبيظهر شريط «متوقف»،
   //    وأي تفاعل بيرجّعه. والقاعدة كمان بتحد كل نداء بدقيقتين.
   const [idle, setIdle] = useState(false);
+  const idleMinutes = course.idleMinutes || DEFAULT_IDLE_MINUTES;
   const lastActivity = useRef(0);
   useEffect(() => {
     if (!course.learner) return;
     if (!course.progress) void startTraining(course.id);
     const TICK = 15_000;
-    const IDLE_MS = TRAINING_IDLE_MINUTES * 60_000;
+    const IDLE_MS = idleMinutes * 60_000;
     lastActivity.current = Date.now();
     let pending = 0;
     let sinceSend = 0;
@@ -119,7 +121,7 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
       window.removeEventListener('pagehide', flush);
       events.forEach((e) => window.removeEventListener(e, onActivity));
     };
-  }, [course.id, course.learner, course.progress]);
+  }, [course.id, course.learner, course.progress, idleMinutes]);
 
   const [flash, setFlash] = useState('');
 
@@ -204,7 +206,7 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
           <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4">
             <p className="flex items-center gap-2 text-sm font-bold text-amber-900">
               <Pause className="h-4 w-4" aria-hidden="true" />
-              احتساب الوقت متوقف — مفيش تفاعل من {ar(TRAINING_IDLE_MINUTES)} دقايق. تقدّمك محفوظ.
+              احتساب الوقت متوقف — مفيش تفاعل من {minutesLabel(idleMinutes)}. تقدّمك محفوظ.
             </p>
             <button
               type="button"
@@ -250,7 +252,14 @@ export function TrainingPlayer({ course, name }: { course: LearnerCourse; name: 
           />
         )}
         {view.kind === 'result' && (
-          <Result course={course} progress={progress} result={view.result} name={name} onRetry={() => go({ kind: 'final' })} />
+          <Result
+            course={course}
+            progress={progress}
+            result={view.result}
+            name={name}
+            onRetry={() => go({ kind: 'final' })}
+            onReview={(i) => go({ kind: 'lesson', module: i, page: 0 })}
+          />
         )}
       </main>
     </div>
@@ -385,10 +394,13 @@ function Home({
       <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sky-950">
         <Clock className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <div className="space-y-1 text-sm leading-relaxed">
-          <p className="font-black">الوقت المتوقع: {TRAINING_ESTIMATE}.</p>
+          <p className="font-black">
+            الوقت المتوقع:{' '}
+            {estimateLabel(course.estimateMin || DEFAULT_ESTIMATE.min, course.estimateMax || DEFAULT_ESTIMATE.max)}.
+          </p>
           <p className="font-medium">
             ابدأ عندما تكون مستعدًا. يمكنك التوقف والعودة في وقت لاحق؛ ستبقى إجاباتك وتقدمك محفوظة في حسابك،
-            ويتوقف احتساب الوقت تلقائيًا عند عدم التفاعل لمدة {TRAINING_IDLE_MINUTES === 3 ? 'ثلاث' : ar(TRAINING_IDLE_MINUTES)} دقائق.
+            ويتوقف احتساب الوقت تلقائيًا عند عدم التفاعل لمدة {minutesLabel(course.idleMinutes || DEFAULT_IDLE_MINUTES)}.
           </p>
         </div>
       </div>
@@ -873,15 +885,20 @@ function Result({
   result,
   name,
   onRetry,
+  onReview,
 }: {
   course: LearnerCourse;
   progress: TrainingProgress | null;
   result: FinalResult;
   name: string;
   onRetry: () => void;
+  onReview: (moduleIndex: number) => void;
 }) {
-  const stats = useMemo(() => topicStats(course.topics, result.rows), [course.topics, result.rows]);
-  const wrong = result.rows.map((r, i) => ({ ...r, i })).filter((r) => !r.correct);
+  // ⚠️ مفيش إجابات صحيحة في التقرير (قرار تامر، ٢٧ أكتوبر) — الدرجة ونتيجة
+  //    المجالات والوحدات اللي يراجعها بس. والقاعدة نفسها مابترجّعهاش.
+  const stats = result.topics ?? [];
+  const review = (result.reviewModules ?? []).filter((i) => i >= 0 && i < course.modules.length);
+  const weakTopics = stats.filter((s) => s.correct < s.total);
   return (
     <section className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 md:p-8 print:border-0 print:p-0">
       <header className="space-y-2">
@@ -922,22 +939,30 @@ function Result({
         </div>
       )}
 
-      {wrong.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-black text-slate-900">مواضع محتاجة مراجعة</h3>
-          {wrong.map((r) => (
-            <div key={r.i} className="rounded-2xl border border-slate-200 p-4 text-sm">
-              <p className="font-black text-slate-900">
-                {ar(r.i + 1)}. {course.finalQuestions[r.i]?.q}
-                {r.critical ? <span className="mr-2 rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">حرج</span> : null}
-              </p>
-              <p className="mt-2 font-medium text-slate-700">
-                <span className="font-black">الأقرب: </span>
-                {r.right}
-              </p>
-              <p className="mt-1 font-medium leading-relaxed text-slate-600">{r.why}</p>
-            </div>
-          ))}
+      {!result.passed && (review.length > 0 || weakTopics.length > 0) && (
+        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+          <h3 className="font-black text-slate-900">راجع قبل ما تعيد التقييم</h3>
+          {review.length > 0 ? (
+            <ul className="space-y-2">
+              {review.map((i) => (
+                <li key={i} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3">
+                  <span className="text-sm font-bold text-slate-800">
+                    الوحدة {ar(i + 1)}: {course.modules[i].title}
+                  </span>
+                  <button type="button" className={btnLight} onClick={() => onReview(i)}>
+                    راجع الوحدة <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm font-medium text-slate-700">
+              راجع الوحدات المرتبطة بالمجالات دي: {weakTopics.map((t) => t.topic).join('، ')}.
+            </p>
+          )}
+          <p className="text-xs font-medium text-slate-600">
+            التقرير مابيعرضش الإجابات الصحيحة — الهدف إنك ترجع للمحتوى وتعيد التفكير في المواقف.
+          </p>
         </div>
       )}
 
