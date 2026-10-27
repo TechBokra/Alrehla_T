@@ -161,6 +161,9 @@ export async function saveInstructorServiceOffer(params: {
         is_active: isActive,
         admin_notes: adminNotes ?? null,
         updated_at: new Date().toISOString(),
+        // الاعتماد بسعر = قرار على طلب المدرب. من غير المسح، لو الإدارة
+        // اعتمدت رقم غير اللي طلبه، الطلب كان بيفضل «مستني» للأبد.
+        ...(status === 'approved' ? { requested_price: null } : {}),
       },
       { onConflict: 'provider_id,service_id' }
     )
@@ -187,6 +190,7 @@ export async function saveInstructorServiceOffer(params: {
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/admin/writing/services/requests');
   refreshPublicPages();
   revalidatePath('/dashboard/instructor/services');
   return { ok: true };
@@ -215,6 +219,7 @@ export async function removeInstructorServiceOffer(
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/admin/writing/services/requests');
   refreshPublicPages();
   return { ok: true };
 }
@@ -268,6 +273,7 @@ export async function rejectInstructorServiceOffer(
 
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/admin/writing/services/requests');
   revalidatePath('/dashboard/instructor/services');
   revalidatePath('/dashboard/admin');
   return { ok: true };
@@ -379,6 +385,7 @@ export async function proposeServiceOffer(
   revalidatePath('/dashboard/instructor/services');
   revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
   revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/admin/writing/services/requests');
   revalidatePath('/dashboard/admin');
   return { ok: true };
 }

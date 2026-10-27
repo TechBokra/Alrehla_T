@@ -365,6 +365,12 @@ export const ADMIN_NAV: AdminGroup[] = [
             href: `${A}/writing/services`,
             permission: 'canManageCatalog',
           },
+          // مين طالب يقدّم أنهي خدمة وبكام — القرار من هنا بدل صفحة كل مدرب.
+          {
+            label: 'طلبات تقديم الخدمات',
+            href: `${A}/writing/services/requests`,
+            permission: 'canManageInstructors',
+          },
           {
             label: 'الطلبات',
             href: `${A}/orders/services`,

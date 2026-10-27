@@ -1,3 +1,4 @@
+import { joinFollowUp, lastMessages, type FollowUp } from '@/lib/join-followup';
 import { JoinRequest } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 
@@ -23,3 +24,23 @@ export const getJoinRequests = async (): Promise<JoinRequest[]> => {
     message: r.message ?? undefined,
   }));
 };
+
+/**
+ * حالة المتابعة لكل طلب «قيد المراجعة» — مين عليه الدور (اقرا `lib/join-followup`).
+ * فشل القراءة = كأن مفيش رسايل (الطلب بيبان «جديد» — الأأمن إنه يظهر).
+ */
+export async function getJoinFollowUps(
+  pending: { id: string; status: string; createdAt: string }[],
+): Promise<Map<string, FollowUp>> {
+  const out = new Map<string, FollowUp>();
+  const open = pending.filter((r) => r.status === 'pending');
+  if (open.length === 0) return out;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('join_request_messages')
+    .select('request_id, author, created_at')
+    .in('request_id', open.map((r) => r.id));
+  const last = lastMessages(data ?? []);
+  for (const r of open) out.set(r.id, joinFollowUp(r, last.get(r.id) ?? null));
+  return out;
+}

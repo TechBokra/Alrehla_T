@@ -1,5 +1,7 @@
 import type { AdminPermission } from '@/types';
 import { createClient } from '@/lib/supabase/server';
+import { getJoinFollowUps } from '@/data/domains/(admin)/join-requests/queries';
+import { OFFER_REQUEST_FILTER, offerRequestKind } from '@/lib/offer-requests';
 
 /**
  * Everything waiting for an admin decision, counted in one place.
@@ -40,7 +42,9 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   ] = await Promise.all([
     supabase.from('orders').select('id', head).eq('status', 'awaiting_verification'),
     supabase.from('service_orders').select('id', head).eq('status', 'awaiting_verification'),
-    supabase.from('join_requests').select('id', head).eq('status', 'pending'),
+    // ⚠️ مش «كل قيد المراجعة» (طلب تامر، ٢٧ أكتوبر): اللي رديت عليه ومستني
+    //    المتقدّم مالوش مكان هنا — بس الجديد، واللي فيه رد جديد، واللي اتأخر.
+    supabase.from('join_requests').select('id, status, created_at').eq('status', 'pending'),
     supabase.from('profile_update_requests').select('id', head).eq('status', 'pending'),
     // "قيد المراجعة" plus an approved offer whose instructor has asked for a
     // different price — the second kind is invisible in the status alone.
@@ -50,7 +54,7 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     supabase
       .from('provider_services')
       .select('id, status, requested_price, approved_price')
-      .or('status.eq.pending,and(status.eq.approved,requested_price.not.is.null)'),
+      .or(OFFER_REQUEST_FILTER),
     supabase.from('support_tickets').select('id', head).eq('status', 'open'),
     supabase.from('support_session_requests').select('id', head).eq('status', 'pending'),
     supabase.from('withdrawal_requests').select('id', head).eq('status', 'pending'),
@@ -70,9 +74,12 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   // null; it is treated as nothing to review rather than breaking the page.
   const n = (result: { count: number | null }) => result.count ?? 0;
 
-  const pendingOffers = (serviceOffers.data ?? []).filter(
-    (o) => o.status === 'pending' || o.requested_price !== o.approved_price
-  ).length;
+  const followUps = await getJoinFollowUps(
+    (joinRequests.data ?? []).map((r) => ({ id: r.id, status: r.status, createdAt: r.created_at })),
+  );
+  const joinNeedsAction = [...followUps.values()].filter((f) => f.needsAction);
+
+  const pendingOffers = (serviceOffers.data ?? []).filter((o) => offerRequestKind(o) !== null).length;
 
   const items: ReviewQueueItem[] = [
     {
@@ -125,11 +132,11 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     },
     {
       key: 'join_requests',
-      label: 'طلبات انضمام',
-      count: n(joinRequests),
+      label: 'طلبات انضمام محتاجة رد أو متابعة',
+      count: joinNeedsAction.length,
       href: '/dashboard/admin/join-requests',
       permission: 'canManageSupport',
-      urgent: false,
+      urgent: joinNeedsAction.some((f) => f.late),
     },
     {
       // ملف المدرب وصوره بيتراجعوا من مكان واحد — فبند واحد بعددهم.
@@ -142,9 +149,11 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     },
     {
       key: 'service_offers',
-      label: 'طلبات مدربين لتقديم خدمات',
+      label: 'طلبات تقديم خدمات (جديدة أو تعديل سعر)',
       count: pendingOffers,
-      href: '/dashboard/admin/instructors',
+      // ⚠️ كانت بتودّي لقايمة المدربين — والمراجعة نفسها جوّه صفحة كل مدرب.
+      //    دلوقتي شاشة واحدة بكل الطلبات (طلب تامر، ٢٧ أكتوبر).
+      href: '/dashboard/admin/writing/services/requests',
       permission: 'canManageInstructors',
       urgent: false,
     },
