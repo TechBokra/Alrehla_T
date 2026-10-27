@@ -44,8 +44,15 @@ function RootLayout() {
   const notificationProvider = useNotificationProvider();
   useEffect(() => {
     const supabase = getSupabaseClient();
-    const subscription = supabase?.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
+    let userId: string | undefined;
+    const subscription = supabase?.auth.onAuthStateChange((event, session) => {
+      const changedAccount = session?.user.id !== userId;
+      userId = session?.user.id;
+      if (
+        event === "SIGNED_OUT" ||
+        event === "USER_UPDATED" ||
+        (event === "SIGNED_IN" && changedAccount)
+      ) {
         queueMicrotask(() => {
           void router.invalidate();
         });

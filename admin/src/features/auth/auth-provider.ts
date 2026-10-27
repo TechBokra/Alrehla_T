@@ -63,7 +63,10 @@ export function createAdminAuthProvider(
   subscribeSession(listener: () => void): () => void;
   getSessionVersion(): number;
 } {
-  type Session = { user: { id: string; email?: string }; profile: AdminProfile };
+  type Session = {
+    user: { id: string; email?: string };
+    profile: AdminProfile;
+  };
   let version = 0;
   let cached: { session: Session; expiresAt: number } | undefined;
   let pending: Promise<Session | null> | undefined;
@@ -104,7 +107,9 @@ export function createAdminAuthProvider(
     getSessionVersion: () => version,
     subscribeSession: (listener) => {
       listeners.add(listener);
-      return () => { listeners.delete(listener); };
+      return () => {
+        listeners.delete(listener);
+      };
     },
     login: async (values: unknown) => {
       invalidateSession();
@@ -160,8 +165,7 @@ export function createAdminAuthProvider(
     },
     check: async () => {
       try {
-        if (await readSession())
-          return { authenticated: true };
+        if (await readSession()) return { authenticated: true };
       } catch {
         // Deny access if either the verified user or profile cannot be loaded.
       }

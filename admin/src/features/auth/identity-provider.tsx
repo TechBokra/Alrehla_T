@@ -1,4 +1,9 @@
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { useGetIdentity } from "@refinedev/core";
 import { useLocation } from "@tanstack/react-router";
 import { adminAuthProvider } from "./supabase";
@@ -30,11 +35,16 @@ export function AdminIdentityProvider({ children }: { children: ReactNode }) {
       retry: false,
     },
   });
-  return <IdentityContext.Provider value={identity}>{children}</IdentityContext.Provider>;
+  return (
+    <IdentityContext.Provider value={identity}>
+      {children}
+    </IdentityContext.Provider>
+  );
 }
 
 export function useAdminIdentity() {
   const identity = useContext(IdentityContext);
-  if (!identity) throw new Error("useAdminIdentity requires AdminIdentityProvider");
+  if (!identity)
+    throw new Error("useAdminIdentity requires AdminIdentityProvider");
   return identity;
 }

@@ -10,6 +10,7 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { Toaster } from "./components/refine-ui/notification/toaster";
 import { ThemeProvider } from "./components/refine-ui/theme/theme-provider";
 import { Loading } from "./components/route-states/loading";
+import { AppErrorBoundary } from "./components/route-states/app-error-boundary";
 
 const DevelopmentTools = import.meta.env.DEV
   ? lazy(() => import("./providers/devtools"))
@@ -17,20 +18,22 @@ const DevelopmentTools = import.meta.env.DEV
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Suspense fallback={<Loading />}>
-      <DevelopmentTools>
-        <DirectionProvider direction="rtl">
-          <TooltipProvider>
-            <ThemeProvider
-              defaultTheme="light"
-              storageKey="admin-preview-theme"
-            >
-              <RouterProvider router={router} />
-              <Toaster position="bottom-left" richColors />
-            </ThemeProvider>
-          </TooltipProvider>
-        </DirectionProvider>
-      </DevelopmentTools>
-    </Suspense>
+    <AppErrorBoundary>
+      <Suspense fallback={<Loading />}>
+        <DevelopmentTools>
+          <DirectionProvider direction="rtl">
+            <TooltipProvider>
+              <ThemeProvider
+                defaultTheme="light"
+                storageKey="admin-preview-theme"
+              >
+                <RouterProvider router={router} />
+                <Toaster position="bottom-left" richColors />
+              </ThemeProvider>
+            </TooltipProvider>
+          </DirectionProvider>
+        </DevelopmentTools>
+      </Suspense>
+    </AppErrorBoundary>
   </StrictMode>,
 );

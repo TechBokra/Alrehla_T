@@ -13,6 +13,10 @@ change.
 
 ## Completed
 
+- 2026-10-27: Installed the browser Cloudinary SDK in `admin`: exact versions `@cloudinary/react` 1.14.4 and `@cloudinary/url-gen` 1.22.0, with the pnpm lockfile updated. SDK imports and sample URL generation, TypeScript, production build and whitespace checks passed; the existing large-chunk build warning remains. No network uploads or automated tests were run. This adds dependencies only; cloud configuration, upload controls, signing endpoints and media-library integration remain feature implementation work. The client's existing Node SDK is unchanged.
+
+- 2026-10-27: Audited legacy admin navigation/pages/forms/data entry points in `client` and created `resource-migration-plan.md` plus `legacy-admin-route-inventory.md`. The inventory covers 17 sections, 58 tabs and all 88 admin page routes with source links and navigation permissions. The plan specifies each screen's proposed view, filtering/search, default/alternative sorting, pagination and create/edit/command fields, including a phased Refine CRUD + TanStack mutation/Supabase command migration. Distinguished existing local tables/calendar placeholder from proposed server pagination/calendar/Kanban; retained local-only catalog dragging and documented account/external-service server boundaries. Production users URL redirected to sign-in, so authenticated visual parity remains unverified. Documentation only; no runtime, dependency, database or deployment changes.
+
 - Added `admin/vercel.json` with Vercel's documented Vite SPA rewrite to `/index.html`, addressing direct-route/refresh 404s before TanStack Router loads. Documented the admin project's Root Directory (`admin`), Vite preset, `pnpm build`, `dist` output, and redeployment requirement in `admin/README.md`. The Next.js `client/vercel.json` is unchanged. JSON parsing and whitespace checks passed; no deployment or live URL verification was performed, and no tests were added/run.
 
 - Added sidebar branding from the existing `site_settings.general` logo/favicon fields through a shared named Refine provider. Expanded sidebar shows logo + site icon; collapsed sidebar keeps the icon. Missing/broken image fallback and browser-tab favicon synchronization are included. Replaced the header's demo-dependent Refine home link with a shadcn Breadcrumb using TanStack Router Link to `/`, and allowed `/` in the auth router adapter. No new database writes or schema changes. TypeScript, production build and whitespace checks passed; the existing bundle-size warning remains. No tests were added or run.
@@ -48,6 +52,12 @@ change.
 - Sidebar branding now shows only the logo when expanded (including mobile drawer) and only the favicon when collapsed, with fixed-size initial/image Skeletons, cached-image completion handling and empty/failed image fallbacks. Existing data remains during background refetch; browser favicon synchronization is owned by the shared provider.
 - Verification: TypeScript and production build passed; five focused tests passed for route gating, cache configuration/reuse, empty/invalid fields, expanded/collapsed rendering and root/showcase wiring. Existing large-chunk warning remains. Live browser verification was blocked by Chrome returning `Debugger unattached`; actual image load/error events, mobile sizing and interactive sidebar toggle were not verified in-browser.
 
+- Fixed duplicate browser auth reads: route checks and identity use a shared 60-second successful-session cache with concurrent-request deduplication. Login/logout and session/account/user changes invalidate it; obsolete in-flight reads cannot restore an old session. Existing verified-user reads, admin/archived checks and database authorization remain in place. Root identity is shared across nested demo/live contexts; layout, notifications and user widgets now consume it instead of starting their own Refine identity queries. Aligned user widgets with the actual name/avatar contract.
+- Root router revalidates on logout, account changes and user updates. Identity keys include the session version, unused old keys are collected immediately, and sign-in/OAuth disable identity reads. No database changes or deployment. The working checkout changed to main during implementation; switched back to `codex/separate-app-repositories` at the user's explicit request and continued there. TypeScript, production build and whitespace checks passed; the existing large-chunk build warning remains. Automated tests were not added or run for this request; the existing branding wiring assertion was adjusted for the identity wrapper. Live Vercel behavior remains unverified until deployment.
+
+- Resolved the local theme import failure after the branch switch: the theme provider existed and direct transforms returned 200, while toaster/theme-toggle imports returned 500. Touching Vite config did not clear the stale resolver state; restarted only the identified local Vite process on port 4173. Both failing module transforms now return HTTP 200 without changing the valid import path.
+- Added `AppErrorBoundary` around all app providers, Suspense, router and toaster, reusing the shadcn `RootError` screen. Global render failures offer retry/remount and page reload. Route errors still use the same screen; Arabic generic copy is shown in production and technical details only in development. This does not intercept Vite compilation errors or replace form/request error handling. TypeScript, production build and whitespace checks passed; the existing large-chunk warning remains. No automated tests were added or run.
+
 ## In Progress
 
 - None yet.
@@ -62,8 +72,7 @@ change.
 
 ## Architecture Decisions
 
-- [Decisions made that affect the system design or
-  data model — include why the decision was made]
+- 2026-10-27: Agreed on Refine resources/hooks for CRUD, table sorting/filtering/pagination and resource query caching. New business commands (for example confirming an order) use feature-owned TanStack Query `useMutation` hooks calling Supabase RPC through the shared authenticated client, followed by Refine `useInvalidate` against the same context/named provider. Database functions enforce authorization, transitions and atomic writes. Commands share Refine's QueryClient; no duplicate resource read cache is introduced. Saved row ordering follows this command path only when explicitly implemented; existing dragging stays local. Existing notification `useCustomMutation` remains documented as current implementation. Direct TanStack Query dependency setup and runtime adoption remain implementation work; this update changes documentation only.
 
 ## Session Notes
 

@@ -125,7 +125,10 @@ test("root owns branding above nested showcase Refine and does not depend on ide
     new URL("../src/features/site-branding/provider.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(root, /<SiteBrandingProvider>\s*<Outlet/);
+  assert.match(
+    root,
+    /<SiteBrandingProvider>\s*<AdminIdentityProvider>\s*<Outlet/,
+  );
   assert.match(root, /siteSettings: adminDataProvider/);
   assert.doesNotMatch(showcase, /siteSettings:/);
   assert.match(showcase, /default: previewDataProvider/);

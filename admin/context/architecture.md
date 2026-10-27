@@ -12,6 +12,58 @@
 
 ## System Boundaries
 
+### Refine resources and business commands (agreed standard)
+
+Refine owns resource CRUD, table query state and the resource cache, backed by TanStack Query. Business commands use feature-owned TanStack Query `useMutation` hooks that call Supabase RPC through the shared authenticated client, then refresh affected Refine queries with `useInvalidate`.
+
+The [resource migration plan](./resource-migration-plan.md) specifies proposed views, filters, search, sorting, pagination, forms and delivery phases for the legacy admin. Its [route inventory](./legacy-admin-route-inventory.md) maps all 88 source page routes and the 58 navigation tabs/permissions. These documents are a plan and source audit, not evidence that the resources or RPCs are implemented or deployed.
+
+| Operation | Owner | Supabase access |
+| --- | --- | --- |
+| List/detail reads | Refine `useTable`, `useList`, `useOne` | Existing Supabase data provider |
+| Create/update/delete a resource | Refine `useCreate`, `useUpdate`, `useDelete` and existing resource dialogs | Existing Supabase data provider |
+| Confirm/cancel an order or another business command | Feature hook using TanStack Query `useMutation` | Named database function through `supabaseClient.rpc(...)` |
+| Column sorting, filters and pagination | Refine table state | Provider applies these to the database query |
+| Persist a manually reordered sequence | Feature command mutation | RPC saves the permitted sequence atomically |
+
+#### CRUD resources and tables
+
+- Register resources in the existing resource registry and reuse `ResourceProvider`, resource dialogs and the shared Supabase data provider. Keep feature fields, schemas, defaults and allowlisted payload mapping in the feature.
+- Ordinary field edits use Refine CRUD mutations. Business operations with transition rules or coordinated writes use an explicit command such as `confirm_order`; the UI does not implement those operations as an unrestricted status update.
+- Configure sorting with `refineCoreProps.sorters` / Refine `setSorters`, and let the Supabase provider apply it before pagination. Use a stable secondary key such as `id` when primary sort values can tie. Display sorting does not write a stored sequence.
+- Keep reads in Refine so tables, details, counts and selectors share its query keys. Do not introduce parallel feature query caches for the same resource data.
+
+#### Command flow and cache ownership
+
+1. A row/menu/dialog action calls a feature hook such as `useConfirmOrder`. The component supplies explicit command inputs and renders pending/error/success states; it does not own database rules.
+2. The hook uses `useMutation` from `@tanstack/react-query` and calls a feature command function using the existing shared Supabase client. Pass typed, validated arguments to `supabaseClient.rpc("confirm_order", { p_order_id: orderId })`; throw returned Supabase errors so the mutation enters its error state.
+3. The database function enforces authorization and allowed transitions, and performs related database writes in one transaction. RLS and appropriate function permissions remain authoritative. Prefer security-invoker functions; any privileged execution requires explicit authorization checks. An RPC name in this document is illustrative, not an existing database contract.
+4. After success, use Refine `useInvalidate` for the affected resource list/detail queries, the affected record ID and any related counts or resources changed by the command. Specify `dataProviderName` when the resource uses a named provider. Invalidation must target the same Refine context/provider that owns the reads.
+5. Use the QueryClient backing that Refine context. Do not mount a separate QueryClient/cache for commands or manually reproduce Refine query keys. Guard duplicate submissions and disable automatic retries (`retry: false`) unless the command is explicitly designed for safe retries. A mutation pending state alone does not provide server-side idempotency.
+
+Commands belong in their feature, for example `features/orders/commands.ts` for RPC calls and `features/orders/use-confirm-order.ts` for mutation state and invalidation. Reuse schemas from `src/lib/schema/` where applicable. Generic resource components supply action handlers and remain unaware of order-specific RPCs. Commands involving external services may use a server/Edge Function boundary; database rules and atomic database writes still belong on the server.
+
+#### Saved row ordering
+
+- Existing row dragging remains UI-only and limited to the loaded page. `onReorder(ids, rows)` is an extension point, not an automatic persistence contract.
+- When a feature explicitly requires saved ordering, define its sequence field (for example the catalog's `sort_order`), scope and pagination/filter behavior first. A feature mutation calls an RPC that validates the rows and permissions and writes the sequence atomically, then invalidates the Refine list. Do not assume the currently loaded page is the complete sequence.
+
+#### Adoption status
+
+This is the standard for new business commands. Current CRUD/resource table behavior already follows the Refine path. Notification mark-all-read still uses the existing Refine `useCustomMutation` adapter described below; it has not been migrated by this documentation change. Before implementing a direct TanStack mutation, declare `@tanstack/react-query` as a direct admin dependency at a version compatible with Refine's installed QueryClient. No order RPC, persisted reordering, dependency change or runtime migration is introduced here.
+
+### Application error handling
+
+- `AppErrorBoundary` in `components/route-states/` wraps the full application in `main.tsx`, outside Suspense, development tools, theme/direction/tooltip providers, router and toaster. Render/lifecycle failures outside route boundaries reuse the shadcn `RootError` screen with retry (remount children) and full reload actions. It has no dependency on Refine, router or theme context and supplies RTL explicitly.
+- TanStack Router continues to use `RootError` for route failures. User-facing error copy is generic; raw details appear only in development. Error boundaries do not catch Vite import/compilation failures, event-handler exceptions or arbitrary rejected promises; request/form handlers retain their existing error states. Restart the dev server after branch switches that remove/recreate Vite config or imported modules if its resolver retains stale failures.
+
+### Shared admin session and identity
+
+- `createAdminAuthProvider` shares one verified user/profile read between route `check` and `getIdentity`. Successful eligible-admin results stay in browser memory for 60 seconds; simultaneous calls share one promise. Missing users, rejected roles, archived profiles and failed reads are not cached as successful sessions. New reads still use Supabase `getUser` and the existing profile query.
+- Login/logout and Supabase session-token/account changes or `USER_UPDATED` invalidate the cache. A version prevents older in-flight requests from repopulating it after invalidation. The Supabase listener is synchronous, registered before route guards, and unsubscribed during hot reload. Repeated same-session `SIGNED_IN` events do not invalidate the cache.
+- Root `AdminIdentityProvider` owns the only UI `useGetIdentity` call, above all nested Refine contexts. Layout, notifications and user components consume `useAdminIdentity`; showcase providers cannot create a second identity read. Its versioned Refine key drops previous-session results, disables sign-in/OAuth reads, uses 60-second freshness, and disables window-focus refetch. Old unused identity keys are immediately collected.
+- Route guards still reject unavailable/unauthorized sessions and revalidate when the shared cache expires. Account switches, logout and user updates re-run the router guard. The short cache is for browser navigation/display only; existing database RLS and server authorization remain authoritative for data access and mutations. No persistent identity cache or database change is introduced.
+
 ### Site branding and home navigation
 
 - `features/site-branding/SiteBrandingProvider` (implemented in `provider.tsx`) mounts inside root Refine above the route outlet. It reads only site name/logo/favicon from `site_settings` / `general` using the root named `siteSettings` provider and the shared authenticated Supabase client. The existing route guard permits the read only on protected pages; sign-in and OAuth callback disable it. It starts alongside layout identity loading, without waiting for `useGetIdentity`, and never blocks page rendering.
