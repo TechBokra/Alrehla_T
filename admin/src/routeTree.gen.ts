@@ -18,6 +18,7 @@ import { Route as FormsRouteRouteImport } from './routes/forms/route'
 import { Route as NotificationsRouteRouteImport } from './routes/notifications/route'
 import { Route as ThemeRouteRouteImport } from './routes/theme/route'
 import { Route as UiPrimitivesRouteRouteImport } from './routes/ui-primitives/route'
+import { Route as UploadsRouteRouteImport } from './routes/uploads/route'
 import { Route as CalendarIndexRouteImport } from './routes/calendar/index'
 import { Route as DataViewIndexRouteImport } from './routes/data-view/index'
 import { Route as FieldsIndexRouteImport } from './routes/fields/index'
@@ -27,6 +28,7 @@ import { Route as NotificationsIndexRouteImport } from './routes/notifications/i
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
 import { Route as ThemeIndexRouteImport } from './routes/theme/index'
 import { Route as UiPrimitivesIndexRouteImport } from './routes/ui-primitives/index'
+import { Route as UploadsIndexRouteImport } from './routes/uploads/index'
 import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
 import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
 import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
@@ -77,6 +79,11 @@ const UiPrimitivesRouteRoute = UiPrimitivesRouteRouteImport.update({
   path: '/ui-primitives',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UploadsRouteRoute = UploadsRouteRouteImport.update({
+  id: '/uploads',
+  path: '/uploads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CalendarIndexRoute = CalendarIndexRouteImport.update({
   id: '/calendar/',
   path: '/calendar/',
@@ -122,6 +129,11 @@ const UiPrimitivesIndexRoute = UiPrimitivesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => UiPrimitivesRouteRoute,
 } as any)
+const UploadsIndexRoute = UploadsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UploadsRouteRoute,
+} as any)
 const AuthCallbackIndexRoute = AuthCallbackIndexRouteImport.update({
   id: '/auth/callback/',
   path: '/auth/callback/',
@@ -153,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/theme': typeof ThemeRouteRouteWithChildren
   '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
+  '/uploads': typeof UploadsRouteRouteWithChildren
   '/calendar/': typeof CalendarIndexRoute
   '/data-view/': typeof DataViewIndexRoute
   '/fields/': typeof FieldsIndexRoute
@@ -162,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/sign-in/': typeof SignInIndexRoute
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
+  '/uploads/': typeof UploadsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
@@ -179,6 +193,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInIndexRoute
   '/theme': typeof ThemeIndexRoute
   '/ui-primitives': typeof UiPrimitivesIndexRoute
+  '/uploads': typeof UploadsIndexRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/catalog/addons': typeof CatalogAddonsIndexRoute
   '/catalog/products': typeof CatalogProductsIndexRoute
@@ -195,6 +210,7 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/theme': typeof ThemeRouteRouteWithChildren
   '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
+  '/uploads': typeof UploadsRouteRouteWithChildren
   '/calendar/': typeof CalendarIndexRoute
   '/data-view/': typeof DataViewIndexRoute
   '/fields/': typeof FieldsIndexRoute
@@ -204,6 +220,7 @@ export interface FileRoutesById {
   '/sign-in/': typeof SignInIndexRoute
   '/theme/': typeof ThemeIndexRoute
   '/ui-primitives/': typeof UiPrimitivesIndexRoute
+  '/uploads/': typeof UploadsIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
@@ -221,6 +238,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/theme'
     | '/ui-primitives'
+    | '/uploads'
     | '/calendar/'
     | '/data-view/'
     | '/fields/'
@@ -230,6 +248,7 @@ export interface FileRouteTypes {
     | '/sign-in/'
     | '/theme/'
     | '/ui-primitives/'
+    | '/uploads/'
     | '/auth/callback/'
     | '/catalog/addons/'
     | '/catalog/products/'
@@ -247,6 +266,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/theme'
     | '/ui-primitives'
+    | '/uploads'
     | '/auth/callback'
     | '/catalog/addons'
     | '/catalog/products'
@@ -262,6 +282,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/theme'
     | '/ui-primitives'
+    | '/uploads'
     | '/calendar/'
     | '/data-view/'
     | '/fields/'
@@ -271,6 +292,7 @@ export interface FileRouteTypes {
     | '/sign-in/'
     | '/theme/'
     | '/ui-primitives/'
+    | '/uploads/'
     | '/auth/callback/'
     | '/catalog/addons/'
     | '/catalog/products/'
@@ -287,6 +309,7 @@ export interface RootRouteChildren {
   NotificationsRouteRoute: typeof NotificationsRouteRouteWithChildren
   ThemeRouteRoute: typeof ThemeRouteRouteWithChildren
   UiPrimitivesRouteRoute: typeof UiPrimitivesRouteRouteWithChildren
+  UploadsRouteRoute: typeof UploadsRouteRouteWithChildren
   CalendarIndexRoute: typeof CalendarIndexRoute
   SignInIndexRoute: typeof SignInIndexRoute
   AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
@@ -358,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UiPrimitivesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/uploads': {
+      id: '/uploads'
+      path: '/uploads'
+      fullPath: '/uploads'
+      preLoaderRoute: typeof UploadsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/calendar/': {
       id: '/calendar/'
       path: '/calendar'
@@ -420,6 +450,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/ui-primitives/'
       preLoaderRoute: typeof UiPrimitivesIndexRouteImport
       parentRoute: typeof UiPrimitivesRouteRoute
+    }
+    '/uploads/': {
+      id: '/uploads/'
+      path: '/'
+      fullPath: '/uploads/'
+      preLoaderRoute: typeof UploadsIndexRouteImport
+      parentRoute: typeof UploadsRouteRoute
     }
     '/auth/callback/': {
       id: '/auth/callback/'
@@ -547,6 +584,18 @@ const UiPrimitivesRouteRouteChildren: UiPrimitivesRouteRouteChildren = {
 const UiPrimitivesRouteRouteWithChildren =
   UiPrimitivesRouteRoute._addFileChildren(UiPrimitivesRouteRouteChildren)
 
+interface UploadsRouteRouteChildren {
+  UploadsIndexRoute: typeof UploadsIndexRoute
+}
+
+const UploadsRouteRouteChildren: UploadsRouteRouteChildren = {
+  UploadsIndexRoute: UploadsIndexRoute,
+}
+
+const UploadsRouteRouteWithChildren = UploadsRouteRoute._addFileChildren(
+  UploadsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
@@ -557,6 +606,7 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRouteRoute: NotificationsRouteRouteWithChildren,
   ThemeRouteRoute: ThemeRouteRouteWithChildren,
   UiPrimitivesRouteRoute: UiPrimitivesRouteRouteWithChildren,
+  UploadsRouteRoute: UploadsRouteRouteWithChildren,
   CalendarIndexRoute: CalendarIndexRoute,
   SignInIndexRoute: SignInIndexRoute,
   AuthCallbackIndexRoute: AuthCallbackIndexRoute,

@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useRef, useState } from "react";
 import {
   HttpError,
@@ -38,8 +37,7 @@ import {
   type ProviderEvent,
   type PrototypeProduct,
 } from "./data-provider";
-import { useAppForm } from "@/components/forms";
-
+import { useAppForm } from "@/lib/form";
 const productValuesSchema = z.object({
   title: z.string().trim().min(2, "اكتب حرفين على الأقل."),
   sku: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
@@ -47,7 +45,6 @@ const productValuesSchema = z.object({
   inventory: z.number().int().min(0, "المخزون لا يمكن أن يكون أقل من صفر."),
   status: z.enum(["draft", "active"]),
 });
-
 type ProductValues = z.infer<typeof productValuesSchema>;
 type FormAction = "create" | "edit";
 const operationLabels = {
@@ -55,7 +52,6 @@ const operationLabels = {
   create: "إنشاء سجل",
   update: "تحديث سجل",
 } as const;
-
 const createValues: ProductValues = {
   title: "وشاح قطني جديد",
   sku: "ACC-301",
@@ -63,7 +59,6 @@ const createValues: ProductValues = {
   inventory: 20,
   status: "draft",
 };
-
 function toFormValues(product: PrototypeProduct): ProductValues {
   return {
     title: product.title,
@@ -73,7 +68,6 @@ function toFormValues(product: PrototypeProduct): ProductValues {
     status: product.status,
   };
 }
-
 function RefineProductForm({
   action,
   id,
@@ -139,7 +133,6 @@ function RefineProductForm({
     },
   });
   const product = query?.data?.data;
-
   useEffect(() => {
     if (action !== "edit" || !product) return;
     if (hydratedId.current !== product.id || !form.state.isDirty) {
@@ -149,10 +142,8 @@ function RefineProductForm({
       hydratedId.current = product.id;
     }
   }, [action, id, product]);
-
   const loadingRecord = action === "edit" && query?.isLoading;
   const isSubmitting = mutation.isPending;
-
   return (
     <Card>
       <CardHeader>
@@ -168,9 +159,12 @@ function RefineProductForm({
             </Badge>
           ) : null}
         </div>
-        <CardTitle>{action === "create" ? "إنشاء منتج" : "تعديل منتج"}</CardTitle>
+        <CardTitle>
+          {action === "create" ? "إنشاء منتج" : "تعديل منتج"}
+        </CardTitle>
         <CardDescription>
-          يتولى Refine تحميل السجل وحفظه، بينما يدير النموذج الحقول والتحقق والتغييرات.
+          يتولى Refine تحميل السجل وحفظه، بينما يدير النموذج الحقول والتحقق
+          والتغييرات.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -208,49 +202,60 @@ function RefineProductForm({
             <FieldGroup className="grid gap-5 md:grid-cols-2">
               <form.AppField name="title">
                 {(field) => (
-                  <field.Input
+                  <field.InputField
                     label="اسم المنتج"
-                    disabled={Boolean(loadingRecord) || isSubmitting}
+                    props={{
+                      disabled: Boolean(loadingRecord) || isSubmitting,
+                    }}
                   />
                 )}
               </form.AppField>
               <form.AppField name="sku">
                 {(field) => (
-                  <field.GroupedInput
+                  <field.InputField
                     label="كود المنتج"
-                    prefix="SKU"
-                    disabled={Boolean(loadingRecord) || isSubmitting}
+                    props={{
+                      disabled: Boolean(loadingRecord) || isSubmitting,
+                    }}
                   />
                 )}
               </form.AppField>
               <form.AppField name="price">
                 {(field) => (
-                  <field.Number
+                  <field.InputField
                     label="السعر"
-                    min={0.01}
-                    step={0.01}
-                    disabled={Boolean(loadingRecord) || isSubmitting}
+                    props={{
+                      min: 0.01,
+                      step: 0.01,
+                      disabled: Boolean(loadingRecord) || isSubmitting,
+                      type: "number",
+                    }}
                   />
                 )}
               </form.AppField>
               <form.AppField name="inventory">
                 {(field) => (
-                  <field.Number
+                  <field.InputField
                     label="المخزون"
-                    min={0}
-                    disabled={Boolean(loadingRecord) || isSubmitting}
+                    props={{
+                      min: 0,
+                      disabled: Boolean(loadingRecord) || isSubmitting,
+                      type: "number",
+                    }}
                   />
                 )}
               </form.AppField>
               <form.AppField name="status">
                 {(field) => (
-                  <field.Select
+                  <field.SelectField
                     label="الحالة"
-                    disabled={Boolean(loadingRecord) || isSubmitting}
-                    options={[
-                      { value: "draft", label: "مسودة" },
-                      { value: "active", label: "نشط" },
-                    ]}
+                    options={{
+                      مسودة: "draft",
+                      نشط: "active",
+                    }}
+                    props={{
+                      disabled: Boolean(loadingRecord) || isSubmitting,
+                    }}
                   />
                 )}
               </form.AppField>
@@ -289,8 +294,6 @@ function RefineProductForm({
               <form.SubmitButton>
                 {action === "create" ? "إنشاء المنتج" : "حفظ المنتج"}
               </form.SubmitButton>
-              <form.ResetButton />
-              <form.UnsavedChangesIndicator />
             </form.FormActions>
           </form>
         </form.AppForm>
@@ -298,17 +301,16 @@ function RefineProductForm({
     </Card>
   );
 }
-
 function ProviderActivity({ events }: { events: ProviderEvent[] }) {
   const latestRequest = events.find(
-    (event) => event.operation === "create" || event.operation === "update"
+    (event) => event.operation === "create" || event.operation === "update",
   );
   const latestResult = latestRequest
     ? events.find(
         (event) =>
           event.operation === latestRequest.operation &&
           event.at === latestRequest.at &&
-          (event.response !== undefined || event.error !== undefined)
+          (event.response !== undefined || event.error !== undefined),
       )
     : undefined;
   return (
@@ -324,7 +326,10 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
           <>
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                العملية · {operationLabels[latestRequest.operation]} ({latestRequest.resource === "products" ? "المنتجات" : latestRequest.resource}
+                العملية · {operationLabels[latestRequest.operation]} (
+                {latestRequest.resource === "products"
+                  ? "المنتجات"
+                  : latestRequest.resource}
                 {latestRequest.id ? `، المعرّف: ${latestRequest.id}` : ""})
               </p>
               <pre className="overflow-auto rounded-xl bg-muted p-4 text-xs">
@@ -340,7 +345,7 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
                   JSON.stringify(
                     latestResult?.response ?? { pending: true },
                     null,
-                    2
+                    2,
                   )}
               </pre>
             </div>
@@ -382,7 +387,6 @@ function ProviderActivity({ events }: { events: ProviderEvent[] }) {
     </Card>
   );
 }
-
 export function RefineFormDemo() {
   const [events, setEvents] = useState<ProviderEvent[]>([]);
   const [action, setAction] = useState<FormAction>("create");
@@ -395,7 +399,7 @@ export function RefineFormDemo() {
         setEvents((current) => {
           const existingIndex = current.findIndex(
             (entry) =>
-              entry.operation === event.operation && entry.at === event.at
+              entry.operation === event.operation && entry.at === event.at,
           );
           if (existingIndex < 0) return [event, ...current].slice(0, 12);
           const updated = [...current];
@@ -408,9 +412,8 @@ export function RefineFormDemo() {
         setFailureArmed(false);
         return true;
       },
-    })
+    }),
   );
-
   return (
     <Refine
       resources={[{ name: "products" }]}
@@ -437,7 +440,6 @@ export function RefineFormDemo() {
     </Refine>
   );
 }
-
 function ProductDemoContent({
   action,
   selectedId,
@@ -463,7 +465,6 @@ function ProductDemoContent({
   const currentId = products.some((product) => product.id === selectedId)
     ? selectedId
     : (products[0]?.id ?? selectedId);
-
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -475,7 +476,8 @@ function ProductDemoContent({
           إنشاء المنتجات وتعديلها باستخدام Refine
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          يحدد Refine ما إذا كانت العملية إنشاءً أو تعديلًا، ويحمل بيانات المنتج. ثم يرسل القيم التي تم التحقق منها إلى مصدر البيانات المحلي.
+          يحدد Refine ما إذا كانت العملية إنشاءً أو تعديلًا، ويحمل بيانات
+          المنتج. ثم يرسل القيم التي تم التحقق منها إلى مصدر البيانات المحلي.
         </p>
       </div>
       <Card>
@@ -531,7 +533,9 @@ function ProductDemoContent({
             variant={failureArmed ? "destructive" : "outline"}
             onClick={onArmFailure}
           >
-            {failureArmed ? "عملية الحفظ التالية ستفشل" : "محاكاة فشل الحفظ التالي"}
+            {failureArmed
+              ? "عملية الحفظ التالية ستفشل"
+              : "محاكاة فشل الحفظ التالي"}
           </Button>
         </CardContent>
       </Card>

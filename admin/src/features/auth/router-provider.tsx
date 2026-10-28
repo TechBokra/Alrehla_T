@@ -16,6 +16,7 @@ export function resolveAdminPath(to: string) {
     "/catalog/products",
     "/catalog/addons",
     "/notifications",
+    "/uploads",
   ].includes(path)
     ? path
     : "/sign-in";

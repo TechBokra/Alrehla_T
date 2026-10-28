@@ -1,5 +1,6 @@
+import { useAdminIdentity } from "@/features/auth/identity-provider";
 import type { CSSProperties, ReactNode } from "react";
-import { useGetIdentity, useLogout } from "@refinedev/core";
+import { useLogout } from "@refinedev/core";
 import { Link } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HeaderActions } from "@/components/header-actions";
@@ -20,12 +21,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Home } from "lucide-react";
-type ShowcaseIdentity = {
-  name?: string;
-  email?: string;
-  avatar?: string;
-  image?: string;
-};
 
 export function AdminLayout({
   activeSection,
@@ -36,12 +31,12 @@ export function AdminLayout({
   pageLabel?: string;
   children: ReactNode;
 }) {
-  const { data: identity } = useGetIdentity<ShowcaseIdentity>();
+  const { data: identity } = useAdminIdentity();
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
   const user = {
     name: identity?.name ?? "حساب الإدارة",
     email: identity?.email ?? "",
-    avatar: identity?.avatar ?? identity?.image ?? "",
+    avatar: identity?.avatar ?? "",
   };
 
   return (
@@ -90,7 +85,7 @@ export function AdminLayout({
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-12 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <main className="mx-auto flex w-full max-w-375 flex-col gap-12 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
           {children}
         </main>
       </SidebarInset>

@@ -7,3 +7,7 @@ schema_paths = []
 [db.seed]
 enabled = true
 sql_paths = ["./seed.sql"]
+
+# The handler validates JWTs with auth.getUser and checks current admin permissions.
+[functions.media-library]
+verify_jwt = false

@@ -1,431 +1,306 @@
-"use client";
-
 import { useState } from "react";
+import { arEG } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useAppForm } from "@/lib/form";
 import { FieldGroup } from "@/components/ui/field";
 import {
-  allFieldsSchema,
-  createExampleValues,
-  serializeFormValues,
-  type AllFieldsValues,
-  type SubmittedFieldValues,
-} from "../component-showcase/all-fields-schema";
-import { useAppForm } from "@/components/forms";
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 
-const choices = {
-  collection: [
-    { value: "accessories", label: "إكسسوارات" },
-    { value: "home", label: "المنزل والمعيشة" },
-    { value: "apparel", label: "ملابس" },
-  ],
-  status: [
-    { value: "draft", label: "مسودة" },
-    { value: "active", label: "نشط" },
-    { value: "archived", label: "مؤرشف" },
-  ],
-  channels: [
-    { value: "storefront", label: "المتجر الإلكتروني" },
-    { value: "marketplace", label: "سوق إلكتروني" },
-    { value: "pos", label: "نقطة البيع" },
-  ],
-  layout: [
-    { value: "grid", label: "شبكة" },
-    { value: "list", label: "قائمة" },
-    { value: "compact", label: "مضغوط" },
-  ],
-  placements: [
-    { value: "storefront", label: "المتجر الإلكتروني" },
-    { value: "email", label: "البريد الإلكتروني" },
-    { value: "social", label: "منصات التواصل" },
-  ],
-  tags: [
-    {
-      value: "new-arrival",
-      label: "وصل حديثًا",
-      description: "أُضيف مؤخرًا إلى الكتالوج",
-    },
-    {
-      value: "best-seller",
-      label: "الأكثر مبيعًا",
-      description: "مفضّل لدى العملاء",
-    },
-    {
-      value: "sustainable",
-      label: "مستدام",
-      description: "مصنوع بخامات صديقة للبيئة",
-    },
-    { value: "handmade", label: "صناعة يدوية", description: "مصنوع يدويًا" },
-    {
-      value: "limited-edition",
-      label: "إصدار محدود",
-      description: "متوفر بكمية محدودة",
-    },
-    { value: "sale", label: "تخفيض", description: "ضمن عرض حالي" },
-  ],
-} as const;
-
-type FieldOutput = {
-  values: SubmittedFieldValues;
-  submittedAt: string;
+const options = [
+  { value: "books", label: "كتب" },
+  { value: "stories", label: "قصص" },
+];
+const defaults: z.input<typeof schema> = {
+  title: "رحلة جديدة",
+  notes: "",
+  password: "",
+  quantity: 1,
+  city: "",
+  category: "books",
+  topics: [] as string[],
+  status: "draft",
+  published: false,
+  date: undefined as Date | undefined,
+  range: undefined as DateRange | undefined,
+  month: undefined as Date | undefined,
+  datetime: undefined as Date | undefined,
+  time: "09:00",
+  timeRange: { start: "09:00", end: "10:00" },
+  attachments: [] as File[],
 };
-
-function jsonForDisplay(values: AllFieldsValues) {
-  return serializeFormValues(values);
-}
+const schema = z.object({
+  title: z.string().trim().min(2, "اكتب حرفين على الأقل."),
+  notes: z.string(),
+  password: z.string(),
+  quantity: z.number().int("اكتب عددًا صحيحًا.").min(1, "الحد الأدنى ١."),
+  city: z.string(),
+  category: z.string(),
+  topics: z.array(z.string()),
+  status: z.string(),
+  published: z.boolean(),
+  date: z.date().optional(),
+  range: z
+    .object({ from: z.date().optional(), to: z.date().optional() })
+    .optional(),
+  month: z.date().optional(),
+  datetime: z.date().optional(),
+  time: z.string(),
+  timeRange: z
+    .object({ start: z.string(), end: z.string() })
+    .refine((v) => v.end > v.start, {
+      message: "يجب أن تكون النهاية بعد البداية.",
+    }),
+  attachments: z.array(z.instanceof(File)),
+});
 
 export function AllFieldsForm() {
-  const [submitted, setSubmitted] = useState<FieldOutput | null>(null);
+  const [result, setResult] = useState<string>();
   const form = useAppForm({
-    defaultValues: createExampleValues(),
-    validators: {
-      onChange: allFieldsSchema,
-      onSubmit: allFieldsSchema,
-    },
+    defaultValues: defaults,
+    validators: { onChange: schema },
     onSubmit: ({ value }) => {
-      const parsed = allFieldsSchema.parse(value);
-      setSubmitted({
-        values: serializeFormValues(parsed),
-        submittedAt: new Date().toISOString(),
-      });
+      setResult(
+        JSON.stringify(
+          {
+            ...value,
+            attachments: value.attachments.map((file) => ({
+              name: file.name,
+              size: file.size,
+            })),
+          },
+          null,
+          2,
+        ),
+      );
     },
   });
-
   return (
-    <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">إنشاء خطّاف للنموذج</Badge>
-          <Badge variant="secondary">TanStack Form + Zod</Badge>
-        </div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          كل الحقول في نموذج واحد
-        </h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          كل عنصر مرتبط بالنموذج المحلي. عدّل القيم وراجع حالة النموذج ثم أرسله لمشاهدة النتيجة. تظل المرفقات في ذاكرة المتصفح ولا يتم رفعها.
-        </p>
-      </div>
-
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.85fr)]">
+    <Card>
+      <CardHeader>
+        <CardTitle>حقول Shuip</CardTitle>
+        <CardDescription>
+          كل الحقول تستخدم useAppForm وسياقًا واحدًا، مع غلاف موحد وشارة توضيح.
+          الحفظ تجريبي داخل الصفحة.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <form.AppForm>
           <form
-            className="flex min-w-0 flex-col gap-6"
             noValidate
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
+            className="flex flex-col gap-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               void form.handleSubmit();
             }}
           >
-            <Card>
-              <CardHeader>
-                <CardTitle>النصوص والأرقام والتواريخ</CardTitle>
-                <CardDescription>
-                  تتغير عناصر الحقول نفسها حسب نوع القيمة. تظهر المساعدة بجوار
-                  العنوان، أو أسفل العنصر إذا لم يكن له عنوان ظاهر.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup className="grid gap-5 md:grid-cols-2">
-                  <form.AppField name="title">
-                    {(field) => (
-                      <field.Input
-                        label="اسم المنتج · إدخال نصي"
-                        description="اكتب اسمًا واضحًا يظهر للعملاء في الكتالوج وصفحات المنتجات."
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="email">
-                    {(field) => <field.Input label="البريد الإلكتروني" type="email" />}
-                  </form.AppField>
-                  <form.AppField name="password">
-                    {(field) => (
-                      <field.Input label="كلمة مرور تجريبية" type="password" />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="search">
-                    {(field) => (
-                      <field.GroupedInput
-                        ariaLabel="بحث · مجموعة الإدخال"
-                        description="ابحث باسم المنتج أو كوده. تظهر المساعدة أسفل الحقل عند عدم كتابة عنوان له."
-                        prefix="بحث"
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="website">
-                    {(field) => (
-                      <field.Input label="الموقع الإلكتروني · رابط" type="url" />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="phone">
-                    {(field) => <field.Input label="رقم الهاتف" type="tel" />}
-                  </form.AppField>
-                  <form.AppField name="quantity">
-                    {(field) => (
-                      <field.Number
-                        label="الكمية · رقم"
-                        min={1}
-                        max={10000}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="price">
-                    {(field) => (
-                      <field.Number label="السعر" min={0} step={0.01} />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="launchDate">
-                    {(field) => <field.Date label="تاريخ الإطلاق · تاريخ" />}
-                  </form.AppField>
-                  <form.AppField name="launchTime">
-                    {(field) => <field.Time label="وقت الإطلاق · وقت" />}
-                  </form.AppField>
-                  <form.AppField name="color">
-                    {(field) => <field.Color label="اللون المميز · لون" />}
-                  </form.AppField>
-                  <form.AppField name="verificationCode">
-                    {(field) => <field.OTP label="رمز التحقق · لمرة واحدة" />}
-                  </form.AppField>
-                </FieldGroup>
-                <div className="mt-5">
-                  <form.AppField name="description">
-                    {(field) => (
-                      <field.Textarea label="الوصف · نص متعدد الأسطر" rows={4} />
-                    )}
-                  </form.AppField>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>الاختيارات والوسوم</CardTitle>
-                <CardDescription>
-                  أمثلة لقوائم الاختيار والقوائم الأصلية والبحث والوسوم بمربعات
-                  التحديد.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup className="grid gap-5 md:grid-cols-2">
-                  <form.AppField name="collection">
-                    {(field) => (
-                      <field.Select
-                        label="المجموعة · قائمة اختيار"
-                        options={choices.collection}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="status">
-                    {(field) => (
-                      <field.NativeSelect
-                        label="الحالة · قائمة أصلية"
-                        options={choices.status}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="category">
-                    {(field) => (
-                      <field.Combobox
-                        label="الفئة · بحث واختيار"
-                        options={choices.collection}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="channels">
-                    {(field) => (
-                      <field.CheckboxGroup
-                        label="قنوات البيع · مربعات تحديد"
-                        description="اختار الأماكن التي يمكن للعملاء العثور على المنتج أو شراؤه منها."
-                        options={choices.channels}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="publishingStatus">
-                    {(field) => (
-                      <field.RadioGroup
-                        label="حالة النشر · أزرار اختيار"
-                        description="المسودة مخفية، والنشط متاح، والمؤرشف لم يعد مستخدمًا."
-                        options={choices.status}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="tags">
-                    {(field) => (
-                      <field.Tags
-                        label="وسوم المنتج · قائمة قابلة للبحث"
-                        options={[...choices.tags]}
-                        maxVisibleTags={2}
-                        description="اختار من وسم إلى ٥ وسوم. تظهر الاختيارات الإضافية كرقم، وتظل كل المعرفات ضمن البيانات."
-                      />
-                    )}
-                  </form.AppField>
-                </FieldGroup>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>مفاتيح التحكم والاختيارات المركّبة</CardTitle>
-                <CardDescription>
-                  مربعات التحديد والمفاتيح وشرائط التمرير ومجموعات الاختيار
-                  الفردية أو المتعددة.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup className="grid gap-5 md:grid-cols-2">
-                  <form.AppField name="published">
-                    {(field) => (
-                      <field.Checkbox
-                        label="منشور · مربع تحديد"
-                        description="يمكن أن تظهر المنتجات المنشورة في قنوات البيع المتاحة."
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="notifications">
-                    {(field) => (
-                      <field.Switch
-                        label="التنبيهات · مفتاح"
-                        description="أرسل تنبيهًا عند تغيير معاينة المنتج."
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="discount">
-                    {(field) => (
-                      <field.Slider
-                        label="الخصم · شريط التمرير"
-                        min={0}
-                        max={100}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="featured">
-                    {(field) => (
-                      <field.Toggle
-                        ariaLabel="تفعيل المنتج المميز"
-                        description="ضع المنتج ضمن المنتجات المميزة. تظهر المساعدة أسفل الحقل عند عدم كتابة عنوان له."
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="layout">
-                    {(field) => (
-                      <field.ToggleGroup
-                        label="طريقة العرض · اختيار واحد"
-                        description="اختار طريقة ظهور المنتجات في معاينة الكتالوج."
-                        options={choices.layout}
-                      />
-                    )}
-                  </form.AppField>
-                  <form.AppField name="placements">
-                    {(field) => (
-                      <field.ToggleGroup
-                        label="أماكن الظهور · اختيار متعدد"
-                        options={choices.placements}
-                        multiple
-                      />
-                    )}
-                  </form.AppField>
-                </FieldGroup>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>المرفقات</CardTitle>
-                <CardDescription>
-                  اختر حتى خمسة ملفات ثم أزل كل ملف على حدة. لا يتم رفع أي ملف.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form.AppField name="attachments">
-                  {(field) => (
-                    <field.Attachments
-                      label="إرفاق ملفات"
-                      maxFiles={5}
-                      description="تظل الملفات في ذاكرة علامة التبويب الحالية. تحتوي النتيجة على بيانات الملفات فقط."
-                    />
-                  )}
-                </form.AppField>
-              </CardContent>
-            </Card>
-
+            <FieldGroup className="grid gap-6 md:grid-cols-2">
+              <form.AppField name="title">
+                {(field) => (
+                  <field.InputField
+                    label="العنوان"
+                    required
+                    description="اسم يظهر في لوحة الإدارة."
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="quantity">
+                {(field) => (
+                  <field.InputField
+                    label="الكمية"
+                    description="عدد صحيح يبدأ من ١."
+                    props={{ type: "number", min: 1, step: 1 }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="notes">
+                {(field) => (
+                  <field.TextareaField
+                    label="ملاحظات"
+                    description="تفاصيل إضافية اختيارية."
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="password">
+                {(field) => (
+                  <field.PasswordField
+                    label="كلمة المرور"
+                    description="مثال عرض فقط؛ لا تستخدم كلمة مرور حقيقية."
+                    props={{ autoComplete: "new-password", dir: "ltr" }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="city">
+                {(field) => (
+                  <field.AutocompleteField
+                    label="المدينة"
+                    description="اكتب أو اختر اقتراحًا."
+                    suggestions={["القاهرة", "الإسكندرية", "الجيزة"]}
+                    emptyText="لا توجد نتائج"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="category">
+                {(field) => (
+                  <field.SelectField
+                    label="الفئة"
+                    description="اختيار واحد من قائمة."
+                    options={{ كتب: "books", قصص: "stories" }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="topics">
+                {(field) => (
+                  <field.ComboboxField
+                    label="الموضوعات"
+                    description="بحث مع اختيار متعدد؛ تُحفظ المعرفات."
+                    multiple
+                    options={options}
+                    emptyText="لا توجد نتائج"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="status">
+                {(field) => (
+                  <field.RadioField
+                    label="الحالة"
+                    description="اختر حالة واحدة."
+                    options={[
+                      { value: "draft", label: "مسودة" },
+                      { value: "active", label: "نشط" },
+                    ]}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="published">
+                {(field) => (
+                  <field.CheckboxField
+                    label="منشور"
+                    description="خيار منطقي للتجربة."
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="date">
+                {(field) => (
+                  <field.DateField
+                    label="التاريخ"
+                    description="قيمة Date محلية؛ حوّلها عند حدود الـ API."
+                    locale={arEG}
+                    placeholder="اختر تاريخًا"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="range">
+                {(field) => (
+                  <field.DateRangeField
+                    label="نطاق التواريخ"
+                    description="تاريخ البداية والنهاية."
+                    locale={arEG}
+                    placeholder="اختر نطاقًا"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="month">
+                {(field) => (
+                  <field.MonthField
+                    label="الشهر"
+                    description="يحفظ أول يوم من الشهر المحدد."
+                    locale={arEG}
+                    placeholder="اختر شهرًا"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="datetime">
+                {(field) => (
+                  <field.DatetimeField
+                    label="التاريخ والوقت"
+                    description="حدد يومًا ثم وقتًا."
+                    locale={arEG}
+                    placeholder="اختر موعدًا"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="time">
+                {(field) => (
+                  <field.TimeField
+                    label="الوقت"
+                    description="قيمة نصية بتنسيق HH:mm."
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="timeRange">
+                {(field) => (
+                  <field.TimeRangeField
+                    label="نطاق الوقت"
+                    description="النهاية بعد البداية في اليوم نفسه."
+                    startLabel="البداية"
+                    endLabel="النهاية"
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="attachments">
+                {(field) => (
+                  <field.AttachmentsField
+                    label="المرفقات"
+                    description="إضافة محلية فقط، حتى ٥ ملفات."
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
             <form.FormErrorSummary />
             <form.FormActions>
-              <form.SubmitButton>تحقق وأرسل</form.SubmitButton>
-              <form.ResetButton>إعادة ضبط القيم</form.ResetButton>
-              <form.UnsavedChangesIndicator />
+              <form.SubmitButton>حفظ تجريبي</form.SubmitButton>
             </form.FormActions>
           </form>
         </form.AppForm>
-
-        <div className="flex min-w-0 flex-col gap-6 xl:sticky xl:top-20">
-          <Card>
-            <CardHeader>
-              <CardTitle>الحالة الحالية</CardTitle>
-              <CardDescription>
-                تتحدث القيم والتحققات أثناء تعديل النموذج.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form.Subscribe
-                selector={(state) =>
-                  [state.values, state.isFormValid, state.isSubmitting] as const
-                }
-              >
-                {([values, isFormValid, isSubmitting]) => (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant={isFormValid ? "secondary" : "destructive"}
-                      >
-                        {isFormValid ? "صالح" : "يحتاج إلى مراجعة"}
-                      </Badge>
-                      <Badge variant="outline">
-                        {isSubmitting ? "جارٍ الإرسال" : "جاهز"}
-                      </Badge>
-                    </div>
-                    <pre className="max-h-[420px] overflow-auto rounded-xl bg-muted p-4 text-xs leading-relaxed">
-                      {JSON.stringify(jsonForDisplay(values), null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </form.Subscribe>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>آخر إرسال ناجح</CardTitle>
-              <CardDescription>
-                ستظل آخر نتيجة ظاهرة عند وجود أخطاء في الإرسال.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {submitted ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(submitted.submittedAt).toLocaleString()}
-                  </p>
-                  <pre className="max-h-[360px] overflow-auto rounded-xl bg-muted p-4 text-xs leading-relaxed">
-                    {JSON.stringify(submitted.values, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  أرسل نموذجًا صحيحًا لعرض قيمه بصيغة JSON.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </section>
+        {result && (
+          <pre
+            dir="ltr"
+            className="mt-4 overflow-auto rounded-md bg-muted p-4 text-xs"
+          >
+            {result}
+          </pre>
+        )}
+        <InlineEditDemo />
+      </CardContent>
+    </Card>
+  );
+}
+function InlineEditDemo() {
+  const [saved, setSaved] = useState("عنوان قابل للتعديل");
+  const form = useAppForm({
+    defaultValues: { title: saved },
+    onSubmit: ({ value }) => {
+      setSaved(value.title);
+    },
+  });
+  return (
+    <div className="mt-6 flex flex-col gap-3">
+      <form.AppForm>
+        <form.AppField
+          name="title"
+          validators={{
+            onChange: ({ value }) =>
+              value.trim().length < 2 ? "اكتب حرفين على الأقل." : undefined,
+          }}
+        >
+          {(field) => (
+            <field.InlineEditField
+              label="تعديل مباشر"
+              description="انقر للتعديل؛ Enter يحفظ وEscape يلغي. الحفظ محلي."
+            />
+          )}
+        </form.AppField>
+      </form.AppForm>
+      <p className="text-sm text-muted-foreground" role="status">
+        آخر قيمة محفوظة: {saved}
+      </p>
+    </div>
   );
 }

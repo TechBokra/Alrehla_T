@@ -78,3 +78,23 @@ function getGateway(): AuthGateway | null {
 
 export const adminAuthProvider = createAdminAuthProvider(getGateway);
 export const completeGoogleSignIn = createGoogleCallbackHandler(getGateway);
+
+// Register before the first route guard, including cross-tab session changes.
+// Keep this callback synchronous: Supabase auth work must run outside it.
+let sessionToken: string | undefined;
+const sessionSubscription = getSupabaseClient()?.auth.onAuthStateChange(
+  (event, session) => {
+    const nextToken = session?.access_token;
+    const changed = nextToken !== sessionToken;
+    sessionToken = nextToken;
+    if (event === "INITIAL_SESSION") return;
+    if (changed || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+      adminAuthProvider.invalidateSession();
+    }
+  },
+);
+if (import.meta.hot) {
+  import.meta.hot.dispose(() =>
+    sessionSubscription?.data.subscription.unsubscribe(),
+  );
+}

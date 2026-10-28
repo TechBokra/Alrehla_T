@@ -12,7 +12,9 @@ import {
 import { AllFieldsForm } from "./all-fields-form";
 import { RefineFormDemo } from "./refine-demo";
 
-const compositionExample = `const form = useAppForm({
+const compositionExample = `import { useAppForm } from "@/lib/form"
+
+const form = useAppForm({
   defaultValues,
   validators: { onChange: schema, onSubmit: schema },
   onSubmit: async ({ value }) => onFinish(value),
@@ -25,11 +27,10 @@ return (
       void form.handleSubmit()
     }}>
       <form.AppField name="title">
-        {(field) => <field.Input label="اسم المنتج" />}
+        {(field) => <field.InputField label="اسم المنتج" />}
       </form.AppField>
       <form.FormActions>
         <form.SubmitButton>حفظ</form.SubmitButton>
-        <form.ResetButton>إعادة ضبط</form.ResetButton>
       </form.FormActions>
     </form>
   </form.AppForm>

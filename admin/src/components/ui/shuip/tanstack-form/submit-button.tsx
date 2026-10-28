@@ -1,0 +1,34 @@
+"use client";
+
+import { Loader2Icon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useFormContext } from "@/components/ui/shuip/tanstack-form/form-context";
+
+export interface SubmitButtonProps {
+  children?: React.ReactNode;
+  props?: React.ComponentProps<typeof Button>;
+}
+
+export function SubmitButton({ children = "حفظ", props }: SubmitButtonProps) {
+  const form = useFormContext();
+  return (
+    <form.Subscribe selector={(state) => [state.isSubmitting, state.canSubmit]}>
+      {([isSubmitting, canSubmit]) => (
+        <Button
+          {...props}
+          type="submit"
+          disabled={props?.disabled || isSubmitting || !canSubmit}
+        >
+          {isSubmitting && (
+            <Loader2Icon
+              role="status"
+              aria-label="جارٍ الحفظ"
+              className="size-4 animate-spin"
+            />
+          )}
+          {children}
+        </Button>
+      )}
+    </form.Subscribe>
+  );
+}

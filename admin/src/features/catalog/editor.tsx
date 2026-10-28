@@ -2,12 +2,11 @@ import { useState } from "react";
 import type { BaseRecord } from "@refinedev/core";
 import { useStore } from "@tanstack/react-form";
 import type { z } from "zod";
-import { useAppForm } from "@/components/forms";
+import { useAppForm } from "@/lib/form";
 import { FieldGroup } from "@/components/ui/field";
 import type { ResourceFormFieldsContext } from "@/components/resources/resource-editor";
 import { defaultCatalogValues } from "./model";
 import type { CatalogValues, AdminResourceName } from "@/lib/schema";
-
 export type CatalogResourceName = Extract<
   AdminResourceName,
   "personalized_products" | "addon_products"
@@ -20,7 +19,6 @@ export interface CatalogDefinition<TRecord extends BaseRecord> {
   createPayload: (values: CatalogValues) => Record<string, unknown>;
   updatePayload: (values: CatalogValues) => Record<string, unknown>;
 }
-
 export function CatalogFormFields<TRecord extends BaseRecord>({
   resource,
   action,
@@ -63,82 +61,110 @@ export function CatalogFormFields<TRecord extends BaseRecord>({
         <form.FormErrorSummary />
         <FieldGroup>
           <form.AppField name="name">
-            {(Fields) => <Fields.Input label="الاسم" disabled={disabled} />}
+            {(Fields) => (
+              <Fields.InputField
+                label="الاسم"
+                props={{
+                  disabled: disabled,
+                }}
+              />
+            )}
           </form.AppField>
           <form.AppField name="description">
             {(Fields) => (
-              <Fields.Textarea label="الوصف المختصر" disabled={disabled} />
+              <Fields.TextareaField
+                label="الوصف المختصر"
+                props={{
+                  disabled: disabled,
+                }}
+              />
             )}
           </form.AppField>
           <form.AppField name="longDescription">
             {(Fields) => (
-              <Fields.Textarea label="الوصف الكامل" disabled={disabled} />
+              <Fields.TextareaField
+                label="الوصف الكامل"
+                props={{
+                  disabled: disabled,
+                }}
+              />
             )}
           </form.AppField>
           {product && (
             <form.AppField name="category">
               {(Fields) => (
-                <Fields.Select
+                <Fields.SelectField
                   label="التصنيف"
-                  disabled={disabled}
-                  options={[
-                    { value: "library", label: "المكتبة — تخصيص الغلاف" },
-                    { value: "custom", label: "قصة مخصصة" },
-                  ]}
+                  options={{
+                    "المكتبة — تخصيص الغلاف": "library",
+                    "قصة مخصصة": "custom",
+                  }}
+                  props={{
+                    disabled: disabled,
+                  }}
                 />
               )}
             </form.AppField>
           )}
           <form.AppField name="price">
             {(Fields) => (
-              <Fields.Input
+              <Fields.InputField
                 label={
                   product ? "السعر الورقي (ج.م)" : "السعر الشامل للتخصيص (ج.م)"
                 }
-                inputMode="decimal"
-                disabled={disabled}
+                props={{
+                  inputMode: "decimal",
+                  disabled: disabled,
+                }}
               />
             )}
           </form.AppField>
           {product && category === "custom" && (
             <form.AppField name="electronicPrice">
               {(Fields) => (
-                <Fields.Input
+                <Fields.InputField
                   label="السعر الإلكتروني (اختياري)"
-                  inputMode="decimal"
-                  disabled={disabled}
+                  props={{
+                    inputMode: "decimal",
+                    disabled: disabled,
+                  }}
                 />
               )}
             </form.AppField>
           )}
           <form.AppField name="imageUrl">
             {(Fields) => (
-              <Fields.Input
+              <Fields.InputField
                 label="رابط الصورة الرئيسية"
-                dir="ltr"
-                inputMode="url"
-                disabled={disabled}
                 description={
                   product
                     ? "رابط صورة HTTP أو HTTPS"
                     : "رابط من https://res.cloudinary.com/"
                 }
+                props={{ dir: "ltr", inputMode: "url", disabled }}
               />
             )}
           </form.AppField>
           <form.AppField name="sortOrder">
             {(Fields) => (
-              <Fields.Input
+              <Fields.InputField
                 label="ترتيب العرض"
-                inputMode="numeric"
-                disabled={disabled}
+                props={{
+                  inputMode: "numeric",
+                  disabled: disabled,
+                }}
               />
             )}
           </form.AppField>
           {action === "edit" && (
             <form.AppField name="isActive">
               {(Fields) => (
-                <Fields.Switch label="المنتج نشط" disabled={disabled} />
+                <Fields.CheckboxField
+                  label="المنتج نشط"
+                  props={{
+                    disabled: disabled,
+                  }}
+                />
               )}
             </form.AppField>
           )}

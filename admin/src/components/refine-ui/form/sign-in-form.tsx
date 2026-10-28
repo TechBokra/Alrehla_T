@@ -1,4 +1,4 @@
-import { useAppForm } from "@/components/forms";
+import { useAppForm } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,13 +14,11 @@ import { signInSchema } from "@/lib/schema";
 import { useLogin } from "@refinedev/core";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-
 export function SignInForm() {
   const submitting = useRef(false);
   const [googleRedirecting, setGoogleRedirecting] = useState(false);
   const { mutateAsync: login, isPending, reset } = useLogin<AdminLoginValues>();
   const busy = isPending || googleRedirecting;
-
   useEffect(() => {
     const restoreForm = (event: PageTransitionEvent) => {
       if (!event.persisted) return;
@@ -31,7 +29,6 @@ export function SignInForm() {
     window.addEventListener("pageshow", restoreForm);
     return () => window.removeEventListener("pageshow", restoreForm);
   }, [reset]);
-
   const signInWithGoogle = async () => {
     if (submitting.current || !isAuthConfigured) return;
     submitting.current = true;
@@ -88,37 +85,39 @@ export function SignInForm() {
                 <FieldGroup>
                   <form.AppField name="email">
                     {(Fields) => (
-                      <Fields.Input
+                      <Fields.InputField
                         label="البريد الإلكتروني"
-                        type="email"
-                        dir="ltr"
-                        inputMode="email"
-                        autoComplete="username"
-                        autoCapitalize="none"
-                        spellCheck={false}
-                        disabled={busy}
+                        props={{
+                          type: "email",
+                          dir: "ltr",
+                          inputMode: "email",
+                          autoComplete: "username",
+                          autoCapitalize: "none",
+                          spellCheck: false,
+                          disabled: busy,
+                        }}
                       />
                     )}
                   </form.AppField>
                   <form.AppField name="password">
                     {(Fields) => (
-                      <Fields.Input
+                      <Fields.PasswordField
                         label="كلمة المرور"
-                        type="password"
-                        dir="ltr"
-                        autoComplete="current-password"
-                        withPasswordToggle
-                        disabled={busy}
+                        props={{
+                          dir: "ltr",
+                          autoComplete: "current-password",
+                          disabled: busy,
+                        }}
                       />
                     )}
                   </form.AppField>
                 </FieldGroup>
                 <form.SubmitButton
-                  size="lg"
-                  className="w-full"
-                  icon={null}
-                  pendingLabel="جارٍ تسجيل الدخول…"
-                  disabled={busy || !isAuthConfigured}
+                  props={{
+                    size: "lg",
+                    className: "w-full",
+                    disabled: busy || !isAuthConfigured,
+                  }}
                 >
                   تسجيل الدخول
                 </form.SubmitButton>

@@ -1,16 +1,13 @@
+import { useAdminIdentity } from "@/features/auth/identity-provider";
 import { useRef, useState } from "react";
-import {
-  useCustomMutation,
-  useGetIdentity,
-  useInvalidate,
-} from "@refinedev/core";
+import { useCustomMutation, useInvalidate } from "@refinedev/core";
 import { CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MARK_ALL_READ } from "./data-provider";
 import { NOTIFICATIONS_PROVIDER } from "./queries";
 
 export function MarkAllReadButton({ unreadCount }: { unreadCount?: number }) {
-  const { data: identity } = useGetIdentity<{ id: string }>();
+  const { data: identity } = useAdminIdentity();
   const command = useCustomMutation({ mutationOptions: { retry: false } });
   const invalidate = useInvalidate();
   const inFlight = useRef(false);

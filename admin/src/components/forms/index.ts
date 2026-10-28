@@ -1,14 +1,19 @@
-export { adminFormHooks, useAppForm, withFieldGroup, withForm } from "./hooks";
-export type { AdminFormHooks } from "./hooks";
+export { useAppForm, withFieldGroup, withForm } from "@/lib/form";
 
 export {
   FormActions,
   FormErrorSummary,
-  ResetButton,
-  SubmitButton,
-  UnsavedChangesIndicator,
+  BaseFormField,
+  FormFieldLabel,
+  FormFieldHelp,
 } from "./components";
-export type { FieldProps, Option } from "./types";
+export type {
+  BaseFormFieldProps,
+  BaseFormFieldControlProps,
+  FormFieldLabelProps,
+  FormFieldHelpProps,
+} from "./components";
+export type { FieldProps, FormFieldPresentationProps, Option } from "./types";
 
 export { FormDialog, type FormDialogProps } from "./layouts/form-dialog";
 export { FormSheet, type FormSheetProps } from "./layouts/form-sheet";
@@ -20,3 +25,5 @@ export {
   type FormSectionPanelProps,
   type FormSectionsDialogProps,
 } from "./layouts/form-sections-dialog";
+
+export { DescriptionBadge } from "./components/field-help";

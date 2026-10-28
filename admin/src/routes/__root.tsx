@@ -12,6 +12,7 @@ import { NotFound } from "@/components/route-states/not-found";
 import { adminAuthProvider } from "@/features/auth/supabase";
 import { getSupabaseClient } from "@/providers/supabase-client";
 import { adminDataProvider } from "@/providers/data-provider";
+import { mediaDataProvider } from "@/features/uploads/data-provider";
 import { notificationsDataProvider } from "@/features/notifications/data-provider";
 import { authRouterProvider } from "@/features/auth/router-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
@@ -19,6 +20,7 @@ import { useNotificationProvider } from "@/components/refine-ui/notification/use
 import { Loading } from "@/components/route-states/loading";
 import { resources } from "@/features/catalog/resources";
 import { SiteBrandingProvider } from "@/features/site-branding/provider";
+import { AdminIdentityProvider } from "@/features/auth/identity-provider";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -43,8 +45,15 @@ function RootLayout() {
   const notificationProvider = useNotificationProvider();
   useEffect(() => {
     const supabase = getSupabaseClient();
-    const subscription = supabase?.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
+    let userId: string | undefined;
+    const subscription = supabase?.auth.onAuthStateChange((event, session) => {
+      const changedAccount = session?.user.id !== userId;
+      userId = session?.user.id;
+      if (
+        event === "SIGNED_OUT" ||
+        event === "USER_UPDATED" ||
+        (event === "SIGNED_IN" && changedAccount)
+      ) {
         queueMicrotask(() => {
           void router.invalidate();
         });
@@ -60,6 +69,7 @@ function RootLayout() {
         default: adminDataProvider,
         siteSettings: adminDataProvider,
         notifications: notificationsDataProvider,
+        mediaLibrary: mediaDataProvider,
       }}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}
@@ -69,7 +79,9 @@ function RootLayout() {
     >
       <HeadContent />
       <SiteBrandingProvider>
-        <Outlet />
+        <AdminIdentityProvider>
+          <Outlet />
+        </AdminIdentityProvider>
       </SiteBrandingProvider>
     </Refine>
   );

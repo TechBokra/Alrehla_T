@@ -1,8 +1,9 @@
-import { useGetIdentity, useList } from "@refinedev/core";
+import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useList } from "@refinedev/core";
 import { headerNotificationQueries, type HeaderNotification } from "./queries";
 
 export function useHeaderNotifications(page = 1) {
-  const identity = useGetIdentity<{ id: string }>();
+  const identity = useAdminIdentity();
   const recipientId = identity.data?.id;
   const options = headerNotificationQueries(recipientId);
   options.list.pagination.currentPage = page;
