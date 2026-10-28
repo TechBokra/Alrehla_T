@@ -4,11 +4,10 @@
 
 | Layer     | Technology                  | Role   |
 | --------- | --------------------------- | ------ |
-| Framework | [e.g. Next.js + TypeScript] | [Role] |
+| Framework | [e.g. Vite + TypeScript]    | [Role] |
 | UI        | [e.g. Tailwind + shadcn/ui] | [Role] |
-| Auth      | [e.g. Clerk]                | [Role] |
-| Database  | [e.g. Prisma + PostgreSQL]  | [Role] |
-| [Layer]   | [Technology]                | [Role] |
+| Auth      | [e.g. supabase auth]                | [Role] |
+| Database  | [e.g. supabase + PostgreSQL]  | [Role] |
 
 ## System Boundaries
 
@@ -18,13 +17,13 @@ Refine owns resource CRUD, table query state and the resource cache, backed by T
 
 The [resource migration plan](./resource-migration-plan.md) specifies proposed views, filters, search, sorting, pagination, forms and delivery phases for the legacy admin. Its [route inventory](./legacy-admin-route-inventory.md) maps all 88 source page routes and the 58 navigation tabs/permissions. These documents are a plan and source audit, not evidence that the resources or RPCs are implemented or deployed.
 
-| Operation | Owner | Supabase access |
-| --- | --- | --- |
-| List/detail reads | Refine `useTable`, `useList`, `useOne` | Existing Supabase data provider |
-| Create/update/delete a resource | Refine `useCreate`, `useUpdate`, `useDelete` and existing resource dialogs | Existing Supabase data provider |
-| Confirm/cancel an order or another business command | Feature hook using TanStack Query `useMutation` | Named database function through `supabaseClient.rpc(...)` |
-| Column sorting, filters and pagination | Refine table state | Provider applies these to the database query |
-| Persist a manually reordered sequence | Feature command mutation | RPC saves the permitted sequence atomically |
+| Operation                                           | Owner                                                                      | Supabase access                                           |
+| --------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------- |
+| List/detail reads                                   | Refine `useTable`, `useList`, `useOne`                                     | Existing Supabase data provider                           |
+| Create/update/delete a resource                     | Refine `useCreate`, `useUpdate`, `useDelete` and existing resource dialogs | Existing Supabase data provider                           |
+| Confirm/cancel an order or another business command | Feature hook using TanStack Query `useMutation`                            | Named database function through `supabaseClient.rpc(...)` |
+| Column sorting, filters and pagination              | Refine table state                                                         | Provider applies these to the database query              |
+| Persist a manually reordered sequence               | Feature command mutation                                                   | RPC saves the permitted sequence atomically               |
 
 #### CRUD resources and tables
 
@@ -83,6 +82,149 @@ This is the standard for new business commands. Current CRUD/resource table beha
 
 - `src/lib/schema/` is the shared validation layer for auth and legacy admin feature families. Only auth, platform products and add-ons currently consume it in live admin UI. It exports Zod schemas, inferred input/output types and separate form/action/read registries through `index.ts`; it does not import feature code or execute requests.
 - Existing client product/add-on input rules were reviewed as reference. Admin form values preserve numeric strings; feature models own defaults, row adapters and allowlisted database payload mapping. Schema extraction preserves existing admin validation behavior. See `src/lib/schema/README.md` for scope and source differences.
+
+### Form field presentation architecture
+
+All admin forms use the shared Shuip/TanStack field system. A feature chooses the field, label, description and validation rules; the shared field components present them consistently in pages, dialogs and sheets.
+
+#### Ownership and composition
+
+```mermaid
+flowchart TD
+    Feature[Feature: defaults, schema, submit handler] --> Factory[lib/form.ts: useAppForm]
+    Factory --> Form[form.AppForm and form.AppField]
+    Form --> Adapter[Shuip field or project extension]
+    Adapter --> Base[BaseFormField]
+    Base --> Label[Label or legend + required marker + help]
+    Base --> Control[Field-specific control]
+    Base --> Error[Associated description and FieldError]
+```
+
+| Layer                  | Location                                                                        | Responsibility                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Feature form           | `features/<feature>/`                                                           | Defaults, schema, field selection, copy, option loading, pending state and submit/payload mapping                    |
+| Form factory           | [`src/lib/form.ts`](../src/lib/form.ts)                                         | Single `createFormHook` registration; exports `useAppForm`, `withForm`, `withFieldGroup`                             |
+| Shared context         | [`form-context.tsx`](../src/components/ui/shuip/tanstack-form/form-context.tsx) | Single `fieldContext` / `formContext` pair used by every field and form action                                       |
+| Field adapter          | [`ui/shuip/tanstack-form/`](../src/components/ui/shuip/tanstack-form/)          | Reads `useFieldContext<T>()`; binds value, change and blur; supplies control IDs, disabled state and ARIA attributes |
+| Field presentation     | [`base-form-field.tsx`](../src/components/forms/components/base-form-field.tsx) | Label/legend, required marker, description help, normalized errors and vertical/horizontal layout                    |
+| Description help       | [`field-help.tsx`](../src/components/forms/components/field-help.tsx)           | Shared `FormFieldHelp`, also exported as `DescriptionBadge` and `FieldHelp`                                          |
+| Primitives and layouts | `components/ui/`, `components/forms/layouts/`                                   | shadcn controls, FieldGroup, dialogs, sheets and sections                                                            |
+
+Keep value binding in the adapter and validation/business rules in the feature. BaseFormField handles presentation and reads field metadata when available; it does not create form state, perform requests or save records. Refine continues to own resource mutations and their cache as described above.
+
+#### Visual contract
+
+The default field presents a label row, the control, then an error when invalid. The label row contains the label, an optional required `*`, and optional description help. Hidden description text remains associated with the control independently of whether the tooltip is open.
+
+| Presentation      | Convention                                                                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Label             | Clear feature-owned Arabic text; ordinary controls use `FieldLabel` with `htmlFor` matching the control ID                                                         |
+| Required          | Set the field's top-level `required` prop for the marker and supported control semantics; enforce required values in the schema too                                |
+| Description       | Pass `description` for field-level help. The agreed design is a small help Badge/icon beside the label with tooltip content; omit it when the description is empty |
+| Error             | Render below the control using shadcn `FieldError`; strings and Zod issues are normalized by [`form-errors.ts`](../src/lib/form-errors.ts)                         |
+| Invalid state     | `data-invalid` on the field wrapper and `aria-invalid` on the control, with an error ID in `aria-describedby`                                                      |
+| Disabled state    | Wrapper `data-disabled` plus actual control `disabled`; a visual wrapper alone does not prevent editing                                                            |
+| Checkbox          | Horizontal composition, control first and label/help alongside it                                                                                                  |
+| Radio/time groups | `variant="fieldset"`, `FieldSet` and `FieldLegend`, with individual option/subcontrol names                                                                        |
+| Unlabeled control | Supply an accessible name; BaseFormField render props expose `aria-label`. Help can render separately when no visible label exists                                 |
+| Direction         | Inherit RTL, use logical spacing and start-aligned errors. Set LTR on values that need it, such as email, URLs and time parts                                      |
+
+Description help is supplementary: keep instructions needed to complete a task visibly available in the surrounding form. The shared help trigger must be keyboard focusable, have an accessible name and use `type="button"` so opening help cannot submit a form. Field descriptions use `description`; the optional Shuip `tooltip` prop is a separate control-addon affordance and should not duplicate that description.
+
+**Current implementation gap:** `field-help.tsx` currently places an `aria-hidden` icon directly inside `TooltipTrigger asChild`; it does not render the Badge/button or use its `label` for an accessible trigger name. The Badge/button and keyboard-access requirements above describe the agreed presentation contract and still need to be restored in that helper. This documentation update does not change runtime components.
+
+#### Field APIs and value shapes
+
+Use the actual registered Shuip component names. Native input/selection attributes belong in `props`; date fields expose their own `disabled`, `locale`, bounds and, where supported, `triggerProps`. `fieldProps` configures the outer Field; it does not bind or disable the child control. Check each field's exported interface rather than assuming all fields accept identical props. BaseFormField itself accepts React-node labels/descriptions; most installed Shuip adapters currently accept strings.
+
+| Field                                          | Value and use                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `InputField`, `TextareaField`, `PasswordField` | Text. Numeric InputField uses numeric defaults and `props.type="number"`; an emptied numeric input can produce NaN, so validate it   |
+| `AutocompleteField`                            | Text with static suggestions or asynchronous search; users may enter text outside the suggestions                                    |
+| `SelectField`                                  | One stored string; options map display labels to stored values, for example `{ "نشط": "active" }`                                    |
+| `ComboboxField`                                | Stored string, or string array with `multiple`; options are `{ label, value }` records; supports asynchronous search                 |
+| `CheckboxField`, `RadioField`                  | Boolean, or one option's string value respectively                                                                                   |
+| `DateField`, `DatetimeField`, `MonthField`     | `Date \| undefined`; MonthField normalizes the selection to the first day of the month                                               |
+| `DateRangeField`                               | `{ from, to? } \| undefined`, with date values and possibly an unfinished selection                                                  |
+| `TimeField`, `TimeRangeField`                  | HH:mm string, or `{ start, end }`; the feature schema owns required/range rules                                                      |
+| `InlineEditField`                              | String; commits validate and invoke the owning form's submit handler. Use a dedicated form when saving should affect only that value |
+| `ImageUploadField`, `AttachmentsField`         | Project extensions: completed `CloudinaryUploadResult \| string \| null` and local `File[]` respectively; ImageUploadField uses UploadCN when supplied a signed adapter, while AttachmentsField remains local selection |
+
+Catalog price and sort-order forms intentionally keep numeric strings using `inputMode`. Feature code converts values into allowlisted API payloads, including explicit date/time serialization where needed. A Date object in form state does not define the database's date or timezone contract.
+
+#### Standard feature form
+
+```tsx
+import { useAppForm } from "@/lib/form";
+import { FieldGroup } from "@/components/ui/field";
+
+const form = useAppForm({
+  defaultValues,
+  validators: { onChange: schema, onSubmit: schema },
+  onSubmit: async ({ value }) => onSave(toPayload(value)),
+});
+
+return (
+  <form.AppForm>
+    <form
+      id={formId}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!saving) void form.handleSubmit();
+      }}
+    >
+      <FieldGroup>
+        <form.AppField name="name">
+          {(field) => (
+            <field.InputField
+              label="الاسم"
+              description="الاسم الذي يظهر في الكتالوج."
+              required
+              props={{ disabled: saving }}
+            />
+          )}
+        </form.AppField>
+      </FieldGroup>
+      <form.FormErrorSummary />
+      <form.FormActions>
+        <form.SubmitButton props={{ disabled: saving }}>حفظ</form.SubmitButton>
+      </form.FormActions>
+    </form>
+  </form.AppForm>
+);
+```
+
+`defaultValues`, `schema`, `onSave`, `toPayload`, `formId` and `saving` are supplied by the feature. For a dialog footer outside the native form, keep it under `form.AppForm` and pass `props={{ form: formId, disabled: saving }}` to SubmitButton. SubmitButton combines caller-disabled state with TanStack's `isSubmitting` / `canSubmit`. Mutation failures remain visible through the owning feature; `FormErrorSummary` supplies generic form-validation feedback.
+
+For a new control, first choose an installed Shuip field. If a project-specific adapter is necessary, read the existing shared `useFieldContext<T>()`, render BaseFormField once, bind value/change/blur and register it in `src/lib/form.ts`. Use BaseFormField's render-function children to obtain generated IDs, required/disabled values and ARIA associations; spread them onto compatible controls or map them to the control's API. For ordinary children, supply `htmlFor` and wire matching control attributes explicitly. Custom controls without a labelable HTML element use `labelTarget="labelledBy"` and must apply the supplied `aria-labelledby` themselves.
+
+#### Adoption and verification
+
+All 15 Shuip field types, shared context and SubmitButton are installed from `@shuip`; registry code is owned locally and composed with the existing Radix/shadcn primitives. Catalog create/edit, sign-in, Refine/overlay demos and image-upload demo use the shared factory. The image demo requires an explicitly configured Cloudinary adapter before uploading. `/fields` is the field gallery, with base-field and image-upload examples. Legacy wrappers, the duplicate factory/context adapters and duplicate standalone showcase/schema were removed; reusable dialog/sheet/section layouts remain.
+
+When changing a field, verify label/control association, description access by keyboard, required/error presentation, actual disabled behavior, RTL and the field's value shape. For submission changes, also verify the owning page/dialog flow and pending/error handling. These checks complement TypeScript and the production build.
+
+### UploadCN and Cloudinary media uploads
+
+The Vite admin owns `/uploads`. Its named Refine `mediaLibrary` data provider calls the existing Supabase backend through the `media-library` Edge Function. Next.js is not required. Cloudinary stores the files; no new database table or migration is introduced.
+
+- `features/uploads/page.tsx` presents a searchable image grid, folder filters, oldest/newest sorting and cursor pagination. Refine owns reads, metadata updates, deletion state and cache invalidation.
+- The upload dialog composes the installed `ImageUpload`, `AvatarUpload`, `LogoUpload` and `ProductMediaUpload` blocks from `components/upload`. They share the signed Cloudinary adapter, supported image formats and 5 MiB preflight limit. Pending uploads prevent closing the dialog or changing folder/type. Product cover/reordering is a local preview, not a persisted product association.
+- `components/ui/upload.tsx` owns reusable queue/progress/actions and pending-state reporting. Crop preparation remains in the installed image cropper and crop queue. `FileUpload` remains available for other integrations.
+- `features/uploads/use-upload-adapter.ts` signs through Supabase, then sends file bytes directly from the browser to Cloudinary with UploadCN progress, retry and cancellation. No Cloudinary SDK or Next route is needed.
+- `client/supabase/functions/media-library/index.ts` implements list, get, sign, update and delete. It validates the Supabase JWT with `auth.getUser`, current profile/archive state and content-management permission. Only active super admins and authorized general supervisors are accepted. Its gateway JWT check is disabled because the function performs this validation itself.
+- Search and mutations are scoped to public `alrehla/` images, excluding `alrehla/private/`. Signing accepts exact allowlisted parameters and folders, a fresh timestamp, overwrite disabled and the signed `alrehla_media_library` preset. CORS permits configured origins only.
+- Metadata updates preserve the asset URL and public ID. Deletion rechecks existing resource references and fails closed if scanning cannot complete. Service-role access is limited to that authorized reference scan; Cloudinary credentials and the service key stay in Supabase secrets.
+
+The browser uses `VITE_SUPABASE_URL`, its publishable key and `VITE_CLOUDINARY_CLOUD_NAME`. Backend secrets are `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` and `MEDIA_ALLOWED_ORIGINS`. The function is deployed to the current development Supabase project; deployment of the Vite frontend is separate.
+
+Cloudinary has account-level size ceilings, not per-preset byte limits. The 5 MiB client/declared-metadata checks are preflight checks, not server inspection of direct-upload bytes. Private documents need an explicit protected-delivery design. Removing a queue item only clears local state and does not delete the remote asset.
+
+Forms use the shared `useAppForm` factory. `ImageUploadField` requires an explicit adapter and stores a completed Cloudinary result or URL; feature submission must guard pending uploads. Existing catalog forms retain URL inputs. Upload success and saving a resource association are separate operations. Persist URLs/public IDs supported by the owning resource schema, never Files or upload engine state.
+
+The previous `/api/upload/sign` implementation was removed. Supabase now supplies the existing backend connection for the Vite uploads page. See `components/upload/README.md` for integration and deployment details.
 
 ### Resource page context (implemented)
 

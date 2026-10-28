@@ -80,3 +80,7 @@ in. Open `/sign-in` with an existing staging administrator account. See
 
 See the guides before adding a production admin feature so it follows the
 existing route, feature, and visual conventions.
+
+## Uploads library
+
+Open `/uploads` after admin sign-in. The Vite page uses the installed UploadCN components and a named Refine data provider for real Cloudinary CRUD through the existing Supabase `media-library` Edge Function. See [upload integration](src/components/upload/README.md) for configuration and backend deployment. No Next.js app is required for this page.

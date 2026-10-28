@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
 import {
   Bell,
+  Images,
   Blocks,
   ClipboardList,
   CircleHelp,
@@ -82,6 +83,19 @@ export function AppSidebar({
           <SidebarGroupLabel>إدارة الكتالوج</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  size="sm"
+                  isActive={pathname.startsWith("/uploads")}
+                  tooltip="المرفوعات"
+                >
+                  <Link to="/uploads">
+                    <Images />
+                    <span>المرفوعات</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild

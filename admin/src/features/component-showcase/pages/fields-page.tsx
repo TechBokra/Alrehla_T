@@ -1,4 +1,6 @@
-import { AllFieldsForm } from "./all-fields-form";
+import { AllFieldsForm } from "@/features/form-prototype/all-fields-form";
+import { ImageUploadDemo } from "../image-upload-demo";
+import { BaseFieldDemo } from "../base-field-demo";
 import { SignInForm } from "@/components/refine-ui/form/sign-in-form";
 import { SignUpForm } from "@/components/refine-ui/form/sign-up-form";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,9 @@ import {
 export function FieldsPage() {
   return (
     <>
+      <BaseFieldDemo />
       <AllFieldsForm />
+      <ImageUploadDemo />
       <Collapsible className="flex flex-col gap-4">
         <CollapsibleTrigger asChild>
           <Button type="button" variant="outline" className="self-start">

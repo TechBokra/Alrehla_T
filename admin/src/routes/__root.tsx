@@ -12,6 +12,7 @@ import { NotFound } from "@/components/route-states/not-found";
 import { adminAuthProvider } from "@/features/auth/supabase";
 import { getSupabaseClient } from "@/providers/supabase-client";
 import { adminDataProvider } from "@/providers/data-provider";
+import { mediaDataProvider } from "@/features/uploads/data-provider";
 import { notificationsDataProvider } from "@/features/notifications/data-provider";
 import { authRouterProvider } from "@/features/auth/router-provider";
 import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
@@ -68,6 +69,7 @@ function RootLayout() {
         default: adminDataProvider,
         siteSettings: adminDataProvider,
         notifications: notificationsDataProvider,
+        mediaLibrary: mediaDataProvider,
       }}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}

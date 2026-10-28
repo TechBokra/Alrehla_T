@@ -1,5 +1,5 @@
-"use client";
-
+import { useAppForm } from "@/lib/form";
+("use client");
 import { useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
 import { Save } from "lucide-react";
@@ -10,7 +10,6 @@ import {
   FormSectionPanel,
   FormSectionsDialog,
   FormSheet,
-  useAppForm,
 } from "@/components/forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
-
 const overlayFormSchema = z.object({
   title: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
   sku: z.string().trim().min(3, "اكتب ٣ أحرف على الأقل."),
@@ -31,20 +29,24 @@ const overlayFormSchema = z.object({
   inventory: z.number().int().min(0, "المخزون لا يمكن أن يكون أقل من صفر."),
   published: z.boolean(),
 });
-
 type OverlayFormValues = z.infer<typeof overlayFormSchema>;
 type Presentation = "dialog" | "sheet" | "sections";
-
 const presentationLabels: Record<Presentation, string> = {
   dialog: "نافذة حوارية",
   sheet: "لوحة جانبية",
   sections: "نموذج مقسّم",
 };
-type SavedPreview = { values: OverlayFormValues; savedAt: string };
-
+type SavedPreview = {
+  values: OverlayFormValues;
+  savedAt: string;
+};
 const presentationCopy: Record<
   Presentation,
-  { title: string; description: string; trigger: string }
+  {
+    title: string;
+    description: string;
+    trigger: string;
+  }
 > = {
   dialog: {
     title: "نموذج داخل نافذة",
@@ -62,19 +64,16 @@ const presentationCopy: Record<
     trigger: "فتح النموذج",
   },
 };
-
 const sections = [
   { id: "identity", title: "بيانات المنتج" },
   { id: "pricing", title: "السعر والمخزون" },
   { id: "publishing", title: "النشر" },
 ] as const;
-
 const sectionFields: Record<string, ReadonlyArray<keyof OverlayFormValues>> = {
   identity: ["title", "sku"],
   pricing: ["price", "inventory"],
   publishing: ["category", "published"],
 };
-
 function createInitialValues(): OverlayFormValues {
   return {
     title: "حقيبة قماش يومية",
@@ -85,7 +84,6 @@ function createInitialValues(): OverlayFormValues {
     published: false,
   };
 }
-
 function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
   const copy = presentationCopy[presentation];
   const [open, setOpen] = useState(false);
@@ -98,7 +96,6 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const wasOpenRef = useRef(false);
   const formId = `overlay-form-${presentation}-${useId().replaceAll(":", "")}`;
-
   const form = useAppForm({
     defaultValues: createInitialValues(),
     validators: {
@@ -108,34 +105,29 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
     onSubmitInvalid: ({ value }) => {
       const parsed = overlayFormSchema.safeParse(value);
       if (parsed.success) return;
-
       const invalidFields = new Set(
-        parsed.error.issues.map((issue) => String(issue.path[0] ?? ""))
+        parsed.error.issues.map((issue) => String(issue.path[0] ?? "")),
       );
       const firstInvalidSection = sections.find((section) =>
-        sectionFields[section.id]?.some((field) => invalidFields.has(field))
+        sectionFields[section.id]?.some((field) => invalidFields.has(field)),
       );
-
       if (firstInvalidSection) setActiveSection(firstInvalidSection.id);
     },
     onSubmit: async ({ value }) => {
       if (pendingRef.current) return;
-
       const parsed = overlayFormSchema.safeParse(value);
       if (!parsed.success) {
         const invalidFields = new Set(
-          parsed.error.issues.map((issue) => String(issue.path[0] ?? ""))
+          parsed.error.issues.map((issue) => String(issue.path[0] ?? "")),
         );
         const firstInvalidSection = sections.find((section) =>
-          sectionFields[section.id]?.some((field) => invalidFields.has(field))
+          sectionFields[section.id]?.some((field) => invalidFields.has(field)),
         );
         if (firstInvalidSection) setActiveSection(firstInvalidSection.id);
         return;
       }
-
       pendingRef.current = true;
       setSaving(true);
-
       const values = parsed.data;
       const savePromise = new Promise<SavedPreview>((resolve, reject) => {
         window.setTimeout(() => {
@@ -145,17 +137,14 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
             reject(new Error("تعذّر حفظ المعاينة"));
             return;
           }
-
           resolve({ values, savedAt: new Date().toISOString() });
         }, 750);
       });
-
       toast.promise(savePromise, {
         loading: "جارٍ حفظ معاينة المنتج…",
         success: "تم حفظ معاينة المنتج",
         error: "تعذّر حفظ معاينة المنتج. ما زالت المسودة مفتوحة.",
       });
-
       try {
         const saved = await savePromise;
         setSubmitted(saved);
@@ -168,94 +157,117 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       }
     },
   });
-
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && pendingRef.current) return;
     form.reset(createInitialValues());
     if (nextOpen) setActiveSection(sections[0].id);
     setOpen(nextOpen);
   };
-
   useEffect(() => {
     if (wasOpenRef.current && !open) {
       window.requestAnimationFrame(() => triggerRef.current?.focus());
     }
     wasOpenRef.current = open;
   }, [open]);
-
   const armFailure = () => {
     failureRef.current = true;
     setFailureArmed(true);
   };
-
   const formFooter = (
     <form.FormActions className="w-full justify-end">
-      <form.SubmitButton formId={formId} disabled={saving}>
+      <form.SubmitButton
+        props={{
+          form: formId,
+          disabled: saving,
+        }}
+      >
         حفظ
       </form.SubmitButton>
     </form.FormActions>
   );
-
   const identityFields = (
     <>
       <form.AppField name="title">
-        {(field) => <field.Input label="اسم المنتج" disabled={saving} />}
+        {(field) => (
+          <field.InputField
+            label="اسم المنتج"
+            props={{
+              disabled: saving,
+            }}
+          />
+        )}
       </form.AppField>
       <form.AppField name="sku">
         {(field) => (
-          <field.GroupedInput label="كود المنتج" prefix="SKU" disabled={saving} />
+          <field.InputField
+            label="كود المنتج"
+            props={{
+              disabled: saving,
+            }}
+          />
         )}
       </form.AppField>
     </>
   );
-
   const pricingFields = (
     <>
       <form.AppField name="price">
         {(field) => (
-          <field.Number
+          <field.InputField
             label="السعر"
-            min={0.01}
-            step={0.01}
-            disabled={saving}
+            props={{
+              min: 0.01,
+              step: 0.01,
+              disabled: saving,
+              type: "number",
+            }}
           />
         )}
       </form.AppField>
       <form.AppField name="inventory">
         {(field) => (
-          <field.Number label="المخزون" min={0} disabled={saving} />
+          <field.InputField
+            label="المخزون"
+            props={{
+              min: 0,
+              disabled: saving,
+              type: "number",
+            }}
+          />
         )}
       </form.AppField>
     </>
   );
-
   const publishingFields = (
     <>
       <form.AppField name="category">
         {(field) => (
-          <field.Select
+          <field.SelectField
             label="الفئة"
-            disabled={saving}
-            options={[
-              { value: "apparel", label: "ملابس" },
-              { value: "home", label: "المنزل والمعيشة" },
-              { value: "accessories", label: "إكسسوارات" },
-            ]}
+            options={{
+              ملابس: "apparel",
+              "المنزل والمعيشة": "home",
+              إكسسوارات: "accessories",
+            }}
+            props={{
+              disabled: saving,
+            }}
           />
         )}
       </form.AppField>
       <form.AppField name="published">
         {(field) => (
-          <field.Checkbox
+          <field.CheckboxField
             label="نشر هذا المنتج"
             description="هذه بيانات تجريبية فقط، ولن يؤدي النشر إلى أي إجراء خارجي."
-            disabled={saving}
+            props={{
+              disabled: saving,
+            }}
           />
         )}
       </form.AppField>
     </>
   );
-
   const renderForm = () => (
     <form
       id={formId}
@@ -309,7 +321,6 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
       )}
     </form>
   );
-
   return (
     <form.AppForm>
       <Card className="min-w-0">
@@ -433,7 +444,6 @@ function OverlayFormDemo({ presentation }: { presentation: Presentation }) {
     </form.AppForm>
   );
 }
-
 export function OverlayFormDemos() {
   return (
     <section className="flex flex-col gap-6 border-t pt-10">
@@ -447,7 +457,9 @@ export function OverlayFormDemos() {
           النوافذ والألواح والنماذج المقسّمة
         </h2>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          لكل مثال نموذج وحقول وحالة تحقق ونتيجة محفوظة. إغلاق النافذة يلغي المسودة، وفتحها من جديد يبدأ بالقيم الافتراضية. جرّب فشل الحفظ لتتأكد أن التعديلات تظل موجودة.
+          لكل مثال نموذج وحقول وحالة تحقق ونتيجة محفوظة. إغلاق النافذة يلغي
+          المسودة، وفتحها من جديد يبدأ بالقيم الافتراضية. جرّب فشل الحفظ لتتأكد
+          أن التعديلات تظل موجودة.
         </p>
       </div>
       <div className="grid min-w-0 gap-5 xl:grid-cols-3">
