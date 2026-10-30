@@ -2,6 +2,11 @@ import { ResourceProps } from "@refinedev/core";
 
 export const resources: Array<ResourceProps> = [
   {
+    name: "profile",
+    list: "/profile",
+    meta: { label: "الملف الشخصي", dataProviderName: "account" },
+  },
+  {
     name: "uploads",
     list: "/uploads",
     meta: { label: "المرفوعات", dataProviderName: "mediaLibrary" },

@@ -14,6 +14,7 @@ import { NativeButton, Upload, UploadTrigger } from "@/components/ui/upload";
 import { CameraIcon, UserIcon, CircleAlertIcon } from "lucide-react";
 
 interface AvatarUploadProps<TResult> {
+  disabled?: boolean;
   onPendingChange?: (pending: boolean) => void;
   accept?: string;
   adapter?: UploadAdapter<TResult>;
@@ -29,6 +30,7 @@ interface AvatarUploadProps<TResult> {
 }
 
 function AvatarUpload<TResult = unknown>({
+  disabled,
   onPendingChange,
   accept = "image/jpeg,image/png,image/webp,image/avif",
   adapter,
@@ -45,6 +47,7 @@ function AvatarUpload<TResult = unknown>({
 
   return (
     <Upload
+      disabled={disabled}
       onPendingChange={onPendingChange}
       adapter={adapter}
       accept={accept}
@@ -55,14 +58,18 @@ function AvatarUpload<TResult = unknown>({
       name={name}
       className={cn("w-auto flex-row items-center gap-4", className)}
     >
-      <AvatarPreview fallbackSrc={src ?? null} />
+      <AvatarPreview fallbackSrc={src ?? null} disabled={disabled} />
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <UploadTrigger>
             <CameraIcon data-icon="inline-start" />
-            {src ? "Change photo" : "Upload photo"}
+            {src ? "تغيير الصورة" : "رفع صورة"}
           </UploadTrigger>
-          <AvatarRemove onRemove={() => onChange?.(null)} />
+          <AvatarRemove
+            disabled={disabled}
+            hasSaved={Boolean(src)}
+            onRemove={() => onChange?.(null)}
+          />
         </div>
         <AvatarHint />
       </div>
@@ -78,7 +85,7 @@ function AvatarUpload<TResult = unknown>({
         }}
         onCrop={crops.complete}
         onCancel={crops.skip}
-        title="Crop your photo"
+        title="قص الصورة الشخصية"
       />
     </Upload>
   );
@@ -89,7 +96,13 @@ function useAvatarItem() {
   return useUploadSelector(uploader, (state) => state.items.at(-1) ?? null);
 }
 
-function AvatarPreview({ fallbackSrc }: { fallbackSrc: string | null }) {
+function AvatarPreview({
+  fallbackSrc,
+  disabled,
+}: {
+  fallbackSrc: string | null;
+  disabled?: boolean;
+}) {
   const item = useAvatarItem();
   const { openFileDialog } = useUploadContext();
   const radius = 46;
@@ -103,8 +116,9 @@ function AvatarPreview({ fallbackSrc }: { fallbackSrc: string | null }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={openFileDialog}
-      aria-label="Change profile photo"
+      aria-label="تغيير الصورة الشخصية"
       className="group/avatar relative size-20 shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <span className="absolute inset-1 flex items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground">
@@ -172,12 +186,21 @@ function AvatarPreview({ fallbackSrc }: { fallbackSrc: string | null }) {
   );
 }
 
-function AvatarRemove({ onRemove }: { onRemove: () => void }) {
+function AvatarRemove({
+  onRemove,
+  disabled,
+  hasSaved,
+}: {
+  onRemove: () => void;
+  disabled?: boolean;
+  hasSaved: boolean;
+}) {
   const item = useAvatarItem();
   const { uploader } = useUploadContext();
-  if (!item) return null;
+  if (!item && !hasSaved) return null;
   return (
     <NativeButton
+      disabled={disabled}
       variant="ghost"
       size="sm"
       onClick={() => {
@@ -185,7 +208,7 @@ function AvatarRemove({ onRemove }: { onRemove: () => void }) {
         onRemove();
       }}
     >
-      Remove
+      إزالة الصورة
     </NativeButton>
   );
 }
@@ -202,7 +225,7 @@ function AvatarHint() {
   }
   return (
     <p className="text-xs text-muted-foreground">
-      JPG, PNG or WebP. Cropped to a square.
+      اختر صورة؛ سيتم قصّها إلى مربع.
     </p>
   );
 }

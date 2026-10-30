@@ -17,6 +17,9 @@ export function resolveAdminPath(to: string) {
     "/catalog/addons",
     "/notifications",
     "/uploads",
+    "/profile",
+    "/forgot-password",
+    "/reset-password",
   ].includes(path)
     ? path
     : "/sign-in";

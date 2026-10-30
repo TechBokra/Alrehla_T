@@ -28,7 +28,13 @@ export function AdminIdentityProvider({ children }: { children: ReactNode }) {
   const identity = useGetIdentity<AdminIdentity | null>({
     queryOptions: {
       queryKey: ["admin-identity", version],
-      enabled: path !== "/sign-in" && path !== "/auth/callback",
+      enabled: ![
+        "/sign-in",
+        "/auth/callback",
+        "/auth/link",
+        "/forgot-password",
+        "/reset-password",
+      ].includes(path),
       staleTime: 60_000,
       gcTime: 0,
       refetchOnWindowFocus: false,

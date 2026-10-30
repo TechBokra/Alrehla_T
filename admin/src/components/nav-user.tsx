@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useTheme } from "@/components/refine-ui/theme/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -105,9 +106,11 @@ export function NavUser({ user, signOut, isLoggingOut }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={() => setActiveDialog("profile")}>
-                <UserRound />
-                الملف الشخصي
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <UserRound />
+                  الملف الشخصي
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setActiveDialog("settings")}>
                 <Settings2 />
