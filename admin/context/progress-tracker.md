@@ -96,3 +96,23 @@ change.
 - Verified real Cloudinary fixture upload/read/update/delete, function auth/policy/reference-scan rejection, TypeScript/build and read-only browser UI against captured actual assets. Authenticated browser CRUD requires an admin session; it was not claimed as completed.
 
 - Final upload-component integration: TypeScript and production build pass; all four upload modes render in browser verification. Removed temporary preview files and generated CLI artifacts. Existing bundle-size warning remains.
+
+### Field borders and overlay surfaces — 2026-10-29
+
+- Replaced transparent Rhea field borders with shared `border-input` on text inputs, textarea, select/native select, input groups, checkbox and radio primitives.
+- Removed forced dark/glass styling from dropdown and submenu content. They now use opaque `bg-popover`, matching existing dialog and popover surfaces and inheriting the app theme.
+- Validation: TypeScript, production build and diff whitespace checks pass. Browser preview confirms gray input/textarea borders and opaque white dialog, popover and menu surfaces in light mode. Existing bundle-size warning remains. Temporary preview files removed.
+
+### Complete outlined fields and solid surfaces — 2026-10-30
+
+- Changed shared text-entry controls and select triggers from the Rhea gray fill to `bg-background`, retaining `border-input`, focus and error styles.
+- Added explicit semantic borders to dialog, alert dialog, popover, select menu and dropdown surfaces. Floating content retains opaque theme backgrounds; no forced dark or glass menu styles.
+- Validation: shared control/surface style checks and `git diff --check` pass.
+
+### Profile route — 2026-10-30
+
+- Implemented `/profile` with existing shadcn Cards/Tabs, shared `useAppForm` fields, AvatarUpload and named Refine own-account provider. Linked from the user menu.
+- Added profile name/avatar saves, read-only email/role, Google linking callback with account continuity check and verified current-password changes.
+- Added public forgot/reset-password pages, PKCE recovery validation and sign-in recovery link. Supabase manual-linking, redirect allowlist and email delivery settings remain deployment prerequisites; no hosted settings or user credentials were changed.
+
+- Validation: 15 mocked Auth/provider safety tests pass, TypeScript and production build pass, and `git diff --check` is clean. Authenticated browser loaded the real own-profile data and showed both tabs; empty-password validation, forgot-password form and invalid recovery-link states verified. No real profile edit, credential change, Google link or recovery email was performed during verification. Existing bundle-size warning remains.

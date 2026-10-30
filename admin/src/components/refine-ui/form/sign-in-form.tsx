@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useAppForm } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import {
@@ -121,6 +122,9 @@ export function SignInForm() {
                 >
                   تسجيل الدخول
                 </form.SubmitButton>
+                <Button type="button" variant="link" asChild>
+                  <Link to="/forgot-password">نسيت كلمة المرور؟</Link>
+                </Button>
                 <FieldSeparator>أو</FieldSeparator>
                 <Button
                   type="button"

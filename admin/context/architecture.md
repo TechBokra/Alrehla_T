@@ -266,3 +266,13 @@ Optional configuration includes `searchField`, `refineCoreProps`, `canCreate`, `
 2. [Invariant two]
 3. [Invariant three]
 4. [Invariant four]
+
+### Own profile and authentication settings
+
+`/profile` composes existing shadcn Cards/Tabs/Fields, AvatarUpload and the shared `useAppForm` fields. Its named Refine `account` provider loads the verified current user and own `user_profiles` row; update accepts only name/avatar, rechecks caller identity and relies on existing RLS. Auth email, role and linked identities are read-only here. Successful profile saves invalidate the shared identity so sidebar/header updates.
+
+Google linking uses `auth.linkIdentity` while signed in, a separate `/auth/link` PKCE callback and an initiating-user check. Manual linking and the callback redirect must be configured in Supabase. Existing Google sign-in remains separate. No Gmail mailbox scopes are requested.
+
+Password changes verify the current password in an isolated, nonpersistent Supabase client, check the same user is still active and then call `updateUser`. The temporary verification session is signed out. Google-only accounts use an emailed recovery link to set a password. Password forms use feature-local submit state; credentials never enter Refine resource payloads or query caches.
+
+`/forgot-password` and `/reset-password` are public auth pages. Recovery uses PKCE exchange explicitly (URL detection is disabled in the shared client), requires the public `PASSWORD_RECOVERY` event, deduplicates single-use codes and signs out locally after a successful password update. Email responses are neutral. Configure the reset redirect and mail delivery in Supabase; PKCE links must be opened in the requesting browser. Expired/missing codes show a new-link action. No database schema or hosted auth configuration changes are made by this feature.

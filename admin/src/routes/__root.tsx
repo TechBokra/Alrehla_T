@@ -12,6 +12,7 @@ import { NotFound } from "@/components/route-states/not-found";
 import { adminAuthProvider } from "@/features/auth/supabase";
 import { getSupabaseClient } from "@/providers/supabase-client";
 import { adminDataProvider } from "@/providers/data-provider";
+import { profileDataProvider } from "@/features/profile/data-provider";
 import { mediaDataProvider } from "@/features/uploads/data-provider";
 import { notificationsDataProvider } from "@/features/notifications/data-provider";
 import { authRouterProvider } from "@/features/auth/router-provider";
@@ -26,7 +27,15 @@ export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     const pathname = location.pathname.replace(/\/+$/, "") || "/";
     // The OAuth callback must exchange its code before any session guard runs.
-    if (pathname === "/auth/callback") return;
+    if (
+      [
+        "/auth/callback",
+        "/auth/link",
+        "/forgot-password",
+        "/reset-password",
+      ].includes(pathname)
+    )
+      return;
     const { authenticated } = await adminAuthProvider.check();
     if (pathname === "/sign-in") {
       if (authenticated) throw redirect({ to: "/theme", replace: true });
@@ -70,6 +79,7 @@ function RootLayout() {
         siteSettings: adminDataProvider,
         notifications: notificationsDataProvider,
         mediaLibrary: mediaDataProvider,
+        account: profileDataProvider,
       }}
       authProvider={adminAuthProvider}
       routerProvider={authRouterProvider}
