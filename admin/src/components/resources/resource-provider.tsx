@@ -1,10 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
-import type { BaseRecord } from "@refinedev/core";
+import { type ReactNode } from "react";
+import type { BaseRecord, HttpError } from "@refinedev/core";
 import type { ColumnDef } from "@tanstack/react-table";
-import {
-  useDataTable,
-  type UseDataTableOptions,
-} from "@/components/refine-ui/data-table/use-data-table";
+import type { UseTableReturnType } from "@refinedev/react-table";
+import type { UseDataTableOptions } from "@/components/refine-ui/data-table/use-data-table";
+import { useResourceTable } from "@/hooks/resources/use-resource-table";
 import { ResourceScopeProvider } from "./resource-context";
 import { ResourcePage } from "./resource-page";
 import { ResourceDialogs } from "./resource-dialogs";
@@ -20,6 +19,12 @@ export interface ResourceProviderProps<TRecord extends ResourceRecord> {
     ColumnDef<TRecord, unknown>[] | (() => ColumnDef<TRecord, unknown>[]);
   form: ResourceFormDefinition<TRecord>;
   searchField?: string;
+  searchFields?: string[];
+  searchDebounceMs?: number;
+  pageSizeOptions?: number[];
+  initialState?: UseDataTableOptions<TRecord>["initialState"];
+  toolbarContent?: (table: UseTableReturnType<TRecord, HttpError>) => ReactNode;
+  children?: ReactNode;
   refineCoreProps?: Omit<
     NonNullable<UseDataTableOptions<TRecord>["refineCoreProps"]>,
     "resource"
@@ -48,6 +53,12 @@ function ResourceContent<TRecord extends ResourceRecord>({
   columns: columnInput,
   form,
   searchField,
+  searchFields,
+  searchDebounceMs,
+  pageSizeOptions,
+  initialState,
+  toolbarContent,
+  children,
   refineCoreProps,
   canCreate = true,
   canDelete = form.canEdit ?? (() => true),
@@ -58,49 +69,20 @@ function ResourceContent<TRecord extends ResourceRecord>({
   getRowLabel = (row) => String(row.name ?? row.id),
   onReorder,
 }: ResourceProviderProps<TRecord>) {
-  const [draft, setDraft] = useState<{
-    source: TRecord[];
-    ids: string[];
-  } | null>(null);
-  const mapDisplayRows = useCallback(
-    (rows: TRecord[]) => {
-      if (!enableRowReordering || !draft || draft.source !== rows) return rows;
-      const byId = new Map(rows.map((row) => [String(row.id), row]));
-      return draft.ids.map((id) => byId.get(id)!);
-    },
-    [draft, enableRowReordering],
-  );
-  const columns = useMemo(
-    () => (typeof columnInput === "function" ? columnInput() : columnInput),
-    [columnInput],
-  );
-  const table = useDataTable<TRecord>({
-    columns,
+  const { table, reorder } = useResourceTable<TRecord>({
+    resource,
+    columns: columnInput,
     searchField,
-    mapDisplayRows,
+    searchFields,
+    searchDebounceMs,
+    initialState,
+    enableRowReordering,
+    onReorder,
     refineCoreProps: {
       ...refineCoreProps,
-      resource,
       pagination: { pageSize: 20, ...refineCoreProps?.pagination },
     },
   });
-  const reorder = (ids: string[]) => {
-    const source = table.refineCore.tableQuery.data?.data;
-    if (
-      !enableRowReordering ||
-      !source ||
-      ids.length !== source.length ||
-      new Set(ids).size !== source.length
-    )
-      return;
-    const byId = new Map(source.map((row) => [String(row.id), row]));
-    if (ids.some((id) => !byId.has(id))) return;
-    setDraft({ source, ids: [...ids] });
-    onReorder?.(
-      [...ids],
-      ids.map((id) => byId.get(id)!),
-    );
-  };
   return (
     <ResourceScopeProvider
       resource={resource}
@@ -113,6 +95,8 @@ function ResourceContent<TRecord extends ResourceRecord>({
         title={title}
         description={description}
         table={table}
+        pageSizeOptions={pageSizeOptions}
+        toolbarContent={toolbarContent?.(table)}
         canCreate={canCreate}
         storageKey={storageKey}
         rowReordering={
@@ -122,6 +106,7 @@ function ResourceContent<TRecord extends ResourceRecord>({
         <ResourceDialogs>
           <ResourceEditor form={form} />
         </ResourceDialogs>
+        {children}
       </ResourcePage>
     </ResourceScopeProvider>
   );

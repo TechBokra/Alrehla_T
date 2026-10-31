@@ -11,3 +11,6 @@ sql_paths = ["./seed.sql"]
 # The handler validates JWTs with auth.getUser and checks current admin permissions.
 [functions.media-library]
 verify_jwt = false
+
+[functions.admin-users]
+verify_jwt = true

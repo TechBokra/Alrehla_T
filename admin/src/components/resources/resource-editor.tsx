@@ -14,8 +14,10 @@ export interface ResourceFormFieldsContext<
 }
 export interface ResourceFormDefinition<TRecord extends BaseRecord> {
   title: string;
+  dataProviderName?: string;
   canEdit?: (record: TRecord) => boolean;
   getErrorMessage?: (error: unknown) => string;
+  onSaved?: (record: TRecord, action: "create" | "edit") => void;
   fields: (context: ResourceFormFieldsContext<TRecord>) => ReactNode;
 }
 export function ResourceEditor<TRecord extends BaseRecord>({
@@ -30,8 +32,10 @@ export function ResourceEditor<TRecord extends BaseRecord>({
       resource={resource}
       id={target.action === "edit" ? target.id : undefined}
       title={`${target.action === "edit" ? "تعديل" : "إضافة"} ${form.title}`}
+      dataProviderName={form.dataProviderName}
       canEdit={form.canEdit}
       getErrorMessage={form.getErrorMessage}
+      onSaved={form.onSaved}
       onClose={close}
     >
       {(context) =>

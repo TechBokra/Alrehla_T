@@ -1,7 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 import { completeGoogleLink } from "@/features/profile/auth-actions";
-import { adminAuthProvider } from "@/features/auth/supabase";
+import { adminAuthProvider } from "@/providers/refine/auth-provider";
 import {
   Card,
   CardHeader,

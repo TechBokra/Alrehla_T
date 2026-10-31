@@ -19,3 +19,5 @@ No hosted auth settings, real identities or passwords are changed by installing 
 ## Verification
 
 Run `node tests/profile-auth.test.mjs` from `admin` for ownership, payload allowlist, password verification and callback/recovery checks with mocked Auth responses. Run `pnpm typecheck` and `pnpm build` for integration checks. Live Google linking and recovery delivery require configured providers, redirects and the account owner completing the flow.
+
+The standalone `/forgot-password` request route was removed. Password reset emails can still be requested from the signed-in profile, and `/reset-password` remains their receiver. Invalid links return to sign-in.

@@ -23,7 +23,7 @@ import {
 export const adminResourceSchemas = {
   personalized_products: productSchema,
   addon_products: addonSchema,
-  user_profiles: people.createUserSchema,
+  user_profiles: people.userResourceCreateSchema,
   admin_roles: people.adminRoleSchema,
   instructors: people.instructorProfileSchema,
   instructor_media: people.instructorMediaSchema,
@@ -52,7 +52,8 @@ export const adminResourceSchemas = {
 /** Commands are intentionally separate from generic create/update forms. */
 export const adminActionSchemas = {
   users: {
-    create: people.createUserSchema,
+    create: people.userResourceCreateSchema,
+    update: people.userResourceUpdateSchema,
     invite: people.inviteUserSchema,
     role: people.userRoleSchema,
     resetPassword: people.resetUserPasswordSchema,

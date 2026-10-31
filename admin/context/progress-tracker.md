@@ -13,6 +13,8 @@ change.
 
 ## Completed
 
+- 2026-10-31: Split the Refine provider setup into sibling files under `providers/refine/`: auth, default/named data providers, Arabic Egypt i18n, notifications, router, resources, and the composition component. Kept the TanStack route guard and session refresh listener in `routes/__root.tsx`. Verification: 22 tests, TypeScript and production build pass; route generator emits its existing circular-dependency warning, and Vite reports its existing large chunk warning. No remote mutations were run.
+
 - 2026-10-28: Implemented real UploadCN signing at POST /api/upload/sign for Vercel and Vite development, validating Supabase users/current active admin profiles via RLS, approved public-image folders, strict params/preset, JSON/body limits and origin. Added server signing dependency, shared image policy and authenticated frontend hook; catalog image fields now upload and retain URL-only Refine payloads, with pending-submit guards. Created a dedicated signed Cloudinary admin-image preset without changing storefront presets and updated local preset configuration. Documented Cloudinary account-level byte limits versus untrusted preflight metadata. Verification: pnpm test:uploads (4 grouped auth/signature/policy tests), pnpm typecheck, pnpm build and git diff --check pass. Live local route rejects missing/invalid Supabase sessions with 401. Real Cloudinary credentials successfully uploaded a generated 1-pixel image through the new signed preset, then deleted that test asset. Browser output was checked for Cloudinary/Supabase secrets and passed. No database/schema changes or resource-record writes; hosted route deployment remains pending.
 
 - 2026-10-28: Adopted UploadCN/Cloudinary upload architecture: direct browser upload, authenticated server signing, real progress, successful-result/form ownership, Refine resource persistence, asset cleanup and private-delivery boundaries, unsigned exceptions and chunk/resume behavior. Reused existing core/react packages and avatar/logo/product-media blocks; installed ImageUpload/FileUpload under components/upload and retained existing shared primitives. Added signed Cloudinary adapter/signer, public Vite env placeholders and usage README; migrated the image form adapter away from the removed local-only component. Signing backend/configuration and live resource adoption remain integration work. Verification: pnpm typecheck, pnpm build and git diff --check pass. Mocked signer checks pass for authorized request headers/body, missing authentication, HTTP failure, invalid response and missing cloud name. Existing route-generator circular-dependency and bundle-size warnings remain. No live uploads or remote writes were performed.
@@ -116,3 +118,63 @@ change.
 - Added public forgot/reset-password pages, PKCE recovery validation and sign-in recovery link. Supabase manual-linking, redirect allowlist and email delivery settings remain deployment prerequisites; no hosted settings or user credentials were changed.
 
 - Validation: 15 mocked Auth/provider safety tests pass, TypeScript and production build pass, and `git diff --check` is clean. Authenticated browser loaded the real own-profile data and showed both tabs; empty-password validation, forgot-password form and invalid recovery-link states verified. No real profile edit, credential change, Google link or recovery email was performed during verification. Existing bundle-size warning remains.
+
+### Arabic toast notifications — 2026-10-30
+
+- Added Arabic Refine CRUD/error/success and undo messages, including Arabic number/plural handling.
+- Shared Sonner toaster uses RTL, start-aligned content and Arabic accessibility labels. Undo content uses logical spacing.
+- Common server error descriptions are presented in Arabic, preserving existing Arabic feature messages. Component showcase reuses the same notification provider.
+- Verification: Arabic notification keys, plural forms and error fallbacks passed executable checks; production build passed. Browser preview could not be completed because browser automation was unavailable/timed out. Temporary preview files removed.
+- Final TypeScript check passed against the current workspace.
+
+### Remove UI showcase routes — 2026-10-30
+
+- Removed theme, UI primitives, data view, fields, forms, form prototype and legacy sections/calendar routes, plus their feature-only demo files.
+- Removed showcase and quick-demo sidebar groups and showcase types from AdminLayout. Shared UI/form/resource components and light/dark theme support remain.
+- Home, password sign-in and Google sign-in now land on `/catalog/products`; real administration and authentication routes remain.
+
+- User additionally requested removal of `/forgot-password`. Removed its sign-in link and public route configuration. Retained `/reset-password` for profile-initiated recovery emails, with a dedicated receiver component and sign-in fallback for invalid links.
+
+- Verification: generated route inventory excludes all removed pages and preserves live catalog/uploads/notifications/profile/auth routes. Password and Google sign-in destination checks pass; 15 own-account/Auth safety checks pass; production build passes with the existing chunk-size warning.
+- Final TypeScript check passed.
+
+### Refine provider data folder and application architecture — 2026-10-31
+
+- Grouped the Refine data-provider registry and account, media-library,
+  notifications, users and shared Supabase adapters under
+  `src/providers/refine/data-provider/`; updated feature imports and
+  provider/query tests to the new paths.
+- Added `doc/application-architecture.md` with the app startup, route/auth,
+  Refine provider, resource read/command, Supabase and Edge Function flows.
+- Updated the provider README and architecture context to match the folder
+  layout. Verification: 22 tests, `pnpm typecheck` and `pnpm build` pass; the
+  build retains the existing large-chunk warning. Changed-file whitespace and
+  stale-import checks pass.
+
+### Resource CRUD hook extraction — 2026-10-31
+
+- Moved shared list/table state, create/edit reads and mutations, delete
+  mutation handling, and lifecycle helpers from `components/resources/` to
+  `src/hooks/resources/`. Resource components now compose hooks and render the
+  table/dialog UI.
+- Create/edit/delete use Refine's default automatic invalidation.
+- Verification: 22 tests, `pnpm typecheck`, `pnpm build` and scoped whitespace
+  checks pass. The production build retains the existing large-chunk warning.
+
+### Resource form mutation state — 2026-10-31
+
+- Form pending and mutation errors now come directly from Refine's create/update
+  mutation state instead of mirrored React state. Local error state is limited
+  to edit preflight checks and post-save callbacks that do not belong to those
+  mutations.
+- Verification: 22 tests, `pnpm typecheck`, `pnpm build` and scoped whitespace
+  checks pass. The build retains the existing large-chunk warning.
+
+### Root admin layout — 2026-10-31
+
+- Moved `AdminLayout` to the root route so protected admin pages share one
+  sidebar and header without repeating a wrapper in each route group.
+- Route-group components now render only their nested outlet. The shell derives
+  the Arabic breadcrumb from the current route. Sign-in, OAuth callbacks and
+  password-reset callback screens remain full-screen.
+- Updated architecture docs. Verification pending.

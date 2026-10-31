@@ -11,33 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CatalogRouteRouteImport } from './routes/catalog/route'
-import { Route as DataViewRouteRouteImport } from './routes/data-view/route'
-import { Route as FieldsRouteRouteImport } from './routes/fields/route'
-import { Route as FormPrototypeRouteRouteImport } from './routes/form-prototype/route'
-import { Route as FormsRouteRouteImport } from './routes/forms/route'
 import { Route as NotificationsRouteRouteImport } from './routes/notifications/route'
 import { Route as ProfileRouteRouteImport } from './routes/profile/route'
-import { Route as ThemeRouteRouteImport } from './routes/theme/route'
-import { Route as UiPrimitivesRouteRouteImport } from './routes/ui-primitives/route'
 import { Route as UploadsRouteRouteImport } from './routes/uploads/route'
-import { Route as CalendarIndexRouteImport } from './routes/calendar/index'
-import { Route as DataViewIndexRouteImport } from './routes/data-view/index'
-import { Route as FieldsIndexRouteImport } from './routes/fields/index'
-import { Route as ForgotPasswordIndexRouteImport } from './routes/forgot-password/index'
-import { Route as FormPrototypeIndexRouteImport } from './routes/form-prototype/index'
-import { Route as FormsIndexRouteImport } from './routes/forms/index'
+import { Route as UsersRouteRouteImport } from './routes/users/route'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
-import { Route as ResetPasswordIndexRouteImport } from './routes/reset-password/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
-import { Route as ThemeIndexRouteImport } from './routes/theme/index'
-import { Route as UiPrimitivesIndexRouteImport } from './routes/ui-primitives/index'
 import { Route as UploadsIndexRouteImport } from './routes/uploads/index'
+import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
 import { Route as AuthLinkIndexRouteImport } from './routes/auth/link/index'
 import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
 import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
-import { Route as SectionsSectionIndexRouteImport } from './routes/sections/$section/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,26 +33,6 @@ const IndexRoute = IndexRouteImport.update({
 const CatalogRouteRoute = CatalogRouteRouteImport.update({
   id: '/catalog',
   path: '/catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataViewRouteRoute = DataViewRouteRouteImport.update({
-  id: '/data-view',
-  path: '/data-view',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FieldsRouteRoute = FieldsRouteRouteImport.update({
-  id: '/fields',
-  path: '/fields',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FormPrototypeRouteRoute = FormPrototypeRouteRouteImport.update({
-  id: '/form-prototype',
-  path: '/form-prototype',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FormsRouteRoute = FormsRouteRouteImport.update({
-  id: '/forms',
-  path: '/forms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRouteRoute = NotificationsRouteRouteImport.update({
@@ -79,50 +45,15 @@ const ProfileRouteRoute = ProfileRouteRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ThemeRouteRoute = ThemeRouteRouteImport.update({
-  id: '/theme',
-  path: '/theme',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UiPrimitivesRouteRoute = UiPrimitivesRouteRouteImport.update({
-  id: '/ui-primitives',
-  path: '/ui-primitives',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UploadsRouteRoute = UploadsRouteRouteImport.update({
   id: '/uploads',
   path: '/uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CalendarIndexRoute = CalendarIndexRouteImport.update({
-  id: '/calendar/',
-  path: '/calendar/',
+const UsersRouteRoute = UsersRouteRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DataViewIndexRoute = DataViewIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DataViewRouteRoute,
-} as any)
-const FieldsIndexRoute = FieldsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FieldsRouteRoute,
-} as any)
-const ForgotPasswordIndexRoute = ForgotPasswordIndexRouteImport.update({
-  id: '/forgot-password/',
-  path: '/forgot-password/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FormPrototypeIndexRoute = FormPrototypeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FormPrototypeRouteRoute,
-} as any)
-const FormsIndexRoute = FormsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FormsRouteRoute,
 } as any)
 const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
   id: '/',
@@ -134,30 +65,20 @@ const ProfileIndexRoute = ProfileIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProfileRouteRoute,
 } as any)
-const ResetPasswordIndexRoute = ResetPasswordIndexRouteImport.update({
-  id: '/reset-password/',
-  path: '/reset-password/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SignInIndexRoute = SignInIndexRouteImport.update({
   id: '/sign-in/',
   path: '/sign-in/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ThemeIndexRoute = ThemeIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ThemeRouteRoute,
-} as any)
-const UiPrimitivesIndexRoute = UiPrimitivesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => UiPrimitivesRouteRoute,
-} as any)
 const UploadsIndexRoute = UploadsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => UploadsRouteRoute,
+} as any)
+const UsersIndexRoute = UsersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UsersRouteRoute,
 } as any)
 const AuthCallbackIndexRoute = AuthCallbackIndexRouteImport.update({
   id: '/auth/callback/',
@@ -179,203 +100,115 @@ const CatalogProductsIndexRoute = CatalogProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
-const SectionsSectionIndexRoute = SectionsSectionIndexRouteImport.update({
-  id: '/sections/$section/',
-  path: '/sections/$section/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRouteRouteWithChildren
-  '/data-view': typeof DataViewRouteRouteWithChildren
-  '/fields': typeof FieldsRouteRouteWithChildren
-  '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
-  '/forms': typeof FormsRouteRouteWithChildren
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/profile': typeof ProfileRouteRouteWithChildren
-  '/theme': typeof ThemeRouteRouteWithChildren
-  '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
   '/uploads': typeof UploadsRouteRouteWithChildren
-  '/calendar/': typeof CalendarIndexRoute
-  '/data-view/': typeof DataViewIndexRoute
-  '/fields/': typeof FieldsIndexRoute
-  '/forgot-password/': typeof ForgotPasswordIndexRoute
-  '/form-prototype/': typeof FormPrototypeIndexRoute
-  '/forms/': typeof FormsIndexRoute
+  '/users': typeof UsersRouteRouteWithChildren
   '/notifications/': typeof NotificationsIndexRoute
   '/profile/': typeof ProfileIndexRoute
-  '/reset-password/': typeof ResetPasswordIndexRoute
   '/sign-in/': typeof SignInIndexRoute
-  '/theme/': typeof ThemeIndexRoute
-  '/ui-primitives/': typeof UiPrimitivesIndexRoute
   '/uploads/': typeof UploadsIndexRoute
+  '/users/': typeof UsersIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
-  '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRouteRouteWithChildren
-  '/calendar': typeof CalendarIndexRoute
-  '/data-view': typeof DataViewIndexRoute
-  '/fields': typeof FieldsIndexRoute
-  '/forgot-password': typeof ForgotPasswordIndexRoute
-  '/form-prototype': typeof FormPrototypeIndexRoute
-  '/forms': typeof FormsIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/profile': typeof ProfileIndexRoute
-  '/reset-password': typeof ResetPasswordIndexRoute
   '/sign-in': typeof SignInIndexRoute
-  '/theme': typeof ThemeIndexRoute
-  '/ui-primitives': typeof UiPrimitivesIndexRoute
   '/uploads': typeof UploadsIndexRoute
+  '/users': typeof UsersIndexRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/auth/link': typeof AuthLinkIndexRoute
   '/catalog/addons': typeof CatalogAddonsIndexRoute
   '/catalog/products': typeof CatalogProductsIndexRoute
-  '/sections/$section': typeof SectionsSectionIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRouteRouteWithChildren
-  '/data-view': typeof DataViewRouteRouteWithChildren
-  '/fields': typeof FieldsRouteRouteWithChildren
-  '/form-prototype': typeof FormPrototypeRouteRouteWithChildren
-  '/forms': typeof FormsRouteRouteWithChildren
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/profile': typeof ProfileRouteRouteWithChildren
-  '/theme': typeof ThemeRouteRouteWithChildren
-  '/ui-primitives': typeof UiPrimitivesRouteRouteWithChildren
   '/uploads': typeof UploadsRouteRouteWithChildren
-  '/calendar/': typeof CalendarIndexRoute
-  '/data-view/': typeof DataViewIndexRoute
-  '/fields/': typeof FieldsIndexRoute
-  '/forgot-password/': typeof ForgotPasswordIndexRoute
-  '/form-prototype/': typeof FormPrototypeIndexRoute
-  '/forms/': typeof FormsIndexRoute
+  '/users': typeof UsersRouteRouteWithChildren
   '/notifications/': typeof NotificationsIndexRoute
   '/profile/': typeof ProfileIndexRoute
-  '/reset-password/': typeof ResetPasswordIndexRoute
   '/sign-in/': typeof SignInIndexRoute
-  '/theme/': typeof ThemeIndexRoute
-  '/ui-primitives/': typeof UiPrimitivesIndexRoute
   '/uploads/': typeof UploadsIndexRoute
+  '/users/': typeof UsersIndexRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
-  '/sections/$section/': typeof SectionsSectionIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/catalog'
-    | '/data-view'
-    | '/fields'
-    | '/form-prototype'
-    | '/forms'
     | '/notifications'
     | '/profile'
-    | '/theme'
-    | '/ui-primitives'
     | '/uploads'
-    | '/calendar/'
-    | '/data-view/'
-    | '/fields/'
-    | '/forgot-password/'
-    | '/form-prototype/'
-    | '/forms/'
+    | '/users'
     | '/notifications/'
     | '/profile/'
-    | '/reset-password/'
     | '/sign-in/'
-    | '/theme/'
-    | '/ui-primitives/'
     | '/uploads/'
+    | '/users/'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
     | '/catalog/products/'
-    | '/sections/$section/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/catalog'
-    | '/calendar'
-    | '/data-view'
-    | '/fields'
-    | '/forgot-password'
-    | '/form-prototype'
-    | '/forms'
     | '/notifications'
     | '/profile'
-    | '/reset-password'
     | '/sign-in'
-    | '/theme'
-    | '/ui-primitives'
     | '/uploads'
+    | '/users'
     | '/auth/callback'
     | '/auth/link'
     | '/catalog/addons'
     | '/catalog/products'
-    | '/sections/$section'
   id:
     | '__root__'
     | '/'
     | '/catalog'
-    | '/data-view'
-    | '/fields'
-    | '/form-prototype'
-    | '/forms'
     | '/notifications'
     | '/profile'
-    | '/theme'
-    | '/ui-primitives'
     | '/uploads'
-    | '/calendar/'
-    | '/data-view/'
-    | '/fields/'
-    | '/forgot-password/'
-    | '/form-prototype/'
-    | '/forms/'
+    | '/users'
     | '/notifications/'
     | '/profile/'
-    | '/reset-password/'
     | '/sign-in/'
-    | '/theme/'
-    | '/ui-primitives/'
     | '/uploads/'
+    | '/users/'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
     | '/catalog/products/'
-    | '/sections/$section/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CatalogRouteRoute: typeof CatalogRouteRouteWithChildren
-  DataViewRouteRoute: typeof DataViewRouteRouteWithChildren
-  FieldsRouteRoute: typeof FieldsRouteRouteWithChildren
-  FormPrototypeRouteRoute: typeof FormPrototypeRouteRouteWithChildren
-  FormsRouteRoute: typeof FormsRouteRouteWithChildren
   NotificationsRouteRoute: typeof NotificationsRouteRouteWithChildren
   ProfileRouteRoute: typeof ProfileRouteRouteWithChildren
-  ThemeRouteRoute: typeof ThemeRouteRouteWithChildren
-  UiPrimitivesRouteRoute: typeof UiPrimitivesRouteRouteWithChildren
   UploadsRouteRoute: typeof UploadsRouteRouteWithChildren
-  CalendarIndexRoute: typeof CalendarIndexRoute
-  ForgotPasswordIndexRoute: typeof ForgotPasswordIndexRoute
-  ResetPasswordIndexRoute: typeof ResetPasswordIndexRoute
+  UsersRouteRoute: typeof UsersRouteRouteWithChildren
   SignInIndexRoute: typeof SignInIndexRoute
   AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
   AuthLinkIndexRoute: typeof AuthLinkIndexRoute
-  SectionsSectionIndexRoute: typeof SectionsSectionIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -394,34 +227,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/data-view': {
-      id: '/data-view'
-      path: '/data-view'
-      fullPath: '/data-view'
-      preLoaderRoute: typeof DataViewRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fields': {
-      id: '/fields'
-      path: '/fields'
-      fullPath: '/fields'
-      preLoaderRoute: typeof FieldsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/form-prototype': {
-      id: '/form-prototype'
-      path: '/form-prototype'
-      fullPath: '/form-prototype'
-      preLoaderRoute: typeof FormPrototypeRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forms': {
-      id: '/forms'
-      path: '/forms'
-      fullPath: '/forms'
-      preLoaderRoute: typeof FormsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -436,20 +241,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/theme': {
-      id: '/theme'
-      path: '/theme'
-      fullPath: '/theme'
-      preLoaderRoute: typeof ThemeRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ui-primitives': {
-      id: '/ui-primitives'
-      path: '/ui-primitives'
-      fullPath: '/ui-primitives'
-      preLoaderRoute: typeof UiPrimitivesRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/uploads': {
       id: '/uploads'
       path: '/uploads'
@@ -457,47 +248,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/calendar/': {
-      id: '/calendar/'
-      path: '/calendar'
-      fullPath: '/calendar/'
-      preLoaderRoute: typeof CalendarIndexRouteImport
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/data-view/': {
-      id: '/data-view/'
-      path: '/'
-      fullPath: '/data-view/'
-      preLoaderRoute: typeof DataViewIndexRouteImport
-      parentRoute: typeof DataViewRouteRoute
-    }
-    '/fields/': {
-      id: '/fields/'
-      path: '/'
-      fullPath: '/fields/'
-      preLoaderRoute: typeof FieldsIndexRouteImport
-      parentRoute: typeof FieldsRouteRoute
-    }
-    '/forgot-password/': {
-      id: '/forgot-password/'
-      path: '/forgot-password'
-      fullPath: '/forgot-password/'
-      preLoaderRoute: typeof ForgotPasswordIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/form-prototype/': {
-      id: '/form-prototype/'
-      path: '/'
-      fullPath: '/form-prototype/'
-      preLoaderRoute: typeof FormPrototypeIndexRouteImport
-      parentRoute: typeof FormPrototypeRouteRoute
-    }
-    '/forms/': {
-      id: '/forms/'
-      path: '/'
-      fullPath: '/forms/'
-      preLoaderRoute: typeof FormsIndexRouteImport
-      parentRoute: typeof FormsRouteRoute
     }
     '/notifications/': {
       id: '/notifications/'
@@ -513,13 +269,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRouteRoute
     }
-    '/reset-password/': {
-      id: '/reset-password/'
-      path: '/reset-password'
-      fullPath: '/reset-password/'
-      preLoaderRoute: typeof ResetPasswordIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sign-in/': {
       id: '/sign-in/'
       path: '/sign-in'
@@ -527,26 +276,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/theme/': {
-      id: '/theme/'
-      path: '/'
-      fullPath: '/theme/'
-      preLoaderRoute: typeof ThemeIndexRouteImport
-      parentRoute: typeof ThemeRouteRoute
-    }
-    '/ui-primitives/': {
-      id: '/ui-primitives/'
-      path: '/'
-      fullPath: '/ui-primitives/'
-      preLoaderRoute: typeof UiPrimitivesIndexRouteImport
-      parentRoute: typeof UiPrimitivesRouteRoute
-    }
     '/uploads/': {
       id: '/uploads/'
       path: '/'
       fullPath: '/uploads/'
       preLoaderRoute: typeof UploadsIndexRouteImport
       parentRoute: typeof UploadsRouteRoute
+    }
+    '/users/': {
+      id: '/users/'
+      path: '/'
+      fullPath: '/users/'
+      preLoaderRoute: typeof UsersIndexRouteImport
+      parentRoute: typeof UsersRouteRoute
     }
     '/auth/callback/': {
       id: '/auth/callback/'
@@ -576,13 +318,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogProductsIndexRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
-    '/sections/$section/': {
-      id: '/sections/$section/'
-      path: '/sections/$section'
-      fullPath: '/sections/$section/'
-      preLoaderRoute: typeof SectionsSectionIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -598,53 +333,6 @@ const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
 
 const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(
   CatalogRouteRouteChildren,
-)
-
-interface DataViewRouteRouteChildren {
-  DataViewIndexRoute: typeof DataViewIndexRoute
-}
-
-const DataViewRouteRouteChildren: DataViewRouteRouteChildren = {
-  DataViewIndexRoute: DataViewIndexRoute,
-}
-
-const DataViewRouteRouteWithChildren = DataViewRouteRoute._addFileChildren(
-  DataViewRouteRouteChildren,
-)
-
-interface FieldsRouteRouteChildren {
-  FieldsIndexRoute: typeof FieldsIndexRoute
-}
-
-const FieldsRouteRouteChildren: FieldsRouteRouteChildren = {
-  FieldsIndexRoute: FieldsIndexRoute,
-}
-
-const FieldsRouteRouteWithChildren = FieldsRouteRoute._addFileChildren(
-  FieldsRouteRouteChildren,
-)
-
-interface FormPrototypeRouteRouteChildren {
-  FormPrototypeIndexRoute: typeof FormPrototypeIndexRoute
-}
-
-const FormPrototypeRouteRouteChildren: FormPrototypeRouteRouteChildren = {
-  FormPrototypeIndexRoute: FormPrototypeIndexRoute,
-}
-
-const FormPrototypeRouteRouteWithChildren =
-  FormPrototypeRouteRoute._addFileChildren(FormPrototypeRouteRouteChildren)
-
-interface FormsRouteRouteChildren {
-  FormsIndexRoute: typeof FormsIndexRoute
-}
-
-const FormsRouteRouteChildren: FormsRouteRouteChildren = {
-  FormsIndexRoute: FormsIndexRoute,
-}
-
-const FormsRouteRouteWithChildren = FormsRouteRoute._addFileChildren(
-  FormsRouteRouteChildren,
 )
 
 interface NotificationsRouteRouteChildren {
@@ -670,29 +358,6 @@ const ProfileRouteRouteWithChildren = ProfileRouteRoute._addFileChildren(
   ProfileRouteRouteChildren,
 )
 
-interface ThemeRouteRouteChildren {
-  ThemeIndexRoute: typeof ThemeIndexRoute
-}
-
-const ThemeRouteRouteChildren: ThemeRouteRouteChildren = {
-  ThemeIndexRoute: ThemeIndexRoute,
-}
-
-const ThemeRouteRouteWithChildren = ThemeRouteRoute._addFileChildren(
-  ThemeRouteRouteChildren,
-)
-
-interface UiPrimitivesRouteRouteChildren {
-  UiPrimitivesIndexRoute: typeof UiPrimitivesIndexRoute
-}
-
-const UiPrimitivesRouteRouteChildren: UiPrimitivesRouteRouteChildren = {
-  UiPrimitivesIndexRoute: UiPrimitivesIndexRoute,
-}
-
-const UiPrimitivesRouteRouteWithChildren =
-  UiPrimitivesRouteRoute._addFileChildren(UiPrimitivesRouteRouteChildren)
-
 interface UploadsRouteRouteChildren {
   UploadsIndexRoute: typeof UploadsIndexRoute
 }
@@ -705,25 +370,28 @@ const UploadsRouteRouteWithChildren = UploadsRouteRoute._addFileChildren(
   UploadsRouteRouteChildren,
 )
 
+interface UsersRouteRouteChildren {
+  UsersIndexRoute: typeof UsersIndexRoute
+}
+
+const UsersRouteRouteChildren: UsersRouteRouteChildren = {
+  UsersIndexRoute: UsersIndexRoute,
+}
+
+const UsersRouteRouteWithChildren = UsersRouteRoute._addFileChildren(
+  UsersRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CatalogRouteRoute: CatalogRouteRouteWithChildren,
-  DataViewRouteRoute: DataViewRouteRouteWithChildren,
-  FieldsRouteRoute: FieldsRouteRouteWithChildren,
-  FormPrototypeRouteRoute: FormPrototypeRouteRouteWithChildren,
-  FormsRouteRoute: FormsRouteRouteWithChildren,
   NotificationsRouteRoute: NotificationsRouteRouteWithChildren,
   ProfileRouteRoute: ProfileRouteRouteWithChildren,
-  ThemeRouteRoute: ThemeRouteRouteWithChildren,
-  UiPrimitivesRouteRoute: UiPrimitivesRouteRouteWithChildren,
   UploadsRouteRoute: UploadsRouteRouteWithChildren,
-  CalendarIndexRoute: CalendarIndexRoute,
-  ForgotPasswordIndexRoute: ForgotPasswordIndexRoute,
-  ResetPasswordIndexRoute: ResetPasswordIndexRoute,
+  UsersRouteRoute: UsersRouteRouteWithChildren,
   SignInIndexRoute: SignInIndexRoute,
   AuthCallbackIndexRoute: AuthCallbackIndexRoute,
   AuthLinkIndexRoute: AuthLinkIndexRoute,
-  SectionsSectionIndexRoute: SectionsSectionIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

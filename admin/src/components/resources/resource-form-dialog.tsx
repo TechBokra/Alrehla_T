@@ -1,18 +1,10 @@
-import { useId, useRef, useState, type ReactNode } from "react";
-import {
-  useCreate,
-  useUpdate,
-  useOne,
-  useInvalidate,
-  type BaseRecord,
-  type HttpError,
-} from "@refinedev/core";
+import { useId, type ReactNode } from "react";
+import type { BaseRecord } from "@refinedev/core";
 import { LoaderCircle, Save } from "lucide-react";
-import { toast } from "sonner";
 import { FormDialog } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { editRecordState, refreshSavedResource } from "./lifecycle";
+import { useResourceFormCrud } from "@/hooks/resources/use-resource-form-crud";
 
 export interface ResourceFormDialogContext<TRecord> {
   record?: TRecord;
@@ -26,119 +18,60 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
   resource,
   id,
   title,
+  dataProviderName,
   onClose,
   canEdit = () => true,
   getErrorMessage = () => "تعذّر حفظ البيانات. حاول مرة أخرى.",
+  onSaved,
   children,
 }: {
   resource: string;
   id?: string;
   title: string;
+  dataProviderName?: string;
   onClose: () => void;
   canEdit?: (record: TRecord) => boolean;
   getErrorMessage?: (error: unknown) => string;
+  onSaved?: (record: TRecord, action: "create" | "edit") => void;
   children: (context: ResourceFormDialogContext<TRecord>) => ReactNode;
 }) {
   const formId = useId();
   const editing = id !== undefined;
-  const loaded = useRef(false);
-  const inFlight = useRef(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const query = useOne<TRecord, HttpError>({
+  const crud = useResourceFormCrud<TRecord>({
     resource,
-    id: id ?? "",
-    errorNotification: false,
-    queryOptions: {
-      enabled: editing,
-      retry: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: "always",
-    },
-  });
-  const create = useCreate<TRecord, HttpError, Record<string, unknown>>({
-    mutationOptions: { retry: false },
-  });
-  const update = useUpdate<TRecord, HttpError, Record<string, unknown>>({
-    mutationOptions: { retry: false },
-  });
-  const invalidate = useInvalidate();
-  const fetching = editing && (query.query.isPending || query.query.isFetching);
-  const state = editRecordState({
-    loading: fetching,
-    error: query.query.error,
-    record: query.result,
+    id,
+    dataProviderName,
     canEdit,
+    getErrorMessage,
+    onSaved,
   });
-  if (editing && state === "ready") loaded.current = true;
-  const initialLoading = editing && !loaded.current && fetching;
-  const initialError =
-    editing && !loaded.current && !fetching && state !== "ready";
-  const busy = pending || fetching;
-  const unavailable =
-    editing && (!query.result || !canEdit(query.result));
   async function save(values: Record<string, unknown>) {
-    if (inFlight.current || busy || unavailable) return;
-    inFlight.current = true;
-    setPending(true);
-    setError(null);
-    try {
-      const common = {
-        resource,
-        successNotification: false as const,
-        errorNotification: false as const,
-        invalidates: [],
-      };
-      if (editing) {
-        const fresh = await query.query.refetch();
-        if (fresh.error) throw fresh.error;
-        if (!fresh.data?.data || !canEdit(fresh.data.data))
-          throw { code: "42501" };
-        await update.mutateAsync({ ...common, id: id!, values });
-      } else await create.mutateAsync({ ...common, values });
-    } catch (failure) {
-      setError(getErrorMessage(failure));
-      inFlight.current = false;
-      setPending(false);
-      return;
-    }
-    const refreshed = await refreshSavedResource(() =>
-      invalidate({
-        resource,
-        invalidates: editing ? ["list", "many", "detail"] : ["list", "many"],
-        ...(editing ? { id } : {}),
-      }),
-    );
-    toast.success("تم حفظ البيانات", {
-      description: refreshed ? undefined : "حدّث القائمة لعرض آخر البيانات.",
-    });
-    onClose();
+    if (await crud.save(values)) onClose();
   }
   return (
     <FormDialog
       open
       title={title}
       description="راجع البيانات ثم اضغط حفظ."
-      pending={pending}
+      pending={crud.pending}
       onOpenChange={(open) => {
-        if (!open && !inFlight.current) onClose();
+        if (!open && crud.canDismiss()) onClose();
       }}
       footer={
         <>
           <Button
             type="submit"
             form={formId}
-            disabled={busy || initialError || unavailable}
-            aria-busy={pending}
+            disabled={crud.busy || crud.initialError || crud.unavailable}
+            aria-busy={crud.pending}
           >
-            {pending ? <LoaderCircle className="animate-spin" /> : <Save />}
-            {pending ? "جارٍ الحفظ…" : "حفظ"}
+            {crud.pending ? <LoaderCircle className="animate-spin" /> : <Save />}
+            {crud.pending ? "جارٍ الحفظ…" : "حفظ"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={pending}
+            disabled={crud.pending}
             onClick={onClose}
           >
             إلغاء
@@ -146,25 +79,25 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
         </>
       }
     >
-      <div aria-busy={busy} className="flex flex-col gap-4">
-        {initialLoading ? (
+      <div aria-busy={crud.busy} className="flex flex-col gap-4">
+        {crud.initialLoading ? (
           <div role="status" className="flex flex-col gap-3">
             <span>جارٍ تحميل السجل…</span>
             <Skeleton className="h-32 w-full" />
           </div>
-        ) : initialError ? (
+        ) : crud.initialError ? (
           <div role="alert" className="flex flex-col gap-3">
             <p>
-              {state === "forbidden"
+              {crud.state === "forbidden"
                 ? "هذا السجل غير متاح للتعديل هنا."
-                : state === "missing"
+                : crud.state === "missing"
                   ? "السجل غير موجود أو غير متاح لحسابك."
                   : "تعذّر تحميل السجل. حاول مرة أخرى."}
             </p>
-            {state === "failed" && (
+            {crud.state === "failed" && (
               <Button
                 variant="outline"
-                onClick={() => void query.query.refetch()}
+                onClick={() => void crud.retryLoad()}
               >
                 إعادة المحاولة
               </Button>
@@ -172,7 +105,7 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
           </div>
         ) : (
           <>
-            {fetching && (
+            {crud.fetching && (
               <p
                 role="status"
                 className="flex items-center gap-2 text-muted-foreground"
@@ -181,15 +114,15 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
                 جارٍ تحديث البيانات…
               </p>
             )}
-            {error && (
+            {crud.error && (
               <p role="alert" className="text-destructive">
-                {error}
+                {crud.error}
               </p>
             )}
             {children({
-              record: query.result,
+              record: crud.record,
               formId,
-              disabled: busy || unavailable,
+              disabled: crud.busy || crud.unavailable,
               onSave: save,
             })}
           </>

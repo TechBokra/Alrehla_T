@@ -256,7 +256,7 @@ async function providerSetup() {
   };
   const raw = (
     await readFile(
-      new URL("../src/features/profile/data-provider.ts", import.meta.url),
+      new URL("../src/providers/refine/data-provider/account-data-provider.ts", import.meta.url),
       "utf8",
     )
   ).replace(/^import[\s\S]*?;\r?\n/gm, "");

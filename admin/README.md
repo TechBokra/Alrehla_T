@@ -2,7 +2,7 @@
 
 The `admin/` folder contains a standalone React admin frontend built with Vite
 and TanStack Router. Its sign-in uses Refine and Supabase staging authentication;
-catalog resource pages use staging records; the existing showcase data views remain local UI previews.
+catalog resource pages use staging records.
 
 ## Start locally
 
@@ -46,8 +46,7 @@ belongs to the Next.js application and must not receive this SPA rewrite.
 `pnpm dev` starts Vite and the Refine Devtools server (port `5001`). Open the
 Devtools panel at the bottom of the app, then select **Monitor** to inspect
 Refine queries/mutations, resources, providers, and errors. **Overview** shows
-dependency information. The provider wraps all Refine contexts, including the
-local demo screens.
+dependency information. The provider wraps the administration Refine context.
 
 To run the tools separately, use `pnpm exec vite` and `pnpm devtools` in two
 terminals. Restart the development server after this setup change. The Devtools
@@ -62,7 +61,7 @@ in. Open `/sign-in` with an existing staging administrator account. See
 
 - [Resource pages](docs/resource-pages.md) — live product/add-on lists, shared dialogs, typed forms, and save boundaries.
 - [Data tables](docs/data-table.md) — Shuip controls, Refine state, filtering, pagination, and display states.
-- [Data provider](docs/data-provider.md) — shared Supabase client, root provider, and isolated demo contexts.
+- [Refine provider composition](src/providers/refine/README.md) — Refine configuration and sibling provider files.
 - [Routing](docs/routing.md) — folder routes, parent layouts, index pages, and dynamic children.
 - [Architecture](docs/architecture.md) — runtime, route and feature structure,
   current data/auth behavior, and rules for future backend integration.
@@ -71,7 +70,6 @@ in. Open `/sign-in` with an existing staging administrator account. See
 
 ## Current limitations
 
-- Existing demo views use in-memory fixture providers; changes reset when the page reloads.
 - Root-route navigation requires a verified Supabase user with a non-archived
   `super_admin` or `general_supervisor` profile.
 - The root Supabase data provider serves platform products and add-ons.
@@ -84,3 +82,7 @@ existing route, feature, and visual conventions.
 ## Uploads library
 
 Open `/uploads` after admin sign-in. The Vite page uses the installed UploadCN components and a named Refine data provider for real Cloudinary CRUD through the existing Supabase `media-library` Edge Function. See [upload integration](src/components/upload/README.md) for configuration and backend deployment. No Next.js app is required for this page.
+
+## Application routes
+
+The home page and successful sign-in open `/catalog/products`. Active administration routes include `/catalog/products`, `/catalog/addons`, `/uploads`, `/notifications` and `/profile`, alongside the sign-in, Google callback/link and password recovery routes. UI showcase, sections, calendar demo and form prototype routes have been removed. Shared UI components and form fields remain available to administration pages.

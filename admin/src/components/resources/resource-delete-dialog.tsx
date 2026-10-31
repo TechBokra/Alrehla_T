@@ -1,12 +1,5 @@
-import { useRef, useState } from "react";
-import {
-  useDelete,
-  useInvalidate,
-  type BaseRecord,
-  type HttpError,
-} from "@refinedev/core";
+import type { BaseRecord } from "@refinedev/core";
 import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -17,7 +10,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { refreshSavedResource } from "./lifecycle";
+import { useResourceDeleteCrud } from "@/hooks/resources/use-resource-delete-crud";
 
 export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   resource,
@@ -34,57 +27,20 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   consequence?: string;
   onClose: () => void;
 }) {
-  const deletion = useDelete<TRecord, HttpError>({
-    mutationOptions: { retry: false },
-  });
-  const invalidate = useInvalidate();
-  const inFlight = useRef(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function remove() {
-    if (inFlight.current || !canDelete) return;
-    inFlight.current = true;
-    setPending(true);
-    setError(null);
-    try {
-      await deletion.mutateAsync({
-        resource,
-        id,
-        mutationMode: "pessimistic",
-        invalidates: [],
-        successNotification: false,
-        errorNotification: false,
-      });
-    } catch (failure) {
-      const code = (failure as { code?: string })?.code;
-      const status = (failure as { statusCode?: number })?.statusCode;
-      setError(
-        code === "42501" || status === 401 || status === 403
-          ? "ليس لديك صلاحية لحذف هذا السجل."
-          : code === "23503"
-            ? "السجل مرتبط ببيانات أخرى ولا يمكن حذفه."
-            : "تعذّر حذف السجل. حاول مرة أخرى.",
-      );
-      inFlight.current = false;
-      setPending(false);
-      return;
-    }
-    const refreshed = await refreshSavedResource(() =>
-      invalidate({ resource, id, invalidates: ["list", "many", "detail"] }),
-    );
-    toast.success("تم حذف السجل", {
-      description: refreshed ? undefined : "حدّث القائمة لعرض آخر البيانات.",
+  const deletion = useResourceDeleteCrud<TRecord>({ resource, id, canDelete });
+  function remove() {
+    void deletion.remove().then((deleted) => {
+      if (deleted) onClose();
     });
-    onClose();
   }
   return (
     <AlertDialog
       open
       onOpenChange={(open) => {
-        if (!open && !inFlight.current) onClose();
+        if (!open && deletion.canDismiss()) onClose();
       }}
     >
-      <AlertDialogContent aria-busy={pending}>
+      <AlertDialogContent aria-busy={deletion.isPending}>
         <AlertDialogHeader>
           <AlertDialogTitle>حذف السجل؟</AlertDialogTitle>
           <AlertDialogDescription>
@@ -97,23 +53,23 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
             هذا السجل غير متاح للحذف هنا.
           </p>
         )}
-        {error && (
+        {deletion.error && (
           <p role="alert" className="text-destructive">
-            {error}
+            {deletion.error.message}
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>إلغاء</AlertDialogCancel>
+          <AlertDialogCancel disabled={deletion.isPending}>إلغاء</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
-            disabled={pending || !canDelete}
+            disabled={deletion.isPending || !canDelete}
             onClick={(event) => {
               event.preventDefault();
               void remove();
             }}
           >
             <Trash2 />
-            {pending ? "جارٍ الحذف…" : "حذف"}
+            {deletion.isPending ? "جارٍ الحذف…" : "حذف"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
