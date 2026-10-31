@@ -6,13 +6,14 @@ import {
 } from "react";
 import { useGetIdentity } from "@refinedev/core";
 import { useLocation } from "@tanstack/react-router";
-import { adminAuthProvider } from "./supabase";
+import { adminAuthProvider } from "@/providers/refine/auth-provider";
 
 type AdminIdentity = {
   id: string;
   name: string | null;
   email?: string;
   avatar: string | null;
+  role: "super_admin" | "general_supervisor";
 };
 type IdentityQuery = ReturnType<typeof useGetIdentity<AdminIdentity | null>>;
 const IdentityContext = createContext<IdentityQuery | null>(null);
@@ -32,7 +33,6 @@ export function AdminIdentityProvider({ children }: { children: ReactNode }) {
         "/sign-in",
         "/auth/callback",
         "/auth/link",
-        "/forgot-password",
         "/reset-password",
       ].includes(path),
       staleTime: 60_000,

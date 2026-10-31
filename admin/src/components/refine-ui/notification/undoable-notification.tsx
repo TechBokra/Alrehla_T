@@ -35,6 +35,7 @@ export function UndoableNotification({
 
   return (
     <div
+      dir="rtl"
       className={cn(
         "bg-card",
         "text-card-foreground",
@@ -45,10 +46,11 @@ export function UndoableNotification({
         "border-border",
         "min-w-[320px]",
         "max-w-md",
+        "text-start",
       )}
     >
       <div className={cn("flex", "items-center", "justify-between")}>
-        <div className={cn("flex-1", "mr-4")}>
+        <div className={cn("flex-1", "me-4")}>
           <div className={cn("font-medium", "text-foreground", "text-sm")}>
             {message}
           </div>

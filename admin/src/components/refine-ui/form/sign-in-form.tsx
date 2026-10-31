@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useAppForm } from "@/lib/form";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FieldGroup, FieldSeparator } from "@/components/ui/field";
-import type { AdminLoginValues } from "@/features/auth/auth-provider";
-import { isAuthConfigured } from "@/features/auth/supabase";
+import type { AdminLoginValues } from "@/providers/refine/auth-provider";
+import { isAuthConfigured } from "@/providers/supabase-client";
 import { signInSchema } from "@/lib/schema";
 import { useLogin } from "@refinedev/core";
 import { LoaderCircle } from "lucide-react";
@@ -122,9 +121,6 @@ export function SignInForm() {
                 >
                   تسجيل الدخول
                 </form.SubmitButton>
-                <Button type="button" variant="link" asChild>
-                  <Link to="/forgot-password">نسيت كلمة المرور؟</Link>
-                </Button>
                 <FieldSeparator>أو</FieldSeparator>
                 <Button
                   type="button"

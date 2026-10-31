@@ -1,9 +1,22 @@
 import type { Database } from "@/types/supabase";
 import { productSlug } from "../model";
-import { productSchema, type CatalogValues } from "@/lib/schema";
+import { productSchema, type ProductFormValues } from "@/lib/schema";
 export type Product =
   Database["public"]["Tables"]["personalized_products"]["Row"];
-export function productValues(row: Product): CatalogValues {
+export function defaultProductValues(): ProductFormValues {
+  return {
+    name: "",
+    description: "",
+    longDescription: "",
+    price: "",
+    electronicPrice: "",
+    imageUrl: "",
+    category: "library",
+    isActive: false,
+    sortOrder: "0",
+  };
+}
+export function productValues(row: Product): ProductFormValues {
   return {
     name: row.name,
     description: row.short_description ?? "",
@@ -17,7 +30,7 @@ export function productValues(row: Product): CatalogValues {
     sortOrder: String(row.sort_order),
   };
 }
-export function productUpdate(input: CatalogValues) {
+export function productUpdate(input: ProductFormValues) {
   const value = productSchema.parse(input);
   return {
     name: value.name,
@@ -37,7 +50,7 @@ export function productUpdate(input: CatalogValues) {
     updated_at: new Date().toISOString(),
   } satisfies Database["public"]["Tables"]["personalized_products"]["Update"];
 }
-export function productCreate(input: CatalogValues) {
+export function productCreate(input: ProductFormValues) {
   return {
     ...productUpdate(input),
     slug: productSlug(input.name),

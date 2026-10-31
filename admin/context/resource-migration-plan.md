@@ -13,7 +13,7 @@ Primary sources:
 - [Legacy navigation and tab permissions](../../client/src/lib/admin-nav.ts).
 - [Legacy admin pages](../../client/src/app/(admin)/dashboard/admin/).
 - [Legacy table](../../client/src/components/dashboard/SimpleDataTable.tsx) and [pagination](../../client/src/components/dashboard/Pagination.tsx).
-- [Existing new-admin resource registry](../src/features/catalog/resources.ts), [resource provider](../src/components/resources/resource-provider.tsx) and [architecture](./architecture.md).
+- [Existing new-admin resource registry](../src/providers/refine/provider.tsx), [resource provider](../src/components/resources/resource-provider.tsx) and [architecture](./architecture.md).
 - [Existing validation coverage](../src/lib/schema/coverage.md). These schemas cover many legacy actions, but their presence does not mean that a new page or complete legacy form already exists.
 
 Paths in the resource tables below are relative to `/dashboard/admin` in the legacy client. Suggested new route paths are a proposal. Resource names identify existing source tables or read models, not newly verified database grants or deployable RPC contracts. Exact physical columns, permissions and query support must be checked before implementing each resource.

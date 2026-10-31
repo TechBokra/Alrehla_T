@@ -4,41 +4,29 @@ import {
   Outlet,
   redirect,
   useRouter,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Refine } from "@refinedev/core";
+import { AdminLayout } from "@/components/admin-layout";
 import { RootError } from "@/components/route-states/global-error";
 import { NotFound } from "@/components/route-states/not-found";
-import { adminAuthProvider } from "@/features/auth/supabase";
 import { getSupabaseClient } from "@/providers/supabase-client";
-import { adminDataProvider } from "@/providers/data-provider";
-import { profileDataProvider } from "@/features/profile/data-provider";
-import { mediaDataProvider } from "@/features/uploads/data-provider";
-import { notificationsDataProvider } from "@/features/notifications/data-provider";
-import { authRouterProvider } from "@/features/auth/router-provider";
-import { arabicEgyptI18nProvider } from "@/lib/i18n-provider";
-import { useNotificationProvider } from "@/components/refine-ui/notification/use-notification-provider";
 import { Loading } from "@/components/route-states/loading";
-import { resources } from "@/features/catalog/resources";
 import { SiteBrandingProvider } from "@/features/site-branding/provider";
 import { AdminIdentityProvider } from "@/features/auth/identity-provider";
+import { adminAuthProvider } from "@/providers/refine/auth-provider";
+import { RefineProvider } from "@/providers/refine/provider";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     const pathname = location.pathname.replace(/\/+$/, "") || "/";
     // The OAuth callback must exchange its code before any session guard runs.
-    if (
-      [
-        "/auth/callback",
-        "/auth/link",
-        "/forgot-password",
-        "/reset-password",
-      ].includes(pathname)
-    )
+    if (["/auth/callback", "/auth/link", "/reset-password"].includes(pathname))
       return;
     const { authenticated } = await adminAuthProvider.check();
     if (pathname === "/sign-in") {
-      if (authenticated) throw redirect({ to: "/theme", replace: true });
+      if (authenticated)
+        throw redirect({ to: "/", replace: true });
       return;
     }
     if (!authenticated) throw redirect({ to: "/sign-in", replace: true });
@@ -51,7 +39,14 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const router = useRouter();
-  const notificationProvider = useNotificationProvider();
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname.replace(/\/+$/, "") || "/",
+  });
+  const isStandaloneRoute =
+    pathname === "/sign-in" ||
+    pathname === "/reset-password" ||
+    pathname.startsWith("/auth/");
+
   useEffect(() => {
     const supabase = getSupabaseClient();
     let userId: string | undefined;
@@ -72,27 +67,19 @@ function RootLayout() {
   }, [router]);
 
   return (
-    <Refine
-      resources={resources}
-      dataProvider={{
-        default: adminDataProvider,
-        siteSettings: adminDataProvider,
-        notifications: notificationsDataProvider,
-        mediaLibrary: mediaDataProvider,
-        account: profileDataProvider,
-      }}
-      authProvider={adminAuthProvider}
-      routerProvider={authRouterProvider}
-      notificationProvider={notificationProvider}
-      i18nProvider={arabicEgyptI18nProvider}
-      options={{ disableTelemetry: true, disableRouteChangeHandler: true }}
-    >
+    <RefineProvider>
       <HeadContent />
       <SiteBrandingProvider>
         <AdminIdentityProvider>
-          <Outlet />
+          {isStandaloneRoute ? (
+            <Outlet />
+          ) : (
+            <AdminLayout>
+              <Outlet />
+            </AdminLayout>
+          )}
         </AdminIdentityProvider>
       </SiteBrandingProvider>
-    </Refine>
+    </RefineProvider>
   );
 }

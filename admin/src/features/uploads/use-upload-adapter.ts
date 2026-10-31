@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { createCloudinaryUploadAdapter } from "@/components/upload/cloudinary";
-import { mediaRequest } from "./data-provider";
+import { mediaRequest } from "@/providers/refine/data-provider/media-library-data-provider";
 import { MEDIA_FORMATS, MEDIA_PRESET } from "./model";
 import { z } from "zod";
 const signature = z.object({

@@ -12,6 +12,8 @@ export function ResourcePage<TRecord extends BaseRecord>({
   title,
   description,
   canCreate = true,
+  pageSizeOptions,
+  toolbarContent,
   table,
   children,
   storageKey,
@@ -20,6 +22,8 @@ export function ResourcePage<TRecord extends BaseRecord>({
   title: string;
   description: string;
   canCreate?: boolean;
+  pageSizeOptions?: number[];
+  toolbarContent?: ReactNode;
   table: UseTableReturnType<TRecord, HttpError>;
   children?: ReactNode;
   storageKey: string;
@@ -34,16 +38,20 @@ export function ResourcePage<TRecord extends BaseRecord>({
       </header>
       <DataTable
         table={table}
+        pageSizeOptions={pageSizeOptions}
         rowReordering={rowReordering}
         viewsStorageKey={storageKey}
         toolbarVariant="inline-chips"
         paginationVariant="numbered"
         toolbarActions={
           canCreate ? (
-            <Button onClick={openCreate}>
-              <Plus data-icon="inline-start" />
-              إضافة جديد
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {toolbarContent}
+              <Button onClick={openCreate}>
+                <Plus data-icon="inline-start" />
+                إضافة جديد
+              </Button>
+            </div>
           ) : null
         }
       />

@@ -2,12 +2,12 @@
 
 ## Stack
 
-| Layer     | Technology                  | Role   |
-| --------- | --------------------------- | ------ |
-| Framework | [e.g. Vite + TypeScript]    | [Role] |
-| UI        | [e.g. Tailwind + shadcn/ui] | [Role] |
-| Auth      | [e.g. supabase auth]                | [Role] |
-| Database  | [e.g. supabase + PostgreSQL]  | [Role] |
+| Layer     | Technology                   | Role   |
+| --------- | ---------------------------- | ------ |
+| Framework | [e.g. Vite + TypeScript]     | [Role] |
+| UI        | [e.g. Tailwind + shadcn/ui]  | [Role] |
+| Auth      | [e.g. supabase auth]         | [Role] |
+| Database  | [e.g. supabase + PostgreSQL] | [Role] |
 
 ## System Boundaries
 
@@ -20,14 +20,14 @@ The [resource migration plan](./resource-migration-plan.md) specifies proposed v
 | Operation                                           | Owner                                                                      | Supabase access                                           |
 | --------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------- |
 | List/detail reads                                   | Refine `useTable`, `useList`, `useOne`                                     | Existing Supabase data provider                           |
-| Create/update/delete a resource                     | Refine `useCreate`, `useUpdate`, `useDelete` and existing resource dialogs | Existing Supabase data provider                           |
+| Create/update/delete a resource                     | Shared CRUD hooks under `src/hooks/resources/`, using Refine mutations      | Selected Refine data provider                            |
 | Confirm/cancel an order or another business command | Feature hook using TanStack Query `useMutation`                            | Named database function through `supabaseClient.rpc(...)` |
 | Column sorting, filters and pagination              | Refine table state                                                         | Provider applies these to the database query              |
 | Persist a manually reordered sequence               | Feature command mutation                                                   | RPC saves the permitted sequence atomically               |
 
 #### CRUD resources and tables
 
-- Register resources in the existing resource registry and reuse `ResourceProvider`, resource dialogs and the shared Supabase data provider. Keep feature fields, schemas, defaults and allowlisted payload mapping in the feature.
+- Register resources in the existing resource registry and reuse `ResourceProvider` and resource dialogs. Keep list/table state, detail reads, CRUD mutations, submission guards and cache invalidation in `src/hooks/resources/`; keep presentation in `components/resources/`. Feature fields, schemas, defaults and allowlisted payload mapping stay in the feature.
 - Ordinary field edits use Refine CRUD mutations. Business operations with transition rules or coordinated writes use an explicit command such as `confirm_order`; the UI does not implement those operations as an unrestricted status update.
 - Configure sorting with `refineCoreProps.sorters` / Refine `setSorters`, and let the Supabase provider apply it before pagination. Use a stable secondary key such as `id` when primary sort values can tie. Display sorting does not write a stored sequence.
 - Keep reads in Refine so tables, details, counts and selectors share its query keys. Do not introduce parallel feature query caches for the same resource data.
@@ -58,6 +58,34 @@ This is the standard for new business commands. Current CRUD/resource table beha
 
 ### Shared admin session and identity
 
+- `routes/__root.tsx` owns the TanStack route guard and Supabase auth-change
+  invalidation. The Refine boundary is composed in `providers/refine/provider.tsx`
+  and exported as `RefineProvider`; the root route no longer contains Refine's
+  resource/provider registry.
+- `providers/refine/provider.tsx` composes the Refine configuration. Auth, i18n,
+  notifications, router and resources each have a sibling file in
+  `providers/refine/`. The named data-provider registry and all of its adapters
+  live together in `providers/refine/data-provider/`; feature screens import a
+  feature action from that folder only when their UI flow needs it.
+- The named adapter map uses `default` and `siteSettings` for the shared RLS
+  Supabase adapter in `data-provider/supabase-data-provider.ts`, plus
+  `notifications`, `mediaLibrary`, `account` and `users` for their scoped
+  adapters. The users adapter invokes the protected
+  `admin-users` Edge Function; list filters, sorting and pagination are sent to
+  the server through `data-provider/users-query.ts`.
+
+The route-to-provider flow and current module layout are documented in
+[`doc/application-architecture.md`](../doc/application-architecture.md).
+
+### Shared admin layout
+
+- The root route owns the single `AdminLayout` instance for authenticated admin
+  pages. Feature route-group files render only their nested `Outlet`, so pages
+  do not wrap themselves in the sidebar/header shell.
+- `/sign-in`, OAuth callback/link routes and `/reset-password` stay outside the
+  admin shell so auth screens remain full-screen. The shell reads the current
+  TanStack Router pathname to display the matching Arabic breadcrumb label.
+
 - `createAdminAuthProvider` shares one verified user/profile read between route `check` and `getIdentity`. Successful eligible-admin results stay in browser memory for 60 seconds; simultaneous calls share one promise. Missing users, rejected roles, archived profiles and failed reads are not cached as successful sessions. New reads still use Supabase `getUser` and the existing profile query.
 - Login/logout and Supabase session-token/account changes or `USER_UPDATED` invalidate the cache. A version prevents older in-flight requests from repopulating it after invalidation. The Supabase listener is synchronous, registered before route guards, and unsubscribed during hot reload. Repeated same-session `SIGNED_IN` events do not invalidate the cache.
 - Root `AdminIdentityProvider` owns the only UI `useGetIdentity` call, above all nested Refine contexts. Layout, notifications and user components consume `useAdminIdentity`; showcase providers cannot create a second identity read. Its versioned Refine key drops previous-session results, disables sign-in/OAuth reads, uses 60-second freshness, and disables window-focus refetch. Old unused identity keys are immediately collected.
@@ -73,7 +101,7 @@ This is the standard for new business commands. Current CRUD/resource table beha
 ### Header notifications (implemented)
 
 - `features/notifications/use-header-notifications.ts` owns the current-user read model through Refine `useGetIdentity` and two `useList` queries. Both filter `recipient_profile_id` explicitly; the recipient is included in Refine's cache keys. Queries stay disabled without an identity and do not use previous-recipient placeholder data.
-- Root Refine and the showcase context expose `notificationsDataProvider` under the named `notifications` provider; it delegates normal reads to the existing shared Supabase data provider. The showcase default remains `previewDataProvider`; the nested form prototype retains its own local provider. Notification hooks always specify the named provider and never depend on a demo's default.
+- The central Refine registry and any nested showcase context expose `notificationsDataProvider` under the named `notifications` provider; it delegates normal reads to the existing shared Supabase data provider. Notification hooks always specify the named provider and never depend on another context's default.
 - Latest 20 rows and exact unread total are separate reads. Both poll every 10 seconds while the header is mounted in a visible tab, even if the popover is closed. Polling pauses in hidden tabs and ends on unmount. Failed refreshes retain successful cached data, expose a visible error and allow manual retry; an unknown unread total is not displayed as zero.
 - `NotificationsPopover` is mounted once in `AdminLayout` for desktop/mobile, uses shadcn Popover and semantic tokens, and formats timestamps in `ar-EG` / `Africa/Cairo`. It renders plain notification text and a local link to `/notifications`; stored notification links remain inactive. Shared `NotificationItem` uses semantic primary colors for unread items and muted colors for read items, with explicit status labels. `/notifications` lists all current-user notices with 20-row pagination and the same read/error/polling behavior.
 - `MarkAllReadButton` invokes Refine `useCustomMutation` through the named provider using the logical command `notifications/mark-all-read`. The adapter verifies the shared client session with `auth.getUser`, rejects a changed expected identity, and updates only `is_read` on that verified user’s unread rows in one database statement. It does not enumerate IDs, so pagination and the 1,000-row response limit do not restrict the update. Submission is guarded while pending, mutations do not automatically retry, and failures stay visible. Success invalidates notification list queries (including the count). Existing RLS remains authoritative; no schema changes, sends, deletes or Realtime subscriptions were introduced.
@@ -137,17 +165,17 @@ Description help is supplementary: keep instructions needed to complete a task v
 
 Use the actual registered Shuip component names. Native input/selection attributes belong in `props`; date fields expose their own `disabled`, `locale`, bounds and, where supported, `triggerProps`. `fieldProps` configures the outer Field; it does not bind or disable the child control. Check each field's exported interface rather than assuming all fields accept identical props. BaseFormField itself accepts React-node labels/descriptions; most installed Shuip adapters currently accept strings.
 
-| Field                                          | Value and use                                                                                                                        |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `InputField`, `TextareaField`, `PasswordField` | Text. Numeric InputField uses numeric defaults and `props.type="number"`; an emptied numeric input can produce NaN, so validate it   |
-| `AutocompleteField`                            | Text with static suggestions or asynchronous search; users may enter text outside the suggestions                                    |
-| `SelectField`                                  | One stored string; options map display labels to stored values, for example `{ "نشط": "active" }`                                    |
-| `ComboboxField`                                | Stored string, or string array with `multiple`; options are `{ label, value }` records; supports asynchronous search                 |
-| `CheckboxField`, `RadioField`                  | Boolean, or one option's string value respectively                                                                                   |
-| `DateField`, `DatetimeField`, `MonthField`     | `Date \| undefined`; MonthField normalizes the selection to the first day of the month                                               |
-| `DateRangeField`                               | `{ from, to? } \| undefined`, with date values and possibly an unfinished selection                                                  |
-| `TimeField`, `TimeRangeField`                  | HH:mm string, or `{ start, end }`; the feature schema owns required/range rules                                                      |
-| `InlineEditField`                              | String; commits validate and invoke the owning form's submit handler. Use a dedicated form when saving should affect only that value |
+| Field                                          | Value and use                                                                                                                                                                                                           |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `InputField`, `TextareaField`, `PasswordField` | Text. Numeric InputField uses numeric defaults and `props.type="number"`; an emptied numeric input can produce NaN, so validate it                                                                                      |
+| `AutocompleteField`                            | Text with static suggestions or asynchronous search; users may enter text outside the suggestions                                                                                                                       |
+| `SelectField`                                  | One stored string; options map display labels to stored values, for example `{ "نشط": "active" }`                                                                                                                       |
+| `ComboboxField`                                | Stored string, or string array with `multiple`; options are `{ label, value }` records; supports asynchronous search                                                                                                    |
+| `CheckboxField`, `RadioField`                  | Boolean, or one option's string value respectively                                                                                                                                                                      |
+| `DateField`, `DatetimeField`, `MonthField`     | `Date \| undefined`; MonthField normalizes the selection to the first day of the month                                                                                                                                  |
+| `DateRangeField`                               | `{ from, to? } \| undefined`, with date values and possibly an unfinished selection                                                                                                                                     |
+| `TimeField`, `TimeRangeField`                  | HH:mm string, or `{ start, end }`; the feature schema owns required/range rules                                                                                                                                         |
+| `InlineEditField`                              | String; commits validate and invoke the owning form's submit handler. Use a dedicated form when saving should affect only that value                                                                                    |
 | `ImageUploadField`, `AttachmentsField`         | Project extensions: completed `CloudinaryUploadResult \| string \| null` and local `File[]` respectively; ImageUploadField uses UploadCN when supplied a signed adapter, while AttachmentsField remains local selection |
 
 Catalog price and sort-order forms intentionally keep numeric strings using `inputMode`. Feature code converts values into allowlisted API payloads, including explicit date/time serialization where needed. A Date object in form state does not define the database's date or timezone contract.
@@ -228,11 +256,11 @@ The previous `/api/upload/sign` implementation was removed. Supabase now supplie
 
 ### Resource page context (implemented)
 
-- `components/resources/resource-provider.tsx` is the complete reusable page entry point. It owns Refine table configuration, context/page/dialog composition and optional local row dragging. Callers pass a resource, columns, title/description and a form definition with a fields render function. It remounts its controller when the resource changes.
+- `components/resources/resource-provider.tsx` is the complete reusable page entry point. It composes the resource table hook with context, page and dialog presentation. `hooks/resources/use-resource-table.ts` owns Refine list/table configuration and optional local row dragging. Callers pass a resource, columns, title/description and a form definition with a fields render function. It remounts its controller when the resource changes.
 - `components/resources/resource-context.tsx` supplies the lower-level `ResourceScopeProvider`: page-scoped resource name, selected action/row ID, loaded row and open/close callbacks. The public provider supplies its loaded table rows automatically.
 - `ResourceRowActions` and the create toolbar use that context; optional `rowActions` config supplies icon/handler definitions.
-- `ResourceDialogs` mounts one keyed dialog for create/edit/delete; generic `ResourceEditor` binds the form definition to `ResourceFormDialog`. Catalog fields, validation, defaults and payload mapping remain in `CatalogFormFields`; `CatalogResource` is a small catalog-defaults adapter. The existing Refine data provider owns database requests; context selection itself performs no requests.
-- Delete identity/name come from the loaded table rows. Edit reads and create/update mutations remain in `ResourceFormDialog`. No application-wide selected-row singleton is introduced.
+- `ResourceDialogs` mounts one keyed dialog for create/edit/delete; generic `ResourceEditor` binds the form definition to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error display comes from the Refine create/update mutation state; local error state is limited to preflight checks and callbacks. Create/update rely on Refine's default cache invalidation. `use-resource-delete-crud.ts` owns the pessimistic delete call and relies on Refine's default delete invalidation. The dialogs render pending/error states and keep the feature form slot. Products and add-ons each own their resource metadata, page composition, table columns, model/payload mapping and create/edit form fields in `features/catalog/products/` and `features/catalog/addons/`. They reuse the shared CRUD dialog shell; feature fields and schemas remain separate.
+- Delete identity/name come from the loaded table rows. `resource-context.tsx` owns only page-scoped dialog selection and callbacks. No application-wide selected-row singleton is introduced.
 
 The public provider accepts `resource`, `title`, optional `description`, `columns` and `form`. `form.fields` receives `resource`, `action`, `record`, `formId`, `disabled` and `onSave`; render a feature form component that binds its native form to `formId`, validates its inputs and calls `onSave` with an explicit payload. Features retain their own `useAppForm` fields and schemas.
 
@@ -267,12 +295,35 @@ Optional configuration includes `searchField`, `refineCoreProps`, `canCreate`, `
 3. [Invariant three]
 4. [Invariant four]
 
-### Own profile and authentication settings
+### Shared Refine authorization — 2026-10-31
 
-`/profile` composes existing shadcn Cards/Tabs/Fields, AvatarUpload and the shared `useAppForm` fields. Its named Refine `account` provider loads the verified current user and own `user_profiles` row; update accepts only name/avatar, rechecks caller identity and relies on existing RLS. Auth email, role and linked identities are read-only here. Successful profile saves invalidate the shared identity so sidebar/header updates.
+`providers/refine/access-control-provider.ts` is the frontend permission policy.
+The existing auth adapter shares verified profile and permission reads for up to
+60 seconds; supervisors read `admin_roles.permissions` by `admin_role_id`, or the
+default group when no group is assigned. Failed/missing group reads deny access.
+Super admins need no permission-group lookup. Session invalidation clears both
+snapshots and rejects stale in-flight reads. A fresh mutation preflight bypasses
+the snapshot without replacing Refine mutation state.
 
-Google linking uses `auth.linkIdentity` while signed in, a separate `/auth/link` PKCE callback and an initiating-user check. Manual linking and the callback redirect must be configured in Supabase. Existing Google sign-in remains separate. No Gmail mailbox scopes are requested.
+`hooks/resources/use-resource-authorization.ts` wraps Refine `useCan`, adding the
+session version to the generated query key through params. Queries recheck on
+focus and errors cannot reuse an old grant. `ResourceProvider` gates list access
+before mounting the table, combines CRUD/sort grants with existing feature
+restrictions, and guards dialog opening. Shared CRUD hooks recheck access before
+submission. Custom `ResourceRowAction` entries require `authorizationAction`;
+unregistered actions and empty menus are hidden.
 
-Password changes verify the current password in an isolated, nonpersistent Supabase client, check the same user is still active and then call `updateUser`. The temporary verification session is signed out. Google-only accounts use an emailed recovery link to set a password. Password forms use feature-local submit state; credentials never enter Refine resource payloads or query caches.
+The sidebar uses `adminNavigationGroups` beside the Refine resource registry and
+`AuthorizedSidebarItem`, sharing the same list checks as pages. Empty groups are
+hidden, pending checks use skeletons, and errors offer Arabic retry actions.
+Standalone profile/uploads/notifications routes use `ResourceAccessGate` inside
+the existing root AdminLayout. Sign-in redirects through `/`, selecting products,
+users, then profile in permission order.
 
-`/forgot-password` and `/reset-password` are public auth pages. Recovery uses PKCE exchange explicitly (URL detection is disabled in the shared client), requires the public `PASSWORD_RECOVERY` event, deduplicates single-use codes and signs out locally after a successful password update. Email responses are neutral. Configure the reset redirect and mail delivery in Supabase; PKCE links must be opened in the requesting browser. Expired/missing codes show a new-link action. No database schema or hosted auth configuration changes are made by this feature.
+Catalog CRUD/sort requires `canManageCatalog`; media requires `canManageContent`.
+Both active admin roles retain ordinary users management without
+`canManageUsers`; user deletion and assigning admin roles require super admin.
+Own-profile and own-notification boundaries and protected user records remain.
+These are frontend checks: existing catalog RLS still grants broader admin access.
+No schema, RLS, Edge Function, remote configuration or deployment changes are part
+of this feature. Existing server checks remain authoritative.

@@ -4,7 +4,7 @@ import { useOne, useUpdate } from "@refinedev/core";
 import { toast } from "sonner";
 import { useAppForm } from "@/lib/form";
 import { useAdminIdentity } from "@/features/auth/identity-provider";
-import { adminAuthProvider } from "@/features/auth/supabase";
+import { adminAuthProvider } from "@/providers/refine/auth-provider";
 import { useLibraryUploadAdapter } from "@/features/uploads/use-upload-adapter";
 import { AvatarUpload } from "@/components/upload/avatar-upload";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -181,7 +181,6 @@ function ProfileForm({
           mutationMode: "pessimistic",
         });
         await onSaved();
-        toast.success("تم حفظ الملف الشخصي.");
         form.reset(value);
       } catch (error) {
         setError(message(error));
@@ -244,10 +243,6 @@ function ProfileForm({
                     )
                   }
                 </form.Subscribe>
-                <FieldDescription>
-                  تُحفظ الصورة في ملفك عند الضغط على حفظ التغييرات. إزالة
-                  المعاينة لا تحذف الملف من المكتبة.
-                </FieldDescription>
               </Field>
               <Field>
                 <FieldLabel>بريد تسجيل الدخول</FieldLabel>
@@ -336,7 +331,6 @@ function LinkedAccounts({ profile }: { profile: ProfileRecord }) {
   );
 }
 function PasswordForm({ email }: { email: string }) {
-  const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const form = useAppForm({
@@ -346,13 +340,12 @@ function PasswordForm({ email }: { email: string }) {
       onSubmit: changePasswordSchema,
     },
     onSubmit: async ({ value }) => {
-      setError("");
       try {
         await changePassword(value);
         form.reset();
         toast.success("تم تغيير كلمة المرور.");
-      } catch (error) {
-        setError(message(error));
+      } catch (error: any) {
+        toast.error(error?.message ?? "حدث خطا ما");
       }
     },
   });
@@ -373,7 +366,6 @@ function PasswordForm({ email }: { email: string }) {
           }}
         >
           <CardContent className="flex flex-col gap-5">
-            {error && <ErrorAlert message={error} />}
             <FieldGroup>
               <form.AppField name="currentPassword">
                 {(field) => (
@@ -434,12 +426,10 @@ function PasswordForm({ email }: { email: string }) {
               disabled={sending || sent || submitting || !email}
               onClick={async () => {
                 setSending(true);
-                setError("");
                 try {
                   await sendPasswordReset(email);
                   setSent(true);
                 } catch (error) {
-                  setError(message(error));
                 } finally {
                   setSending(false);
                 }

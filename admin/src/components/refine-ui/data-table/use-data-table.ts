@@ -14,7 +14,7 @@ import {
   type UseDataTableProps,
 } from "@/components/block/shuip/data-table";
 import type { ColumnFiltersState, Updater } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const searchKey = "__data_table_search";
 const emptyRows: never[] = [];
@@ -56,13 +56,18 @@ export type UseDataTableOptions<TData extends BaseRecord> = Pick<
   mode?: "server" | "client";
   /** Required for global search in server mode; must name a text field. */
   searchField?: string;
+  /** Fields used by the server-side global search, in priority order. */
+  searchFields?: string[];
+  /** Delay search requests while keeping the user's draft visible. */
+  searchDebounceMs?: number;
   /** Presentation-only mapping; never changes provider data. */
   mapDisplayRows?: (rows: TData[]) => TData[];
 };
 
 /** Refine owns requests; Shuip owns rendering and local table features. */
 export function useDataTable<TData extends BaseRecord>({
-  refineCoreProps, mode = "server", searchField, mapDisplayRows, ...options
+  refineCoreProps, mode = "server", searchField, searchFields, searchDebounceMs = 0,
+  mapDisplayRows, ...options
 }: UseDataTableOptions<TData>): UseTableReturnType<TData, HttpError> {
   const server = mode === "server";
   // Keep unfinished builder rows visible while only complete conditions reach the provider.
@@ -104,6 +109,15 @@ export function useDataTable<TData extends BaseRecord>({
   const searchFilter = refineCore.filters.find(filter => !("field" in filter) && filter.key === searchKey);
   const globalFilter = searchFilter && !("field" in searchFilter)
     ? String(searchFilter.value[0]?.value ?? "").replace(/\\(["\\])/g, "$1") : "";
+  const searchableFields = searchFields?.length ? searchFields : searchField ? [searchField] : [];
+  const [searchDraft, setSearchDraft] = useState(globalFilter);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (searchDebounceMs <= 0) setSearchDraft(globalFilter);
+  }, [globalFilter, searchDebounceMs]);
+  useEffect(() => () => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+  }, []);
 
   function setColumnFilters(next: ColumnFiltersState) {
     setDraftFilters(next.filter(filter => !toRefineFilters([filter]).length));
@@ -116,16 +130,22 @@ export function useDataTable<TData extends BaseRecord>({
   }
 
   function setSearch(search: string) {
-    // The installed provider interpolates OR values into quoted PostgREST syntax.
-    const escaped = search.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    const searchFilters: CrudFilter[] = searchField && search
-      ? [{ key: searchKey, operator: "or", value: [{ field: searchField, operator: "contains", value: escaped }] }]
-      : [];
-    refineCore.setFilters(previous => [
-      ...previous.filter(filter => "field" in filter || filter.key !== searchKey),
-      ...searchFilters,
-    ]);
-    refineCore.setCurrentPage(1);
+    setSearchDraft(search);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const apply = () => {
+      // The installed provider interpolates OR values into quoted PostgREST syntax.
+      const escaped = search.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const searchFilters: CrudFilter[] = searchableFields.length && search
+        ? [{ key: searchKey, operator: "or", value: searchableFields.map((field) => ({ field, operator: "contains", value: escaped })) }]
+        : [];
+      refineCore.setFilters(previous => [
+        ...previous.filter(filter => "field" in filter || filter.key !== searchKey),
+        ...searchFilters,
+      ]);
+      refineCore.setCurrentPage(1);
+    };
+    if (searchDebounceMs > 0) searchTimer.current = setTimeout(apply, searchDebounceMs);
+    else apply();
   }
 
   const loadedRows = refineCore.tableQuery.data?.data ?? emptyRows;
@@ -134,14 +154,14 @@ export function useDataTable<TData extends BaseRecord>({
     ...options,
     data: displayRows,
     getRowId: (row, index) => String(row.id ?? index),
-    enableGlobalFilter: !server || Boolean(searchField),
+    enableGlobalFilter: !server || searchableFields.length > 0,
     ...(server ? {
       pageCount: refineCore.pageCount,
       state: {
         pagination: { pageIndex: refineCore.currentPage - 1, pageSize: refineCore.pageSize },
         sorting: refineCore.sorters.map(sort => ({ id: sort.field, desc: sort.order === "desc" })),
         columnFilters,
-        globalFilter,
+        globalFilter: searchDraft,
       },
       onPaginationChange: (updater) => {
         const previous = { pageIndex: refineCore.currentPage - 1, pageSize: refineCore.pageSize };
