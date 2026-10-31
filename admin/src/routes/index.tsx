@@ -1,7 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
+import { resolveAdminLandingPage } from "@/providers/refine/access-control-provider";
+
 export const Route = createFileRoute("/")({
-  beforeLoad: () => {
-    throw redirect({ to: "/catalog/products" });
+  beforeLoad: async () => {
+    throw redirect({ to: await resolveAdminLandingPage() });
   },
 });

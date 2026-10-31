@@ -259,7 +259,7 @@ The previous `/api/upload/sign` implementation was removed. Supabase now supplie
 - `components/resources/resource-provider.tsx` is the complete reusable page entry point. It composes the resource table hook with context, page and dialog presentation. `hooks/resources/use-resource-table.ts` owns Refine list/table configuration and optional local row dragging. Callers pass a resource, columns, title/description and a form definition with a fields render function. It remounts its controller when the resource changes.
 - `components/resources/resource-context.tsx` supplies the lower-level `ResourceScopeProvider`: page-scoped resource name, selected action/row ID, loaded row and open/close callbacks. The public provider supplies its loaded table rows automatically.
 - `ResourceRowActions` and the create toolbar use that context; optional `rowActions` config supplies icon/handler definitions.
-- `ResourceDialogs` mounts one keyed dialog for create/edit/delete; generic `ResourceEditor` binds the form definition to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error display comes from the Refine create/update mutation state; local error state is limited to preflight checks and callbacks. Create/update rely on Refine's default cache invalidation. `use-resource-delete-crud.ts` owns the pessimistic delete call and relies on Refine's default delete invalidation. The dialogs render pending/error states and keep the feature form slot. Catalog fields, validation, defaults and payload mapping remain in `CatalogFormFields`; `CatalogResource` is a small catalog-defaults adapter.
+- `ResourceDialogs` mounts one keyed dialog for create/edit/delete; generic `ResourceEditor` binds the form definition to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error display comes from the Refine create/update mutation state; local error state is limited to preflight checks and callbacks. Create/update rely on Refine's default cache invalidation. `use-resource-delete-crud.ts` owns the pessimistic delete call and relies on Refine's default delete invalidation. The dialogs render pending/error states and keep the feature form slot. Products and add-ons each own their resource metadata, page composition, table columns, model/payload mapping and create/edit form fields in `features/catalog/products/` and `features/catalog/addons/`. They reuse the shared CRUD dialog shell; feature fields and schemas remain separate.
 - Delete identity/name come from the loaded table rows. `resource-context.tsx` owns only page-scoped dialog selection and callbacks. No application-wide selected-row singleton is introduced.
 
 The public provider accepts `resource`, `title`, optional `description`, `columns` and `form`. `form.fields` receives `resource`, `action`, `record`, `formId`, `disabled` and `onSave`; render a feature form component that binds its native form to `formId`, validates its inputs and calls `onSave` with an explicit payload. Features retain their own `useAppForm` fields and schemas.
@@ -294,3 +294,36 @@ Optional configuration includes `searchField`, `refineCoreProps`, `canCreate`, `
 2. [Invariant two]
 3. [Invariant three]
 4. [Invariant four]
+
+### Shared Refine authorization — 2026-10-31
+
+`providers/refine/access-control-provider.ts` is the frontend permission policy.
+The existing auth adapter shares verified profile and permission reads for up to
+60 seconds; supervisors read `admin_roles.permissions` by `admin_role_id`, or the
+default group when no group is assigned. Failed/missing group reads deny access.
+Super admins need no permission-group lookup. Session invalidation clears both
+snapshots and rejects stale in-flight reads. A fresh mutation preflight bypasses
+the snapshot without replacing Refine mutation state.
+
+`hooks/resources/use-resource-authorization.ts` wraps Refine `useCan`, adding the
+session version to the generated query key through params. Queries recheck on
+focus and errors cannot reuse an old grant. `ResourceProvider` gates list access
+before mounting the table, combines CRUD/sort grants with existing feature
+restrictions, and guards dialog opening. Shared CRUD hooks recheck access before
+submission. Custom `ResourceRowAction` entries require `authorizationAction`;
+unregistered actions and empty menus are hidden.
+
+The sidebar uses `adminNavigationGroups` beside the Refine resource registry and
+`AuthorizedSidebarItem`, sharing the same list checks as pages. Empty groups are
+hidden, pending checks use skeletons, and errors offer Arabic retry actions.
+Standalone profile/uploads/notifications routes use `ResourceAccessGate` inside
+the existing root AdminLayout. Sign-in redirects through `/`, selecting products,
+users, then profile in permission order.
+
+Catalog CRUD/sort requires `canManageCatalog`; media requires `canManageContent`.
+Both active admin roles retain ordinary users management without
+`canManageUsers`; user deletion and assigning admin roles require super admin.
+Own-profile and own-notification boundaries and protected user records remain.
+These are frontend checks: existing catalog RLS still grants broader admin access.
+No schema, RLS, Edge Function, remote configuration or deployment changes are part
+of this feature. Existing server checks remain authoritative.

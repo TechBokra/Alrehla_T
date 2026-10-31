@@ -21,6 +21,9 @@ interface ResourceContextValue {
   rowId?: string;
   selectedRow?: BaseRecord;
   canDeleteSelected: boolean;
+  getRecord: (id: string) => BaseRecord | undefined;
+  canEditRow: (id: string) => boolean;
+  canDeleteRow: (id: string) => boolean;
   deleteConsequence?: string;
   rowActions?: ResourceRowAction[];
   openCreate: () => void;
@@ -42,6 +45,8 @@ export function ResourceScopeProvider<
 >({
   resource,
   rows,
+  canCreate,
+  canEdit,
   canDelete,
   deleteConsequence,
   rowActions,
@@ -49,6 +54,8 @@ export function ResourceScopeProvider<
 }: {
   resource: string;
   rows: TRecord[];
+  canCreate: boolean;
+  canEdit: (record: TRecord) => boolean;
   canDelete: (record: TRecord) => boolean;
   deleteConsequence?: string;
   rowActions?: ResourceRowAction[];
@@ -56,19 +63,24 @@ export function ResourceScopeProvider<
 }) {
   const [target, setTarget] = useState<ResourceActionTarget | null>(null);
   const sequence = useRef(0);
-  const openCreate = useCallback(
-    () => setTarget({ action: "create", key: ++sequence.current }),
-    [],
-  );
-  const openEdit = useCallback(
-    (id: string) => setTarget({ action: "edit", id, key: ++sequence.current }),
-    [],
-  );
-  const openDelete = useCallback(
-    (id: string) =>
-      setTarget({ action: "delete", id, key: ++sequence.current }),
-    [],
-  );
+  const getRecord = useCallback((id: string) => rows.find((row) => String(row.id) === id), [rows]);
+  const canEditRow = useCallback((id: string) => {
+    const record = getRecord(id);
+    return Boolean(record && canEdit(record));
+  }, [getRecord, canEdit]);
+  const canDeleteRow = useCallback((id: string) => {
+    const record = getRecord(id);
+    return Boolean(record && canDelete(record));
+  }, [getRecord, canDelete]);
+  const openCreate = useCallback(() => {
+    if (canCreate) setTarget({ action: "create", key: ++sequence.current });
+  }, [canCreate]);
+  const openEdit = useCallback((id: string) => {
+    if (canEditRow(id)) setTarget({ action: "edit", id, key: ++sequence.current });
+  }, [canEditRow]);
+  const openDelete = useCallback((id: string) => {
+    if (canDeleteRow(id)) setTarget({ action: "delete", id, key: ++sequence.current });
+  }, [canDeleteRow]);
   const close = useCallback(() => setTarget(null), []);
   const rowId = target && "id" in target ? target.id : undefined;
   const selectedRow = rows.find((row) => String(row.id) === rowId);
@@ -80,6 +92,9 @@ export function ResourceScopeProvider<
       rowId,
       selectedRow,
       canDeleteSelected,
+      getRecord,
+      canEditRow,
+      canDeleteRow,
       deleteConsequence,
       rowActions,
       openCreate,
@@ -93,6 +108,9 @@ export function ResourceScopeProvider<
       rowId,
       selectedRow,
       canDeleteSelected,
+      getRecord,
+      canEditRow,
+      canDeleteRow,
       deleteConsequence,
       rowActions,
       openCreate,

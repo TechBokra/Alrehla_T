@@ -6,6 +6,8 @@ import {
   type BaseRecord,
   type HttpError,
 } from "@refinedev/core";
+import { assertResourceAccess } from "@/providers/refine/access-control-provider";
+import { useResourceAuthorization } from "./use-resource-authorization";
 import { editRecordState } from "./lifecycle";
 
 type ResourceFormAction = "create" | "edit";
@@ -29,6 +31,8 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   onSaved,
 }: UseResourceFormCrudOptions<TRecord>) {
   const editing = id !== undefined;
+  const access = useResourceAuthorization(resource, editing ? "edit" : "create", { id });
+  const [checkingAccess, setCheckingAccess] = useState(false);
   const loaded = useRef(false);
   const inFlight = useRef(false);
   const [flowError, setFlowError] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     id: id ?? "",
     errorNotification: false,
     queryOptions: {
-      enabled: editing,
+      enabled: editing && access.allowed,
       retry: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
@@ -51,15 +55,15 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   const update = useUpdate<TRecord, HttpError, Record<string, unknown>>({
     mutationOptions: { retry: false },
   });
-  const pending = create.mutation.isPending || update.mutation.isPending;
+  const pending = checkingAccess || create.mutation.isPending || update.mutation.isPending;
   const mutationError = editing
     ? update.mutation.error
     : create.mutation.error;
   // Refine owns CRUD mutation state; local state covers only work outside
   // those calls.
   const error =
-    flowError ?? (mutationError ? getErrorMessage(mutationError) : null);
-  const fetching = editing && (query.query.isPending || query.query.isFetching);
+    flowError ?? (access.isError ? "تعذّر التحقق من الصلاحيات. حاول مرة أخرى." : !access.isPending && !access.allowed ? access.data?.reason : null) ?? (mutationError ? getErrorMessage(mutationError) : null);
+  const fetching = editing && access.allowed && (query.query.isPending || query.query.isFetching);
   const state = editRecordState({
     loading: fetching,
     error: query.query.error,
@@ -68,17 +72,19 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   });
   if (editing && state === "ready") loaded.current = true;
 
-  const initialLoading = editing && !loaded.current && fetching;
+  const initialLoading = access.isPending || (editing && !loaded.current && fetching);
   const initialError =
-    editing && !loaded.current && !fetching && state !== "ready";
-  const busy = pending || fetching;
-  const unavailable = editing && (!query.result || !canEdit(query.result));
+    !access.isPending && (!access.allowed || (editing && !loaded.current && !fetching && state !== "ready"));
+  const busy = pending || fetching || access.isPending;
+  const unavailable = !access.allowed || (editing && (!query.result || !canEdit(query.result)));
 
   async function save(values: Record<string, unknown>) {
     if (inFlight.current || busy || unavailable) return false;
     inFlight.current = true;
     setFlowError(null);
+    setCheckingAccess(true);
     try {
+      await assertResourceAccess(resource, editing ? "edit" : "create", { id, record: query.result });
       const common = { resource, dataProviderName };
       let saved: TRecord;
       if (editing) {
@@ -91,6 +97,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
           setFlowError(getErrorMessage(failure));
           return false;
         }
+        setCheckingAccess(false);
         try {
           saved = (
             await update.mutateAsync({ ...common, id: id!, values })
@@ -100,6 +107,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
           return false;
         }
       } else {
+        setCheckingAccess(false);
         try {
           saved = (await create.mutateAsync({ ...common, values })).data;
         } catch {
@@ -114,7 +122,11 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
         return false;
       }
       return true;
+    } catch (failure) {
+      setFlowError(failure instanceof Error ? failure.message : getErrorMessage(failure));
+      return false;
     } finally {
+      setCheckingAccess(false);
       inFlight.current = false;
     }
   }
@@ -130,7 +142,11 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     pending,
     error,
     save,
-    retryLoad: () => query.query.refetch(),
+    canRetry: access.isError || state === "failed",
+    retryLoad: async () => {
+      const result = await access.refetch();
+      if (result.data?.can && editing) await query.query.refetch();
+    },
     canDismiss: () => !inFlight.current,
   };
 }

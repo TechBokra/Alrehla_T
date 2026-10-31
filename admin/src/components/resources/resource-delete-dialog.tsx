@@ -17,6 +17,7 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   id,
   name,
   canDelete,
+  record,
   consequence,
   onClose,
 }: {
@@ -24,10 +25,11 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   id: string;
   name?: string;
   canDelete: boolean;
+  record?: BaseRecord;
   consequence?: string;
   onClose: () => void;
 }) {
-  const deletion = useResourceDeleteCrud<TRecord>({ resource, id, canDelete });
+  const deletion = useResourceDeleteCrud<TRecord>({ resource, id, canDelete, record });
   function remove() {
     void deletion.remove().then((deleted) => {
       if (deleted) onClose();
@@ -62,7 +64,7 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
           <AlertDialogCancel disabled={deletion.isPending}>إلغاء</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
-            disabled={deletion.isPending || !canDelete}
+            disabled={deletion.isPending || !canDelete || !deletion.allowed}
             onClick={(event) => {
               event.preventDefault();
               void remove();

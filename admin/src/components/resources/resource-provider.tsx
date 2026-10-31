@@ -3,6 +3,8 @@ import type { BaseRecord, HttpError } from "@refinedev/core";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { UseTableReturnType } from "@refinedev/react-table";
 import type { UseDataTableOptions } from "@/components/refine-ui/data-table/use-data-table";
+import { ResourceAccessGate } from "./resource-access-gate";
+import { useResourceAuthorization } from "@/hooks/resources/use-resource-authorization";
 import { useResourceTable } from "@/hooks/resources/use-resource-table";
 import { ResourceScopeProvider } from "./resource-context";
 import { ResourcePage } from "./resource-page";
@@ -44,7 +46,11 @@ export interface ResourceProviderProps<TRecord extends ResourceRecord> {
 export function ResourceProvider<TRecord extends ResourceRecord>(
   props: ResourceProviderProps<TRecord>,
 ) {
-  return <ResourceContent key={props.resource} {...props} />;
+  return (
+    <ResourceAccessGate key={props.resource} resource={props.resource}>
+      <ResourceContent {...props} />
+    </ResourceAccessGate>
+  );
 }
 function ResourceContent<TRecord extends ResourceRecord>({
   resource,
@@ -69,6 +75,14 @@ function ResourceContent<TRecord extends ResourceRecord>({
   getRowLabel = (row) => String(row.name ?? row.id),
   onReorder,
 }: ResourceProviderProps<TRecord>) {
+  const createAccess = useResourceAuthorization(resource, "create");
+  const editAccess = useResourceAuthorization(resource, "edit");
+  const deleteAccess = useResourceAuthorization(resource, "delete");
+  const sortAccess = useResourceAuthorization(resource, "sort");
+  const canSort = enableRowReordering && sortAccess.allowed;
+  const canCreateResource = canCreate && createAccess.allowed;
+  const canEditRecord = (record: TRecord) => editAccess.allowed && (form.canEdit?.(record) ?? true);
+  const canDeleteRecord = (record: TRecord) => deleteAccess.allowed && canDelete(record);
   const { table, reorder } = useResourceTable<TRecord>({
     resource,
     columns: columnInput,
@@ -76,7 +90,7 @@ function ResourceContent<TRecord extends ResourceRecord>({
     searchFields,
     searchDebounceMs,
     initialState,
-    enableRowReordering,
+    enableRowReordering: canSort,
     onReorder,
     refineCoreProps: {
       ...refineCoreProps,
@@ -87,7 +101,9 @@ function ResourceContent<TRecord extends ResourceRecord>({
     <ResourceScopeProvider
       resource={resource}
       rows={table.refineCore.tableQuery.data?.data ?? []}
-      canDelete={canDelete}
+      canCreate={canCreateResource}
+      canEdit={canEditRecord}
+      canDelete={canDeleteRecord}
       deleteConsequence={deleteConsequence}
       rowActions={rowActions}
     >
@@ -97,10 +113,10 @@ function ResourceContent<TRecord extends ResourceRecord>({
         table={table}
         pageSizeOptions={pageSizeOptions}
         toolbarContent={toolbarContent?.(table)}
-        canCreate={canCreate}
+        canCreate={canCreateResource}
         storageKey={storageKey}
         rowReordering={
-          enableRowReordering ? { getRowLabel, onReorder: reorder } : undefined
+          canSort ? { getRowLabel, onReorder: reorder } : undefined
         }
       >
         <ResourceDialogs>

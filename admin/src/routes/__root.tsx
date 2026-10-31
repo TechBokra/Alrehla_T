@@ -26,7 +26,7 @@ export const Route = createRootRoute({
     const { authenticated } = await adminAuthProvider.check();
     if (pathname === "/sign-in") {
       if (authenticated)
-        throw redirect({ to: "/catalog/products", replace: true });
+        throw redirect({ to: "/", replace: true });
       return;
     }
     if (!authenticated) throw redirect({ to: "/sign-in", replace: true });

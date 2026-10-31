@@ -1,6 +1,7 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
-import { Images, Blocks, Table2, Users } from "lucide-react";
+import { adminNavigationGroups } from "@/providers/refine/resources";
+import { AuthorizedSidebarItem } from "./authorized-sidebar-item";
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +34,6 @@ export function AppSidebar({
   isLoggingOut,
   ...props
 }: AppSidebarProps) {
-  const pathname = useLocation({ select: (location) => location.pathname });
   return (
     <Sidebar side="right" collapsible="icon" {...props}>
       <SidebarHeader className="h-16 shrink-0 justify-center border-b border-sidebar-border px-2 py-2">
@@ -54,72 +54,16 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent className="gap-1">
-        <SidebarGroup className="py-1">
-          <SidebarGroupLabel>إدارة الحسابات</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="sm"
-                  isActive={pathname.startsWith("/users")}
-                  tooltip="المستخدمون"
-                >
-                  <Link to="/users">
-                    <Users />
-                    <span>المستخدمون</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup className="py-1">
-          <SidebarGroupLabel>إدارة الكتالوج</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="sm"
-                  isActive={pathname.startsWith("/uploads")}
-                  tooltip="المرفوعات"
-                >
-                  <Link to="/uploads">
-                    <Images />
-                    <span>المرفوعات</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="sm"
-                  isActive={pathname.startsWith("/catalog/products")}
-                  tooltip="منتجات المنصة"
-                >
-                  <Link to="/catalog/products">
-                    <Table2 />
-                    <span>منتجات المنصة</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="sm"
-                  isActive={pathname.startsWith("/catalog/addons")}
-                  tooltip="الإضافات"
-                >
-                  <Link to="/catalog/addons">
-                    <Blocks />
-                    <span>الإضافات</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {adminNavigationGroups.map((group) => (
+          <SidebarGroup key={group.label} className="hidden py-1 has-[[data-authorized-sidebar-item]]:flex">
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => <AuthorizedSidebarItem key={item.resource} item={item} />)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">

@@ -13,10 +13,16 @@ import {
 
 export type { AdminLoginValues, SignInValues } from "@/lib/schema";
 
+export interface AdminAuthorization {
+  id: string;
+  role: "super_admin" | "general_supervisor";
+  permissions: string[];
+}
+
 export class GoogleProviderDisabledError extends Error {}
 type AdminProfile = Pick<
   Database["public"]["Tables"]["user_profiles"]["Row"],
-  "id" | "full_name" | "avatar_url" | "role" | "archived_at"
+  "id" | "full_name" | "avatar_url" | "role" | "archived_at" | "admin_role_id"
 >;
 
 interface AuthGateway {
@@ -27,6 +33,7 @@ interface AuthGateway {
   exchangeCode(code: string): Promise<void>;
   getUser(): Promise<{ id: string; email?: string } | null>;
   getProfile(userId: string): Promise<AdminProfile | null>;
+  getPermissions(adminRoleId: string | null): Promise<string[]>;
   signOut(): Promise<void>;
 }
 
@@ -61,18 +68,24 @@ function credentialErrorMessage(code: string) {
   return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
 }
 
-function createAdminAuthProvider(getGateway: () => AuthGateway | null, now = Date.now) {
+export function createAdminAuthProvider(getGateway: () => AuthGateway | null, now = Date.now) {
   type Session = {
     user: { id: string; email?: string };
     profile: AdminProfile;
   };
   let version = 0;
+  let epoch = 0;
+  let accessCache: { value: AdminAuthorization; expiresAt: number } | undefined;
+  let accessPending: Promise<AdminAuthorization | null> | undefined;
   let cached: { session: Session; expiresAt: number } | undefined;
   let pending: Promise<Session | null> | undefined;
   const listeners = new Set<() => void>();
 
   function invalidateSession() {
     version++;
+    epoch++;
+    accessCache = undefined;
+    accessPending = undefined;
     cached = undefined;
     pending = undefined;
     listeners.forEach((listener) => listener());
@@ -84,11 +97,12 @@ function createAdminAuthProvider(getGateway: () => AuthGateway | null, now = Dat
     const gateway = getGateway();
     if (!gateway) return null;
     const startedVersion = version;
+    const startedEpoch = epoch;
     const request = (async () => {
       const user = await gateway.getUser();
-      if (!user || version !== startedVersion) return null;
+      if (!user || (version !== startedVersion || epoch !== startedEpoch)) return null;
       const profile = await gateway.getProfile(user.id);
-      if (version !== startedVersion || !isAdminProfile(profile)) return null;
+      if ((version !== startedVersion || epoch !== startedEpoch) || !isAdminProfile(profile)) return null;
       const session = { user, profile };
       cached = { session, expiresAt: now() + 60_000 };
       return session;
@@ -101,7 +115,44 @@ function createAdminAuthProvider(getGateway: () => AuthGateway | null, now = Dat
     }
   }
 
+  async function getAuthorization(refresh = false): Promise<AdminAuthorization | null> {
+    if (refresh) {
+      epoch++;
+      cached = undefined;
+      pending = undefined;
+      accessCache = undefined;
+      accessPending = undefined;
+    }
+    if (accessCache && now() < accessCache.expiresAt) return accessCache.value;
+    if (accessPending) return accessPending;
+    const startedEpoch = epoch;
+    const request = (async () => {
+      const session = await readSession();
+      if (!session || epoch !== startedEpoch) return null;
+      const gateway = getGateway();
+      if (!gateway) return null;
+      const permissions = session.profile.role === "super_admin"
+        ? []
+        : await gateway.getPermissions(session.profile.admin_role_id);
+      if (epoch !== startedEpoch) return null;
+      const value: AdminAuthorization = {
+        id: session.user.id,
+        role: session.profile.role as AdminAuthorization["role"],
+        permissions,
+      };
+      accessCache = { value, expiresAt: cached?.expiresAt ?? now() };
+      return value;
+    })();
+    accessPending = request;
+    try {
+      return await request;
+    } finally {
+      if (accessPending === request) accessPending = undefined;
+    }
+  }
+
   return {
+    getAuthorization,
     invalidateSession,
     getSessionVersion: () => version,
     subscribeSession: (listener: () => void) => {
@@ -151,7 +202,7 @@ function createAdminAuthProvider(getGateway: () => AuthGateway | null, now = Dat
           await gateway.signOut();
           return authFailure("هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة.");
         }
-        return { success: true, redirectTo: "/catalog/products" };
+        return { success: true, redirectTo: "/" };
       } catch {
         if (signedIn) await gateway.signOut().catch(() => undefined);
         return authFailure(connectionMessage);
@@ -207,7 +258,7 @@ function createGoogleCallbackHandler(getGateway: () => AuthGateway | null) {
         await gateway.signOut();
         return authFailure("هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة.");
       }
-      return { success: true, redirectTo: "/catalog/products" };
+      return { success: true, redirectTo: "/" };
     } catch {
       if (exchanged) await gateway.signOut().catch(() => undefined);
       return authFailure(
@@ -281,11 +332,18 @@ function getAuthGateway(): AuthGateway | null {
     getProfile: async (userId) => {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("id, full_name, avatar_url, role, archived_at")
+        .select("id, full_name, avatar_url, role, archived_at, admin_role_id")
         .eq("id", userId)
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+    getPermissions: async (adminRoleId) => {
+      let query = supabase.from("admin_roles").select("permissions");
+      query = adminRoleId ? query.eq("id", adminRoleId) : query.eq("is_default", true);
+      const { data, error } = await query.maybeSingle();
+      if (error || !data) throw new Error("تعذّر تحميل صلاحيات الحساب. حاول مرة أخرى.");
+      return data.permissions;
     },
     signOut: async () => {
       const { error } = await supabase.auth.signOut({ scope: "local" });

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/auth/callback/")({
   loader: async ({ deps }) => {
     const result = await completeGoogleSignIn(deps);
     if (result.success)
-      throw redirect({ to: "/catalog/products", replace: true });
+      throw redirect({ to: "/", replace: true });
     return {
       message:
         result.error?.message ?? "تعذّر إكمال تسجيل الدخول. حاول مرة أخرى.",

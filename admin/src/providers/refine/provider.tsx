@@ -5,6 +5,7 @@ import { arabicEgyptI18nProvider } from "./i18n-provider";
 import { useNotificationProvider } from "./notification-provider";
 import { authRouterProvider } from "./router-provider";
 import { resources } from "./resources";
+import { supabaseAccessControlProvider } from "./access-control-provider";
 import { refineDataProviders } from "./data-provider";
 
 export interface RefineProviderProps {
@@ -19,6 +20,7 @@ export function RefineProvider({ children }: RefineProviderProps) {
       resources={resources}
       dataProvider={refineDataProviders}
       authProvider={adminAuthProvider}
+      accessControlProvider={supabaseAccessControlProvider}
       routerProvider={authRouterProvider}
       notificationProvider={notificationProvider}
       i18nProvider={arabicEgyptI18nProvider}

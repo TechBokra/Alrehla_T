@@ -2,18 +2,14 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
 import { ResourceRowActions } from "@/components/resources/resource-row-actions";
 import { Badge } from "@/components/ui/badge";
+import type { Product } from "./model";
 
-export interface CatalogRow {
-  id: string;
-  name: string;
-  price: number;
-  is_active: boolean;
-  sort_order: number;
-}
-export function catalogColumns<TRecord extends CatalogRow>(): ColumnDef<
-  TRecord,
-  unknown
->[] {
+const categories = [
+  { value: "library", label: "المكتبة" },
+  { value: "custom", label: "قصة مخصصة" },
+];
+
+export function productColumns(): ColumnDef<Product, unknown>[] {
   return [
     {
       accessorKey: "name",
@@ -22,6 +18,16 @@ export function catalogColumns<TRecord extends CatalogRow>(): ColumnDef<
         <DataTableColumnHeader column={column} title="الاسم" />
       ),
       size: 260,
+    },
+    {
+      accessorKey: "category",
+      meta: { label: "التصنيف", variant: "multiSelect", options: categories },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="التصنيف" />
+      ),
+      cell: ({ row }) =>
+        categories.find((category) => category.value === row.original.category)
+          ?.label ?? "اشتراك",
     },
     {
       accessorKey: "price",

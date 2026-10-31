@@ -88,13 +88,13 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
         ) : crud.initialError ? (
           <div role="alert" className="flex flex-col gap-3">
             <p>
-              {crud.state === "forbidden"
+              {crud.error ?? (crud.state === "forbidden"
                 ? "هذا السجل غير متاح للتعديل هنا."
                 : crud.state === "missing"
                   ? "السجل غير موجود أو غير متاح لحسابك."
-                  : "تعذّر تحميل السجل. حاول مرة أخرى."}
+                  : "تعذّر تحميل السجل. حاول مرة أخرى.")}
             </p>
-            {crud.state === "failed" && (
+            {crud.canRetry && (
               <Button
                 variant="outline"
                 onClick={() => void crud.retryLoad()}

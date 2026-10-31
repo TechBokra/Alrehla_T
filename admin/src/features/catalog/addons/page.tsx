@@ -1,25 +1,25 @@
-import { addonSchema } from "@/lib/schema";
-import { catalogColumns } from "../columns";
-import { CatalogResource } from "../resource";
-import type { CatalogDefinition } from "../editor";
-import { addonCreate, addonUpdate, addonValues, type Addon } from "./model";
-const definition: CatalogDefinition<Addon> = {
-  title: "إضافة",
-  schema: addonSchema,
-  createPayload: addonCreate,
-  updatePayload: addonUpdate,
-  fromRecord: addonValues,
-  canEdit: () => true,
-};
-const columns = catalogColumns<Addon>;
+import { ResourceProvider } from "@/components/resources/resource-provider";
+import { addonForm } from "./dialogs";
+import { addonColumns } from "./columns";
+import type { Addon } from "./model";
+
 export function AddonsPage() {
   return (
-    <CatalogResource
+    <ResourceProvider<Addon>
       resource="addon_products"
-      definition={definition}
       title="الإضافات"
       description="إدارة الإضافات وأسعارها الشاملة للتخصيص. الإضافات الجديدة تُحفظ غير نشطة."
-      columns={columns}
+      columns={addonColumns}
+      form={addonForm}
+      enableRowReordering
+      refineCoreProps={{
+        sorters: {
+          initial: [
+            { field: "sort_order", order: "asc" },
+            { field: "id", order: "asc" },
+          ],
+        },
+      }}
     />
   );
 }

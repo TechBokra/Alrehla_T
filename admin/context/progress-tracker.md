@@ -177,4 +177,38 @@ change.
 - Route-group components now render only their nested outlet. The shell derives
   the Arabic breadcrumb from the current route. Sign-in, OAuth callbacks and
   password-reset callback screens remain full-screen.
-- Updated architecture docs. Verification pending.
+- Updated architecture docs. Validation: 22 tests, `pnpm typecheck`, and
+  `pnpm build` pass. Build retains the existing large-chunk warning.
+
+### Separate catalog product and add-on modules — 2026-10-31
+
+- Products and add-ons now each own Refine resource metadata, list columns,
+  page composition, model defaults/payload mapping and create/edit form fields
+  in their respective folders. Their forms no longer share resource-dependent
+  conditional rendering.
+- Both features reuse the shared resource table and dialog shell, while keeping
+  their form content and schemas independent. The add-on schema no longer
+  includes product-only category and electronic-price fields.
+- Updated architecture docs. Validation: all 22 tests, `pnpm typecheck`, and
+  `pnpm build` pass. The build retains the existing large-chunk warning.
+
+### Shared Refine resource and sidebar authorization — 2026-10-31
+
+- Added a Supabase-backed Refine access-control provider using active profiles
+  and assigned/default admin permission groups, with a shared 60-second cache,
+  stale-request protection and account-version-scoped Refine access queries.
+- ResourceProvider gates table mounting, CRUD controls and sorting; shared CRUD
+  hooks recheck authorization before submissions. Custom row actions require
+  an explicit registered authorizationAction and preserve feature restrictions.
+- Added AuthorizedSidebarItem and shared navigation metadata; denied links and
+  empty groups hide, with loading placeholders and retryable Arabic failures.
+  Standalone pages are gated, and sign-in uses an authorized landing resolver.
+- Preserved the users permission exception and super-admin-only sensitive
+  actions. No database/server policy changes or deployments. Existing catalog
+  RLS remains broader than these frontend permission checks.
+- Verification: automated authorization/cache/render/CRUD-guard tests and
+  existing server policy tests pass. Authenticated browser confirms RTL sidebar,
+  authorized create dialog and keyboard row-menu dismissal without saving or
+  deleting records. All 20 tests, TypeScript, production build and whitespace
+  checks pass; existing route-generator and large-chunk warnings remain.
+  Profile/user updates invalidate the shared authorization snapshot.

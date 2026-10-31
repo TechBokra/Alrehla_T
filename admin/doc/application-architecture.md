@@ -76,6 +76,14 @@ src/hooks/resources/
 └── lifecycle.ts                      # Shared resource lifecycle state helpers
 ```
 
+The catalog has two separate feature modules under
+`src/features/catalog/products/` and `src/features/catalog/addons/`. Each owns
+its Refine resource definition, page composition, columns, data model and
+create/edit dialog fields. The shared `ResourceProvider` supplies the common
+table and dialog shell; each feature supplies its own form to that shell. The
+central `providers/refine/resources.ts` registry imports and combines their
+resource definitions for Refine.
+
 `src/providers/refine/data-provider/` contains the shared Supabase CRUD adapter,
 the named-provider registry and all specialized adapters. This is the single
 location for Refine data-provider implementations. Keep form schemas, display
@@ -175,7 +183,8 @@ own the media-library listing and metadata CRUD cache.
 ## Adding another resource or provider
 
 1. Build the route and feature UI under `src/routes/` and `src/features/`.
-2. Register the resource and route metadata in `providers/refine/resources.ts`.
+2. Define the resource metadata beside the feature, then add it to the central
+   `providers/refine/resources.ts` registry.
 3. Reuse `default` for ordinary RLS-backed CRUD, or add a focused adapter file
    under `providers/refine/data-provider/` when the resource needs a separate
    backend contract or command handling.
@@ -189,3 +198,28 @@ own the media-library listing and metadata CRUD cache.
 
 Run `pnpm typecheck`, `pnpm test` and `pnpm build` from `admin/` after changing
 provider registration or request contracts.
+
+## Authorization flow
+
+1. Supabase verifies the admin session; the auth adapter reads the current active
+   profile and assigned/default `admin_roles.permissions` group. Results share
+   the existing 60-second session cache; failures and archived/non-admin accounts
+   do not grant access.
+2. Refine's `supabaseAccessControlProvider.can` evaluates resource/action access.
+   `useResourceAuthorization` includes the auth version in Refine's query params
+   so switching accounts cannot reuse a permission grant.
+3. `AuthorizedSidebarItem` filters navigation with `list`; `ResourceProvider`
+   checks the same action before mounting its table. Standalone resource screens
+   use `ResourceAccessGate`. CRUD/sort controls also require their own grants.
+4. Existing feature restrictions remain additional checks. Custom row actions
+   declare `authorizationAction`; unknown actions deny access. Shared CRUD hooks
+   perform a fresh permission check before sending a mutation, retaining Refine
+   pending/error state and automatic invalidation. Use the same authorization
+   hook for feature-specific controls, for example `users` / `assign_admin_role`.
+5. Supabase RLS and Edge Functions enforce actual data requests. Frontend checks
+   do not tighten catalog RLS; the existing broader admin policies are unchanged.
+
+The navigation registry and Refine resources share labels and paths. Successful
+password/Google sign-in redirects to `/`, which chooses products if allowed,
+otherwise users, with own-profile as the fallback. Loading/denial/request failures
+stay inside the shared admin shell and use Arabic feedback.

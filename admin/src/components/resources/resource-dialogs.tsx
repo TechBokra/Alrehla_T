@@ -21,6 +21,7 @@ export function ResourceDialogs({ children }: { children: ReactNode }) {
         id={target.id}
         name={selectedRow?.name ? String(selectedRow.name) : undefined}
         canDelete={canDeleteSelected}
+        record={selectedRow}
         consequence={deleteConsequence}
         onClose={close}
       />

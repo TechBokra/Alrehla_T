@@ -1,4 +1,5 @@
 import type { BaseRecord, DataProvider, GetListResponse } from "@refinedev/core";
+import { adminAuthProvider } from "../auth-provider";
 import { getSupabaseClient } from "@/providers/supabase-client";
 import { adminDataProvider } from "./supabase-data-provider";
 import { userRecordSchema, userRowsSchema, type UserRecord } from "@/features/users/model";
@@ -86,7 +87,10 @@ export const usersDataProvider: DataProvider = {
       id: String(id),
       values: variables,
     });
-    return { data: readUser(result.data) as unknown as TData };
+    const user = readUser(result.data);
+    // Role/group changes may affect the current administrator's grants.
+    adminAuthProvider.invalidateSession();
+    return { data: user as unknown as TData };
   },
   deleteOne: async <TData extends BaseRecord>({ id, variables }: Parameters<DataProvider["deleteOne"]>[0]) => {
     const result = await userRequest<{ data: unknown }>({
