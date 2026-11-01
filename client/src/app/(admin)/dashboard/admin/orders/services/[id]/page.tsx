@@ -35,6 +35,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         amount={order.amount}
         method={order.paymentMethod}
         receiptUrl={receiptViewUrl(order.paymentReceiptUrl)}
+        status={order.status}
+        provider={order.paymentProvider}
+        paidAt={order.paidAt}
+        gatewayId={order.paymentIntentId}
         legacyReference={order.transactionReference}
       />
       <ServiceOrderDetail

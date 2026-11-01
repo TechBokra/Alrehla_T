@@ -32,6 +32,8 @@ export const getOrders = async (): Promise<Order[]> => {
     paymentReference: order.payment_reference || undefined,
     paymentMethod: (order.payment_method as 'instapay' | 'vodafone_cash' | null) || undefined,
     paymentReceiptUrl: order.payment_receipt_url || undefined,
+    paymentProvider: order.payment_provider ?? null,
+    paidAt: order.paid_at ?? null,
     trackingReference: order.tracking_reference || undefined,
     shippedAt: order.shipped_at || undefined,
     deliveredAt: order.delivered_at || undefined,

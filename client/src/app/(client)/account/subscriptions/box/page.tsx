@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { shipmentWeek, weekLabel } from '@/lib/box-schedule';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
@@ -27,7 +28,13 @@ const SHIP: Record<string, string> = {
  *    بالحساب نفسه (`getMyBoxSubscriptions`). وبتعرض شحنة كل شهر (ملف 140).
  */
 export default async function SubBoxPage() {
-  const [mine, pending] = await Promise.all([getMyBoxSubscriptions(), getMyPendingBoxOrders()]);
+  const [mine, pending, payment] = await Promise.all([
+    getMyBoxSubscriptions(),
+    getMyPendingBoxOrders(),
+    getPaymentAvailability(),
+  ]);
+  // ⚠️ الدفع بالبوابة مالوش إيصال — النص كان بيطلب «ارفع إيصال التحويل» دايمًا.
+  const gateway = payment.mode === 'gateway';
 
   return (
     <div className="space-y-6">
@@ -39,12 +46,14 @@ export default async function SubBoxPage() {
             <h2 className="text-lg font-black text-slate-900">{o.planName}</h2>
             <StatusBadge
               type="warning"
-              label={o.status === 'pending' ? 'مستني التحويل' : 'الإيصال وصل — بنراجعه'}
+              label={o.status === 'pending' ? (gateway ? 'مستني الدفع' : 'مستني التحويل') : 'الإيصال وصل — بنراجعه'}
             />
           </div>
           <p className="mt-2 text-sm font-medium text-amber-950">
             {o.status === 'pending'
-              ? 'طلب الاشتراك اتسجّل. الاشتراك بيبدأ أول ما التحويل يوصل ويتأكد.'
+              ? gateway
+                ? 'طلب الاشتراك اتسجّل ولسه الدفع ماكملش. الاشتراك بيبدأ أول ما الدفع يتم.'
+                : 'طلب الاشتراك اتسجّل. الاشتراك بيبدأ أول ما التحويل يوصل ويتأكد.'
               : 'وصلنا إيصال التحويل. أول ما الدفع يتأكد الاشتراك هيظهر هنا بشحناته.'}
           </p>
           <p className="mt-1 text-xs text-slate-700">
@@ -60,7 +69,7 @@ export default async function SubBoxPage() {
               href={`/account/orders/enha-lak/${o.orderId}/pay`}
               className="mt-3 inline-block font-bold text-rose-700 hover:underline"
             >
-              ارفع إيصال التحويل
+              {gateway ? 'أكمل الدفع' : 'ارفع إيصال التحويل'}
             </Link>
           )}
         </section>

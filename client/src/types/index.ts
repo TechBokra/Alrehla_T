@@ -462,6 +462,10 @@ export type Order = {
   paymentReference?: string;
   paymentMethod?: 'instapay' | 'vodafone_cash';
   paymentReceiptUrl?: string;
+  /** بوابة الدفع: `xpay` | `manual`، ووقت الدفع ورقم العملية عندها. */
+  paymentProvider?: string | null;
+  paidAt?: string | null;
+  paymentIntentId?: string | null;
   /** Fulfilment — the order used to stop at "paid" with nothing after it. */
   trackingReference?: string;
   shippedAt?: string;

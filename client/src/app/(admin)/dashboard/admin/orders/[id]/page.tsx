@@ -83,6 +83,10 @@ export default async function Page({
         amount={target.totalAmount}
         method={target.paymentMethod}
         receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
+        status={target.status}
+        provider={target.paymentProvider}
+        paidAt={target.paidAt}
+        gatewayId={target.paymentIntentId}
         legacyReference={target.transactionReference}
       />
 

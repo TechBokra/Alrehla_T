@@ -68,6 +68,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         amount={target.amount ?? 0}
         method={target.paymentMethod}
         receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
+        status={target.status}
+        provider={target.paymentProvider}
+        paidAt={target.paidAt}
+        gatewayId={target.paymentIntentId}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">

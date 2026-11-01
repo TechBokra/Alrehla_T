@@ -2,6 +2,8 @@ import React from 'react';
 import Image from 'next/image';
 import { formatPrice } from '@/lib/utils';
 import { optimizedImageUrl } from '@/lib/cloudinary';
+import { paymentState } from '@/lib/payment-view';
+import { formatCairo } from '@/lib/timezone';
 
 /**
  * ⚠️ الوسائل الأربعة الأخيرة بتيجي من بوابة الدفع، مش من تحويل بنكي —
@@ -31,6 +33,10 @@ export function PaymentReviewPanel({
   method,
   receiptUrl,
   legacyReference,
+  status,
+  provider,
+  paidAt,
+  gatewayId,
 }: {
   reference?: string | null;
   amount: number;
@@ -38,10 +44,19 @@ export function PaymentReviewPanel({
   receiptUrl?: string | null;
   /** رقم العملية القديم اللي كان العميل بيكتبه — بيظهر للطلبات القديمة بس. */
   legacyReference?: string | null;
+  /** حالة الطلب نفسه — عشان «مدفوع بالبوابة» مايتعرضش «مستني إيصال». */
+  status: string;
+  /** `xpay` | `manual` — من عمود `payment_provider`. */
+  provider?: string | null;
+  paidAt?: string | null;
+  /** رقم العملية عند البوابة (`payment_intent_id`). */
+  gatewayId?: string | null;
 }) {
+  const state = paymentState({ provider, method, status, hasReceipt: !!receiptUrl, paidAt });
+  const gateway = state.kind === 'gateway_paid' || state.kind === 'gateway_waiting';
   return (
     <div className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-5 text-lg font-black text-slate-800">مراجعة الدفع</h2>
+      <h2 className="mb-5 text-lg font-black text-slate-800">{gateway ? 'الدفع' : 'مراجعة الدفع'}</h2>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
@@ -69,6 +84,31 @@ export function PaymentReviewPanel({
         </p>
       )}
 
+      {gateway || state.kind === 'cancelled' || (state.kind === 'receipt_confirmed' && !receiptUrl) ? (
+        <div
+          className={`mt-6 rounded-xl border p-4 text-sm ${
+            state.tone === 'ok'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : state.tone === 'wait'
+                ? 'border-amber-200 bg-amber-50 text-amber-900'
+                : 'border-slate-200 bg-slate-50 text-slate-700'
+          }`}
+        >
+          <p className="font-black">{state.title}</p>
+          <p className="mt-1 font-medium">{state.text}</p>
+          {(paidAt || gatewayId) && (
+            <p className="mt-2 text-xs font-bold">
+              {paidAt && <>اتدفع {formatCairo(paidAt)}</>}
+              {paidAt && gatewayId && ' · '}
+              {gatewayId && (
+                <>
+                  رقم العملية في البوابة: <span dir="ltr" className="font-mono">{gatewayId}</span>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      ) : (
       <div className="mt-6">
         <p className="mb-2 text-xs font-bold text-slate-500">إيصال التحويل</p>
         {receiptUrl ? (
@@ -94,10 +134,11 @@ export function PaymentReviewPanel({
           </a>
         ) : (
           <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
-            لسه ما اترفعش إيصال — الطلب لسه بانتظار دفع العميل.
+            {state.text}
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

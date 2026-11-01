@@ -20,6 +20,10 @@ export type ServiceOrderRow = {
   paymentReference: string | null;
   paymentMethod: string | null;
   paymentReceiptUrl: string | null;
+  /** بوابة الدفع: `xpay` | `manual`، ووقت الدفع ورقم العملية عندها. */
+  paymentProvider?: string | null;
+  paidAt?: string | null;
+  paymentIntentId?: string | null;
   createdAt: string;
   deliveredAt: string | null;
   completedAt: string | null;

@@ -47,6 +47,9 @@ function mapOrder(row: OrderRow, items: OrderItem[]): Order {
     paymentMethod:
       (row.payment_method as 'instapay' | 'vodafone_cash' | null) || undefined,
     paymentReceiptUrl: row.payment_receipt_url || undefined,
+    paymentProvider: row.payment_provider ?? null,
+    paidAt: row.paid_at ?? null,
+    paymentIntentId: row.payment_intent_id ?? null,
     trackingReference: row.tracking_reference || undefined,
     shippedAt: row.shipped_at || undefined,
     deliveredAt: row.delivered_at || undefined,

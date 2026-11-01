@@ -51,6 +51,9 @@ export async function mapServiceOrders(
       paymentReference: row.payment_reference ?? null,
       paymentMethod: row.payment_method ?? null,
       paymentReceiptUrl: row.payment_receipt_url ?? null,
+      paymentProvider: row.payment_provider ?? null,
+      paidAt: row.paid_at ?? null,
+      paymentIntentId: row.payment_intent_id ?? null,
       createdAt: row.created_at,
       deliveredAt: row.delivered_at ?? null,
       completedAt: row.completed_at ?? null,
@@ -64,4 +67,4 @@ export async function mapServiceOrders(
 
 // Related child profiles are loaded explicitly: this schema has no child_id FK.
 export const SERVICE_ORDER_SELECT =
-  'id, buyer_profile_id, standalone_service_id, instructor_id, provider_id, due_at, due_note, amount, status, transaction_reference, payment_reference, payment_method, payment_receipt_url, created_at, delivered_at, completed_at, instructor_earning, participant_type, child_id, standalone_services(name), instructors(display_name), service_providers(display_name, kind)';
+  'id, buyer_profile_id, standalone_service_id, instructor_id, provider_id, due_at, due_note, amount, status, transaction_reference, payment_reference, payment_method, payment_receipt_url, payment_provider, paid_at, payment_intent_id, created_at, delivered_at, completed_at, instructor_earning, participant_type, child_id, standalone_services(name), instructors(display_name), service_providers(display_name, kind)';
