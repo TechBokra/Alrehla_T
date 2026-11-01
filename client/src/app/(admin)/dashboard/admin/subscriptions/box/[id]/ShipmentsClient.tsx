@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BoxShipment } from '@/types';
-import { updateBoxShipment, setBoxSubscriptionStatus, setBoxShipmentGoal } from '@/actions/box-subscriptions';
+import {
+  updateBoxShipment,
+  setBoxSubscriptionStatus,
+  setBoxShipmentGoal,
+  setBoxSubscriptionStart,
+} from '@/actions/box-subscriptions';
+import { cairoDate, shipmentGate, weekLabel } from '@/lib/box-schedule';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';
-import { TextInput, BusyButton, Select } from '@/components/forms/Form';
+import { TextInput, BusyButton, Select, Field } from '@/components/forms/Form';
 
 const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
 
@@ -28,8 +34,13 @@ export function ShipmentsClient({
   shipments,
   freeAddonName,
   goals = [],
+  startsAt,
+  subscriptionStatus,
 }: {
   shipments: BoxShipment[];
+  /** بداية الاشتراك — منها أسبوع كل شحنة. */
+  startsAt?: string;
+  subscriptionStatus: string;
   freeAddonName?: string;
   /** أهداف التخصيص الخاصة بالصندوق (منتجات المنصة ← أهداف التخصيص). */
   goals?: string[];
@@ -38,7 +49,9 @@ export function ShipmentsClient({
   // الزرار اللي شغّال (`شحنة:حالة`) — هو بس اللي بيكتب «جارٍ…»، والباقي بيتقفل.
   const [busyKey, setBusyKey] = useState<string | null>(null);
   // الخطأ بيظهر تحت الشهر اللي فشل.
-  const [failure, setFailure] = useState<{ id: string; error: string } | null>(null);
+  const [failure, setFailure] = useState<{ id: string; error: string } | null>(
+    null
+  );
   const [tracking, setTracking] = useState<Record<string, string>>({});
 
   const saveGoal = async (id: string, goal: string) => {
@@ -56,12 +69,19 @@ export function ShipmentsClient({
     }
   };
 
-  const run = async (id: string, status: 'preparing' | 'shipped' | 'delivered') => {
+  const run = async (
+    id: string,
+    status: 'preparing' | 'shipped' | 'delivered'
+  ) => {
     if (busyKey) return;
     setFailure(null);
     setBusyKey(`${id}:${status}`);
     try {
-      const r = await updateBoxShipment({ shipmentId: id, status, trackingReference: tracking[id] });
+      const r = await updateBoxShipment({
+        shipmentId: id,
+        status,
+        trackingReference: tracking[id],
+      });
       if (!r.ok) setFailure({ id, error: r.error });
       else router.refresh();
     } catch {
@@ -78,95 +98,147 @@ export function ShipmentsClient({
           مع كل صندوق: {freeAddonName} (مجانًا)
         </p>
       )}
-      {shipments.map((s) => (
-        <div key={s.id} className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="font-black text-slate-900">الشهر {s.monthNumber.toLocaleString('ar-EG')}</p>
-              {/* ⭐ (#9OSP) الإدارة بتختار هدف الشهر لحد ما يتشحن. */}
-              {s.status === 'pending' || s.status === 'preparing' ? (
-                <div className="mt-1 flex items-center gap-2 text-sm text-slate-700">
-                  <span>الهدف:</span>
-                  <div className="w-60">
-                    <Select
-                      aria-label={`هدف قصة الشهر ${s.monthNumber}`}
-                      value={s.goal ?? ''}
-                      disabled={busyKey !== null}
-                      onChange={(e) => saveGoal(s.id, e.target.value)}
-                    >
-                      <option value="">تختاره الإدارة (لسه)</option>
-                      {[...new Set([...(s.goal ? [s.goal] : []), ...goals])].map((g) => (
-                        <option key={g} value={g}>
-                          {g}
-                        </option>
-                      ))}
-                    </Select>
+      {shipments.map((s) => {
+        const gate = shipmentGate(
+          { startsAt, status: subscriptionStatus },
+          shipments,
+          s
+        );
+        return (
+          <div
+            key={s.id}
+            className={`rounded-2xl border bg-white p-4 ${gate?.late ? 'border-red-300' : gate && !gate.active ? 'border-dashed border-slate-300 opacity-80' : 'border-slate-200'}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-black text-slate-900">
+                  الشهر {s.monthNumber.toLocaleString('ar-EG')}
+                </p>
+                {gate && (
+                  <p className="text-sm font-bold text-slate-600">
+                    أسبوع الشحن: {weekLabel(gate.week)}
+                    {gate.late && (
+                      <span className="text-red-700"> · متأخرة</span>
+                    )}
+                    {!gate.active && (
+                      <span className="text-slate-500"> · مقفولة</span>
+                    )}
+                  </p>
+                )}
+                {/* ⭐ (#9OSP) الإدارة بتختار هدف الشهر لحد ما يتشحن. */}
+                {s.status === 'pending' || s.status === 'preparing' ? (
+                  <div className="mt-1 flex items-center gap-2 text-sm text-slate-700">
+                    <span>الهدف:</span>
+                    <div className="w-60">
+                      <Select
+                        aria-label={`هدف قصة الشهر ${s.monthNumber}`}
+                        value={s.goal ?? ''}
+                        disabled={busyKey !== null}
+                        onChange={(e) => saveGoal(s.id, e.target.value)}
+                      >
+                        <option value="">تختاره الإدارة (لسه)</option>
+                        {[
+                          ...new Set([...(s.goal ? [s.goal] : []), ...goals]),
+                        ].map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    {busyKey === `${s.id}:goal` && (
+                      <span className="text-xs text-slate-500">بيتحفظ…</span>
+                    )}
                   </div>
-                  {busyKey === `${s.id}:goal` && <span className="text-xs text-slate-500">بيتحفظ…</span>}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-700">
-                  الهدف: {s.goal ?? <span className="font-bold text-amber-800">ماتحددش</span>}
+                ) : (
+                  <p className="text-sm text-slate-700">
+                    الهدف:{' '}
+                    {s.goal ?? (
+                      <span className="font-bold text-amber-800">ماتحددش</span>
+                    )}
+                  </p>
+                )}
+              </div>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-bold ${TONE[s.status]}`}
+              >
+                {LABEL[s.status]}
+                {s.shippedAt &&
+                  s.status !== 'pending' &&
+                  ` · ${formatDate(s.shippedAt)}`}
+              </span>
+            </div>
+            {s.trackingReference && (
+              <p className="mt-2 text-sm font-bold text-blue-800" dir="ltr">
+                {s.trackingReference}
+              </p>
+            )}
+            {gate?.reason &&
+              (s.status === 'pending' || s.status === 'preparing') && (
+                <p className="mt-2 text-xs font-bold text-slate-600">
+                  {gate.reason}
                 </p>
               )}
-            </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${TONE[s.status]}`}>
-              {LABEL[s.status]}
-              {s.shippedAt && s.status !== 'pending' && ` · ${formatDate(s.shippedAt)}`}
-            </span>
+            {s.status !== 'delivered' &&
+              (!gate || gate.active || s.status === 'shipped') && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {s.status === 'pending' && (!gate || gate.canPrepare) && (
+                    <BusyButton
+                      variant="secondary"
+                      busy={busyKey === `${s.id}:preparing`}
+                      pendingLabel="جارٍ التحديث…"
+                      disabled={busyKey !== null}
+                      onClick={() => run(s.id, 'preparing')}
+                    >
+                      بدأ التجهيز
+                    </BusyButton>
+                  )}
+                  {(s.status === 'pending' || s.status === 'preparing') &&
+                    (!gate || gate.canShip) && (
+                      <>
+                        <div className="w-44">
+                          <TextInput
+                            aria-label={`رقم شحنة الشهر ${s.monthNumber}`}
+                            placeholder="رقم الشحنة (اختياري)"
+                            dir="ltr"
+                            value={tracking[s.id] ?? ''}
+                            onChange={(e) =>
+                              setTracking((t) => ({
+                                ...t,
+                                [s.id]: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <BusyButton
+                          busy={busyKey === `${s.id}:shipped`}
+                          pendingLabel="جارٍ التحديث…"
+                          disabled={busyKey !== null}
+                          onClick={() => run(s.id, 'shipped')}
+                        >
+                          اتشحن
+                        </BusyButton>
+                      </>
+                    )}
+                  {s.status === 'shipped' && (
+                    <BusyButton
+                      busy={busyKey === `${s.id}:delivered`}
+                      pendingLabel="جارٍ التحديث…"
+                      disabled={busyKey !== null}
+                      onClick={() => run(s.id, 'delivered')}
+                    >
+                      اتسلّم
+                    </BusyButton>
+                  )}
+                </div>
+              )}
+            <FormError
+              message={failure?.id === s.id ? failure.error : ''}
+              className="mt-3"
+            />
           </div>
-          {s.trackingReference && (
-            <p className="mt-2 text-sm font-bold text-blue-800" dir="ltr">{s.trackingReference}</p>
-          )}
-          {s.status !== 'delivered' && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {s.status === 'pending' && (
-                <BusyButton
-                  variant="secondary"
-                  busy={busyKey === `${s.id}:preparing`}
-                  pendingLabel="جارٍ التحديث…"
-                  disabled={busyKey !== null}
-                  onClick={() => run(s.id, 'preparing')}
-                >
-                  بدأ التجهيز
-                </BusyButton>
-              )}
-              {(s.status === 'pending' || s.status === 'preparing') && (
-                <>
-                  <div className="w-44">
-                    <TextInput
-                      aria-label={`رقم شحنة الشهر ${s.monthNumber}`}
-                      placeholder="رقم الشحنة (اختياري)"
-                      dir="ltr"
-                      value={tracking[s.id] ?? ''}
-                      onChange={(e) => setTracking((t) => ({ ...t, [s.id]: e.target.value }))}
-                    />
-                  </div>
-                  <BusyButton
-                    busy={busyKey === `${s.id}:shipped`}
-                    pendingLabel="جارٍ التحديث…"
-                    disabled={busyKey !== null}
-                    onClick={() => run(s.id, 'shipped')}
-                  >
-                    اتشحن
-                  </BusyButton>
-                </>
-              )}
-              {s.status === 'shipped' && (
-                <BusyButton
-                  busy={busyKey === `${s.id}:delivered`}
-                  pendingLabel="جارٍ التحديث…"
-                  disabled={busyKey !== null}
-                  onClick={() => run(s.id, 'delivered')}
-                >
-                  اتسلّم
-                </BusyButton>
-              )}
-            </div>
-          )}
-          <FormError message={failure?.id === s.id ? failure.error : ''} className="mt-3" />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -180,7 +252,9 @@ export function SubscriptionStatusControls({
 }) {
   const router = useRouter();
   // الحالة اللي بتتبعت دلوقتي — زرارها بس اللي بيكتب «جارٍ…».
-  const [busyNext, setBusyNext] = useState<'active' | 'paused' | 'cancelled' | null>(null);
+  const [busyNext, setBusyNext] = useState<
+    'active' | 'paused' | 'cancelled' | null
+  >(null);
   const pending = busyNext !== null;
   const [error, setError] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -231,7 +305,9 @@ export function SubscriptionStatusControls({
       )}
       {confirmCancel ? (
         <>
-          <span className="text-xs font-bold text-red-800">إلغاء نهائي؟ خصم المشترك بيقف فورًا.</span>
+          <span className="text-xs font-bold text-red-800">
+            إلغاء نهائي؟ خصم المشترك بيقف فورًا.
+          </span>
           <BusyButton
             variant="danger"
             busy={busyNext === 'cancelled'}
@@ -241,15 +317,98 @@ export function SubscriptionStatusControls({
           >
             أيوه، إلغاء
           </BusyButton>
-          <button type="button" disabled={pending} onClick={() => setConfirmCancel(false)}
-            className="rounded-lg px-3 py-2 text-xs font-bold text-slate-700">لأ</button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setConfirmCancel(false)}
+            className="rounded-lg px-3 py-2 text-xs font-bold text-slate-700"
+          >
+            لأ
+          </button>
         </>
       ) : (
-        <button type="button" onClick={() => setConfirmCancel(true)}
-          className="rounded-lg px-4 py-2 text-xs font-bold text-red-800 hover:bg-red-50">
+        <button
+          type="button"
+          onClick={() => setConfirmCancel(true)}
+          className="rounded-lg px-4 py-2 text-xs font-bold text-red-800 hover:bg-red-50"
+        >
           إلغاء الاشتراك
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * تاريخ بداية الاشتراك — منه بتتحدد أسابيع كل الشحنات (طلب تامر، ١ نوفمبر).
+ * بيتغيّر طول ما مفيش شحنة بدأت تتجهّز.
+ */
+export function StartDateControl({
+  subscriptionId,
+  startsAt,
+  locked,
+}: {
+  subscriptionId: string;
+  startsAt?: string;
+  locked: boolean;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(
+    startsAt ? cairoDate(new Date(startsAt)) : ''
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  if (locked) return null;
+  const save = async () => {
+    setError('');
+    setSaved(false);
+    setBusy(true);
+    try {
+      const r = await setBoxSubscriptionStart({
+        subscriptionId,
+        startDate: value,
+      });
+      if (!r.ok) setError(r.error);
+      else {
+        setSaved(true);
+        router.refresh();
+      }
+    } catch {
+      setError(UNEXPECTED);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <Field
+        label="تاريخ بداية الاشتراك"
+        name="startDate"
+        hint="منه بيتحدد أسبوع كل شحنة. بيتغيّر لحد ما أول شحنة تبدأ تتجهّز."
+        className="w-64"
+      >
+        <TextInput
+          type="date"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+      </Field>
+      <BusyButton
+        variant="secondary"
+        busy={busy}
+        pendingLabel="جارٍ الحفظ…"
+        onClick={save}
+      >
+        حفظ البداية
+      </BusyButton>
+      {saved && (
+        <span className="text-sm font-bold text-emerald-700">
+          اتحفظت — الأسابيع اتحسبت من جديد.
+        </span>
+      )}
+      <FormError message={error} />
     </div>
   );
 }

@@ -57,6 +57,8 @@ export async function updateBoxShipment(params: {
     .eq('id', params.shipmentId)
     .select('subscription_id, month_number');
   if (error) {
+    // رسايل الحارس (أسبوع الشحن والترتيب) بالعربي — بتتعرض زي ما هي.
+    if (error.code === '23514') return { ok: false, error: error.message };
     console.error('Error updating box shipment', error);
     return { ok: false, error: 'تعذّر التحديث — جرّب تاني' };
   }
@@ -173,5 +175,42 @@ export async function setBoxSubscriptionStatus(
   });
   revalidatePath(`/dashboard/admin/subscriptions/box/${subscriptionId}`);
   revalidatePath('/dashboard/admin/subscriptions/box');
+  return { ok: true };
+}
+
+/**
+ * تاريخ بداية الاشتراك — ومعاه أسابيع كل الشحنات (طلب تامر، ١ نوفمبر).
+ * بيتغيّر طول ما مفيش شحنة بدأت تتجهّز.
+ */
+export async function setBoxSubscriptionStart(params: { subscriptionId: string; startDate: string }): Promise<Result> {
+  const me = await admin();
+  if (!me) return { ok: false, error: 'غير مصرح لك بإدارة الاشتراكات' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(params.startDate)) return { ok: false, error: 'اختار تاريخ البداية' };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('box_subscription_set_start', {
+    p_subscription: params.subscriptionId,
+    p_start: params.startDate,
+  });
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      return { ok: false, error: 'تحديد البداية محتاج تحديث القاعدة (ترحيل 20261101140000).' };
+    }
+    if (['23514', '22023', '42501'].includes(error.code ?? '')) return { ok: false, error: error.message };
+    console.error('Error setting box start', error);
+    return { ok: false, error: 'تعذّر حفظ تاريخ البداية — جرّب تاني' };
+  }
+
+  await logAuditAction({
+    actorProfileId: me.id,
+    actorName: me.fullName,
+    action: 'box_subscription_start_set',
+    entityType: 'BoxSubscription',
+    entityId: params.subscriptionId,
+    metadata: { startDate: params.startDate },
+  });
+  revalidatePath(`/dashboard/admin/subscriptions/box/${params.subscriptionId}`);
+  revalidatePath('/dashboard/admin/subscriptions/box/shipments');
+  revalidatePath('/account/subscriptions/box');
   return { ok: true };
 }

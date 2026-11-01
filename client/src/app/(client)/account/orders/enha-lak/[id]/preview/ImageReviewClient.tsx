@@ -94,10 +94,12 @@ export function ImageReviewCard({
 
       <div className={`mb-6 rounded-2xl border p-5 ${TONE[state.kind]}`}>
         <p className="font-black">{state.title}</p>
-        <p className="mt-1 text-sm font-medium leading-relaxed">{state.text}</p>
-        {state.kind === 'awaiting' && <p className="mt-2 text-sm font-bold leading-relaxed">{delayNote}</p>}
+        <p className="mt-1 text-sm leading-relaxed font-medium">{state.text}</p>
         {state.kind === 'awaiting' && (
-          <p className="mt-2 text-sm font-bold leading-relaxed">
+          <p className="mt-2 text-sm leading-relaxed font-bold">{delayNote}</p>
+        )}
+        {state.kind === 'awaiting' && (
+          <p className="mt-2 text-sm leading-relaxed font-bold">
             {changesLeft > 0
               ? `متاح لك ${changesLeft === IMAGE_CHANGE_LIMIT ? 'طلبين تعديل' : 'طلب تعديل واحد'} على الصورة.`
               : 'استخدمت طلبي التعديل المتاحين — لو فيه مشكلة كبيرة كلّمنا من صفحة الدعم.'}
@@ -117,7 +119,7 @@ export function ImageReviewCard({
       </div>
 
       {row.staffNote && (
-        <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-medium leading-relaxed text-slate-700">
+        <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed font-medium text-slate-700">
           <span className="font-black">ملاحظة الفريق: </span>
           {row.staffNote}
         </p>
@@ -136,21 +138,26 @@ export function ImageReviewCard({
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                 {pending ? 'جارٍ التسجيل…' : 'الصورة عاجباني — ابدأوا الرسم'}
               </button>
-              {changesLeft > 0 && <button
-                type="button"
-                disabled={pending}
-                onClick={() => setMode('changes')}
-                className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-slate-300 px-6 py-3 font-black text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:opacity-70"
-              >
-                <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
-                فيه حاجة عايزة تتعدّل
-              </button>}
+              {changesLeft > 0 && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setMode('changes')}
+                  className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border-2 border-slate-300 px-6 py-3 font-black text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:opacity-70"
+                >
+                  <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
+                  فيه حاجة عايزة تتعدّل
+                </button>
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 p-5">
               <fieldset className="mb-4">
                 <legend className="mb-2 text-sm font-bold text-slate-700">
-                  إيه اللي محتاج يتعدّل؟ <span className="text-red-500" aria-hidden="true">*</span>
+                  إيه اللي محتاج يتعدّل؟{' '}
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
                 </legend>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {IMAGE_CHANGE_REASONS.map((r) => (
@@ -160,7 +167,9 @@ export function ImageReviewCard({
                       checked={reasons.includes(r.id)}
                       onChange={(e) => {
                         const on = e.target.checked;
-                        setReasons((prev) => (on ? [...prev, r.id] : prev.filter((x) => x !== r.id)));
+                        setReasons((prev) =>
+                          on ? [...prev, r.id] : prev.filter((x) => x !== r.id)
+                        );
                         if (error) setError('');
                       }}
                     />
@@ -210,7 +219,10 @@ export function ImageReviewCard({
           )}
 
           {error && mode === 'idle' && (
-            <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            <p
+              role="alert"
+              className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"
+            >
               {error}
             </p>
           )}
@@ -219,8 +231,12 @@ export function ImageReviewCard({
 
       {row.decidedAt && (
         <footer className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-600">
-          <p className="font-bold text-slate-700">قرارك اتسجّل {when(row.decidedAt)}</p>
-          {row.clientNote && <p className="mt-1 leading-relaxed">{row.clientNote}</p>}
+          <p className="font-bold text-slate-700">
+            قرارك اتسجّل {when(row.decidedAt)}
+          </p>
+          {row.clientNote && (
+            <p className="mt-1 leading-relaxed">{row.clientNote}</p>
+          )}
         </footer>
       )}
     </article>

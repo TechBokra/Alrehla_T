@@ -5074,6 +5074,8 @@ export type Database = {
       }
       training_submit_final: { Args: { p_course: string; p_answers: Json }; Returns: Json }
       training_review_attempt: { Args: { p_attempt: string; p_review: Json }; Returns: Json }
+      box_subscription_set_start: { Args: { p_subscription: string; p_start: string }; Returns: Json }
+      box_shipment_active: { Args: { p_shipment: string }; Returns: boolean }
       training_reset_progress: { Args: { p_user: string; p_course: string }; Returns: undefined }
       ops_retention_sweep: { Args: never; Returns: Json }
       ops_health: { Args: never; Returns: Json }

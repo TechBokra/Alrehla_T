@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { shipmentWeek, weekLabel } from '@/lib/box-schedule';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatDate } from '@/lib/utils';
@@ -97,6 +98,11 @@ export default async function SubBoxPage() {
                     <li key={s.id} className="rounded-xl bg-slate-50 p-3 text-sm">
                       <span className="font-bold">الشهر {s.monthNumber.toLocaleString('ar-EG')}</span>
                       {' — '}{SHIP[s.status]}
+                      {sub.startsAt && (s.status === 'pending' || s.status === 'preparing') && (
+                        <span className="block text-xs text-slate-600">
+                          أسبوع الشحن: {weekLabel(shipmentWeek(sub.startsAt, s.monthNumber))}
+                        </span>
+                      )}
                       {s.trackingReference && (
                         <span className="block font-mono text-xs text-slate-700" dir="ltr">{s.trackingReference}</span>
                       )}

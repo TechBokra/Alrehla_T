@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isDueThisMonth, shipmentDueDate } from '@/lib/box-schedule';
+import { isDueThisMonth, shipmentDueDate, shipmentGate } from '@/lib/box-schedule';
 import type { DueBoxShipment } from '@/data/domains/(shared)/subscriptions/types';
 import { mapShipment } from '@/data/domains/(shared)/subscriptions/subscriptions-internal';
 
@@ -19,8 +19,9 @@ export const getDueBoxShipments = async (now = new Date()): Promise<DueBoxShipme
   const { data: ships } = await supabase
     .from('box_shipments')
     .select('*')
-    .in('subscription_id', subs.map((s) => s.id))
-    .in('status', ['pending', 'preparing']);
+    .in('subscription_id', subs.map((s) => s.id));
+  // كل الشحنات (مش المفتوحة بس) — عشان نعرف اللي قبلها طلعت ولا لأ.
+  const all = (ships ?? []).map((sh) => ({ sub: sh.subscription_id, ship: mapShipment(sh) }));
 
   const orderIds = subs.map((s) => s.order_id).filter((x): x is string => Boolean(x));
   const { data: orders } = orderIds.length
@@ -35,6 +36,7 @@ export const getDueBoxShipments = async (now = new Date()): Promise<DueBoxShipme
 
   const rows: DueBoxShipment[] = [];
   for (const sh of ships ?? []) {
+    if (sh.status !== 'pending' && sh.status !== 'preparing') continue;
     const sub = subById.get(sh.subscription_id);
     if (!sub?.starts_at || !isDueThisMonth(sub.starts_at, sh.month_number, now)) continue;
     const due = shipmentDueDate(sub.starts_at, sh.month_number);
@@ -49,6 +51,12 @@ export const getDueBoxShipments = async (now = new Date()): Promise<DueBoxShipme
       freeAddonName: sub.free_addon_name ?? undefined,
       dueDate: due.toISOString(),
       overdue: due.getTime() < today && sh.status === 'pending',
+      gate: shipmentGate(
+        { startsAt: sub.starts_at, status: sub.status },
+        all.filter((x) => x.sub === sub.id).map((x) => x.ship),
+        mapShipment(sh),
+        now,
+      ),
       recipient: order
         ? {
             name: order.recipient_name ?? undefined,
