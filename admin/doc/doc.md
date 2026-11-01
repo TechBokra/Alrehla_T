@@ -148,7 +148,7 @@ A provider does not own React pending/error state or the table cache. It returns
 - Global search requires `searchField` or `searchFields`. Multiple fields produce an OR filter named `__data_table_search`. searchFields takes priority while retaining searchField compatibility.
 - `searchDebounceMs` defaults to `DEFAULT_SEARCH_DEBOUNCE_MS` (**300ms**) from `src/lib/const.ts`.
 - Resource page requests default to `DEFAULT_RESOURCE_PAGE_SIZE` (**20 rows**) from `src/lib/const.ts`. `pageSizeOptions` only controls the choices shown in the pagination UI.
-- Create and delete availability comes from the access-control provider. `ResourceViewProps` has no `canCreate` or `canDelete` permission overrides. A feature may supply `form.canEdit` for additional record eligibility; authorization is still required.
+- Create and delete availability comes from the access-control provider. `ResourceViewProps` has no `canCreate` or `canDelete` permission overrides. A feature may supply top-level `canEdit(record)` for additional record eligibility; authorization is still required.
 - Search, filter and sorting changes reset the page to 1. Changing pageSize also resets it. The bridge converts the table's zero-based pageIndex to Refine's one-based currentPage.
 - Column definitions and their metadata determine UI capabilities. Permanent constraints such as owner_type remain in Refine configuration.
 - `DataTable` renders the toolbar, filters and pagination. Sort-menu and saved-views components are imported, but their JSX is **currently commented out**. Passing storageKey does not enable a working views interface by itself.
@@ -191,7 +191,7 @@ sequenceDiagram
   Hook-->>UI: Success closes dialog; failure remains visible
 ```
 
-For example, `features/catalog/products/dialogs.tsx` owns useAppForm, productSchema and fields. `products/model.ts` owns defaults, productValues, productCreate/productUpdate and isEditableProduct. Add-ons have separate implementations under `features/catalog/addons/`.
+For dialog forms, the feature supplies `form={{ title, fields, ... }}`. Page forms omit `form` entirely and use their standalone route form. Both modes use top-level `canEdit(record)` only for extra record eligibility. For example, add-ons own their dialog fields under `features/catalog/addons/`, while products own the route form under `features/catalog/products/form-page/` and their shared edit rule in `products/model.ts`.
 
 TanStack Form owns field values and validation errors. create.mutation or update.mutation supplies save pending/error state. Local hook state is limited to permission checks and preflight/onSaved errors; it does not mirror mutation state.
 
@@ -201,7 +201,7 @@ Create/update requests use retry:false and leave mutationMode to Refine configur
 
 ## 8. Delete flow
 
-1. The row menu checks the access-control policy for the action and record, then rechecks permission on selection. Feature `form.canEdit` eligibility also restricts protected rows when supplied.
+1. The row menu checks the access-control policy for the action and record, then rechecks permission on selection. Feature `canEdit` eligibility also restricts protected rows when supplied.
 2. useResourceScope selects the delete target; the context value makes it available to ResourceDialogs, which mounts ResourceDeleteDialog.
 3. On confirmation, useResourceDeleteCrud applies its inFlight guard and performs a fresh permission check.
 4. Refine useDelete calls dataProvider.deleteOne with pessimistic mode and retry:false.
@@ -277,18 +277,21 @@ Keep these implementation limits visible when extending the feature:
 
 ## 13. Adding a resource
 
-1. Register its name, route and provider in `providers/refine/resources.ts`, and define policies for allowed actions.
+1. Register its name, list route, form `mode` (`"page"` or `"dialog"`) and provider in `providers/refine/resources.ts`, and define policies for allowed actions. Page mode derives `create` and `:id/edit` route patterns from the list route; the router provider resolves and parses those patterns generically.
 2. Create feature-owned model, columns, dialogs and page files.
-3. Define schemas, defaults, allowed payload mapping and any feature-specific `form.canEdit` record eligibility in the feature. Define create/delete grants and record policies in the access-control provider.
-4. Pass these to ResourceView, explicitly configuring search, debounce, page size, filters and sorting as needed.
-5. Use shared CRUD hooks for ordinary writes and a feature command for specialized business flows.
-6. Verify provider selection, error states, automatic/additional cache invalidation and server authorization.
+3. For dialog mode, pass `mode="dialog"` and a `form` config with title and field renderer. For page mode, pass `mode="page"` without a dialog `form` prop, and implement its create/edit route forms separately.
+4. Define schemas, defaults, allowed payload mapping and any feature-specific `canEdit` record eligibility in the feature. Define create/delete grants and record policies in the access-control provider.
+5. Pass the shared table configuration to ResourceView, explicitly configuring search, debounce, page size, filters and sorting as needed.
+6. Use shared CRUD hooks for ordinary writes and a feature command for specialized business flows.
+7. Verify provider selection, error states, automatic/additional cache invalidation and server authorization.
 
 ## 14. Documentation verification
 
 The component, hook, provider and product/add-on/user page implementations were traced, and invalidation was checked against the installed Refine source. The current resource API, centralized defaults, mutation/error behavior and provider authorization are documented here. Runtime verification is recorded in `context/progress-tracker.md`.
 
 ## 15. Route-based resource forms — products first
+
+`ResourceView` has an explicit form `mode`. Dialog mode requires a `form` definition containing its title and fields; page mode has no dialog form prop and uses standalone create/edit routes. The Refine resource registry adds route patterns for each resource whose mode is `"page"`, and the router provider matches those registered patterns generically. The Refine `CreateButton` and the default row Edit action therefore navigate using the same registered resource routes. Record-specific `canEdit` rules stay on ResourceView rather than being hidden inside a dialog field definition.
 
 Products use dedicated routes while other resources continue to use the shared create/edit dialogs:
 
@@ -311,7 +314,7 @@ Route → ResourceFormPage → useResourceFormCrud permission gate
 
 `features/catalog/products/form-page/` owns the route form as one coherent create/edit module: `page.tsx` composes the shared registry page, `form.tsx` owns fields and saves, `schema.ts` owns validation, `images-field.tsx` owns the media picker and local upload queue, and `model.ts` owns route-form defaults, saved-row mapping and allowlisted payloads. The product root `model.ts` continues to own the dialog model. The page payload intentionally does not include `sort_order`; table drag order remains a separate UI extension, not a product-form field. Product creation is always platform-owned, approved and inactive. Editing changes the active state only on the edit route. Product platform ownership remains the edit restriction.
 
-Product forms use TanStack Form's submit-first `revalidateLogic`: a fresh form has no validation errors, the first Save attempt runs the schema and shows field errors, and later edits revalidate so the footer enables again once the values are valid. One responsive grid arranges the `FormSection` cards across the form (`grid-cols-1`, then two columns at medium widths and three at wide widths). Fields inside each section stay stacked. Content and image sections span the full grid width, and the save footer spans every column. Cards stack on narrow screens.
+Product forms use TanStack Form's submit-first `revalidateLogic`: a fresh form has no validation errors, the first Save attempt runs the schema and shows field errors, and later edits revalidate so the footer enables again once the values are valid. The product form uses one responsive field grid (`grid-cols-1` and two columns at medium widths), without section cards or section headings. Related inputs and the two content fields sit side by side. Only the long-description field has helper copy, with its optional status and Markdown syntax; the short description, image controls and save footer span both columns. On narrow screens, fields stack in one column.
 
 The product form includes:
 
@@ -322,11 +325,11 @@ The product form includes:
 | Custom-story options | Writing styles `فصحى`, `عربية مبسطة` and `لهجة`; at least one is required for custom stories. Selecting all three stores `writing_styles = null`, preserving current database semantics. |
 | Age | Optional minimum and maximum from 0 to 20, with a valid range and the database requirement that a maximum has a minimum. |
 | Content | Markdown-supported long description and one feature per line. |
-| Images | Cover plus at most eight gallery images. Saved Cloudinary URLs and selected local files can be removed/reordered; the first image is the cover. Removing an association never deletes the Cloudinary asset. |
+| Images | One book cover, labeled “غلاف الكتاب — يفضّل طولي (3:4)”. Portrait 3:4 is a recommendation, not a hard upload constraint. The saved Cloudinary URL or selected local file can be removed and replaced. Removing an association never deletes the Cloudinary asset. |
 | Display | `is_active` appears only when editing. |
 | Preparation | Electronic and printed preparation days are a separate edit-only form and save operation; each accepts blank or 1–120. |
 
-New device images are added to UploadCN with `autoUpload: false`; selecting them does not send bytes. The signed `useLibraryUploadAdapter("alrehla/products")` is used only after Save starts. Form `isSubmitting` remains true until each upload and the Refine save complete, disabling fields and actions. Successful upload results are mapped in the selected order into `cover_image_url` and `gallery_image_urls`. If the Refine save fails, form values and completed upload results remain available for a save retry. A failed upload must be removed and selected again before Save is enabled. Existing media selection reads through Refine's `mediaLibrary` provider and `uploads` list authorization; uploads use the `uploads` upload policy. No media asset is deleted by product-form changes.
+One device cover is added to UploadCN with `autoUpload: false`; selecting it does not send bytes. The signed `useLibraryUploadAdapter("alrehla/products")` is used only after Save starts. Form `isSubmitting` remains true until the upload and Refine save complete, disabling fields and actions. The successful upload result maps to `cover_image_url`; `gallery_image_urls` is saved as an empty array. Existing records show their cover image, or the first legacy gallery image if no cover is set; saving those records normalizes them to one cover and clears additional gallery associations without deleting Cloudinary assets. If the Refine save fails, form values and a completed upload remain available for retry. A failed upload must be removed and selected again before Save is enabled. Existing media selection reads through Refine's `mediaLibrary` provider and `uploads` list authorization; uploads use the `uploads` upload policy. No media asset is deleted by product-form changes.
 
 The migration `client/supabase/migrations/20261101193607_add_product_preparation_days.sql` adds nullable `smallint` columns `delivery_days_electronic` and `delivery_days_printed`, each constrained to 1–120 when set. Production already has these columns; staging does not. The migration file is local and has not been applied remotely. Until the target environment receives the migration, the edit page shows an Arabic setup notice and disables only the preparation-days save; the main product form remains usable. Do not update remote schema or deploy as part of this feature.
 

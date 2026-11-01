@@ -10,6 +10,7 @@ export function UsersPage() {
       description="إدارة حسابات العملاء والإداريين ومقدّمي الخدمة والناشرين."
       searchFields={["full_name", "email"]}
       columns={usersColumn}
+      mode="dialog"
       form={{
         title: "مستخدم",
         dataProviderName: "users",

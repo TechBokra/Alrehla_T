@@ -1,4 +1,5 @@
 import type { BaseRecord } from "@refinedev/core";
+import { useGo } from "@refinedev/core";
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import {
   useResourceAuthorization,
@@ -32,8 +33,18 @@ export function ResourceRowActions({ id, actions, disabled }: {
   disabled?: boolean;
 }) {
   const context = useResourceContext();
+  const go = useGo();
   const candidates = (actions ?? context.rowActions ?? createResourceActions({
-    onEdit: context.openEdit,
+    onEdit: (recordId) => {
+      if (context.formMode === "page") {
+        go({
+          to: { resource: context.resource, action: "edit", id: recordId },
+          type: "push",
+        });
+      } else {
+        context.openEdit(recordId);
+      }
+    },
     onDelete: context.openDelete,
   })).filter((action) => {
     if (action.authorizationAction === "edit") return context.canEditRow(id);

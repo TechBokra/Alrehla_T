@@ -10,6 +10,7 @@ export function AddonsPage() {
       title="الإضافات"
       description="إدارة الإضافات وأسعارها الشاملة للتخصيص. الإضافات الجديدة تُحفظ غير نشطة."
       columns={addonColumns}
+      mode="dialog"
       form={addonForm}
       enableRowReordering
       refineCoreProps={{

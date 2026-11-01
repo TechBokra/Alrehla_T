@@ -20,11 +20,10 @@ import {
 import { isEditableProduct, type Product } from "../model";
 import type { ResourceFormPageContext } from "@/components/resources/forms/types";
 import { resourcePageForms } from "@/components/resources/forms/page";
-import { FormSection } from "@/components/forms";
 import { BaseFormField } from "@/components/forms/components/base-form-field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useLibraryUploadAdapter } from "@/features/uploads/use-upload-adapter";
 import { ProductImagesField } from "./images-field";
@@ -61,7 +60,7 @@ export function ProductForm({
     autoUpload: false,
     accept: "image/jpeg,image/png,image/webp,image/avif",
     maxSize: 5 * 1024 * 1024,
-    maxFiles: 9,
+    maxFiles: 1,
     retry: false,
   });
   const queuedItems = useUploadSelector(uploader, (state) => state.items);
@@ -79,7 +78,7 @@ export function ProductForm({
       try {
         imageUrls = await resolveImageUrls(values.images, uploader);
       } catch {
-        toast.error("تعذّر رفع إحدى الصور. أعد محاولة رفع الملف الفاشل ثم احفظ المنتج.");
+        toast.error("تعذّر رفع غلاف الكتاب. أعد اختيار الصورة ثم احفظ المنتج.");
         return;
       }
       const payload = mode === "edit"
@@ -121,49 +120,48 @@ export function ProductForm({
             event.stopPropagation();
             if (!formDisabled && !saveDisabled) void form.handleSubmit();
           }}
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+          className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2"
         >
-          <FormSection
-            title="البيانات الأساسية"
-            description="معلومات العرض والتصنيف الأساسية للمنتج."
-            className="rounded-2xl border bg-card p-5 shadow-sm md:col-span-2 sm:p-6"
-          >
+          <div className="min-w-0">
             <form.AppField name="name">
               {(Fields) => <Fields.InputField label="اسم المنتج" required props={{ disabled: formDisabled }} />}
             </form.AppField>
+          </div>
+          <div className="min-w-0">
             <form.AppField name="category">
               {(Fields) => <Fields.SelectField label="التصنيف" required options={{ "منتج المكتبة": "library", "قصة مخصصة": "custom" }} props={{ disabled: formDisabled }} />}
             </form.AppField>
-            <Field className="justify-center rounded-lg border bg-muted/30 p-4">
+          </div>
+          <div className="min-w-0">
+            <Field>
               <FieldLabel>مالك المنتج</FieldLabel>
               <Badge variant="secondary" className="w-fit">المنصة</Badge>
-              <FieldDescription>منتجات هذه الصفحة تابعة للمنصة.</FieldDescription>
             </Field>
+          </div>
+          <div className="col-span-full min-w-0">
             <form.AppField name="description">
-              {(Fields) => <Fields.TextareaField label="الوصف المختصر" description="يظهر في بطاقة المنتج." props={{ disabled: formDisabled, maxLength: 600, rows: 3 }} />}
+              {(Fields) => <Fields.TextareaField label="الوصف المختصر" props={{ disabled: formDisabled, maxLength: 600, rows: 3 }} />}
             </form.AppField>
-          </FormSection>
+          </div>
 
-          <FormSection
-            title="الأسعار"
-            description="السعر الورقي مطلوب، والسعر الإلكتروني اختياري للقصص المخصصة."
-            className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6"
-          >
+          <div className="min-w-0">
             <form.AppField name="price">
               {(Fields) => <Fields.InputField label="السعر الورقي (ج.م)" required props={{ disabled: formDisabled, inputMode: "decimal" }} />}
             </form.AppField>
-            {category === "custom" ? (
+          </div>
+          {category === "custom" ? (
+            <div className="min-w-0">
               <form.AppField name="electronicPrice">
-                {(Fields) => <Fields.InputField label="السعر الإلكتروني (ج.م)" description="اتركه فارغًا إذا لم يكن للمنتج سعر إلكتروني." props={{ disabled: formDisabled, inputMode: "decimal" }} />}
+                {(Fields) => <Fields.InputField label="السعر الإلكتروني (ج.م)" props={{ disabled: formDisabled, inputMode: "decimal" }} />}
               </form.AppField>
-            ) : null}
-          </FormSection>
+            </div>
+          ) : null}
 
           {category === "custom" ? (
-            <FormSection title="خيارات القصة المخصصة" description="اختر أسلوب كتابة واحدًا على الأقل. حفظ الأساليب الثلاثة يعني استخدام كل الأساليب." className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+            <div className="col-span-full min-w-0">
               <form.AppField name="writingStyles">
                 {(field) => (
-                  <BaseFormField label="أساليب الكتابة" required description="يحدد الأسلوب الذي يختاره العميل عند تخصيص القصة." variant="fieldset">
+                  <BaseFormField label="أساليب الكتابة" required variant="fieldset">
                     <div role="group" aria-label="أساليب الكتابة" className="flex flex-wrap gap-2">
                       {writingStyleOptions.map((option) => {
                         const selected = field.state.value.includes(option.value);
@@ -184,32 +182,38 @@ export function ProductForm({
                   </BaseFormField>
                 )}
               </form.AppField>
-            </FormSection>
+            </div>
           ) : null}
 
-          <FormSection
-            title="الفئة العمرية"
-            description="المدى اختياري. اترك الحقلين فارغين إذا لم يكن هناك تحديد للعمر."
-            className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6"
-          >
+          <div className="min-w-0">
             <form.AppField name="minAge">
               {(Fields) => <Fields.InputField label="العمر من" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
             </form.AppField>
+          </div>
+          <div className="min-w-0">
             <form.AppField name="maxAge">
               {(Fields) => <Fields.InputField label="العمر إلى" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
             </form.AppField>
-          </FormSection>
+          </div>
 
-          <FormSection title="المحتوى" description="الوصف الكامل يدعم Markdown، والميزات تُكتب كسطر مستقل لكل ميزة." className="rounded-2xl border bg-card p-5 shadow-sm md:col-span-2 xl:col-span-3 sm:p-6">
+          <div className="min-w-0">
             <form.AppField name="longDescription">
-              {(Fields) => <Fields.TextareaField label="الوصف الكامل" description="يمكنك استخدام Markdown للعناوين والروابط والقوائم." props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
+              {(Fields) => (
+                <Fields.TextareaField
+                  label="الوصف الكامل"
+                  description="اختياري — بيظهر في صفحة المنتج. يدعم ## عنوان و- نقطة و**عريض**."
+                  props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }}
+                />
+              )}
             </form.AppField>
+          </div>
+          <div className="min-w-0">
             <form.AppField name="featuresText">
-              {(Fields) => <Fields.TextareaField label="مميزات المنتج" description="اكتب كل ميزة في سطر منفصل." props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
+              {(Fields) => <Fields.TextareaField label="مميزات المنتج" props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
             </form.AppField>
-          </FormSection>
+          </div>
 
-          <FormSection title="الصور" description="ارفع صورًا جديدة أو اختر من مكتبة الصور. لا يبدأ الرفع إلا عند حفظ المنتج." className="rounded-2xl border bg-card p-5 shadow-sm md:col-span-2 xl:col-span-3 sm:p-6">
+          <div className="col-span-full min-w-0">
             <form.AppField name="images">
               {(field) => (
                 <ProductImagesField
@@ -227,14 +231,14 @@ export function ProductForm({
                 <AlertDescription>أضف إعداد Cloudinary الموقّع قبل استخدام صور جديدة.</AlertDescription>
               </Alert>
             ) : null}
-          </FormSection>
+          </div>
 
           {mode === "edit" ? (
-            <FormSection title="العرض" description="حالة المنتج في واجهة المتجر." className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+            <div className="col-span-full min-w-0">
               <form.AppField name="isActive">
-                {(Fields) => <Fields.CheckboxField label="المنتج نشط" description="إيقاف المنتج يخفيه من الشراء الجديد، مع الاحتفاظ ببياناته." props={{ disabled: formDisabled }} />}
+                {(Fields) => <Fields.CheckboxField label="المنتج نشط" props={{ disabled: formDisabled }} />}
               </form.AppField>
-            </FormSection>
+            </div>
           ) : null}
 
           <ResourceFormFooter
@@ -357,24 +361,26 @@ function PreparationDaysSection({ record, disabled }: { record: Product; disable
           event.stopPropagation();
           if (!fieldsDisabled) void form.handleSubmit();
         }}
-        className="flex flex-col gap-6 rounded-2xl border bg-card p-5 sm:p-6"
+        className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2"
       >
-        <FormSection title="مدة التجهيز" description="تُحفظ هذه المدد بشكل مستقل عن بقية بيانات المنتج." className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
-          {!available ? (
-            <Alert>
-              <AlertCircle />
-              <AlertTitle>مدة التجهيز غير مفعّلة في هذه البيئة</AlertTitle>
-              <AlertDescription>تحتاج قاعدة البيانات إلى ترقية أعمدة مدة التجهيز قبل حفظها. بقية بيانات المنتج متاحة للحفظ.</AlertDescription>
-            </Alert>
-          ) : null}
+        {!available ? (
+          <Alert className="col-span-full">
+            <AlertCircle />
+            <AlertTitle>مدة التجهيز غير مفعّلة في هذه البيئة</AlertTitle>
+            <AlertDescription>تحتاج قاعدة البيانات إلى ترقية أعمدة مدة التجهيز قبل حفظها. بقية بيانات المنتج متاحة للحفظ.</AlertDescription>
+          </Alert>
+        ) : null}
+        <div className="min-w-0">
           <form.AppField name="electronic">
-            {(Fields) => <Fields.InputField label="مدة تجهيز النسخة الإلكترونية (يوم)" description="من يوم إلى ١٢٠ يومًا أو اتركه فارغًا." props={{ type: "number", min: 1, max: 120, disabled: fieldsDisabled }} />}
+            {(Fields) => <Fields.InputField label="مدة تجهيز النسخة الإلكترونية (يوم)" props={{ type: "number", min: 1, max: 120, disabled: fieldsDisabled }} />}
           </form.AppField>
+        </div>
+        <div className="min-w-0">
           <form.AppField name="printed">
-            {(Fields) => <Fields.InputField label="مدة تجهيز النسخة المطبوعة (يوم)" description="من يوم إلى ١٢٠ يومًا أو اتركه فارغًا." props={{ type: "number", min: 1, max: 120, disabled: fieldsDisabled }} />}
+            {(Fields) => <Fields.InputField label="مدة تجهيز النسخة المطبوعة (يوم)" props={{ type: "number", min: 1, max: 120, disabled: fieldsDisabled }} />}
           </form.AppField>
-        </FormSection>
-        <ResourceFormFooter mode="create" saveLabel="حفظ المدة" showCancel={false} disabled={formDisabled} />
+        </div>
+        <ResourceFormFooter mode="create" saveLabel="حفظ المدة" showCancel={false} disabled={formDisabled} className="col-span-full" />
       </form>
     </form.AppForm>
   );

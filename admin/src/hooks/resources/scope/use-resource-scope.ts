@@ -5,6 +5,7 @@ import type { ResourceRowAction } from "@/components/resources/types";
 
 export function useResourceScope<TRecord extends BaseRecord & { id: string | number }>({
   resource,
+  formMode,
   rows,
   canCreate,
   canEdit,
@@ -13,6 +14,7 @@ export function useResourceScope<TRecord extends BaseRecord & { id: string | num
   rowActions,
 }: {
   resource: string;
+  formMode: ResourceContextValue["formMode"];
   rows: TRecord[];
   canCreate: boolean;
   canEdit: (record: TRecord) => boolean;
@@ -47,6 +49,7 @@ export function useResourceScope<TRecord extends BaseRecord & { id: string | num
 
   return useMemo(() => ({
     resource,
+    formMode,
     target,
     rowId,
     selectedRow,
@@ -60,7 +63,7 @@ export function useResourceScope<TRecord extends BaseRecord & { id: string | num
     openEdit,
     openDelete,
     close,
-  }), [resource, target, rowId, selectedRow, canDeleteSelected, getRecord,
+  }), [resource, formMode, target, rowId, selectedRow, canDeleteSelected, getRecord,
     canEditRow, canDeleteRow, deleteConsequence, rowActions, openCreate,
     openEdit, openDelete, close]);
 }

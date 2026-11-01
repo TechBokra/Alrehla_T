@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useList } from "@refinedev/core";
-import { Upload, UploadDropzone, UploadDropzoneDescription, UploadDropzoneTitle } from "@/components/ui/upload";
+import { Upload, UploadDropzone, UploadDropzoneTitle } from "@/components/ui/upload";
 import { useUploadSelector } from "@uploadcn/react";
 import type { CloudinaryUploadResult, Uploader } from "@uploadcn/core";
-import { Images, ImagePlus, LoaderCircle, MoveDown, MoveUp, Star, X } from "lucide-react";
+import { Images, ImagePlus, LoaderCircle, Star, X } from "lucide-react";
 import { BaseFormField } from "@/components/forms/components/base-form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,19 +68,9 @@ export function ProductImagesField({
 
   const failedUpload = items.some((item) => ["error", "rejected", "cancelled"].includes(item.status));
   const uploadBusy = items.some((item) => ["queued", "validating", "uploading", "processing", "scanning", "paused"].includes(item.status));
-  const savedCount = value.filter((image) => image.kind === "saved").length;
-  useEffect(() => {
-    uploader.setOptions({ maxFiles: Math.max(0, 9 - savedCount) });
-  }, [savedCount, uploader]);
   const setImages = (next: ProductImageSelection[]) => {
     valueRef.current = next;
     onChange(next);
-  };
-  const moveImage = (index: number, target: number) => {
-    const next = [...value];
-    const [image] = next.splice(index, 1);
-    next.splice(Math.max(0, Math.min(target, next.length)), 0, image);
-    setImages(next);
   };
   const removeImage = (index: number) => {
     const image = value[index];
@@ -89,59 +79,51 @@ export function ProductImagesField({
   };
   return (
     <BaseFormField
-      label="صور المنتج"
-      description="الصورة الأولى هي الغلاف، ثم حتى ٨ صور للمعرض. حذف الصورة يزيل ربطها بالمنتج فقط ولا يحذف ملف Cloudinary."
+      label="غلاف الكتاب — يفضّل طولي (3:4)"
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
           {uploadAccess.allowed && uploadConfigured ? (
             <Upload
               uploader={uploader}
-              multiple
-              disabled={disabled || uploadBusy || value.length >= 9}
+              disabled={disabled || uploadBusy || value.length >= 1}
               className="w-auto"
             >
               <UploadDropzone size="sm" className="min-h-10 flex-row gap-2 px-3 py-2 text-start">
                 <ImagePlus className="size-4" />
-                <div className="flex flex-col items-start gap-0.5">
-                  <UploadDropzoneTitle className="text-sm">إضافة صور من الجهاز</UploadDropzoneTitle>
-                  <UploadDropzoneDescription className="text-xs">JPG أو PNG أو WebP أو AVIF، حتى ٥ م.ب للصورة.</UploadDropzoneDescription>
-                </div>
+                <UploadDropzoneTitle className="text-sm">اختيار صورة الغلاف</UploadDropzoneTitle>
               </UploadDropzone>
             </Upload>
           ) : null}
           <LibraryImagePicker
-            disabled={disabled || value.length >= 9}
+            disabled={disabled || uploadBusy || value.length >= 1}
             onPick={(asset) => {
-              if (value.length >= 9) return;
+              if (uploadBusy || value.length >= 1) return;
               setImages([...value, { kind: "saved", url: asset.url }]);
             }}
           />
         </div>
         {value.length ? (
-          <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {value.map((image, index) => (
+          <ol className="flex flex-wrap gap-3">
+            {value.map((image) => (
               <ProductImageCard
-                key={image.kind === "saved" ? `${image.url}-${index}` : image.uploadId}
+                key={image.kind === "saved" ? image.url : image.uploadId}
                 image={image}
                 upload={image.kind === "queued" ? items.find((item) => item.id === image.uploadId) : undefined}
-                index={index}
-                count={value.length}
                 disabled={disabled || uploadBusy}
-                onMove={(target) => moveImage(index, target)}
-                onRemove={() => removeImage(index)}
+                onRemove={() => removeImage(0)}
               />
             ))}
           </ol>
         ) : (
           <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
             <Images className="size-5" />
-            <span>لم تُضف صورًا بعد</span>
+            <span>لم يُضف غلاف الكتاب بعد</span>
           </div>
         )}
         {failedUpload ? (
           <p role="alert" className="text-sm text-destructive">
-            تعذّر رفع صورة. أزل الملف الفاشل ثم اختره مجددًا قبل حفظ المنتج.
+            تعذّر رفع الغلاف. أزل الملف الفاشل ثم اختره مجددًا قبل حفظ المنتج.
           </p>
         ) : null}
         {items.filter((item) => item.status === "rejected" || item.status === "cancelled").map((item) => (
@@ -164,32 +146,24 @@ export function ProductImagesField({
 function ProductImageCard({
   image,
   upload,
-  index,
-  count,
   disabled,
-  onMove,
   onRemove,
 }: {
   image: ProductImageSelection;
   upload?: ReturnType<Uploader<CloudinaryUploadResult>["getItem"]>;
-  index: number;
-  count: number;
   disabled: boolean;
-  onMove: (target: number) => void;
   onRemove: () => void;
 }) {
   const preview = useObjectUrl(image.kind === "saved" ? undefined : upload?.file);
   const src = image.kind === "saved" ? image.url : preview;
   const loading = upload && !["success", "error", "rejected", "cancelled"].includes(upload.status);
   return (
-    <li className="relative overflow-hidden rounded-2xl border bg-card">
-      <div className="relative aspect-square bg-muted/30">
-        {src ? <img src={src} alt={image.kind === "queued" ? image.name : "صورة المنتج"} className="size-full object-cover" /> : null}
-        {index === 0 ? (
-          <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs shadow">
-            <Star className="size-3 fill-current" /> الغلاف
-          </span>
-        ) : null}
+    <li className="relative w-44 overflow-hidden rounded-xl border bg-card">
+      <div className="relative aspect-[3/4] bg-muted/30">
+        {src ? <img src={src} alt="غلاف الكتاب" className="size-full object-cover" /> : null}
+        <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs shadow">
+          <Star className="size-3 fill-current" /> الغلاف
+        </span>
         {loading ? (
           <span className="absolute inset-x-2 bottom-2 flex items-center gap-2 rounded-lg bg-background/90 p-2 text-xs">
             <LoaderCircle className="size-3.5 animate-spin" />
@@ -205,19 +179,10 @@ function ProductImageCard({
       </div>
       <div className="flex items-center justify-between gap-1 p-1.5">
         <span className="min-w-0 flex-1 truncate px-1 text-xs text-muted-foreground">
-          {image.kind === "queued" ? image.name : `صورة ${index + 1}`}
+          {image.kind === "queued" ? image.name : "غلاف الكتاب"}
         </span>
         <div className="flex shrink-0">
-          {index > 0 ? (
-            <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="جعل الصورة غلافًا" onClick={() => onMove(0)}><Star /></Button>
-          ) : null}
-          {index > 0 ? (
-            <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="تحريك الصورة لأعلى" onClick={() => onMove(index - 1)}><MoveUp /></Button>
-          ) : null}
-          {index < count - 1 ? (
-            <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="تحريك الصورة لأسفل" onClick={() => onMove(index + 1)}><MoveDown /></Button>
-          ) : null}
-          <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="إزالة ربط الصورة" onClick={onRemove}><X /></Button>
+          <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="إزالة غلاف الكتاب" onClick={onRemove}><X /></Button>
         </div>
       </div>
     </li>
@@ -291,12 +256,12 @@ function LibraryImagePicker({
             {query.isError ? (
               <p role="alert" className="text-sm text-destructive">تعذّر تحميل مكتبة الصور. حاول مرة أخرى.</p>
             ) : query.isPending ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="aspect-square" />)}</div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="aspect-[3/4]" />)}</div>
             ) : page?.data.length ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {page.data.map((asset) => (
                   <button key={asset.id} type="button" className="group overflow-hidden rounded-xl border text-start focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { onPick(asset); setOpen(false); }}>
-                    <img src={asset.url} alt={asset.alt || asset.caption || ""} className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.02]" />
+                    <img src={asset.url} alt={asset.alt || asset.caption || ""} className="aspect-[3/4] w-full object-cover transition-transform group-hover:scale-[1.02]" />
                     <span className="block truncate px-2 py-1.5 text-xs">{asset.caption || asset.publicId.split("/").at(-1)}</span>
                   </button>
                 ))}

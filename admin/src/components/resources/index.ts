@@ -5,6 +5,8 @@ export { ResourceView } from "./view";
 export type {
   ResourceDeleteDialogProps,
   ResourceFormDefinition,
+  ResourceDialogFormDefinition,
+  ResourceFormMode,
   ResourceFormFieldsContext,
   ResourceRowAction,
   ResourceViewProps,

@@ -27,8 +27,10 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
   return (
     <ResourceContextProvider value={scope}>
       <ResourcePage
+        resource={props.resource}
         title={props.title}
         description={props.description ?? ""}
+        formMode={props.mode}
         table={table}
         pageSizeOptions={props.pageSizeOptions}
         toolbarContent={props.toolbarContent?.(table)}
@@ -43,7 +45,9 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
         }
       >
         <ResourceDialogs>
-          <DialogEditor form={props.form} />
+          {props.mode === "dialog" ? (
+            <DialogEditor form={props.form} canEdit={props.canEdit} />
+          ) : null}
         </ResourceDialogs>
         {props.children}
       </ResourcePage>

@@ -1,5 +1,6 @@
 import type { BaseRecord } from "@refinedev/core";
 import type { ResourceRowAction } from "@/components/resources/types";
+import type { ResourceFormMode } from "@/components/resources/types";
 
 export type ResourceEditorTarget =
   | { action: "create"; key: number }
@@ -10,6 +11,7 @@ export type ResourceActionTarget =
 
 export interface ResourceContextValue {
   resource: string;
+  formMode: ResourceFormMode;
   target: ResourceActionTarget | null;
   rowId?: string;
   selectedRow?: BaseRecord;

@@ -11,7 +11,6 @@ export function ProductFormPage({ id }: { id?: string }) {
       resource="personalized_products"
       id={id}
       title={mode === "create" ? "إضافة منتج للمنصة" : "تعديل المنتج"}
-      description="أدخل بيانات المنتج وصوره، ثم احفظ لنشر التغييرات."
       canEdit={isEditableProduct}
       getErrorMessage={catalogError}
     >

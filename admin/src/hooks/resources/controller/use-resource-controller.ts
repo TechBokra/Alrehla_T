@@ -14,7 +14,8 @@ export function useResourceController<TRecord extends ResourceRecord>(
   const {
     resource,
     columns,
-    form,
+    mode,
+    canEdit,
     enableRowReordering = false,
     onReorder,
     refineCoreProps,
@@ -26,9 +27,9 @@ export function useResourceController<TRecord extends ResourceRecord>(
   const canSort = enableRowReordering && sortAccess.allowed;
   const canCreateResource = createAccess.allowed;
   const canEditRecord = useCallback((record: TRecord) =>
-    editAccess.allowed && (form.canEdit?.(record) ?? true), [editAccess.allowed, form.canEdit]);
+    editAccess.allowed && (canEdit?.(record) ?? true), [editAccess.allowed, canEdit]);
   const canDeleteRecord = useCallback((record: TRecord) =>
-    deleteAccess.allowed && (form.canEdit?.(record) ?? true), [deleteAccess.allowed, form.canEdit]);
+    deleteAccess.allowed && (canEdit?.(record) ?? true), [deleteAccess.allowed, canEdit]);
   const { table, reorder } = useResourceTable<TRecord>({
     resource,
     columns,
@@ -42,6 +43,7 @@ export function useResourceController<TRecord extends ResourceRecord>(
   });
   const scope = useResourceScope({
     resource,
+    formMode: mode,
     rows: table.refineCore.tableQuery.data?.data ?? [],
     canCreate: canCreateResource,
     canEdit: canEditRecord,

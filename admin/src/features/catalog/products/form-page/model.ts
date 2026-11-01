@@ -21,8 +21,7 @@ export function defaultValues(): ProductPageValues {
 }
 
 export function valuesFromProduct(row: Product): ProductPageValues {
-  const imageUrls = [row.cover_image_url, ...(row.gallery_image_urls ?? [])]
-    .filter((url): url is string => Boolean(url));
+  const coverUrl = row.cover_image_url || row.gallery_image_urls?.find(Boolean) || null;
   return {
     name: row.name,
     category: row.category === "custom" ? "custom" : "library",
@@ -34,7 +33,7 @@ export function valuesFromProduct(row: Product): ProductPageValues {
     maxAge: row.max_age == null ? "" : String(row.max_age),
     longDescription: row.long_description ?? "",
     featuresText: (row.features ?? []).join("\n"),
-    images: imageUrls.map((url) => ({ kind: "saved", url }) satisfies ProductImageSelection),
+    images: coverUrl ? [{ kind: "saved", url: coverUrl } satisfies ProductImageSelection] : [],
     isActive: row.is_active,
   };
 }
@@ -58,7 +57,7 @@ function pagePayload(input: ProductPageValues, images: string[]) {
     max_age: value.maxAge ? Number(value.maxAge) : null,
     features: value.featuresText.split("\n").map((line) => line.trim()).filter(Boolean),
     cover_image_url: images[0] ?? null,
-    gallery_image_urls: images.slice(1, 9),
+    gallery_image_urls: [],
     is_active: value.isActive,
     updated_at: new Date().toISOString(),
   };

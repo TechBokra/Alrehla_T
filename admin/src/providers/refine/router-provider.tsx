@@ -1,4 +1,4 @@
-import type { RouterProvider } from "@refinedev/core";
+import type { ResourceProps, RouterProvider } from "@refinedev/core";
 import {
   Link,
   useLocation,
@@ -7,23 +7,44 @@ import {
 } from "@tanstack/react-router";
 import { resources } from "./resources";
 
+const staticPaths = ["/", "/sign-in", "/notifications", "/reset-password"];
+
+function matchRoutePattern(pattern: string, path: string) {
+  const patternParts = pattern.split("/").filter(Boolean);
+  const pathParts = path.split("/").filter(Boolean);
+  if (patternParts.length !== pathParts.length) return undefined;
+
+  const params: Record<string, string> = {};
+  for (let index = 0; index < patternParts.length; index += 1) {
+    const patternPart = patternParts[index];
+    const pathPart = pathParts[index];
+    if (patternPart.startsWith(":")) {
+      params[patternPart.slice(1)] = pathPart;
+    } else if (patternPart !== pathPart) {
+      return undefined;
+    }
+  }
+  return params;
+}
+
+function findResourceAction(path: string) {
+  for (const resource of resources) {
+    for (const action of ["create", "edit"] as const) {
+      const route = resource[action];
+      if (!route) continue;
+      const params = matchRoutePattern(route, path);
+      if (params) return { resource, action, params };
+    }
+  }
+  return undefined;
+}
+
 export function resolveAdminPath(to: string) {
   const path = to.replace(/\/+$/, "") || "/";
-  const staticPath = [
-    "/",
-    "/sign-in",
-    "/catalog/products",
-    "/catalog/addons",
-    "/notifications",
-    "/uploads",
-    "/users",
-    "/profile",
-    "/reset-password",
-  ].includes(path);
-  const productPath =
-    path === "/catalog/products/create" ||
-    /^\/catalog\/products\/[^/]+\/edit$/.test(path);
-  return staticPath || productPath ? path : "/sign-in";
+  const registeredListPath = resources.some((resource) => resource.list === path);
+  return staticPaths.includes(path) || registeredListPath || findResourceAction(path)
+    ? path
+    : "/sign-in";
 }
 
 export const authRouterProvider: RouterProvider = {
@@ -43,25 +64,19 @@ export const authRouterProvider: RouterProvider = {
     const location = useLocation();
     return () => {
       const path = location.pathname.replace(/\/+$/, "");
-      const resource = resources.find((item) =>
-        item.list === path ||
-        (item.name === "personalized_products" &&
-          (path === "/catalog/products/create" ||
-            /^\/catalog\/products\/[^/]+\/edit$/.test(path))),
-      );
-      const editingProduct = /^\/catalog\/products\/([^/]+)\/edit$/.exec(path);
-      const action = path === "/catalog/products/create"
-        ? "create"
-        : editingProduct
-          ? "edit"
-          : resource
-            ? "list"
-            : undefined;
+      const resourceAction = findResourceAction(path);
+      const listResource = resources.find((item) => item.list === path);
       return {
         pathname: location.pathname,
-        ...(resource && action
-          ? { resource, action, ...(editingProduct ? { id: editingProduct[1] } : {}) }
-          : {}),
+        ...(resourceAction
+          ? {
+              resource: resourceAction.resource,
+              action: resourceAction.action,
+              ...(resourceAction.params.id ? { id: resourceAction.params.id } : {}),
+            }
+          : listResource
+            ? { resource: listResource, action: "list" }
+            : {}),
       };
     };
   },

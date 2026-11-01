@@ -370,17 +370,18 @@ change.
   create navigates to the new product's edit page; edit saves reset the form
   from the Refine mutation result and show an Arabic success toast.
 - Added platform product fields for category, pricing, custom writing styles,
-  ages, descriptions, features, active status and cover/gallery images. New
+  ages, descriptions, features, active status and a book-cover image. New
   files stay in UploadCN until Save and use the existing signed Cloudinary
   adapter; the media-library picker reads through the named Refine provider
   behind media permissions. Preparation-day values save separately and display
   a staging setup notice when the production columns are absent.
 - Fixed first-load validation: product and preparation schemas now validate on
   the first Save attempt, then revalidate on edits, so empty required fields do
-  not render errors before interaction. A single responsive grid arranges the
-  section cards (one column on small screens, two at medium widths and three at
-  wide widths); fields remain stacked inside sections, while content and image
-  sections and the save footer span the full grid. The live
+  not render errors before interaction. The product form now uses one
+  responsive two-column field grid without section cards or section headings.
+  Only the long-description field has its requested Markdown helper. The short
+  description, image controls and save
+  footer span both columns; related fields sit side by side. The live
   create page showed no initial errors; an empty Save attempt showed the expected
   name and paper-price errors and disabled Save.
 - Added the local migration `20261101193607_add_product_preparation_days.sql`
@@ -390,6 +391,16 @@ change.
   pass. The route generator circular-dependency and Vite large-chunk
   warnings remain. No live product writes, media uploads, remote schema
   changes or deployments were performed.
+
+### Single product cover — 2026-11-01
+
+- Replaced the product form's cover/gallery collection with one book-cover
+  selection. The label says “غلاف الكتاب — يفضّل طولي (3:4)”; the ratio is
+  recommended and previewed at 3:4, but not enforced during upload.
+- The schema, UploadCN queue, and media-library picker each allow one image.
+  Saved payloads populate `cover_image_url` and clear `gallery_image_urls`.
+  Existing products use their cover or first legacy gallery URL as the form
+  default; saving normalizes the record to one cover without deleting assets.
 
 ### Product form and resource form organization — 2026-11-01
 
@@ -404,3 +415,20 @@ change.
 - Updated the resource/architecture guides and authorization test module mock.
   TypeScript, tests, production build and whitespace checks pass. No runtime
   behavior or remote data/schema was changed by this organization refactor.
+
+### Resource page and dialog form modes — 2026-11-01
+
+- Made ResourceView's `mode` an explicit discriminant. Dialog mode requires a
+  dialog form definition with title and fields; page mode omits the dialog
+  `form` prop, removing the `form.canEdit` undefined crash for route-based forms.
+- Moved the optional feature record restriction to top-level `canEdit` so it
+  applies consistently to row actions and dialog CRUD without coupling it to
+  presentation fields.
+- Resource registration now derives create/edit URL patterns from resources in
+  page mode. The shared Refine CreateButton and row Edit action use those
+  routes; router path resolution and parsing match registered patterns rather
+  than product-specific URLs.
+- Updated the English resource and architecture guides. TypeScript validation
+  and the production build pass. There is no `admin/tests` directory in this
+  checkout, so no admin test suite was available. No backend, schema, or remote
+  changes were made.

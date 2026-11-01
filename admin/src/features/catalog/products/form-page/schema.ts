@@ -24,7 +24,7 @@ export const productPageSchema = z.object({
   maxAge: optionalAge,
   longDescription: z.string().trim().max(5000, "الوصف الكامل بحد أقصى ٥٠٠٠ حرف"),
   featuresText: z.string().max(5000, "الميزات بحد أقصى ٥٠٠٠ حرف"),
-  images: z.array(productImageSelectionSchema).max(9, "يمكن اختيار صورة غلاف و٨ صور إضافية كحد أقصى"),
+  images: z.array(productImageSelectionSchema).max(1, "يمكن اختيار غلاف واحد فقط"),
   isActive: z.boolean(),
 }).superRefine((value, context) => {
   if (value.category === "custom") {

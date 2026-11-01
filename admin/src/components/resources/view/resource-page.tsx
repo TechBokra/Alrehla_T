@@ -3,14 +3,18 @@ import type { BaseRecord, HttpError } from "@refinedev/core";
 import type { UseTableReturnType } from "@refinedev/react-table";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CreateButton } from "@/components/refine-ui/buttons/create";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
 import type { RowReordering } from "@/components/block/shuip/data-table";
+import type { ResourceFormMode } from "../types";
 
 import { useResourceContext } from "@/hooks/resources";
 
 export function ResourcePage<TRecord extends BaseRecord>({
+  resource,
   title,
   description,
+  formMode,
   canCreate = true,
   createAction,
   pageSizeOptions,
@@ -20,8 +24,10 @@ export function ResourcePage<TRecord extends BaseRecord>({
   storageKey,
   rowReordering,
 }: {
+  resource: string;
   title: string;
   description: string;
+  formMode: ResourceFormMode;
   canCreate?: boolean;
   createAction?: ReactNode;
   pageSizeOptions?: number[];
@@ -49,12 +55,18 @@ export function ResourcePage<TRecord extends BaseRecord>({
           canCreate ? (
             <div className="flex flex-wrap items-center gap-2">
               {toolbarContent}
-              {createAction ?? (
-                <Button onClick={openCreate}>
-                  <Plus data-icon="inline-start" />
-                  إضافة جديد
-                </Button>
-              )}
+              {createAction ??
+                (formMode === "page" ? (
+                  <CreateButton resource={resource}>
+                    <Plus data-icon="inline-start" />
+                    إضافة جديد
+                  </CreateButton>
+                ) : (
+                  <Button onClick={openCreate}>
+                    <Plus data-icon="inline-start" />
+                    إضافة جديد
+                  </Button>
+                ))}
             </div>
           ) : null
         }

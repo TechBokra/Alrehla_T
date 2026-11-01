@@ -25,23 +25,29 @@ export interface ResourceFormFieldsContext<TRecord> {
   action: "create" | "edit";
 }
 
-export interface ResourceFormDefinition<TRecord extends BaseRecord> {
+export type ResourceFormMode = "dialog" | "page";
+
+export interface ResourceDialogFormDefinition<TRecord extends BaseRecord> {
   title: string;
   dataProviderName?: string;
-  canEdit?: (record: TRecord) => boolean;
   /** Maps save/backend failures to user-facing copy; form field validation stays in the form. */
   getErrorMessage?: (error: unknown) => string;
   onSaved?: (record: TRecord, action: "create" | "edit") => void;
   fields: (context: ResourceFormFieldsContext<TRecord>) => ReactNode;
 }
 
+/** Kept as the concise name used by resource dialog definitions. */
+export type ResourceFormDefinition<TRecord extends BaseRecord> =
+  ResourceDialogFormDefinition<TRecord>;
+
 type ResourceRecord = BaseRecord & { id: string | number };
-export interface ResourceViewProps<TRecord extends ResourceRecord> {
+interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   resource: string;
   title: string;
   description?: string;
   columns: ColumnDef<TRecord, unknown>[] | (() => ColumnDef<TRecord, unknown>[]);
-  form: ResourceFormDefinition<TRecord>;
+  /** Additional record-level rule; authorization still comes from Refine. */
+  canEdit?: (record: TRecord) => boolean;
   searchField?: string;
   searchFields?: string[];
   /** Defaults to DEFAULT_SEARCH_DEBOUNCE_MS (300 ms). */
@@ -50,7 +56,7 @@ export interface ResourceViewProps<TRecord extends ResourceRecord> {
   pageSizeOptions?: number[];
   initialState?: UseDataTableOptions<TRecord>["initialState"];
   toolbarContent?: (table: UseTableReturnType<TRecord, HttpError>) => ReactNode;
-  /** Replace the default create-dialog trigger with a route-based action. */
+  /** Optional override for the create action selected by mode. */
   createAction?: ReactNode;
   children?: ReactNode;
   refineCoreProps?: Omit<NonNullable<UseDataTableOptions<TRecord>["refineCoreProps"]>, "resource">;
@@ -62,6 +68,14 @@ export interface ResourceViewProps<TRecord extends ResourceRecord> {
   /** UI callback only. The resource view does not persist dragged positions. */
   onReorder?: (orderedIds: string[], orderedRows: TRecord[]) => void;
 }
+
+/** Dialog resources require fields; page resources use standalone route forms. */
+export type ResourceViewProps<TRecord extends ResourceRecord> =
+  ResourceViewBaseProps<TRecord> &
+    (
+      | { mode: "page"; form?: never }
+      | { mode: "dialog"; form: ResourceFormDefinition<TRecord> }
+    );
 
 export interface ResourceDeleteDialogProps {
   resource: string;

@@ -2,6 +2,7 @@ import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import type { CSSProperties, ReactNode } from "react";
 import { useLogout } from "@refinedev/core";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { resources } from "@/providers/refine/resources";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HeaderActions } from "@/components/header-actions";
 import { NotificationsPopover } from "@/features/notifications/notifications-popover";
@@ -29,6 +30,7 @@ export function AdminLayout({
   const pathname = useRouterState({
     select: (state) => state.location.pathname.replace(/\/+$/, "") || "/",
   });
+  const resourceAction = getResourceAction(pathname);
   const pageLabel = getPageLabel(pathname);
   const { data: identity } = useAdminIdentity();
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
@@ -65,11 +67,40 @@ export function AdminLayout({
                 <BreadcrumbSeparator className="hidden sm:block">
                   /
                 </BreadcrumbSeparator>
-                <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
-                  <BreadcrumbPage className="max-w-48 truncate">
-                    {pageLabel}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
+                {resourceAction ? (
+                  <>
+                    <BreadcrumbItem className="inline-flex min-w-0">
+                      {resourceAction.resource.list ? (
+                        <BreadcrumbLink asChild>
+                          <Link
+                            to={resourceAction.resource.list}
+                            className="max-w-32 truncate sm:max-w-48"
+                          >
+                            {resourceAction.resource.meta?.label ?? resourceAction.resource.name}
+                          </Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <span className="max-w-32 truncate sm:max-w-48">
+                          {resourceAction.resource.meta?.label ?? resourceAction.resource.name}
+                        </span>
+                      )}
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden sm:block">
+                      /
+                    </BreadcrumbSeparator>
+                    <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
+                      <BreadcrumbPage className="max-w-48 truncate">
+                        {resourceAction.action === "create" ? "إنشاء" : "تعديل"}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                ) : (
+                  <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
+                    <BreadcrumbPage className="max-w-48 truncate">
+                      {pageLabel}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                )}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
@@ -84,6 +115,27 @@ export function AdminLayout({
         </main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+function getResourceAction(pathname: string) {
+  for (const resource of resources) {
+    if (resource.create && matchesResourcePath(resource.create, pathname)) {
+      return { resource, action: "create" as const };
+    }
+    if (resource.edit && matchesResourcePath(resource.edit, pathname)) {
+      return { resource, action: "edit" as const };
+    }
+  }
+  return undefined;
+}
+
+function matchesResourcePath(route: string, pathname: string) {
+  const routeParts = route.replace(/\/+$/, "").split("/");
+  const pathParts = pathname.replace(/\/+$/, "").split("/");
+  return (
+    routeParts.length === pathParts.length &&
+    routeParts.every((part, index) => part.startsWith(":") || part === pathParts[index])
   );
 }
 
