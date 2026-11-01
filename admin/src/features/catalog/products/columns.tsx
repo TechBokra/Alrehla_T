@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { ResourceRowActions } from "@/components/resources/resource-row-actions";
+import { ResourceRowActions } from "@/components/resources";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "./model";
 

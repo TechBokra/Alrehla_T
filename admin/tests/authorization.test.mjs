@@ -159,11 +159,7 @@ test('own profile/notifications and protected user records remain restricted', (
   assert.equal(can(supervisor, 'users', 'suspension', { record: { ...record, role: 'super_admin' } }), false);
 });
 
-test('landing chooses an allowed page; stale auth versions are denied', async () => {
-  currentActor = supervisor;
-  assert.equal(provider.resolveAdminLandingPage(currentActor), '/users');
-  currentActor = superAdmin;
-  assert.equal(provider.resolveAdminLandingPage(currentActor), '/catalog/products');
+test('stale auth versions are denied', async () => {
   assert.equal((await provider.supabaseAccessControlProvider.can({ resource: 'users', action: 'list', params: { authVersion: 0 } })).can, false);
 });
 
@@ -177,11 +173,24 @@ function uiFixture(allowedActions, status = {}) {
   }) };
   const box = ({ children }) => React.createElement('div', null, children);
   const load = loader({
-    '@/hooks/resources/use-resource-authorization': hook,
-    '@/hooks/resources/use-resource-table': { useResourceTable: () => { tableReads++; return { table: { refineCore: { tableQuery: { data: { data: [] } } } }, reorder: () => {} }; } },
-    './resource-context': { ResourceScopeProvider: (props) => { scope = props; return props.children; } },
+    '@/hooks/resources': { ...hook, useResourceController: (props) => {
+      tableReads++;
+      const canCreate = (props.canCreate ?? true) && allowedActions.includes('create');
+      const canEdit = (record) => allowedActions.includes('edit') && (props.form.canEdit?.(record) ?? true);
+      const canDelete = (record) => allowedActions.includes('delete') && (props.canDelete?.(record) ?? props.form.canEdit?.(record) ?? true);
+      scope = {
+        resource: props.resource,
+        getRecord: (id) => ({ id }),
+        canEditRow: (id) => canEdit({ id }),
+        canDeleteRow: (id) => canDelete({ id }),
+      };
+      return { table: { refineCore: { tableQuery: { data: { data: [] } } } }, reorder: () => {}, scope,
+        canCreate, canSort: Boolean(props.enableRowReordering && allowedActions.includes('sort')) };
+    } },
+    '@/contexts/resource': { ResourceContextProvider: ({ value, children }) => { scope = value; return children; } },
     './resource-page': { ResourcePage: (props) => { page = props; return null; } },
-    './resource-dialogs': { ResourceDialogs: box }, './resource-editor': { ResourceEditor: () => null },
+    '../dialogs/resource-dialogs': { ResourceDialogs: box },
+    '../forms/resource-editor': { ResourceEditor: () => null },
     '@/components/ui/alert': { Alert: box, AlertTitle: box, AlertDescription: box },
     '@/components/ui/button': { Button: ({ children }) => React.createElement('button', null, children) },
     '@/components/ui/skeleton': { Skeleton: () => React.createElement('span', null, 'loading') },
@@ -194,8 +203,8 @@ function uiFixture(allowedActions, status = {}) {
 test('denied, pending and failed pages never mount their table controller', () => {
   for (const status of [{}, { isPending: true }, { isError: true }]) {
     const fixture = uiFixture([], status);
-    const { ResourceProvider } = fixture.load('components/resources/resource-provider.tsx');
-    const html = renderToStaticMarkup(React.createElement(ResourceProvider, { resource: 'users', title: 'users', columns: [], form: {} }));
+    const { ResourceView } = fixture.load('components/resources/view/resource-view.tsx');
+    const html = renderToStaticMarkup(React.createElement(ResourceView, { resource: 'users', title: 'users', columns: [], form: {} }));
     assert.equal(fixture.tableReads, 0);
     assert.ok(html.length > 0);
   }
@@ -203,16 +212,104 @@ test('denied, pending and failed pages never mount their table controller', () =
 
 test('resource feature restrictions can reduce but never grant CRUD access', () => {
   const fixture = uiFixture(['list', 'edit', 'delete']);
-  const { ResourceProvider } = fixture.load('components/resources/resource-provider.tsx');
-  renderToStaticMarkup(React.createElement(ResourceProvider, {
-    resource: 'addon_products', title: 'addons', columns: [], canCreate: true,
-    form: { canEdit: (record) => record.id !== 'protected' }, canDelete: () => false,
+  const { ResourceView } = fixture.load('components/resources/view/resource-view.tsx');
+  renderToStaticMarkup(React.createElement(ResourceView, {
+    resource: 'addon_products', title: 'addons', columns: [],
+    form: { canEdit: (record) => record.id !== 'protected' },
   }));
   assert.equal(fixture.tableReads, 1);
   assert.equal(fixture.page.canCreate, false);
-  assert.equal(fixture.scope.canEdit({ id: 'protected' }), false);
-  assert.equal(fixture.scope.canEdit({ id: 'normal' }), true);
-  assert.equal(fixture.scope.canDelete({ id: 'normal' }), false);
+  assert.equal(fixture.scope.canEditRow('protected'), false);
+  assert.equal(fixture.scope.canEditRow('normal'), true);
+  assert.equal(fixture.scope.canDeleteRow('protected'), false);
+  assert.equal(fixture.scope.canDeleteRow('normal'), true);
+});
+
+test('resource controller combines access, feature limits, table options and page scope', () => {
+  const granted = new Set(['create', 'edit', 'delete', 'sort']);
+  const observed = {};
+  const load = loader({
+    '../authorization': { useResourceAuthorization: (_resource, action) => ({ allowed: granted.has(action) }) },
+    '../table': { useResourceTable: (options) => {
+      observed.tableOptions = options;
+      return { table: { refineCore: { tableQuery: { data: { data: [{ id: 'protected' }, { id: 'ordinary' }] } } } }, reorder: () => {} };
+    } },
+    '../scope': { useResourceScope: (options) => {
+      observed.scopeOptions = options;
+      return { resource: options.resource };
+    } },
+  });
+  const { useResourceController } = load('hooks/resources/controller/use-resource-controller.ts');
+  const props = {
+    resource: 'products', columns: [], form: { canEdit: (record) => record.id !== 'protected' },
+    enableRowReordering: true,
+    refineCoreProps: { pagination: { pageSize: 50 } },
+  };
+  let result;
+  function Harness() {
+    result = useResourceController(props);
+    return React.createElement('span');
+  }
+  renderToStaticMarkup(React.createElement(Harness));
+  assert.equal(result.canCreate, true);
+  assert.equal(result.canSort, true);
+  assert.equal(observed.scopeOptions.canEdit({ id: 'protected' }), false);
+  assert.equal(observed.scopeOptions.canEdit({ id: 'ordinary' }), true);
+  assert.equal(observed.scopeOptions.canDelete({ id: 'protected' }), false);
+  assert.equal(observed.scopeOptions.canDelete({ id: 'ordinary' }), true);
+  assert.equal(observed.scopeOptions.canCreate, true);
+  assert.equal(observed.tableOptions.enableRowReordering, true);
+  assert.equal(observed.tableOptions.refineCoreProps.pagination.pageSize, 50);
+});
+
+test('resource scope owns per-page dialog selection, keyed resets and record limits', () => {
+  let slots = [];
+  let cursor = 0;
+  const react = {
+    useState(initial) {
+      const index = cursor++;
+      if (!(index in slots)) slots[index] = initial;
+      return [slots[index], (next) => { slots[index] = typeof next === 'function' ? next(slots[index]) : next; }];
+    },
+    useRef(initial) {
+      const index = cursor++;
+      if (!(index in slots)) slots[index] = { current: initial };
+      return slots[index];
+    },
+    useCallback(callback) { cursor++; return callback; },
+    useMemo(factory) { cursor++; return factory(); },
+  };
+  const { useResourceScope } = loader({ react })('hooks/resources/scope/use-resource-scope.ts');
+  const options = {
+    resource: 'users',
+    rows: [{ id: 'locked', name: 'Locked' }, { id: 'editable', name: 'Editable' }],
+    canCreate: true,
+    canEdit: (row) => row.id === 'editable',
+    canDelete: (row) => row.id === 'locked',
+  };
+  const renderScope = () => { cursor = 0; return useResourceScope(options); };
+
+  let scope = renderScope();
+  scope.openEdit('locked');
+  assert.equal(renderScope().target, null);
+  scope = renderScope();
+  scope.openEdit('editable');
+  scope = renderScope();
+  assert.equal(scope.target.action, 'edit');
+  assert.equal(scope.target.id, 'editable');
+  assert.equal(scope.target.key, 1);
+  assert.equal(scope.selectedRow.name, 'Editable');
+  scope.close();
+  scope = renderScope();
+  scope.openCreate();
+  const created = renderScope().target;
+  assert.equal(created.action, 'create');
+  assert.equal(created.key, 2);
+
+  // A second hook instance (another resource page) starts with fresh selection.
+  slots = [];
+  cursor = 0;
+  assert.equal(renderScope().target, null);
 });
 
 test('sidebar uses the same access decision and hides denied links', () => {
@@ -233,7 +330,7 @@ test('shared hook scopes Refine access queries by session version and rejects st
       useAdminAccess: () => ({ ready: true, version: authVersion, actor: supervisor, permissionsVersion: authVersion }) },
     '@refinedev/core': { useCan: (input) => { params.push(input.params); return { data: { can: true }, isError: authVersion === 2 }; } },
     '@/providers/refine/auth-provider': { adminAuthProvider: { subscribeSession: () => () => {}, getSessionVersion: () => authVersion } },
-  })('hooks/resources/use-resource-authorization.ts');
+  })('hooks/resources/authorization/use-resource-authorization.ts');
   assert.equal(useResourceAuthorization('users', 'list').allowed, true);
   authVersion = 2;
   assert.equal(useResourceAuthorization('users', 'list').allowed, false);
@@ -252,7 +349,7 @@ function crudFixture(preflight, allowed = true) {
     '@refinedev/core': { useCreate: () => mutation, useUpdate: () => mutation, useDelete: () => mutation,
       useOne: () => ({ query: { isPending: false, isFetching: false, refetch: async () => ({ data: { data: { id: 'record' } } }) }, result: { id: 'record' } }),
     },
-    './use-resource-authorization': { useResourceAuthorization: () => ({ allowed, isPending: false, data: { can: allowed }, refetch: async () => ({ data: { can: allowed } }) }) },
+    '../authorization': { useResourceAuthorization: () => ({ allowed, isPending: false, data: { can: allowed }, refetch: async () => ({ data: { can: allowed } }) }) },
     '@/providers/refine/access-control-provider': { assertResourceAccess: preflight },
   });
   return { load, get writes() { return writes; }, get writeParams() { return writeParams; } };
@@ -260,11 +357,11 @@ function crudFixture(preflight, allowed = true) {
 
 test('fresh CRUD denial blocks writes; feature restrictions also prevent submissions', async () => {
   const fixture = crudFixture(async () => { throw new Error('permission revoked'); });
-  const { useResourceFormCrud } = fixture.load('hooks/resources/use-resource-form-crud.ts');
+  const { useResourceFormCrud } = fixture.load('hooks/resources/crud/use-resource-form-crud.ts');
   const form = useResourceFormCrud({ resource: 'addon_products' });
   assert.equal(await form.save({ name: 'test' }), false);
   assert.equal(fixture.writes, 0);
-  const { useResourceDeleteCrud } = fixture.load('hooks/resources/use-resource-delete-crud.ts');
+  const { useResourceDeleteCrud } = fixture.load('hooks/resources/crud/use-resource-delete-crud.ts');
   assert.equal(await useResourceDeleteCrud({ resource: 'addon_products', id: 'record', canDelete: true }).remove(), false);
   assert.equal(fixture.writes, 0);
   assert.equal(await useResourceFormCrud({ resource: 'addon_products', id: 'record', canEdit: () => false }).save({}), false);
@@ -274,7 +371,7 @@ test('fresh CRUD denial blocks writes; feature restrictions also prevent submiss
 test('CRUD guards reject repeated confirmation while permission checks are pending', async () => {
   let finish;
   const fixture = crudFixture(() => new Promise((resolve) => { finish = resolve; }));
-  const { useResourceDeleteCrud } = fixture.load('hooks/resources/use-resource-delete-crud.ts');
+  const { useResourceDeleteCrud } = fixture.load('hooks/resources/crud/use-resource-delete-crud.ts');
   const deletion = useResourceDeleteCrud({ resource: 'addon_products', id: 'record', canDelete: true });
   const first = deletion.remove();
   assert.equal(deletion.canDismiss(), false);
@@ -297,15 +394,18 @@ test('row menus hide forbidden and unregistered commands and preserve record res
   const Context = React.createContext(null);
   const box = ({ children }) => React.createElement('div', null, children);
   const load = loader({
-    './resource-context': { ResourceContext: Context },
-    '@/hooks/resources/use-resource-authorization': { useResourceAuthorization: (resource, action, params) => ({ allowed: can(supervisor, resource, action, params) }) },
-    '@/providers/refine/access-control-provider': { assertResourceAccess: async () => {} },
+    '@/contexts/resource': { ResourceContext: Context },
+    '@/hooks/resources': {
+      useResourceContext: () => React.useContext(Context),
+      useResourceAuthorization: (resource, action, params) => ({ allowed: can(supervisor, resource, action, params) }),
+      useResourceRowActions: () => ({ checking: false, execute: async () => true }),
+    },
     '@/components/ui/direction': { useDirection: () => 'rtl' },
     '@/components/ui/button': { Button: ({ children }) => React.createElement('button', null, children) },
     '@/components/ui/dropdown-menu': { DropdownMenu: box, DropdownMenuTrigger: box, DropdownMenuContent: box, DropdownMenuGroup: box,
       DropdownMenuItem: ({ children }) => React.createElement('span', null, children) },
   });
-  const { ResourceRowActions } = load('components/resources/resource-row-actions.tsx');
+  const { ResourceRowActions } = load('components/resources/actions/resource-row-actions.tsx');
   const context = { resource: 'users', getRecord: () => ({ id: 'other', role: 'customer' }),
     canEditRow: () => true, canDeleteRow: () => true, openEdit: () => {}, openDelete: () => {} };
   const html = renderToStaticMarkup(React.createElement(Context.Provider, { value: context }, React.createElement(ResourceRowActions, { id: 'other' })));
@@ -440,7 +540,7 @@ test('resource checks seed Refine from the current bootstrap and never allow a p
       inputs.push(input);
       return { data: input.queryOptions.initialData?.() ?? { can: true }, isError: false };
     } },
-  })('hooks/resources/use-resource-authorization.ts');
+  })('hooks/resources/authorization/use-resource-authorization.ts');
   assert.equal(useResourceAuthorization('users', 'list').allowed, true);
   assert.equal(useResourceAuthorization('uploads', 'list').allowed, false);
   ready = false;

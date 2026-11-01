@@ -7,6 +7,7 @@ import {
   type useTableProps,
 } from "@refinedev/core";
 import type { UseTableReturnType } from "@refinedev/react-table";
+import { DEFAULT_SEARCH_DEBOUNCE_MS } from "@/lib/const";
 import {
   useDataTable as useShuipTable,
   type FilterCondition,
@@ -66,7 +67,8 @@ export type UseDataTableOptions<TData extends BaseRecord> = Pick<
 
 /** Refine owns requests; Shuip owns rendering and local table features. */
 export function useDataTable<TData extends BaseRecord>({
-  refineCoreProps, mode = "server", searchField, searchFields, searchDebounceMs = 0,
+  refineCoreProps, mode = "server", searchField, searchFields,
+  searchDebounceMs = DEFAULT_SEARCH_DEBOUNCE_MS,
   mapDisplayRows, ...options
 }: UseDataTableOptions<TData>): UseTableReturnType<TData, HttpError> {
   const server = mode === "server";

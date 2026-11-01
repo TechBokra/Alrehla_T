@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { useResourceContext } from "./resource-context";
+import { useResourceContext } from "@/hooks/resources";
 import { ResourceDeleteDialog } from "./resource-delete-dialog";
 
 /** Mounts one dialog for the currently selected action. */

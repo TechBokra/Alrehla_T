@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
 import type { RowReordering } from "@/components/block/shuip/data-table";
 
-import { useResourceContext } from "./resource-context";
+import { useResourceContext } from "@/hooks/resources";
 
 export function ResourcePage<TRecord extends BaseRecord>({
   title,

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { AdminNavigationItem } from "@/providers/refine/resources";
-import { useResourceAuthorization } from "@/hooks/resources/use-resource-authorization";
+import { useResourceAuthorization } from "@/hooks/resources";
 import { SidebarMenuButton, SidebarMenuItem, SidebarMenuSkeleton } from "@/components/ui/sidebar";
 
 export function AuthorizedSidebarItem({ item }: { item: AdminNavigationItem }) {

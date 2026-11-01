@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useStore } from "@tanstack/react-form";
 import { addonSchema } from "@/lib/schema";
 import { useAppForm } from "@/lib/form";
 import { FieldGroup } from "@/components/ui/field";
 import type {
   ResourceFormDefinition,
   ResourceFormFieldsContext,
-} from "@/components/resources/resource-editor";
+} from "@/components/resources/types";
 import { catalogError } from "../model";
 import {
   addonCreate,
@@ -26,6 +27,7 @@ function AddonDialogFields({
   record,
   formId,
   disabled,
+  onFormValidityChange,
   onSave,
 }: ResourceFormFieldsContext<Addon>) {
   const [defaults] = useState(() =>
@@ -39,6 +41,11 @@ function AddonDialogFields({
       await onSave(action === "edit" ? addonUpdate(values) : addonCreate(values));
     },
   });
+  const isFormValid = useStore(form.store, (state) => state.isFormValid);
+
+  useEffect(() => {
+    onFormValidityChange(isFormValid);
+  }, [isFormValid, onFormValidityChange]);
 
   return (
     <form.AppForm>
@@ -52,7 +59,6 @@ function AddonDialogFields({
         }}
         className="flex flex-col gap-5"
       >
-        <form.FormErrorSummary />
         <FieldGroup>
           <form.AppField name="name">
             {(Fields) => (

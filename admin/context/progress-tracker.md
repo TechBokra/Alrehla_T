@@ -131,7 +131,7 @@ change.
 
 - Removed theme, UI primitives, data view, fields, forms, form prototype and legacy sections/calendar routes, plus their feature-only demo files.
 - Removed showcase and quick-demo sidebar groups and showcase types from AdminLayout. Shared UI/form/resource components and light/dark theme support remain.
-- Home, password sign-in and Google sign-in now land on `/catalog/products`; real administration and authentication routes remain.
+- At that point, home and both sign-in methods landed on `/catalog/products`; this was later changed to the blank dashboard route `/`.
 
 - User additionally requested removal of `/forgot-password`. Removed its sign-in link and public route configuration. Retained `/reset-password` for profile-initiated recovery emails, with a dedicated receiver component and sign-in fallback for invalid links.
 
@@ -202,7 +202,8 @@ change.
   an explicit registered authorizationAction and preserve feature restrictions.
 - Added AuthorizedSidebarItem and shared navigation metadata; denied links and
   empty groups hide, with loading placeholders and retryable Arabic failures.
-  Standalone pages are gated, and sign-in uses an authorized landing resolver.
+  Standalone pages are gated. The landing resolver was later removed when `/`
+  became the default blank dashboard route after sign-in.
 - Preserved the users permission exception and super-admin-only sensitive
   actions. No database/server policy changes or deployments. Existing catalog
   RLS remains broader than these frontend permission checks.
@@ -212,6 +213,13 @@ change.
   deleting records. All 20 tests, TypeScript, production build and whitespace
   checks pass; existing route-generator and large-chunk warnings remain.
   Profile/user updates invalidate the shared authorization snapshot.
+
+### Blank dashboard home route — 2026-11-01
+
+- Changed `/` to an intentionally empty dashboard page inside the shared
+  AdminLayout. It mounts no resource table, query or page-specific UI.
+- Password sign-in, Google sign-in and an already-authenticated visit to
+  `/sign-in` land on `/`. Removed the prior role-based resource landing resolver.
 
 ### Unified Refine authentication and permission loading — 2026-11-01
 
@@ -290,3 +298,65 @@ change.
   TypeScript, production build and whitespace checks pass. The existing large-
   chunk warning remains. Live browser verification was not performed; no remote
   account/data changes were made.
+
+### ResourceProvider implementation documentation — 2026-11-01
+
+- Added `doc/doc.md` (subsequently translated to English): end-to-end resource flow, each shared component,
+  hooks and logic locations, data-provider selection, table search/filter/sort/
+  pagination, form ownership, CRUD mutations and Refine cache invalidation.
+- Verified invalidation defaults against installed Refine source. Distinguished
+  implemented CRUD from business-command extension patterns and local drag order.
+  Recorded current empty users form and unconnected specialized actions instead
+  of describing the earlier users plan as completed UI.
+- Linked the guide from the application architecture. Documentation-only change;
+  local Markdown link and whitespace checks pass. Runtime tests/build were not
+  rerun; no application code, remote data or deployment changes.
+
+### ResourceProvider guide language — 2026-11-01
+
+- Translated `doc/doc.md` fully into English at the user's request, including
+  diagrams, component/hook responsibilities, CRUD/cache flows and known limits.
+- Documentation-only change. English-content, local-link and whitespace checks
+  pass; runtime tests/build were not rerun.
+
+
+### Resource system separation — 2026-11-01
+
+- Renamed the shared page composer to `ResourceView` and split resource context,
+  contracts, controller/scope/row-action hooks and presentation into distinct
+  modules following Refine core's separation of resource context, hooks and UI.
+- `ResourceContextProvider` now accepts a prepared value only. The access gate
+  remains outside `useResourceController`, preserving the no-query-while-pending
+  or denied behavior. Feature pages now import ResourceView; shared public UI
+  exports are collected in the resources barrel.
+- Updated the English resource guide, architecture context, application guide
+  and stale migration-plan file link. Added a controller test for access plus
+  feature restrictions and ensured page, sort and pagination configuration is
+  preserved. Added scope tests for page-local selection, stable action keys and
+  record eligibility. All 31 automated tests, TypeScript, production build and
+  whitespace checks pass. The existing large-chunk warning remains.
+
+### Resource presentation folders — 2026-11-01
+
+- Grouped the shared resource presentation by responsibility: `access/`,
+  `actions/`, `dialogs/`, `forms/` and `view/`. Each folder has its own entry
+  file; the root `components/resources/index.ts` exposes the stable imports used
+  by routes and feature pages. Shared UI types remain in `types.ts`, while
+  feature-specific resource files stay under `features/<feature>/` and shared
+  behavior remains in `hooks/resources/`.
+- Updated route/feature imports, resource tests, the English resource guide,
+  architecture context and migration-plan link. All 31 admin tests, direct
+  TypeScript check, production build and whitespace checks pass. The existing
+  large-chunk warning remains.
+
+### Resource hook folders — 2026-11-01
+
+- Grouped shared resource hooks into `authorization/`, `actions/`,
+  `controller/`, `crud/`, `scope/` and `table/`. Each group has its own
+  `index.ts`; the root `hooks/resources/index.ts` is the stable import surface.
+  Hook implementations now import sibling groups through their local indexes,
+  while feature presentation uses the shared root entry.
+- Updated resource component imports, test module paths and the English
+  resource/architecture guides. All 31 admin tests, direct TypeScript check,
+  production build and whitespace checks pass. The existing large-chunk
+  warning remains.

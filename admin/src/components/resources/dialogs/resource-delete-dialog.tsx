@@ -10,7 +10,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useResourceDeleteCrud } from "@/hooks/resources/use-resource-delete-crud";
+import { useResourceDeleteCrud } from "@/hooks/resources";
+import type { ResourceDeleteDialogProps } from "../types";
 
 export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   resource,
@@ -20,15 +21,7 @@ export function ResourceDeleteDialog<TRecord extends BaseRecord>({
   record,
   consequence,
   onClose,
-}: {
-  resource: string;
-  id: string;
-  name?: string;
-  canDelete: boolean;
-  record?: BaseRecord;
-  consequence?: string;
-  onClose: () => void;
-}) {
+}: ResourceDeleteDialogProps) {
   const deletion = useResourceDeleteCrud<TRecord>({ resource, id, canDelete, record });
   function remove() {
     void deletion.remove().then((deleted) => {

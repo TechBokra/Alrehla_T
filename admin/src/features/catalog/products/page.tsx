@@ -1,11 +1,11 @@
-import { ResourceProvider } from "@/components/resources/resource-provider";
+import { ResourceView } from "@/components/resources";
 import { productForm } from "./dialogs";
 import { productColumns } from "./columns";
 import type { Product } from "./model";
 
 export function ProductsPage() {
   return (
-    <ResourceProvider<Product>
+    <ResourceView<Product>
       resource="personalized_products"
       title="منتجات المنصة"
       description="إدارة منتجات المكتبة والقصص المخصصة. المنتجات الجديدة تُحفظ غير نشطة."

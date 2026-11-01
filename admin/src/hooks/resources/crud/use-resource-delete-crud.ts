@@ -1,5 +1,5 @@
 import { assertResourceAccess } from "@/providers/refine/access-control-provider";
-import { useResourceAuthorization } from "./use-resource-authorization";
+import { useResourceAuthorization } from "../authorization";
 import { useRef, useState } from "react";
 import {
   useDelete,

@@ -27,7 +27,7 @@ The [resource migration plan](./resource-migration-plan.md) specifies proposed v
 
 #### CRUD resources and tables
 
-- Register resources in the existing resource registry and reuse `ResourceProvider` and resource dialogs. Keep list/table state, detail reads, CRUD mutations, submission guards and cache invalidation in `src/hooks/resources/`; keep presentation in `components/resources/`. Feature fields, schemas, defaults and allowlisted payload mapping stay in the feature.
+- Register resources in the existing resource registry and reuse `ResourceView` and resource dialogs. Keep list/table state, detail reads, CRUD mutations, submission guards and cache invalidation in `src/hooks/resources/`; keep presentation in `components/resources/`. Feature fields, schemas, defaults and allowlisted payload mapping stay in the feature.
 - Ordinary field edits use Refine CRUD mutations. Business operations with transition rules or coordinated writes use an explicit command such as `confirm_order`; the UI does not implement those operations as an unrestricted status update.
 - Configure sorting with `refineCoreProps.sorters` / Refine `setSorters`, and let the Supabase provider apply it before pagination. Use a stable secondary key such as `id` when primary sort values can tie. Display sorting does not write a stored sequence.
 - Keep reads in Refine so tables, details, counts and selectors share its query keys. Do not introduce parallel feature query caches for the same resource data.
@@ -257,17 +257,16 @@ Forms use the shared `useAppForm` factory. `ImageUploadField` requires an explic
 
 The previous `/api/upload/sign` implementation was removed. Supabase now supplies the existing backend connection for the Vite uploads page. See `components/upload/README.md` for integration and deployment details.
 
-### Resource page context (implemented)
+### Resource page composition (implemented)
 
-- `components/resources/resource-provider.tsx` is the complete reusable page entry point. It composes the resource table hook with context, page and dialog presentation. `hooks/resources/use-resource-table.ts` owns Refine list/table configuration and optional local row dragging. Callers pass a resource, columns, title/description and a form definition with a fields render function. It remounts its controller when the resource changes.
-- `components/resources/resource-context.tsx` supplies the lower-level `ResourceScopeProvider`: page-scoped resource name, selected action/row ID, loaded row and open/close callbacks. The public provider supplies its loaded table rows automatically.
-- `ResourceRowActions` and the create toolbar use that context; optional `rowActions` config supplies icon/handler definitions.
-- `ResourceDialogs` mounts one keyed dialog for create/edit/delete; generic `ResourceEditor` binds the form definition to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error display comes from the Refine create/update mutation state; local error state is limited to preflight checks and callbacks. Create/update rely on Refine's default cache invalidation. `use-resource-delete-crud.ts` owns the pessimistic delete call and relies on Refine's default delete invalidation. The dialogs render pending/error states and keep the feature form slot. Products and add-ons each own their resource metadata, page composition, table columns, model/payload mapping and create/edit form fields in `features/catalog/products/` and `features/catalog/addons/`. They reuse the shared CRUD dialog shell; feature fields and schemas remain separate.
-- Delete identity/name come from the loaded table rows. `resource-context.tsx` owns only page-scoped dialog selection and callbacks. No application-wide selected-row singleton is introduced.
-
-The public provider accepts `resource`, `title`, optional `description`, `columns` and `form`. `form.fields` receives `resource`, `action`, `record`, `formId`, `disabled` and `onSave`; render a feature form component that binds its native form to `formId`, validates its inputs and calls `onSave` with an explicit payload. Features retain their own `useAppForm` fields and schemas.
-
-Optional configuration includes `searchField`, `refineCoreProps`, `canCreate`, `canDelete`, `rowActions`, `deleteConsequence`, `storageKey`, `enableRowReordering`, `getRowLabel` and `onReorder(ids, rows)`. Dragging is off by default in the generic provider, applies only to the loaded page, and never persists automatically. Catalog's adapter preserves name search, sort_order/id sorting and enabled local dragging.
+- `components/resources/view/resource-view.tsx` exports `ResourceView`, the page composer. Its list `ResourceAccessGate` is outside the authorized content, so table/controller hooks mount only after list access succeeds.
+- `contexts/resource/` contains a thin `ResourceContextProvider` and the selected-action/context contracts. `hooks/resources/` groups shared hooks by concern: `authorization/`, `actions/`, `controller/`, `crud/`, `scope/` and `table/`. Each group has an `index.ts`; the root `index.ts` is the stable hook entry used by presentation components.
+- `hooks/resources/scope/use-resource-scope.ts` owns per-page dialog selection, row lookup, action keys and record restrictions; `scope/use-resource-context.ts` is the shared context reader.
+- `hooks/resources/controller/use-resource-controller.ts` combines action permissions, feature restrictions, table state and scope state. `table/use-resource-table.ts` owns Refine table configuration and local-only drag order. `actions/use-resource-row-actions.ts` owns fresh action preflight, duplicate execution protection and error feedback.
+- Create/delete grants are read from the access-control provider; `ResourceViewProps` does not accept duplicate `canCreate` or `canDelete` overrides. Feature-owned `form.canEdit`, when present, can further restrict records and never grants access. Resource search delay (300 ms) and default page size (20) come from `src/lib/const.ts`.
+- `components/resources/` groups presentation by concern: `access/` for the permission gate, `actions/` for row menus, `dialogs/` for dialog hosting/deletion, `forms/` for create/edit composition and `view/` for the resource page. Each group has an `index.ts`; the root `index.ts` is the stable public entry for feature pages/routes. Shared contracts stay in `components/resources/types.ts`. Context/hooks use type-only UI contract imports and have no runtime dependency on presentation components.
+- `ResourceDialogs` mounts one keyed create/edit/delete dialog; `ResourceEditor` binds feature fields to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error comes from Refine mutations; local errors cover preflight and callbacks. Create/update rely on Refine automatic invalidation. `use-resource-delete-crud.ts` owns pessimistic delete and relies on Refine invalidation. Products and add-ons own their schemas, fields, columns and payload mapping in separate feature folders.
+- Delete identity/name comes from loaded list rows. The resource scope holds UI selection only; Refine owns list/detail data and mutation cache. Dragging is local to the loaded page and does not persist by default. See [`doc/doc.md`](../doc/doc.md) for the full flow/component/hook/cache guide.
 
 - `[folder]` — [What this folder owns and is responsible for]
 - `[folder]` — [What this folder owns and is responsible for]
@@ -308,10 +307,10 @@ Super admins need no permission-group lookup. Session invalidation clears both
 snapshots and rejects stale in-flight reads. A fresh mutation preflight bypasses
 the snapshot without replacing Refine mutation state.
 
-`hooks/resources/use-resource-authorization.ts` wraps Refine `useCan`, adding the
+`hooks/resources/authorization/use-resource-authorization.ts` wraps Refine `useCan`, adding the
 session version and permission-snapshot revision to the generated query key through
 params. Initial results are seeded from the validated shared actor. The shared
-access provider owns focus refresh; errors cannot reuse an old grant. `ResourceProvider` gates list access
+access provider owns focus refresh; errors cannot reuse an old grant. `ResourceView` gates list access
 before mounting the table, combines CRUD/sort grants with existing feature
 restrictions, and guards dialog opening. Shared CRUD hooks recheck access before
 submission. Custom `ResourceRowAction` entries require `authorizationAction`;

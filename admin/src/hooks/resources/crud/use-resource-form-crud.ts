@@ -7,7 +7,7 @@ import {
   type HttpError,
 } from "@refinedev/core";
 import { assertResourceAccess } from "@/providers/refine/access-control-provider";
-import { useResourceAuthorization } from "./use-resource-authorization";
+import { useResourceAuthorization } from "../authorization";
 import { editRecordState } from "./lifecycle";
 
 type ResourceFormAction = "create" | "edit";

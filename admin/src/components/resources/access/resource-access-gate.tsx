@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useResourceAuthorization } from "@/hooks/resources/use-resource-authorization";
+import { useResourceAuthorization } from "@/hooks/resources";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

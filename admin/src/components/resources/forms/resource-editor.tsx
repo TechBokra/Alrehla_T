@@ -1,25 +1,7 @@
-import type { ReactNode } from "react";
 import type { BaseRecord } from "@refinedev/core";
-import {
-  ResourceFormDialog,
-  type ResourceFormDialogContext,
-} from "./resource-form-dialog";
-import { useResourceContext } from "./resource-context";
-
-export interface ResourceFormFieldsContext<
-  TRecord,
-> extends ResourceFormDialogContext<TRecord> {
-  resource: string;
-  action: "create" | "edit";
-}
-export interface ResourceFormDefinition<TRecord extends BaseRecord> {
-  title: string;
-  dataProviderName?: string;
-  canEdit?: (record: TRecord) => boolean;
-  getErrorMessage?: (error: unknown) => string;
-  onSaved?: (record: TRecord, action: "create" | "edit") => void;
-  fields: (context: ResourceFormFieldsContext<TRecord>) => ReactNode;
-}
+import { ResourceFormDialog } from "./resource-form-dialog";
+import { useResourceContext } from "@/hooks/resources";
+import type { ResourceFormDefinition } from "../types";
 export function ResourceEditor<TRecord extends BaseRecord>({
   form,
 }: {

@@ -1,10 +1,10 @@
-import { ResourceProvider } from "@/components/resources/resource-provider";
+import { ResourceView } from "@/components/resources";
 import { usersColumn } from "./columns";
 import type { UserRecord } from "./model";
 
 export function UsersPage() {
   return (
-    <ResourceProvider<UserRecord>
+    <ResourceView<UserRecord>
       resource="users"
       title="المستخدمون"
       description="إدارة حسابات العملاء والإداريين ومقدّمي الخدمة والناشرين."

@@ -1,26 +1,21 @@
-import { useContext, useRef, useState, type ComponentType } from "react";
 import type { BaseRecord } from "@refinedev/core";
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import { assertResourceAccess } from "@/providers/refine/access-control-provider";
-import { useResourceAuthorization } from "@/hooks/resources/use-resource-authorization";
+import {
+  useResourceAuthorization,
+  useResourceContext,
+  useResourceRowActions,
+} from "@/hooks/resources";
 import { useDirection } from "@/components/ui/direction";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
-  DropdownMenuGroup, DropdownMenuItem,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { ResourceContext } from "./resource-context";
+import type { ResourceRowAction } from "../types";
 
-export interface ResourceRowAction {
-  key: string;
-  authorizationAction: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  onSelect: (id: string) => void;
-  disabled?: boolean;
-  variant?: "default" | "destructive";
-}
 export function createResourceActions({ onEdit, onDelete }: {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -36,18 +31,27 @@ export function ResourceRowActions({ id, actions, disabled }: {
   actions?: ResourceRowAction[];
   disabled?: boolean;
 }) {
-  const context = useContext(ResourceContext);
-  if (!context) return null;
+  const context = useResourceContext();
   const candidates = (actions ?? context.rowActions ?? createResourceActions({
-    onEdit: context.openEdit, onDelete: context.openDelete,
+    onEdit: context.openEdit,
+    onDelete: context.openDelete,
   })).filter((action) => {
     if (action.authorizationAction === "edit") return context.canEditRow(id);
     if (action.authorizationAction === "delete") return context.canDeleteRow(id);
     return Boolean(action.authorizationAction);
   });
+
   if (!candidates.length) return null;
-  return <AuthorizeActions resource={context.resource} id={id} record={context.getRecord(id)}
-    remaining={candidates} allowed={[]} disabled={disabled} />;
+  return (
+    <AuthorizeActions
+      resource={context.resource}
+      id={id}
+      record={context.getRecord(id)}
+      remaining={candidates}
+      allowed={[]}
+      disabled={disabled}
+    />
+  );
 }
 
 type ActionAuthorizationProps = {
@@ -59,14 +63,17 @@ type ActionAuthorizationProps = {
   disabled?: boolean;
 };
 
-/** One hook per component keeps arbitrary custom-action lists hook-safe. */
+/** Keep one access hook per action in a stable, keyed component boundary. */
 function AuthorizeActions({ remaining, allowed, ...props }: ActionAuthorizationProps) {
   const [action, ...rest] = remaining;
   const access = useResourceAuthorization(props.resource, action.authorizationAction, {
-    id: props.id, record: props.record,
+    id: props.id,
+    record: props.record,
   });
   const authorized = access.allowed ? [...allowed, action] : allowed;
-  if (rest.length) return <AuthorizeActions key={rest[0].key} {...props} remaining={rest} allowed={authorized} />;
+  if (rest.length) {
+    return <AuthorizeActions key={rest[0].key} {...props} remaining={rest} allowed={authorized} />;
+  }
   return <AuthorizedActionMenu {...props} actions={authorized} />;
 }
 
@@ -78,30 +85,18 @@ function AuthorizedActionMenu({ actions, resource, id, record, disabled }: {
   disabled?: boolean;
 }) {
   const direction = useDirection();
-  const inFlight = useRef(false);
-  const [checking, setChecking] = useState(false);
+  const { checking, execute } = useResourceRowActions({ resource, id, record });
   if (!actions.length) return null;
-  async function select(action: ResourceRowAction) {
-    if (inFlight.current || disabled || action.disabled) return;
-    inFlight.current = true;
-    setChecking(true);
-    try {
-      await assertResourceAccess(resource, action.authorizationAction, { id, record });
-      action.onSelect(id);
-    } catch (error) {
-      toast.error("تعذّر تنفيذ الإجراء", {
-        description: error instanceof Error ? error.message : "تعذّر التحقق من الصلاحيات.",
-      });
-    } finally {
-      inFlight.current = false;
-      setChecking(false);
-    }
-  }
   return (
     <DropdownMenu dir={direction}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" disabled={disabled || checking}
-          aria-label="إجراءات السجل" onClick={(event) => event.stopPropagation()}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={disabled || checking}
+          aria-label="إجراءات السجل"
+          onClick={(event) => event.stopPropagation()}
+        >
           <Ellipsis />
         </Button>
       </DropdownMenuTrigger>
@@ -110,8 +105,12 @@ function AuthorizedActionMenu({ actions, resource, id, record, disabled }: {
           {actions.map((action) => {
             const Icon = action.icon;
             return (
-              <DropdownMenuItem key={action.key} variant={action.variant} disabled={action.disabled || checking}
-                onSelect={() => void select(action)}>
+              <DropdownMenuItem
+                key={action.key}
+                variant={action.variant}
+                disabled={action.disabled || checking}
+                onSelect={() => void execute(action)}
+              >
                 <Icon />{action.label}
               </DropdownMenuItem>
             );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@tanstack/react-form";
 import { productSchema } from "@/lib/schema";
 import { useAppForm } from "@/lib/form";
@@ -6,7 +6,7 @@ import { FieldGroup } from "@/components/ui/field";
 import type {
   ResourceFormDefinition,
   ResourceFormFieldsContext,
-} from "@/components/resources/resource-editor";
+} from "@/components/resources/types";
 import { catalogError } from "../model";
 import {
   defaultProductValues,
@@ -29,6 +29,7 @@ function ProductDialogFields({
   record,
   formId,
   disabled,
+  onFormValidityChange,
   onSave,
 }: ResourceFormFieldsContext<Product>) {
   const [defaults] = useState(() =>
@@ -45,6 +46,11 @@ function ProductDialogFields({
     },
   });
   const category = useStore(form.store, (state) => state.values.category);
+  const isFormValid = useStore(form.store, (state) => state.isFormValid);
+
+  useEffect(() => {
+    onFormValidityChange(isFormValid);
+  }, [isFormValid, onFormValidityChange]);
 
   return (
     <form.AppForm>
@@ -58,7 +64,6 @@ function ProductDialogFields({
         }}
         className="flex flex-col gap-5"
       >
-        <form.FormErrorSummary />
         <FieldGroup>
           <form.AppField name="name">
             {(Fields) => (

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NotificationsPage } from "@/features/notifications/page";
 
-import { ResourceAccessGate } from "@/components/resources/resource-access-gate";
+import { ResourceAccessGate } from "@/components/resources";
 
 export const Route = createFileRoute("/notifications/")({
   component: AuthorizedNotificationsPage,

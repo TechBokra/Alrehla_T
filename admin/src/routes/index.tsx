@@ -1,14 +1,10 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-
-import { resolveAdminLandingPage } from "@/providers/refine/access-control-provider";
-import { useAdminAccess } from "@/hooks/auth/use-admin-access";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: AdminLanding,
+  component: DashboardPage,
 });
 
-function AdminLanding() {
-  const access = useAdminAccess();
-  if (!access?.ready) return null;
-  return <Navigate to={resolveAdminLandingPage(access.actor)} replace />;
+/** The dashboard route intentionally has no page content yet. */
+function DashboardPage() {
+  return null;
 }

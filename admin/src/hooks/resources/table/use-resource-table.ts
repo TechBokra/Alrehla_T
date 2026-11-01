@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { BaseRecord, HttpError } from "@refinedev/core";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { UseTableReturnType } from "@refinedev/react-table";
+import { DEFAULT_RESOURCE_PAGE_SIZE } from "@/lib/const";
 import {
   useDataTable,
   type UseDataTableOptions,
@@ -67,7 +68,7 @@ export function useResourceTable<TRecord extends ResourceRecord>({
     refineCoreProps: {
       ...refineCoreProps,
       resource,
-      pagination: { pageSize: 20, ...refineCoreProps?.pagination },
+      pagination: { pageSize: DEFAULT_RESOURCE_PAGE_SIZE, ...refineCoreProps?.pagination },
     },
   });
 

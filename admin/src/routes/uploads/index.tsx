@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { UploadsPage } from "@/features/uploads/page";
-import { ResourceAccessGate } from "@/components/resources/resource-access-gate";
+import { ResourceAccessGate } from "@/components/resources";
 
 export const Route = createFileRoute("/uploads/")({ component: AuthorizedUploadsPage });
 

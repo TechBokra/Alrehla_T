@@ -1,15 +1,16 @@
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { BaseRecord } from "@refinedev/core";
 import { LoaderCircle, Save } from "lucide-react";
 import { FormDialog } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useResourceFormCrud } from "@/hooks/resources/use-resource-form-crud";
+import { useResourceFormCrud } from "@/hooks/resources";
 
 export interface ResourceFormDialogContext<TRecord> {
   record?: TRecord;
   formId: string;
   disabled: boolean;
+  onFormValidityChange: (isValid: boolean) => void;
   onSave: (values: Record<string, unknown>) => Promise<void>;
 }
 
@@ -36,6 +37,7 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
   children: (context: ResourceFormDialogContext<TRecord>) => ReactNode;
 }) {
   const formId = useId();
+  const [formValid, setFormValid] = useState(false);
   const editing = id !== undefined;
   const crud = useResourceFormCrud<TRecord>({
     resource,
@@ -62,10 +64,16 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
           <Button
             type="submit"
             form={formId}
-            disabled={crud.busy || crud.initialError || crud.unavailable}
+            disabled={
+              crud.busy || crud.initialError || crud.unavailable || !formValid
+            }
             aria-busy={crud.pending}
           >
-            {crud.pending ? <LoaderCircle className="animate-spin" /> : <Save />}
+            {crud.pending ? (
+              <LoaderCircle className="animate-spin" />
+            ) : (
+              <Save />
+            )}
             {crud.pending ? "جارٍ الحفظ…" : "حفظ"}
           </Button>
           <Button
@@ -88,17 +96,15 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
         ) : crud.initialError ? (
           <div role="alert" className="flex flex-col gap-3">
             <p>
-              {crud.error ?? (crud.state === "forbidden"
-                ? "هذا السجل غير متاح للتعديل هنا."
-                : crud.state === "missing"
-                  ? "السجل غير موجود أو غير متاح لحسابك."
-                  : "تعذّر تحميل السجل. حاول مرة أخرى.")}
+              {crud.error ??
+                (crud.state === "forbidden"
+                  ? "هذا السجل غير متاح للتعديل هنا."
+                  : crud.state === "missing"
+                    ? "السجل غير موجود أو غير متاح لحسابك."
+                    : "تعذّر تحميل السجل. حاول مرة أخرى.")}
             </p>
             {crud.canRetry && (
-              <Button
-                variant="outline"
-                onClick={() => void crud.retryLoad()}
-              >
+              <Button variant="outline" onClick={() => void crud.retryLoad()}>
                 إعادة المحاولة
               </Button>
             )}
@@ -123,6 +129,7 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
               record: crud.record,
               formId,
               disabled: crud.busy || crud.unavailable,
+              onFormValidityChange: setFormValid,
               onSave: save,
             })}
           </>
