@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppForm } from "@/lib/form";
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import type { CloudinaryUploadResult, UploadAdapter } from "@uploadcn/core";
 import {
   Empty,

@@ -1,4 +1,4 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import type { CSSProperties, ReactNode } from "react";
 import { useLogout } from "@refinedev/core";
 import { Link, useRouterState } from "@tanstack/react-router";

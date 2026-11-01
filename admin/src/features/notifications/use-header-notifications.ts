@@ -1,4 +1,4 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { useList } from "@refinedev/core";
 import { headerNotificationQueries, type HeaderNotification } from "./queries";
 

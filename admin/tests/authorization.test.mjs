@@ -7,10 +7,11 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient } from '@tanstack/react-query';
 
 const require = createRequire(import.meta.url);
 const root = resolve(import.meta.dirname, '../src');
-function loader(stubs = {}) {
+function loader(stubs = {}, globals = {}) {
   const cache = new Map();
   function load(file) {
     file = resolve(file);
@@ -33,7 +34,7 @@ function loader(stubs = {}) {
       return require(name);
     };
     vm.runInNewContext(output, { require: localRequire, module: mod, exports: mod.exports,
-      URL, AbortSignal, console, setTimeout, clearTimeout, queueMicrotask }, { filename: file });
+      URL, AbortSignal, console, setTimeout, clearTimeout, queueMicrotask, ...globals }, { filename: file });
     return mod.exports;
   }
   return (path) => load(resolve(root, path));
@@ -117,8 +118,9 @@ test('session invalidation discards an old pending permission result', async () 
   assert.equal((await auth.getAuthorization()).id, 'new');
 });
 
-const supervisor = { id: 'actor', role: 'general_supervisor', permissions: [] };
-const superAdmin = { id: 'actor', role: 'super_admin', permissions: [] };
+const supervisor = { id: 'actor', role: 'general_supervisor', permissions: [],
+  identity: { id: 'actor', name: 'Admin', email: 'admin@example.com', avatar: null, role: 'general_supervisor' } };
+const superAdmin = { ...supervisor, role: 'super_admin', identity: { ...supervisor.identity, role: 'super_admin' } };
 let currentActor = supervisor;
 let version = 1;
 const provider = loader({ './auth-provider': { adminAuthProvider: {
@@ -159,9 +161,9 @@ test('own profile/notifications and protected user records remain restricted', (
 
 test('landing chooses an allowed page; stale auth versions are denied', async () => {
   currentActor = supervisor;
-  assert.equal(await provider.resolveAdminLandingPage(), '/users');
+  assert.equal(provider.resolveAdminLandingPage(currentActor), '/users');
   currentActor = superAdmin;
-  assert.equal(await provider.resolveAdminLandingPage(), '/catalog/products');
+  assert.equal(provider.resolveAdminLandingPage(currentActor), '/catalog/products');
   assert.equal((await provider.supabaseAccessControlProvider.can({ resource: 'users', action: 'list', params: { authVersion: 0 } })).can, false);
 });
 
@@ -226,7 +228,9 @@ test('shared hook scopes Refine access queries by session version and rejects st
   let authVersion = 1;
   const params = [];
   const { useResourceAuthorization } = loader({
-    react: { useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot() },
+    '@/providers/refine/access-control-provider': { evaluateResourceAccess: provider.evaluateResourceAccess },
+    '@/hooks/auth/use-admin-access': { useAdminSessionVersion: () => authVersion,
+      useAdminAccess: () => ({ ready: true, version: authVersion, actor: supervisor, permissionsVersion: authVersion }) },
     '@refinedev/core': { useCan: (input) => { params.push(input.params); return { data: { can: true }, isError: authVersion === 2 }; } },
     '@/providers/refine/auth-provider': { adminAuthProvider: { subscribeSession: () => () => {}, getSessionVersion: () => authVersion } },
   })('hooks/resources/use-resource-authorization.ts');
@@ -336,4 +340,273 @@ test('Supabase gateway reads only the assigned/default role and rejects missing 
     missing = true;
     await assert.rejects(adminAuthProvider.getAuthorization(true), /صلاحيات/);
   }
+});
+
+function bootstrapFixture(path, authState, permissionState, brandingState = { isPending: false, isError: false }, identityState = identified) {
+  let mounted = 0;
+  let authOptions;
+  let permissionOptions;
+  let brandingOptions;
+  let identityOptions;
+  let accessState;
+  const AccessContext = React.createContext(null);
+  const box = ({ children }) => React.createElement('div', null, children);
+  const { AdminAccessProvider } = loader({
+    '@refinedev/core': {
+      useGetIdentity: ({ queryOptions }) => { identityOptions = queryOptions; return identityState; },
+      useIsAuthenticated: ({ queryOptions }) => { authOptions = queryOptions; return authState; },
+      usePermissions: ({ options }) => { permissionOptions = options; return permissionState; },
+    },
+    '@tanstack/react-router': { useLocation: () => path,
+      Navigate: ({ to }) => React.createElement('a', { href: to }, 'redirect') },
+    './auth-provider': { adminAuthProvider: { invalidateSession() {} } },
+    '@/hooks/auth/use-admin-access': { AdminAccessContext: AccessContext, useAdminSessionVersion: () => 7 },
+    '@/hooks/auth/use-admin-branding': { useAdminBranding: (options) => {
+      brandingOptions = options;
+      return { query: brandingState, branding: { name: 'الرحلة' } };
+    } },
+    '@/components/route-states/loading': { Loading: () => React.createElement('div', { role: 'status' }, 'جارٍ التحميل') },
+    '@/components/ui/alert': { Alert: box, AlertTitle: box, AlertDescription: box },
+    '@/components/ui/button': { Button: ({ children }) => React.createElement('button', null, children) },
+  })('providers/refine/admin-access-provider.tsx');
+  const Child = () => { mounted++; accessState = React.useContext(AccessContext); return React.createElement('div', null, 'protected child'); };
+  const html = renderToStaticMarkup(React.createElement(AdminAccessProvider, null, React.createElement(Child)));
+  return { html, mounted, authOptions, permissionOptions, brandingOptions, identityOptions, accessState };
+}
+const identified = { isPending: false, isFetching: false, isError: false, isSuccess: true, data: supervisor.identity };
+const checked = { isPending: false, isFetching: false, isError: false, data: { authenticated: true, profileId: 'actor' } };
+const granted = { isPending: false, isFetching: false, isError: false, isSuccess: true,
+  data: supervisor, dataUpdatedAt: 10 };
+
+test('one Refine bootstrap gate blocks all protected children until auth and permissions resolve', () => {
+  for (const [auth, permissions] of [
+    [{ ...checked, isPending: true, isFetching: true, data: undefined }, granted],
+    [checked, { ...granted, isPending: true, isSuccess: false, data: undefined }],
+    [checked, { ...granted, data: { ...supervisor, id: 'different-account' } }],
+    [{ ...checked, isError: true }, granted],
+    [checked, { ...granted, isError: true, isSuccess: false }],
+    [checked, { ...granted, data: null }],
+  ]) {
+    const result = bootstrapFixture('/users', auth, permissions);
+    assert.equal(result.mounted, 0);
+    assert.ok(result.html.includes('جارٍ التحميل') || result.html.includes('إعادة المحاولة'));
+  }
+  assert.equal(bootstrapFixture('/users', checked, granted).mounted, 1);
+  // A same-session background refresh preserves mounted forms and uploads.
+  assert.equal(bootstrapFixture('/users', checked, { ...granted, isFetching: true }).mounted, 1);
+});
+
+test('public callbacks bypass bootstrap; sign-in redirects only after authentication is known', () => {
+  for (const path of ['/auth/callback', '/auth/link', '/reset-password']) {
+    const result = bootstrapFixture(path, { ...checked, isPending: true }, granted);
+    assert.equal(result.mounted, 1);
+    assert.equal(result.authOptions.enabled, false);
+    assert.equal(result.permissionOptions.enabled, false);
+    assert.equal(result.brandingOptions.enabled, false);
+    assert.equal(result.identityOptions.enabled, false);
+  }
+  const anonymous = { ...checked, data: { authenticated: false } };
+  assert.equal(bootstrapFixture('/sign-in', anonymous, granted).mounted, 1);
+  assert.equal(bootstrapFixture('/sign-in', checked, granted).html, '<a href="/">redirect</a>');
+  const protectedPage = bootstrapFixture('/users', anonymous, granted);
+  assert.equal(protectedPage.mounted, 0);
+  assert.equal(protectedPage.html, '<a href="/sign-in">redirect</a>');
+  assert.equal(bootstrapFixture('/sign-in', checked, granted).permissionOptions.enabled, false);
+});
+
+test('Refine permission bootstrap shares adapter reads; connection errors are retryable auth failures', async () => {
+  const g = gateway();
+  const auth = authModule.createAdminAuthProvider(() => g.object);
+  assert.equal((await auth.check()).authenticated, true);
+  const [a, b] = await Promise.all([auth.getPermissions(), auth.getAuthorization()]);
+  assert.equal(a, b);
+  assert.equal(g.reads, 1);
+  auth.invalidateSession();
+  g.object.getUser = async () => { throw new Error('offline'); };
+  await assert.rejects(auth.check(), /تعذّر الاتصال/);
+  g.object.getUser = async () => null;
+  assert.equal((await auth.check()).authenticated, false);
+});
+
+test('resource checks seed Refine from the current bootstrap and never allow a pending session', () => {
+  let ready = true;
+  let version = 1;
+  const inputs = [];
+  const { useResourceAuthorization } = loader({
+    '@/providers/refine/access-control-provider': { evaluateResourceAccess: provider.evaluateResourceAccess },
+    '@/hooks/auth/use-admin-access': { useAdminSessionVersion: () => version,
+      useAdminAccess: () => ({ ready, version, actor: supervisor, permissionsVersion: version }) },
+    '@refinedev/core': { useCan: (input) => {
+      inputs.push(input);
+      return { data: input.queryOptions.initialData?.() ?? { can: true }, isError: false };
+    } },
+  })('hooks/resources/use-resource-authorization.ts');
+  assert.equal(useResourceAuthorization('users', 'list').allowed, true);
+  assert.equal(useResourceAuthorization('uploads', 'list').allowed, false);
+  ready = false;
+  version++;
+  assert.equal(useResourceAuthorization('users', 'list').allowed, false);
+  assert.equal(inputs.at(-1).queryOptions.enabled, false);
+  assert.equal(inputs.at(-1).queryOptions.initialData, undefined);
+  assert.equal(inputs.at(-1).params.authVersion, 2);
+});
+
+test('focus joins one fresh permission read and discards an obsolete refresh completion', async () => {
+  for (const changedWhilePending of [false, true]) {
+    let currentVersion = 7;
+    let invalidations = 0;
+    let starts = 0;
+    let joins = 0;
+    let identityJoins = 0;
+    let finish;
+    let pending;
+    const effects = [];
+    const listeners = new Map();
+    const box = ({ children }) => children;
+    const { AdminAccessProvider } = loader({
+      react: { ...React, useEffect: (effect) => { effects.push(effect); } },
+      '@refinedev/core': {
+        useGetIdentity: () => ({ ...identified, refetch: async () => { identityJoins++; await pending; } }),
+        useIsAuthenticated: () => checked,
+        usePermissions: () => ({ ...granted, refetch: async () => {
+          joins++;
+          assert.ok(pending, 'fresh adapter request starts before Refine refetch');
+          return { data: await pending, isError: false };
+        } }),
+      },
+      '@tanstack/react-router': { useLocation: () => '/users', Navigate: () => null },
+      './auth-provider': { adminAuthProvider: {
+        getAuthorization: (refresh) => {
+          assert.equal(refresh, true);
+          starts++;
+          pending = new Promise((resolve) => { finish = resolve; });
+          return pending;
+        },
+        getSessionVersion: () => currentVersion,
+        invalidateSession: () => { invalidations++; currentVersion++; },
+      } },
+      '@/hooks/auth/use-admin-access': { AdminAccessContext: React.createContext(null), useAdminSessionVersion: () => 7 },
+      '@/hooks/auth/use-admin-branding': { useAdminBranding: () => ({ query: { isPending: false }, branding: { name: 'الرحلة' } }) },
+      '@/components/route-states/loading': { Loading: () => null },
+      '@/components/ui/alert': { Alert: box, AlertTitle: box, AlertDescription: box },
+      '@/components/ui/button': { Button: box },
+    }, {
+      window: { addEventListener: (name, callback) => listeners.set(name, callback), removeEventListener() {} },
+      document: { visibilityState: 'visible' },
+    })('providers/refine/admin-access-provider.tsx');
+    renderToStaticMarkup(React.createElement(AdminAccessProvider, null, 'content'));
+    // Focus registration only; the navigation effect is independently stale-time driven.
+    const cleanup = effects[0]();
+    listeners.get('focus')();
+    assert.equal(starts, 1);
+    assert.equal(joins, 1);
+    assert.equal(identityJoins, 1);
+    if (changedWhilePending) currentVersion++;
+    finish({ ...supervisor, id: 'replacement' });
+    await tick();
+    assert.equal(invalidations, changedWhilePending ? 0 : 1);
+    cleanup();
+  }
+});
+
+test('a rejected password login does not restart bootstrap and unmount its form', async () => {
+  const g = gateway();
+  g.object.signIn = async () => ({ errorCode: 'invalid_credentials' });
+  const auth = authModule.createAdminAuthProvider(() => g.object);
+  assert.equal((await auth.login({ email: 'test@example.com', password: 'invalid' })).success, false);
+  assert.equal(auth.getSessionVersion(), 0);
+});
+
+test('identity is derived from the verified session without another user/profile read', async () => {
+  const g = gateway();
+  let userReads = 0;
+  let profileReads = 0;
+  let name = 'Before';
+  const getUser = g.object.getUser;
+  const getProfile = g.object.getProfile;
+  g.object.getUser = async () => { userReads++; return { ...await getUser(), email: 'admin@example.com' }; };
+  g.object.getProfile = async () => { profileReads++; return { ...await getProfile(), full_name: name }; };
+  const auth = authModule.createAdminAuthProvider(() => g.object);
+  await auth.check();
+  await auth.getPermissions();
+  const cache = new QueryClient();
+  const options = () => ({ queryKey: ['admin-identity', auth.getSessionVersion()], queryFn: () => auth.getIdentity(), staleTime: 60_000 });
+  const identity = await cache.fetchQuery(options());
+  assert.equal(identity.name, 'Before');
+  assert.equal(identity.email, 'admin@example.com');
+  assert.equal(await cache.fetchQuery(options()), identity);
+  assert.equal(userReads, 1);
+  assert.equal(profileReads, 1);
+  name = 'After';
+  auth.invalidateSession();
+  await auth.getAuthorization();
+  assert.equal((await cache.fetchQuery(options())).name, 'After');
+  cache.clear();
+  assert.equal(userReads, 2);
+  assert.equal(profileReads, 2);
+});
+
+test('branding joins bootstrap loading and starts in parallel with permissions', () => {
+  const pendingBrand = bootstrapFixture('/users', checked, granted, { isPending: true });
+  assert.equal(pendingBrand.mounted, 0);
+  assert.ok(pendingBrand.html.includes('جارٍ التحميل'));
+  const pendingPermissions = bootstrapFixture('/users', checked, { ...granted, isPending: true, isSuccess: false });
+  assert.equal(pendingPermissions.brandingOptions.enabled, true);
+  assert.equal(pendingPermissions.permissionOptions.enabled, true);
+  const pendingAuth = bootstrapFixture('/users', { ...checked, isPending: true, data: undefined }, granted);
+  assert.equal(pendingAuth.brandingOptions.enabled, false);
+  assert.equal(bootstrapFixture('/sign-in', checked, granted).brandingOptions.enabled, false);
+  const result = bootstrapFixture('/users', checked, granted);
+  assert.equal(result.accessState.identity.data.name, 'Admin');
+  assert.equal(result.accessState.branding.name, 'الرحلة');
+  assert.equal(result.accessState.isLoading, false);
+  const updated = bootstrapFixture('/users', checked, granted, undefined, { ...identified, data: { ...identified.data, name: 'Changed', avatar: 'https://example.com/avatar.png' } });
+  assert.equal(updated.accessState.identity.data.name, 'Changed');
+  assert.equal(updated.accessState.identity.data.avatar, 'https://example.com/avatar.png');
+  assert.equal(bootstrapFixture('/users', checked, granted, { isPending: false, isError: true }).mounted, 1);
+  for (const identity of [
+    { ...identified, isPending: true, isSuccess: false, data: undefined },
+    { ...identified, isError: true },
+    { ...identified, data: null },
+    { ...identified, data: { ...identified.data, id: 'other' } },
+    { ...identified, data: { ...identified.data, role: 'super_admin' } },
+  ]) assert.equal(bootstrapFixture('/users', checked, granted, undefined, identity).mounted, 0);
+  assert.equal(bootstrapFixture('/users', checked, granted, undefined, { ...identified, isFetching: true }).mounted, 1);
+  assert.deepEqual(Array.from(result.identityOptions.queryKey), ['admin-identity', 7]);
+  assert.equal(result.identityOptions.staleTime, 60_000);
+  assert.equal(result.identityOptions.retry, false);
+  assert.equal(result.identityOptions.refetchOnWindowFocus, false);
+});
+
+test('branding query is session-scoped and favicon synchronization cleans up', () => {
+  const model = loader()('features/site-branding/model.ts');
+  const options = model.siteBrandingQuery({ enabled: true, version: 4, profileId: 'actor' });
+  assert.equal(options.meta.authVersion, 4);
+  assert.equal(options.meta.identity, 'actor');
+  assert.equal(options.dataProviderName, 'siteSettings');
+  assert.equal(options.queryOptions.refetchOnWindowFocus, false);
+  assert.equal(model.siteBrandingQuery({ enabled: false, version: 5 }).queryOptions.enabled, false);
+  assert.equal(model.siteBrandingValues({ siteName: '  الرحلة  ', logo: 'javascript:bad', favicon: 'data:image/png,x' }).name, 'الرحلة');
+  assert.equal(model.siteBrandingValues({ logo: 'javascript:bad' }).logo, undefined);
+  const effects = [];
+  let removed = false;
+  let appended;
+  let captured;
+  const { useAdminBranding } = loader({
+    react: { ...React, useEffect: (effect) => effects.push(effect) },
+    '@refinedev/core': { useOne: (input) => {
+      captured = input;
+      return { query: { isPending: false }, result: { siteName: 'Brand', favicon: 'https://example.com/favicon.png' } };
+    } },
+  }, {
+    document: { createElement: () => ({ remove: () => { removed = true; } }),
+      head: { appendChild: (link) => { appended = link; } } },
+  })('hooks/auth/use-admin-branding.ts');
+  function ReadBranding() { useAdminBranding({ enabled: true, version: 4, profileId: 'actor' }); return null; }
+  renderToStaticMarkup(React.createElement(ReadBranding));
+  assert.equal(captured.meta.identity, 'actor');
+  const cleanup = effects[0]();
+  assert.equal(appended.href, 'https://example.com/favicon.png');
+  cleanup();
+  assert.equal(removed, true);
 });

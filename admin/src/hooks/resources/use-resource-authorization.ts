@@ -1,19 +1,26 @@
-import { useSyncExternalStore } from "react";
 import { useCan, type CanParams } from "@refinedev/core";
-import { adminAuthProvider } from "@/providers/refine/auth-provider";
+import { useAdminAccess, useAdminSessionVersion } from "@/hooks/auth/use-admin-access";
+import { evaluateResourceAccess } from "@/providers/refine/access-control-provider";
 
 /** Version scopes Refine permission queries to the current auth session. */
 export function useResourceAuthorization(resource: string, action: string, params?: CanParams["params"]) {
-  const authVersion = useSyncExternalStore(
-    adminAuthProvider.subscribeSession,
-    adminAuthProvider.getSessionVersion,
-    adminAuthProvider.getSessionVersion,
-  );
+  const access = useAdminAccess();
+  const authVersion = useAdminSessionVersion();
+  const ready = access?.ready === true && access.version === authVersion;
+  const policyParams = { ...params, authVersion, permissionsVersion: access?.permissionsVersion };
   const query = useCan({
     resource,
     action,
-    params: { ...params, authVersion },
-    queryOptions: { staleTime: 0, gcTime: 0, retry: false, refetchOnWindowFocus: "always" },
+    params: policyParams,
+    queryOptions: {
+      enabled: ready,
+      initialData: ready && access ? () => evaluateResourceAccess(access.actor, { resource, action, params: policyParams }) : undefined,
+      staleTime: 60_000,
+      gcTime: 0,
+      retry: false,
+      // The shared access provider owns focus refresh for the whole session.
+      refetchOnWindowFocus: false,
+    },
   });
-  return { ...query, allowed: !query.isError && query.data?.can === true };
+  return { ...query, allowed: ready && !query.isError && query.data?.can === true };
 }

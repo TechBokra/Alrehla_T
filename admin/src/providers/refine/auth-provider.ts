@@ -13,6 +13,14 @@ import {
 
 export type { AdminLoginValues, SignInValues } from "@/lib/schema";
 
+export interface AdminIdentity {
+  id: string;
+  name: string | null;
+  email?: string;
+  avatar: string | null;
+  role: "super_admin" | "general_supervisor";
+}
+
 export interface AdminAuthorization {
   id: string;
   role: "super_admin" | "general_supervisor";
@@ -73,6 +81,13 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
     user: { id: string; email?: string };
     profile: AdminProfile;
   };
+  const identityFromSession = ({ user, profile }: Session): AdminIdentity => ({
+    id: user.id,
+    name: profile.full_name,
+    email: user.email,
+    avatar: profile.avatar_url,
+    role: profile.role as AdminIdentity["role"],
+  });
   let version = 0;
   let epoch = 0;
   let accessCache: { value: AdminAuthorization; expiresAt: number } | undefined;
@@ -95,7 +110,7 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
     if (cached && now() < cached.expiresAt) return cached.session;
     if (pending) return pending;
     const gateway = getGateway();
-    if (!gateway) return null;
+    if (!gateway) throw new Error(authConfigurationMessage);
     const startedVersion = version;
     const startedEpoch = epoch;
     const request = (async () => {
@@ -153,6 +168,7 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
 
   return {
     getAuthorization,
+    getPermissions: () => getAuthorization(),
     invalidateSession,
     getSessionVersion: () => version,
     subscribeSession: (listener: () => void) => {
@@ -160,7 +176,6 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
       return () => listeners.delete(listener);
     },
     login: async (values: unknown) => {
-      invalidateSession();
       if (
         typeof values === "object" &&
         values !== null &&
@@ -202,6 +217,7 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
           await gateway.signOut();
           return authFailure("هذا الحساب غير مصرح له بالدخول إلى لوحة الإدارة.");
         }
+        invalidateSession();
         return { success: true, redirectTo: "/" };
       } catch {
         if (signedIn) await gateway.signOut().catch(() => undefined);
@@ -210,9 +226,11 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
     },
     check: async () => {
       try {
-        if (await readSession()) return { authenticated: true };
+        const session = await readSession();
+        if (session) return { authenticated: true, profileId: session.user.id };
       } catch {
-        // Deny access if the verified user or admin profile cannot be loaded.
+        // Refine distinguishes a retryable read failure from a signed-out user.
+        throw new Error(connectionMessage);
       }
       return { authenticated: false, redirectTo: "/sign-in" };
     },
@@ -229,15 +247,7 @@ export function createAdminAuthProvider(getGateway: () => AuthGateway | null, no
     },
     getIdentity: async () => {
       const session = await readSession();
-      if (!session) return null;
-      const { user, profile } = session;
-      return {
-        id: profile.id,
-        name: profile.full_name,
-        email: user.email,
-        avatar: profile.avatar_url,
-        role: profile.role,
-      };
+      return session ? identityFromSession(session) : null;
     },
     onError: async () => ({}),
   };
@@ -326,6 +336,7 @@ function getAuthGateway(): AuthGateway | null {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return null;
       const { data, error } = await supabase.auth.getUser();
+      if (error && (error.status === 401 || error.status === 403)) return null;
       if (error) throw error;
       return data.user ? { id: data.user.id, email: data.user.email } : null;
     },
@@ -355,7 +366,7 @@ function getAuthGateway(): AuthGateway | null {
 export const adminAuthProvider = createAdminAuthProvider(getAuthGateway);
 export const completeGoogleSignIn = createGoogleCallbackHandler(getAuthGateway);
 
-// Invalidate the same auth adapter used by route guards and Refine identity.
+// Invalidate the adapter shared by Refine authentication, permissions and identity.
 let sessionToken: string | undefined;
 const sessionSubscription = getSupabaseClient()?.auth.onAuthStateChange(
   (event, session) => {

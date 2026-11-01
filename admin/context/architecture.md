@@ -58,8 +58,10 @@ This is the standard for new business commands. Current CRUD/resource table beha
 
 ### Shared admin session and identity
 
-- `routes/__root.tsx` owns the TanStack route guard and Supabase auth-change
-  invalidation. The Refine boundary is composed in `providers/refine/provider.tsx`
+- `routes/__root.tsx` composes the shared admin shell.
+  `providers/refine/admin-access-provider.tsx` owns Refine authentication and
+  permission/identity/branding queries, protected mounting,
+  redirects and shared initial loading. The Refine boundary is composed in `providers/refine/provider.tsx`
   and exported as `RefineProvider`; the root route no longer contains Refine's
   resource/provider registry.
 - `providers/refine/provider.tsx` composes the Refine configuration. Auth, i18n,
@@ -86,21 +88,22 @@ The route-to-provider flow and current module layout are documented in
   admin shell so auth screens remain full-screen. The shell reads the current
   TanStack Router pathname to display the matching Arabic breadcrumb label.
 
-- `createAdminAuthProvider` shares one verified user/profile read between route `check` and `getIdentity`. Successful eligible-admin results stay in browser memory for 60 seconds; simultaneous calls share one promise. Missing users, rejected roles, archived profiles and failed reads are not cached as successful sessions. New reads still use Supabase `getUser` and the existing profile query.
-- Login/logout and Supabase session-token/account changes or `USER_UPDATED` invalidate the cache. A version prevents older in-flight requests from repopulating it after invalidation. The Supabase listener is synchronous, registered before route guards, and unsubscribed during hot reload. Repeated same-session `SIGNED_IN` events do not invalidate the cache.
-- Root `AdminIdentityProvider` owns the only UI `useGetIdentity` call, above all nested Refine contexts. Layout, notifications and user components consume `useAdminIdentity`; showcase providers cannot create a second identity read. Its versioned Refine key drops previous-session results, disables sign-in/OAuth reads, uses 60-second freshness, and disables window-focus refetch. Old unused identity keys are immediately collected.
-- Route guards still reject unavailable/unauthorized sessions and revalidate when the shared cache expires. Account switches, logout and user updates re-run the router guard. The short cache is for browser navigation/display only; existing database RLS and server authorization remain authoritative for data access and mutations. No persistent identity cache or database change is introduced.
+- `createAdminAuthProvider` shares one verified user/profile read between Refine `check`, `getPermissions` and `getIdentity`. Successful eligible-admin results stay in browser memory for 60 seconds; simultaneous calls share one promise. Missing users, rejected roles, archived profiles and failed reads are not cached as successful sessions. New reads still use Supabase `getUser` and the existing profile query.
+- Login/logout and Supabase session-token/account changes or `USER_UPDATED` invalidate the cache. A version prevents older in-flight requests from repopulating it after invalidation. The Supabase listener is synchronous, registered before React access checks, and unsubscribed during hot reload. Repeated same-session `SIGNED_IN` events do not invalidate the cache.
+- `AdminAccessProvider` mounts one Refine `useGetIdentity` after authentication, in parallel with permissions/branding. Its versioned identity cache holds name/avatar/email/role before the shell mounts. `getIdentity` maps the same cached verified session, so no extra backend user/profile read occurs. `useAdminIdentity` returns the actual central query result through context. Profile saves invalidate the session; focus refetches identity and permissions together using one fresh adapter read. Detailed profile/Google-link fields remain a separate profile resource query.
+- The shared Refine access gate rejects unavailable/unauthorized sessions. Account switches, logout and user updates invalidate its versioned queries; focus and expired-snapshot navigation refresh permissions. Same-session background refresh preserves open forms, while errors deny access. The short cache is for browser navigation/display only; existing database RLS and server authorization remain authoritative for data access and mutations. No persistent identity cache or database change is introduced.
 
 ### Site branding and home navigation
 
-- `features/site-branding/SiteBrandingProvider` (implemented in `provider.tsx`) mounts inside root Refine above the route outlet. It reads only site name/logo/favicon from `site_settings` / `general` using the root named `siteSettings` provider and the shared authenticated Supabase client. The existing route guard permits the read only on protected pages; sign-in and OAuth callback disable it. It starts alongside layout identity loading, without waiting for `useGetIdentity`, and never blocks page rendering.
-- Root Refine owns the in-memory cache: five-minute freshness, thirty-minute retention, no polling or window-focus refetch. Branding context crosses nested showcase Refine boundaries, so showcase does not register or query its own branding provider. Demo default providers remain local. Full page refresh reloads branding; no localStorage or static asset export is used.
-- `SiteBranding` renders only the logo in the expanded sidebar (including the mobile drawer) and only the favicon in the collapsed sidebar. Fixed-size shadcn Skeletons cover initial metadata/image loading; background data refresh retains the previous result. Empty/failed images fall back to the site name/book icon. A scoped effect synchronizes the browser favicon and removes its own link on unmount/change. Only HTTP/HTTPS image URLs are accepted. No configuration writes are made.
-- The header uses shadcn Breadcrumb with TanStack Router's Link for `/`, including on showcase pages where the demo Refine Link intentionally suppresses navigation. `/` remains the existing redirect to `/theme`; the auth router's allowlist accepts `/` too.
+- `AdminAccessProvider` calls `hooks/auth/use-admin-branding.ts` once. After an active admin session is verified, branding and permissions start together. Refine `useOne` reads only site name/logo/favicon from `site_settings` / `general` through the named `siteSettings` adapter. Its metadata includes the session version and profile ID, so another account cannot reuse an old result.
+- The shared loader waits for the initial branding request to settle alongside permissions. Failed/empty branding uses the existing site-name fallback; authentication, identity or permission failures still block access. Sign-in, OAuth/link and reset routes disable branding reads. No second branding/identity provider mounts after the access gate.
+- Branding uses five-minute freshness, no polling/focus refetch and immediate garbage collection of unused session keys. No localStorage or configuration writes. The branding hook synchronizes/removes its own favicon link and accepts only HTTP/HTTPS image URLs.
+- `SiteBranding` reads the shared access context: expanded/mobile sidebar uses the logo and collapsed sidebar uses the favicon. Existing image-level Skeleton/fallback behavior covers image bytes loading after metadata is ready.
+- Header home navigation goes through `/`, selecting products, users, then profile from the validated permission snapshot.
 
 ### Header notifications (implemented)
 
-- `features/notifications/use-header-notifications.ts` owns the current-user read model through Refine `useGetIdentity` and two `useList` queries. Both filter `recipient_profile_id` explicitly; the recipient is included in Refine's cache keys. Queries stay disabled without an identity and do not use previous-recipient placeholder data.
+- `features/notifications/use-header-notifications.ts` owns the current-user read model through the shared context `useAdminIdentity` and two Refine `useList` queries. Both filter `recipient_profile_id` explicitly; the recipient is included in Refine's cache keys. Queries stay disabled without an identity and do not use previous-recipient placeholder data.
 - The central Refine registry and any nested showcase context expose `notificationsDataProvider` under the named `notifications` provider; it delegates normal reads to the existing shared Supabase data provider. Notification hooks always specify the named provider and never depend on another context's default.
 - Latest 20 rows and exact unread total are separate reads. Both poll every 10 seconds while the header is mounted in a visible tab, even if the popover is closed. Polling pauses in hidden tabs and ends on unmount. Failed refreshes retain successful cached data, expose a visible error and allow manual retry; an unknown unread total is not displayed as zero.
 - `NotificationsPopover` is mounted once in `AdminLayout` for desktop/mobile, uses shadcn Popover and semantic tokens, and formats timestamps in `ar-EG` / `Africa/Cairo`. It renders plain notification text and a local link to `/notifications`; stored notification links remain inactive. Shared `NotificationItem` uses semantic primary colors for unread items and muted colors for read items, with explicit status labels. `/notifications` lists all current-user notices with 20-row pagination and the same read/error/polling behavior.
@@ -306,8 +309,9 @@ snapshots and rejects stale in-flight reads. A fresh mutation preflight bypasses
 the snapshot without replacing Refine mutation state.
 
 `hooks/resources/use-resource-authorization.ts` wraps Refine `useCan`, adding the
-session version to the generated query key through params. Queries recheck on
-focus and errors cannot reuse an old grant. `ResourceProvider` gates list access
+session version and permission-snapshot revision to the generated query key through
+params. Initial results are seeded from the validated shared actor. The shared
+access provider owns focus refresh; errors cannot reuse an old grant. `ResourceProvider` gates list access
 before mounting the table, combines CRUD/sort grants with existing feature
 restrictions, and guards dialog opening. Shared CRUD hooks recheck access before
 submission. Custom `ResourceRowAction` entries require `authorizationAction`;
@@ -327,3 +331,27 @@ Own-profile and own-notification boundaries and protected user records remain.
 These are frontend checks: existing catalog RLS still grants broader admin access.
 No schema, RLS, Edge Function, remote configuration or deployment changes are part
 of this feature. Existing server checks remain authoritative.
+
+
+### Shared Refine auth and permission loading — 2026-11-01
+
+Root and home routes no longer await authentication or permissions in `beforeLoad`.
+`AdminAccessProvider`, mounted inside Refine before AdminLayout,
+combines `useIsAuthenticated`, dependent `usePermissions` and `useGetIdentity` query states into one
+initial loading boundary. `authProvider.getPermissions` delegates to the existing
+shared authorization adapter. Authentication results include the verified profile
+ID; the permission snapshot must match it before children mount. Failed reads
+produce retryable Arabic feedback; missing/ineligible sessions cannot enter.
+
+OAuth callback/link and reset-password flows bypass bootstrap. Sign-in checks only
+authentication and redirects authenticated users to `/`; the home component selects
+products, users, then profile from the ready permission snapshot. No protected page data
+queries mount before bootstrap. Branding is part of bootstrap and starts alongside
+permissions after authentication; identity uses Refine useGetIdentity backed by that same verified session. Refine resource/action checks, record restrictions
+and fresh CRUD preflights remain in place. Table loading stays independent.
+
+Session-version changes remove protected children immediately. Focus uses one fresh
+adapter request shared with Refine permission and identity refetch; background checks retain
+same-session form/upload state, but errors or denials remove access. Route changes
+refresh snapshots older than 60 seconds. There is no new persistent cache or backend
+policy, schema, configuration or deployment change.

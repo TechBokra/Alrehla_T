@@ -3,7 +3,7 @@ import { BookOpen } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useSiteBranding } from "@/features/site-branding/provider";
+import { useSiteBranding } from "@/hooks/auth/use-admin-access";
 import type { SiteBrandingValues } from "@/features/site-branding/model";
 import { cn } from "@/lib/utils";
 

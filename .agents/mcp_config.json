@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "github-pull-requests": {
+      "serverUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "pull_requests",
+        "X-MCP-Readonly": "true"
+      }
+    }
+  }
+}

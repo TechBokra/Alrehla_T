@@ -12,33 +12,57 @@ implemented.
 flowchart TD
   Entry[main.tsx: React, error boundary, RTL, theme, toaster] --> Router[TanStack Router]
   Router --> Root[Root route: routes/__root.tsx]
-  Root --> Guard{beforeLoad session guard}
-  Guard -->|Sign-in, OAuth callback, reset callback| Public[Public auth route]
-  Guard -->|Protected route| Auth[adminAuthProvider.check]
-  Auth --> SupabaseAuth[Supabase Auth + user profile role check]
-  SupabaseAuth -->|Eligible admin| Refine[RefineProvider]
-  SupabaseAuth -->|Missing or ineligible session| SignIn[Redirect to /sign-in]
-  Refine --> RootContexts[Site branding + admin identity]
-  RootContexts --> Shell{Standalone auth screen?}
-  Shell -->|No| AdminShell[Single root AdminLayout]
-  Shell -->|Yes| Outlet[TanStack route outlet]
-  AdminShell --> Outlet
+  Root --> Refine[RefineProvider]
+  Refine --> Gate{AdminAccessProvider}
+  Gate -->|OAuth or reset callback| Public[Public auth route]
+  Gate --> Auth[Refine useIsAuthenticated: verified admin session]
+  Auth -->|Signed out| SignIn[Sign-in page or redirect]
+  Auth -->|Eligible admin on protected route| Permissions[Refine usePermissions: permissions]
+  Auth -->|Eligible admin on protected route| Identity[Refine useGetIdentity: cached name/avatar/email/role]
+  Identity -->|Ready| Ready
+  Identity -->|Pending| Loading
+  Identity -->|Failed read| Retry
+  Auth -->|Eligible admin on protected route| Branding[Refine useOne: site branding]
+  Permissions -->|Initial pending| Loading[Shared Loading]
+  Permissions -->|Failed read| Retry[Arabic retry state]
+  Permissions -->|Ready| Ready{Bootstrap ready}
+  Branding -->|Success or fallback| Ready
+  Ready --> AdminShell[Single root AdminLayout]
+  AdminShell --> Outlet[TanStack route outlet]
   Outlet --> Feature[Page and feature UI]
 ```
 
 `main.tsx` mounts the outer application shell: the error boundary, loading
 fallback, RTL direction, theme, tooltip context, router and Arabic toaster.
-TanStack Router owns URL matching and route loading. The root route checks the
-session before protected pages render. Sign-in, OAuth callback/link and
-password-reset callback routes must be able to finish their auth flow before a
-protected-session check runs. Supabase auth events invalidate the router so a
-sign-out, account change or updated user is checked again.
+TanStack Router owns URL matching, route chunks and callback loaders. Authentication
+and initial permission loading live inside Refine, in `AdminAccessProvider`, rather
+than asynchronous root/home `beforeLoad` guards. A single `Loading` component covers
+authentication, permissions, identity and initial branding metadata. OAuth callback/link and password-reset routes bypass the gate;
+sign-in checks authentication without loading the protected permission snapshot.
 
-After the route guard, `RefineProvider` gives the live application one Refine
-context. Site branding and admin identity are mounted above the route outlet so
-the layout and feature pages can share them. The page itself remains a TanStack
-route; Refine supplies resource data operations, table state, mutations and
-resource cache behavior inside that route.
+Refine `useIsAuthenticated` calls the verified auth adapter. Only a successful check
+enables `usePermissions`, which delegates to the same adapter's `getAuthorization`.
+One `useGetIdentity` runs inside the gate alongside permissions and branding.
+Its `getIdentity` reuses the verified session, adding no user/profile backend read.
+Its cache key includes the session version, and all consumers receive that same
+query result through `useAdminIdentity`. Branding uses the named
+`siteSettings` adapter, and its first request settles before protected children
+mount. Errors/empty branding use the site-name fallback. Their query keys include
+the session version; no old-account placeholder data is
+used. Missing sessions redirect to sign-in; connection and permission-read failures
+show Arabic retry feedback rather than treating an outage as a signed-out session.
+Both the permission snapshot and identity must match the verified profile ID;
+the identity role must also match the permission snapshot.
+
+The gate owns branding and identity and sits above the admin shell and protected
+outlets, so page queries mount only after bootstrap succeeds. The separate
+`SiteBrandingProvider` and `AdminIdentityProvider` were removed. Session events invalidate
+the adapter and switch the session-scoped Refine query keys, immediately dropping old content.
+Window focus refreshes permissions and identity through one fresh shared adapter read.
+Same-session background refresh retains forms and upload queues; failure or lost
+access hides protected content. A changed identity/role restarts bootstrap. Route
+navigation also refreshes an expired snapshot. This reuses the 60-second adapter
+cache and request deduplication, without a parallel resource-data cache.
 
 The root route renders one `AdminLayout` around all authenticated admin pages.
 Route-group files under catalog, users, uploads, notifications and profile only
@@ -53,6 +77,8 @@ src/providers/
 ├── supabase-client.ts               # One browser Supabase connection/client
 └── refine/
     ├── provider.tsx                 # Composes Refine configuration once
+    ├── admin-access-provider.tsx     # Refine auth/permission loading and protected gate
+    ├── access-control-provider.ts    # Resource/action policy and mutation preflights
     ├── auth-provider.ts              # Admin sign-in, session, identity, OAuth
     ├── router-provider.tsx           # Refine navigation adapter for TanStack Router
     ├── resources.ts                  # Resource names, routes and named providers
@@ -207,7 +233,9 @@ provider registration or request contracts.
    do not grant access.
 2. Refine's `supabaseAccessControlProvider.can` evaluates resource/action access.
    `useResourceAuthorization` includes the auth version in Refine's query params
-   so switching accounts cannot reuse a permission grant.
+   and permission-snapshot revision, so switching accounts or refreshing permissions
+   cannot reuse an outdated grant. Initial `useCan` results are seeded from the
+   validated bootstrap snapshot; no second full-page permission loader is needed.
 3. `AuthorizedSidebarItem` filters navigation with `list`; `ResourceProvider`
    checks the same action before mounting its table. Standalone resource screens
    use `ResourceAccessGate`. CRUD/sort controls also require their own grants.
@@ -221,5 +249,14 @@ provider registration or request contracts.
 
 The navigation registry and Refine resources share labels and paths. Successful
 password/Google sign-in redirects to `/`, which chooses products if allowed,
-otherwise users, with own-profile as the fallback. Loading/denial/request failures
-stay inside the shared admin shell and use Arabic feedback.
+otherwise users, with own-profile as the fallback. This redirect renders after
+bootstrap and performs no pre-render permission request. Global bootstrap failures
+use a standalone Arabic retry screen; resource-specific denials remain inside
+AdminLayout. Table/data-query loading remains independent of account bootstrap.
+
+
+## Admin bootstrap component and hook responsibilities
+
+See [Admin access, identity and branding](./admin-access-architecture.md) for the
+complete runtime flow, component/hook map, loading/error behavior and verification
+of the combined provider. Update that document when this bootstrap flow changes.

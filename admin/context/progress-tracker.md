@@ -212,3 +212,81 @@ change.
   deleting records. All 20 tests, TypeScript, production build and whitespace
   checks pass; existing route-generator and large-chunk warnings remain.
   Profile/user updates invalidate the shared authorization snapshot.
+
+### Unified Refine authentication and permission loading — 2026-11-01
+
+- Replaced root/home asynchronous `beforeLoad` checks with a shared
+  `AdminAccessProvider` inside Refine. `useIsAuthenticated` and dependent
+  `usePermissions` derive one initial loading boundary from Refine query state.
+- The gate mounts before branding, identity, AdminLayout and protected outlets.
+  Missing sessions redirect to sign-in; read failures show retryable Arabic
+  feedback. The authorization snapshot must match the verified profile ID.
+- Session-version keys discard old-account results. OAuth/link/reset callbacks
+  bypass bootstrap; authenticated sign-in visitors redirect through the home
+  component, which selects products/users/profile from the ready snapshot.
+- Resource and sidebar `useCan` queries seed their initial decisions from the
+  validated snapshot and include its revision. Existing record restrictions,
+  fresh CRUD preflights and table data loading remain independent.
+- Focus joins a fresh shared adapter request with Refine permission refetch;
+  same-session background refresh preserves forms/uploads. Failed refreshes deny
+  access; account/role changes restart bootstrap. Expired snapshots refresh on
+  route navigation. Failed password login does not invalidate/unmount its form.
+- Updated architecture documentation. No database, policy, remote configuration
+  or deployment changes. Browser verification is unavailable: computer-use
+  discovery returned no connected browser sessions.
+- Verification: all 26 existing/new tests, final TypeScript check, production
+  build and whitespace checks pass. The existing large-chunk build warning
+  remains. Local installed Node/TypeScript/Vite executables were used for final
+  checks after the pnpm/Corepack launcher stalled. No live account changes were
+  performed during verification.
+
+### Implementation explanations as a workflow requirement — 2026-11-01
+
+- Added a completion rule to `context/ai-workflow-rules.md`: every implementation
+  documents its outcome, flow, architecture, affected components, hooks/logic,
+  states and actual verification. Detailed explanations live in architecture or
+  feature documentation; delivery responses summarize and link them.
+- Documentation-only update; whitespace check passed. No runtime changes.
+
+### Identity and branding inside AdminAccessProvider — 2026-11-01
+
+- Removed the separate AdminIdentityProvider and SiteBrandingProvider wrappers
+  and files. All identity/branding consumers use hooks from the shared access
+  context. Root composition is Refine → AdminAccessProvider → layout/outlet.
+- Identity is mapped into the authorization snapshot from the already verified
+  user/profile. There is no UI useGetIdentity query; the adapter's compatibility
+  method shares the same session read. Refresh/profile invalidation updates the
+  snapshot and all identity consumers together.
+- New useAdminBranding runs one Refine useOne after authentication, in parallel
+  with permissions. The shared loader waits for initial branding metadata to
+  settle; branding failures retain the existing site-name fallback. Sign-in,
+  OAuth/link and reset routes disable the query. Session-version/profile metadata
+  isolates cache entries; favicon effects clean up on change/unmount.
+- Updated central architecture and added doc/admin-access-architecture.md with
+  runtime flow, ownership, every affected component/hook and UI state behavior.
+- Verification: all 29 tests, final TypeScript check, production build and
+  whitespace checks pass. No source imports of either removed provider or UI
+  useGetIdentity calls remain. The existing large-chunk warning remains. Live
+  browser verification was not performed; no remote account/data changes.
+
+### Refine identity query cache inside AdminAccessProvider — 2026-11-01
+
+- Replaced identity embedded in the permission snapshot with one Refine
+  useGetIdentity query inside AdminAccessProvider. Its session-version key and
+  60-second freshness isolate accounts and keep identity ready before AdminLayout
+  mounts. The auth adapter maps its existing verified session without another
+  Supabase user/profile request.
+- useAdminIdentity exposes that actual query result through context to all
+  consumers; no separate identity provider or consumer query was added. Focus
+  refetches identity and permissions through one shared fresh session read.
+  Profile saves continue to invalidate the session; detailed profile/Google-link
+  data remains a separate resource query.
+- Identity pending/error/ID or role mismatch blocks protected children. Background
+  same-account refresh preserves mounted forms. OAuth/reset/sign-in routes disable
+  the protected identity query.
+- Updated architecture and component/hook ownership documentation. All 29 tests
+  pass, including real QueryClient identity-cache reuse, version isolation,
+  shared backend reads, initial identity gates and background refresh behavior.
+  TypeScript, production build and whitespace checks pass. The existing large-
+  chunk warning remains. Live browser verification was not performed; no remote
+  account/data changes were made.

@@ -1,4 +1,4 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { useRef, useState } from "react";
 import { useCustomMutation, useInvalidate } from "@refinedev/core";
 import { CheckCheck } from "lucide-react";

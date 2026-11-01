@@ -72,16 +72,13 @@ export async function assertResourceAccess(resource: string, action: string, par
   if (!result.can) throw new Error(result.reason ?? "لا تملك صلاحية تنفيذ هذا الإجراء.");
 }
 
-export async function resolveAdminLandingPage(): Promise<"/catalog/products" | "/users" | "/profile"> {
+/** Select a destination only after the shared access gate has verified the actor. */
+export function resolveAdminLandingPage(actor: AdminAuthorization | null): "/catalog/products" | "/users" | "/profile" {
   for (const [resource, path] of [
     ["personalized_products", "/catalog/products"],
     ["users", "/users"],
   ] as const) {
-    try {
-      if ((await supabaseAccessControlProvider.can({ resource, action: "list" })).can) return path;
-    } catch {
-      // Own-profile route displays the retryable authorization failure.
-    }
+    if (evaluateResourceAccess(actor, { resource, action: "list" }).can) return path;
   }
   return "/profile";
 }
