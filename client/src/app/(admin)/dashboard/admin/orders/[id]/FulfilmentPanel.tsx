@@ -1,5 +1,6 @@
 'use client';
 
+import { PAID_ORDER_STATUSES, REFUND_NOTE } from '@/lib/super-cancel';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Truck, PackageCheck, Package, X, Check } from 'lucide-react';
@@ -22,10 +23,16 @@ export function FulfilmentPanel({
   orderId,
   status,
   trackingReference,
+  superAdmin = false,
+  cancelOnly = false,
 }: {
   orderId: string;
   status: string;
   trackingReference: string;
+  /** المدير العام: يلغي حتى المدفوع والمسلَّم (طلب تامر، ١ نوفمبر). */
+  superAdmin?: boolean;
+  /** طلب صندوق الرحلة: شحناته من صفحة الاشتراك — هنا الإلغاء بس. */
+  cancelOnly?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step | null>(null);
@@ -39,8 +46,14 @@ export function FulfilmentPanel({
   const [error, setError] = useState('');
   const [errorField, setErrorField] = useState<string | undefined>();
 
-  const closed = ['delivered', 'cancelled', 'refunded'].includes(status);
-  const canFulfil = ['paid', 'preparing', 'shipped'].includes(status);
+  const paid = (PAID_ORDER_STATUSES as readonly string[]).includes(status);
+  const canCancel =
+    !['cancelled', 'refunded'].includes(status) && (!paid || superAdmin);
+  const closed =
+    ['cancelled', 'refunded'].includes(status) ||
+    (status === 'delivered' && !canCancel);
+  const canFulfil =
+    !cancelOnly && ['paid', 'preparing', 'shipped'].includes(status);
 
   const apply = async (target: Step) => {
     if (busy) return;
@@ -88,17 +101,15 @@ export function FulfilmentPanel({
       {payouts && !payouts.failed && (payouts.missing_cost ?? 0) > 0 && (
         <FormNotice
           message={
-            `الطلب اتسلّم، بس فيه ${payouts.missing_cost} ناشر منتجه بلا «نصيب الناشر» مسجَّل — `
-            + 'فمستحقه ما اتحسبش. اظبط النصيب من شاشة المنتجات وعلّم الطلب «تم التسليم» تاني.'
+            `الطلب اتسلّم، بس فيه ${payouts.missing_cost} ناشر منتجه بلا «نصيب الناشر» مسجَّل — ` +
+            'فمستحقه ما اتحسبش. اظبط النصيب من شاشة المنتجات وعلّم الطلب «تم التسليم» تاني.'
           }
         />
       )}
 
       {payouts?.recorded && (
         <FormSuccess
-          message={
-            `اتسجّل مستحق لـ${payouts.publishers} ناشر بإجمالي ${formatPrice(payouts.amount ?? 0)}.`
-          }
+          message={`اتسجّل مستحق لـ${payouts.publishers} ناشر بإجمالي ${formatPrice(payouts.amount ?? 0)}.`}
         />
       )}
 
@@ -124,7 +135,7 @@ export function FulfilmentPanel({
           </button>
         )}
 
-        {status === 'shipped' && (
+        {!cancelOnly && status === 'shipped' && (
           <BusyButton
             busy={busyStep === 'delivered'}
             pendingLabel="جارٍ التحديث…"
@@ -135,13 +146,16 @@ export function FulfilmentPanel({
           </BusyButton>
         )}
 
-        <button
-          type="button"
-          onClick={() => setStep(step === 'cancelled' ? null : 'cancelled')}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50"
-        >
-          <X className="h-4 w-4" /> إلغاء الطلب
-        </button>
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => setStep(step === 'cancelled' ? null : 'cancelled')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50"
+          >
+            <X className="h-4 w-4" />{' '}
+            {paid ? 'إلغاء الطلب (المدير العام)' : 'إلغاء الطلب'}
+          </button>
+        )}
       </div>
 
       {step === 'shipped' && (
@@ -174,8 +188,15 @@ export function FulfilmentPanel({
             required
             error={errorField === 'note' ? error : undefined}
           >
-            <TextInput name="note" value={note} onChange={(e) => setNote(e.target.value)} />
+            <TextInput
+              name="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
           </Field>
+          {paid && (
+            <p className="text-xs font-bold text-rose-900">{REFUND_NOTE}</p>
+          )}
           <div className="flex justify-end">
             <BusyButton
               variant="danger"

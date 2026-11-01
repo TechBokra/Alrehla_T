@@ -942,7 +942,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       expect(mockRevalidatePath).not.toHaveBeenCalled();
     });
 
-    it('prevents invalid transition: completed order cannot be cancelled or refunded', async () => {
+    it('⚠️ (١ نوفمبر) completed/paid order: only super_admin may cancel or refund', async () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
         fullName: 'Admin User',
@@ -972,11 +972,11 @@ describe('Zero-Row Mutation Hardening Tests', () => {
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'cancelled', 'إلغاء طلب')
-      ).resolves.toEqual({ ok: false, error: 'لا يمكن إلغاء أو استرجاع طلب مكتمل' });
+      ).resolves.toEqual({ ok: false, error: 'إلغاء طلب مدفوع متاح للمدير العام بس.' });
 
       await expect(
         setServiceOrderStatusByAdmin('order-1', 'refunded', 'استرجاع طلب')
-      ).resolves.toEqual({ ok: false, error: 'لا يمكن إلغاء أو استرجاع طلب مكتمل' });
+      ).resolves.toEqual({ ok: false, error: 'إلغاء طلب مدفوع متاح للمدير العام بس.' });
 
       expect(updateMock).not.toHaveBeenCalled();
       expect(mockNotifyUser).not.toHaveBeenCalled();
@@ -1068,7 +1068,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
         fullName: 'Admin User',
-        role: 'admin',
+        role: 'super_admin',
       });
 
       const orderMaybeSingleMock = vi.fn().mockResolvedValue({
@@ -1126,7 +1126,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
         fullName: 'Admin User',
-        role: 'admin',
+        role: 'super_admin',
       });
 
       const orderMaybeSingleMock = vi.fn().mockResolvedValue({
@@ -1183,7 +1183,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
         fullName: 'Admin User',
-        role: 'admin',
+        role: 'super_admin',
       });
 
       const orderMaybeSingleMock = vi.fn().mockResolvedValue({
@@ -1227,7 +1227,7 @@ describe('Zero-Row Mutation Hardening Tests', () => {
       mockRequireAdmin.mockResolvedValue({
         id: 'admin-1',
         fullName: 'Admin User',
-        role: 'admin',
+        role: 'super_admin',
       });
 
       const orderMaybeSingleMock = vi.fn().mockResolvedValue({

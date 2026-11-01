@@ -1,5 +1,6 @@
 'use client';
 
+import { PAID_SERVICE_STATUSES, REFUND_NOTE } from '@/lib/super-cancel';
 import React, { useState } from 'react';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { ageAtTime } from '@/lib/time-values';
@@ -36,6 +37,8 @@ interface Props {
   currentProfileId: string;
   /** قسم الملفات (ملف 20) — بيتبني على الخادم (`OrderFilesSection`). */
   filesSlot?: React.ReactNode;
+  /** المدير العام: يلغي أو يسترجع حتى المدفوع والمكتمل (طلب تامر، ١ نوفمبر). */
+  canForceCancel?: boolean;
 }
 
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -87,7 +90,7 @@ function childAge(birthDate: string, now: number): string {
   return years !== null && years > 0 ? `${years} سنة` : '';
 }
 
-export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, filesSlot }: Props) {
+export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, filesSlot, canForceCancel = false }: Props) {
   const now = useNow();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -99,7 +102,12 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, 
   const [adminAction, setAdminAction] = useState<'close' | 'refunded' | 'cancelled' | null>(null);
 
   const status = STATUS[order.status] ?? { label: order.status, className: 'bg-slate-100' };
-  const isClosed = ['completed', 'refunded', 'cancelled'].includes(order.status);
+  const paidOrder = (PAID_SERVICE_STATUSES as readonly string[]).includes(order.status);
+  // المكتمل مقفول — إلا للمدير العام في الإلغاء والاسترجاع.
+  const isClosed =
+    ['refunded', 'cancelled'].includes(order.status) ||
+    (order.status === 'completed' && !(viewer === 'admin' && canForceCancel));
+  const canCancelHere = !paidOrder || canForceCancel;
   const stepIndex = STEPS.indexOf(order.status as (typeof STEPS)[number]);
 
   /**
@@ -345,21 +353,27 @@ export function ServiceOrderDetail({ order, messages, viewer, currentProfileId, 
                     <Lock className="h-4 w-4" /> إقفال الطلب
                   </button>
                 )}
-                <button
+                {canCancelHere && <button
                   type="button"
                   onClick={() => setAdminAction(adminAction === 'refunded' ? null : 'refunded')}
                   className={`${btnBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
                 >
                   استرجاع
-                </button>
-                <button
+                </button>}
+                {canCancelHere && <button
                   type="button"
                   onClick={() => setAdminAction(adminAction === 'cancelled' ? null : 'cancelled')}
                   className={`${btnBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
                 >
-                  إلغاء الطلب
-                </button>
+                  {paidOrder ? 'إلغاء الطلب (المدير العام)' : 'إلغاء الطلب'}
+                </button>}
               </div>
+              {paidOrder && !canForceCancel && (
+                <p className="text-xs font-medium text-slate-500">إلغاء أو استرجاع طلب مدفوع متاح للمدير العام بس.</p>
+              )}
+              {paidOrder && canForceCancel && adminAction && adminAction !== 'close' && (
+                <p className="text-xs font-bold text-rose-900">{REFUND_NOTE}</p>
+              )}
 
               {adminAction && (
                 <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">

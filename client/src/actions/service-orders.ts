@@ -1,4 +1,6 @@
 'use server';
+
+import { PAID_SERVICE_STATUSES, SUPER_CANCEL_ONLY, isSuperAdminRole } from '@/lib/super-cancel';
 import { requireAdmin, getDependentGuardian } from '@/lib/auth-guard';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 
@@ -820,8 +822,9 @@ export async function setServiceOrderStatusByAdmin(
     return fail('الطلب غير موجود');
   }
 
-  if (order.status === 'completed') {
-    return fail('لا يمكن إلغاء أو استرجاع طلب مكتمل');
+  // ⚠️ بعد الدفع (حتى «مكتمل») = المدير العام بس (طلب تامر، ١ نوفمبر).
+  if ((PAID_SERVICE_STATUSES as readonly string[]).includes(order.status) && !isSuperAdminRole(admin.role)) {
+    return fail(SUPER_CANCEL_ONLY);
   }
   if (order.status === 'cancelled') {
     return fail('الطلب ملغي بالفعل');
@@ -837,7 +840,7 @@ export async function setServiceOrderStatusByAdmin(
     .eq('status', order.status)
     .select('id');
 
-  if (error) return fail('تعذّر تحديث حالة الطلب');
+  if (error) return fail(error.code === '42501' ? SUPER_CANCEL_ONLY : 'تعذّر تحديث حالة الطلب');
   if (!statusRows || statusRows.length === 0) {
     return fail('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
   }

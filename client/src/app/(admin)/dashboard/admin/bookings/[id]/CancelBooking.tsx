@@ -23,9 +23,12 @@ import { FormError } from '@/components/ui/FormError';
 export function CancelBooking({
   subscriptionId,
   status,
+  superAdmin = false,
 }: {
   subscriptionId: string;
   status: string;
+  /** المدير العام بس يلغي الحجز المفعّل أو المكتمل (طلب تامر، ١ نوفمبر). */
+  superAdmin?: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -40,21 +43,23 @@ export function CancelBooking({
       setDone(
         result.sessionsCancelled > 0
           ? `اتلغى الحجز، ومعاه ${result.sessionsCancelled.toLocaleString('ar-EG')} جلسة لسه ماحصلتش.`
-          : 'اتلغى الحجز.',
+          : 'اتلغى الحجز.'
       );
       router.refresh();
     },
     fallbackError: 'تعذّر إلغاء الحجز.',
   });
 
-  // المكتمل والملغي مالهمش إلغاء.
-  if (status === 'cancelled' || status === 'completed') return null;
-
-  const wasPaid = status === 'active';
+  // الملغي مالوش إلغاء. والمدفوع (مفعّل أو مكتمل) للمدير العام بس.
+  const wasPaid = status === 'active' || status === 'completed';
+  if (status === 'cancelled' || (wasPaid && !superAdmin)) return null;
 
   if (done) {
     return (
-      <p role="status" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700">
+      <p
+        role="status"
+        className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-700"
+      >
         {done}
       </p>
     );
@@ -72,14 +77,14 @@ export function CancelBooking({
               والإلغاء لوحده مابيرجّعهاش. */}
           {wasPaid && (
             <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">
-              الحجز ده <strong>مدفوع</strong>. الإلغاء مش بيرجّع الفلوس — رتّب الاسترداد
-              بنفسك بعد كده.
+              الحجز ده <strong>مدفوع</strong>. الإلغاء مش بيرجّع الفلوس — رتّب
+              الاسترداد بنفسك بعد كده.
             </p>
           )}
 
           <p className="text-sm font-medium text-red-900">
-            الجلسات اللي لسه ماحصلتش هتتلغي وتختفي من تقويم المدرب ومن لوحة الطالب،
-            وكود الخصم هيرجع للعميل. الجلسات المكتملة هتفضل زيّ ما هي.
+            الجلسات اللي لسه ماحصلتش هتتلغي وتختفي من تقويم المدرب ومن لوحة
+            الطالب، وكود الخصم هيرجع للعميل. الجلسات المكتملة هتفضل زيّ ما هي.
           </p>
 
           <Field

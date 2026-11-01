@@ -42,6 +42,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         legacyReference={order.transactionReference}
       />
       <ServiceOrderDetail
+        canForceCancel={user?.role === 'super_admin'}
         order={order}
         messages={messages}
         viewer="admin"

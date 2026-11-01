@@ -8,9 +8,18 @@
  */
 
 /** وسايل بتيجي من بوابة الدفع (مش تحويل يدوي). */
-export const GATEWAY_METHODS = new Set(['card', 'fawry', 'valu', 'apple_pay', 'wallet']);
+export const GATEWAY_METHODS = new Set([
+  'card',
+  'fawry',
+  'valu',
+  'apple_pay',
+  'wallet',
+]);
 
-export function isGatewayPayment(p: { provider?: string | null; method?: string | null }): boolean {
+export function isGatewayPayment(p: {
+  provider?: string | null;
+  method?: string | null;
+}): boolean {
   if (p.provider) return p.provider !== 'manual';
   return !!p.method && GATEWAY_METHODS.has(p.method);
 }
@@ -36,7 +45,12 @@ const SETTLED = new Set([
   'confirmed',
 ]);
 
-export type PaymentState = { kind: PaymentStateKind; title: string; text: string; tone: 'ok' | 'wait' | 'muted' };
+export type PaymentState = {
+  kind: PaymentStateKind;
+  title: string;
+  text: string;
+  tone: 'ok' | 'wait' | 'muted';
+};
 
 export function paymentState(p: {
   provider?: string | null;
@@ -51,7 +65,9 @@ export function paymentState(p: {
     return {
       kind: 'cancelled',
       title: 'الطلب ملغي',
-      text: settled ? 'كان مدفوع قبل الإلغاء — راجع الاسترداد لو مطلوب.' : 'مفيش دفع مستني على الطلب ده.',
+      text: settled
+        ? 'كان مدفوع قبل الإلغاء — راجع الاسترداد لو مطلوب.'
+        : 'مفيش دفع مستني على الطلب ده.',
       tone: 'muted',
     };
   }
@@ -74,7 +90,9 @@ export function paymentState(p: {
     return {
       kind: 'receipt_confirmed',
       title: 'التحويل اتأكد',
-      text: p.hasReceipt ? 'الإيصال اتراجع والدفع اتأكد.' : 'الدفع اتأكد يدويًا.',
+      text: p.hasReceipt
+        ? 'الإيصال اتراجع والدفع اتأكد.'
+        : 'الدفع اتأكد يدويًا.',
       tone: 'ok',
     };
   }

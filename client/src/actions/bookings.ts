@@ -457,6 +457,7 @@ export async function cancelBooking(
       not_found: 'الحجز ده مش موجود — حدّث الصفحة',
       already_cancelled: 'الحجز ده ملغي خلاص',
       completed: 'الحجز ده خلص بالفعل — مينفعش يتلغي',
+      super_admin_only: 'إلغاء حجز مدفوع (مفعّل أو مكتمل) متاح للمدير العام بس.',
       blocked: 'القاعدة رفضت الإلغاء — راجع الصلاحيات',
     };
     return { ok: false, error: messages[result.error] ?? 'تعذّر إلغاء الحجز' };

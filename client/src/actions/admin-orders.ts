@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
 import { notifyUser, notifyAdmins } from '@/lib/notifications';
 import type { Database } from '@/types/supabase';
+import { SUPER_CANCEL_ONLY, isSuperAdminRole } from '@/lib/super-cancel';
 
 /**
  * Moving a store order through fulfilment.
@@ -48,8 +49,11 @@ const ALLOWED_PREVIOUS_STATUSES: Record<FulfilmentStatus, OrderStatus[]> = {
   preparing: ['paid'],
   shipped: ['paid', 'preparing'],
   delivered: ['shipped'],
-  cancelled: ['pending', 'awaiting_verification', 'failed', 'paid', 'preparing', 'shipped'],
+  cancelled: ['pending', 'awaiting_verification', 'failed', 'paid', 'preparing', 'shipped', 'delivered'],
 };
+
+/** قبل الدفع — أي إداري الطلبات يلغيه. بعد الدفع: المدير العام بس. */
+const UNPAID_CANCEL: OrderStatus[] = ['pending', 'awaiting_verification', 'failed'];
 
 const FULFILMENT_STATUSES: FulfilmentStatus[] = [
   'preparing',
@@ -114,17 +118,25 @@ export async function setOrderFulfilmentStatus(params: {
   }
   if (normalizedNote) update.admin_notes = normalizedNote;
 
+  const superAdmin = isSuperAdminRole(admin.role);
+  const allowedFrom =
+    status === 'cancelled' && !superAdmin ? UNPAID_CANCEL : ALLOWED_PREVIOUS_STATUSES[status];
+
   const { data, error } = await supabase
     .from('orders')
     .update(update)
     .eq('id', normalizedOrderId)
-    .in('status', ALLOWED_PREVIOUS_STATUSES[status])
-    .select('user_id')
+    .in('status', allowedFrom)
+    .select('user_id, box_plan_id')
     .maybeSingle();
 
   if (error) {
+    if (error.code === '42501') return { ok: false, error: SUPER_CANCEL_ONLY };
     console.error('Error updating order fulfilment', error);
     return { ok: false, error: 'تعذّر تحديث حالة الطلب' };
+  }
+  if (!data && status === 'cancelled' && !superAdmin) {
+    return { ok: false, error: `${SUPER_CANCEL_ONLY} (أو الطلب اتغيّرت حالته — حدّث الصفحة).` };
   }
   if (!data) {
     return {
@@ -171,6 +183,16 @@ export async function setOrderFulfilmentStatus(params: {
         link: `/dashboard/admin/orders/${normalizedOrderId}`,
       });
     }
+  }
+
+  // طلب صندوق الرحلة اتلغى ← الاشتراك نفسه يتقفل (شحناته ومهامه بتتقفل معاه).
+  if (status === 'cancelled' && data.box_plan_id) {
+    const { error: subError } = await supabase
+      .from('box_subscriptions')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('order_id', normalizedOrderId)
+      .neq('status', 'cancelled');
+    if (subError) console.error('Error cancelling box subscription with its order', subError);
   }
 
   await notifyUser({
