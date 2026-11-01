@@ -3835,6 +3835,10 @@ export type Database = {
           critical_total: number
           passed: boolean
           submitted_at: string
+          open_answers: Json | null
+          admin_review: Json | null
+          reviewed_by: string | null
+          reviewed_at: string | null
         }
         Insert: {
           id?: string
@@ -3849,6 +3853,10 @@ export type Database = {
           critical_total: number
           passed: boolean
           submitted_at?: string
+          open_answers?: Json | null
+          admin_review?: Json | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
         }
         Update: {
           id?: string
@@ -3863,6 +3871,10 @@ export type Database = {
           critical_total?: number
           passed?: boolean
           submitted_at?: string
+          open_answers?: Json | null
+          admin_review?: Json | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
         }
         Relationships: []
       }
@@ -5060,6 +5072,7 @@ export type Database = {
         Returns: Json
       }
       training_submit_final: { Args: { p_course: string; p_answers: Json }; Returns: Json }
+      training_review_attempt: { Args: { p_attempt: string; p_review: Json }; Returns: Json }
       training_reset_progress: { Args: { p_user: string; p_course: string }; Returns: undefined }
       ops_retention_sweep: { Args: never; Returns: Json }
       ops_health: { Args: never; Returns: Json }

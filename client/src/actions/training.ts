@@ -78,8 +78,18 @@ export async function submitTrainingModule(
   return { ok: true, ...(data as unknown as ModuleResult) };
 }
 
+/** إجابة سؤال الكتابة: نصوص قصيرة بمفاتيح بسيطة. */
+function openAnswerOk(a: unknown): a is Record<string, string> {
+  if (!a || typeof a !== 'object' || Array.isArray(a)) return false;
+  const entries = Object.entries(a as Record<string, unknown>);
+  return (
+    entries.length <= 20 &&
+    entries.every(([k, v]) => /^[a-z0-9_]{1,40}$/i.test(k) && typeof v === 'string' && v.length <= 16000)
+  );
+}
+
 export async function submitTrainingFinal(
-  answers: number[],
+  answers: (number | Record<string, string>)[],
   courseId = FOUNDATION_COURSE_ID,
 ): Promise<({ ok: true } & FinalResult) | Fail> {
   let user;
@@ -88,7 +98,11 @@ export async function submitTrainingFinal(
   } catch (err) {
     return { ok: false, error: errMessage(err, 'لازم تسجّل الدخول') };
   }
-  if (!answersOk(answers)) return { ok: false, error: 'إجابات غير مفهومة — أعد تحميل الصفحة.' };
+  const shapeOk =
+    Array.isArray(answers) &&
+    answers.length <= 200 &&
+    answers.every((a) => (typeof a === 'number' ? Number.isInteger(a) && a >= 0 && a < 20 : openAnswerOk(a)));
+  if (!shapeOk) return { ok: false, error: 'إجابات غير مفهومة — أعد تحميل الصفحة.' };
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('training_submit_final', { p_course: courseId, p_answers: answers });
@@ -306,5 +320,43 @@ export async function resetTrainingProgress(userId: string, instructorId?: strin
   });
   revalidatePath('/dashboard/admin/instructors/training');
   if (instructorId) revalidatePath(`/dashboard/admin/instructors/${instructorId}`);
+  return { ok: true };
+}
+
+/** ترشيح الإدارة للمدرب لكل فئة عمرية — على محاولة التقييم النهائي. */
+export async function reviewTrainingAttempt(params: {
+  attemptId: string;
+  instructorId?: string;
+  bands: Record<string, string>;
+  note: string;
+}): Promise<{ ok: true } | Fail> {
+  let user;
+  try {
+    user = await admin();
+  } catch (err) {
+    return { ok: false, error: errMessage(err, 'غير مصرح') };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('training_review_attempt', {
+    p_attempt: params.attemptId,
+    p_review: { bands: params.bands, note: params.note } as never,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: missing(error.code) ? 'المراجعة محتاجة تحديث القاعدة (ترحيل 20261101100000).' : error.message || 'تعذّر حفظ المراجعة.',
+    };
+  }
+
+  await logAuditAction({
+    actorProfileId: user.id,
+    actorName: user.fullName,
+    action: 'training_attempt_reviewed',
+    entityType: 'TrainingAttempt',
+    entityId: params.attemptId,
+    metadata: { bands: params.bands },
+  });
+  if (params.instructorId) revalidatePath(`/dashboard/admin/instructors/${params.instructorId}`);
+  revalidatePath('/dashboard/admin/instructors/training');
   return { ok: true };
 }

@@ -9,6 +9,8 @@ import {
 import type { AdminCourse, LearnerRecord } from '@/data/domains/(admin)/training/queries';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { ResetTrainingButton } from './ResetTrainingButton';
+import { AttemptReviewPanel } from './AttemptReviewPanel';
+import { attemptSignals } from '@/lib/training-review';
 
 const when = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('ar-EG', { timeZone: PLATFORM_TIMEZONE, dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -111,6 +113,16 @@ export function InstructorTrainingCard({
                 ))}
               </ul>
             </div>
+          )}
+          {record && record.attempts[0] && (
+            <AttemptReviewPanel
+              key={record.attempts[0].id}
+              attemptId={record.attempts[0].id}
+              instructorId={instructorId}
+              signals={attemptSignals(course.content, record.attempts[0].selected, record.attempts[0].openAnswers)}
+              review={record.attempts[0].review}
+              reviewedAt={record.attempts[0].reviewedAt}
+            />
           )}
           {record?.resetAt && <p className="text-xs font-medium text-slate-500">آخر إعادة للتأهيل: {when(record.resetAt)}</p>}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">

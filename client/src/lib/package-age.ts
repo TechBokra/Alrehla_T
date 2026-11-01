@@ -1,4 +1,5 @@
 import type { AgeGroup } from '@/types';
+import { AGE_GROUP_LABEL, PACKAGE_AGE_CUTOFF } from '@/lib/package-labels';
 
 /**
  * الطفل ده ينفع يتسجّل في الباقة دي؟ — نسخة الشاشة من حارس القاعدة.
@@ -12,7 +13,8 @@ import type { AgeGroup } from '@/types';
  *    ٢٤ أكتوبر). الملف ده بس عشان الشاشة تقفل الاختيار وتقول السبب
  *    **قبل** ما ولي الأمر يدوس «احجز» ويتفاجئ برسالة خطأ.
  *    والحساب لازم يطابق `child_age_group` في القاعدة بالحرف:
- *    السن بالسنين الكاملة بتوقيت القاهرة، و١٢ بالظبط = «١٢ فأكثر».
+ *    السن بالسنين الكاملة بتوقيت القاهرة، و١٣ بالظبط = «١٣ فما فوق»
+ *    (كان ١٢ لحد ١ نوفمبر — المفاتيح `under_12`/`12_plus` فضلت زي ما هي).
  */
 
 export type ChildForAge = {
@@ -65,7 +67,7 @@ export function childAgeGroup(
   if (!child.birthDate) return null;
   const age = ageInYears(child.birthDate, now);
   if (age === null) return null;
-  return age < 12 ? 'under_12' : '12_plus';
+  return age < PACKAGE_AGE_CUTOFF ? 'under_12' : '12_plus';
 }
 
 export function childFitsPackage(
@@ -83,6 +85,6 @@ export function childFitsPackage(
   }
   if (group === packageAgeGroup) return { ok: true };
   return packageAgeGroup === 'under_12'
-    ? { ok: false, reason: 'too_old', message: 'الباقة دي لأقل من ١٢ سنة.' }
-    : { ok: false, reason: 'too_young', message: 'الباقة دي لـ١٢ سنة فأكثر.' };
+    ? { ok: false, reason: 'too_old', message: `الباقة دي لـ${AGE_GROUP_LABEL.under_12}.` }
+    : { ok: false, reason: 'too_young', message: `الباقة دي لـ${AGE_GROUP_LABEL['12_plus']}.` };
 }

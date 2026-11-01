@@ -31,12 +31,15 @@ export function TrainingImport({ currentVersion }: { currentVersion: string }) {
       return;
     }
     setContent(r.content);
-    setVersion(r.version ?? '');
+    // V1.5 مافيهوش رقم إصدار جوّه — بناخده من اسم الملف لو موجود.
+    setVersion(r.version ?? /v\s*([0-9]+(?:\.[0-9]+)+)/i.exec(file.name)?.[1] ?? '');
   };
 
   const pages = content?.modules.reduce((n, m) => n + m.pages.length, 0) ?? 0;
   const moduleQs = content?.modules.reduce((n, m) => n + m.questions.length, 0) ?? 0;
   const critical = content?.finalQuestions.filter((q) => q.critical).length ?? 0;
+  const openQs = content?.finalQuestions.filter((q) => q.type === 'open_response').length ?? 0;
+  const bandQs = content?.finalQuestions.filter((q) => q.adminBand).length ?? 0;
 
   return (
     <div className="space-y-4">
@@ -58,6 +61,13 @@ export function TrainingImport({ currentVersion }: { currentVersion: string }) {
             {content.modules.length} وحدات · {pages} صفحة · {moduleQs} سؤال وحدات · {content.finalQuestions.length} سؤال نهائي
             ({critical} حرج) · {content.topics.length} مجالات
           </p>
+          {(openQs > 0 || bandQs > 0) && (
+            <p className="text-sm font-medium text-emerald-900">
+              {openQs > 0 && <>{openQs} سؤال كتابة (نقطة إتمام، ومضمونه للإدارة) · </>}
+              {bandQs > 0 && <>{bandQs} مواقف للفئات العمرية · </>}
+              {Object.keys(content.adminFollowups ?? {}).length} سؤال عليه ملاحظات متابعة للإدارة
+            </p>
+          )}
           <ol className="list-inside list-decimal space-y-1 text-sm font-medium text-slate-700">
             {content.modules.map((m) => (
               <li key={m.title}>{m.title}</li>

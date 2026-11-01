@@ -79,8 +79,39 @@ export type TrainingPage = {
   scenario?: TrainingScenario;
 };
 
-/** سؤال زي ما بيوصل للمدرب — من غير الإجابة ولا التعليل. */
-export type TrainingQuestion = { id: string; q: string; opts: string[]; topic?: string };
+/** خانة كتابة في سؤال مفتوح (V1.5: خانة لكل سن + حوار). */
+export type OpenField = { id: string; label: string; type?: 'textarea' | string };
+
+/**
+ * سؤال زي ما بيوصل للمدرب — من غير الإجابة ولا التعليل.
+ *
+ * `type: 'open_response'` (من V1.5): سؤال كتابة مالوش إجابة صحيحة.
+ * بياخد نقطة «إتمام» لو اتكتب فيه أي حاجة، ومضمونه بيتقرا من الإدارة
+ * (قرار الملف نفسه: «لا توجد درجة لجودة المضمون أو توصية آلية»).
+ */
+export type TrainingQuestion = {
+  id: string;
+  q: string;
+  opts: string[];
+  topic?: string;
+  type?: 'multiple_choice' | 'open_response';
+  prompt?: string;
+  fields?: OpenField[];
+};
+
+export function isOpenQuestion(q: { type?: string } | null | undefined): boolean {
+  return q?.type === 'open_response';
+}
+
+/** إجابة السؤال المفتوح: نص لكل خانة (+ `dialogueAge` لو موجود). */
+export type OpenAnswer = Record<string, string>;
+
+/** نقطة الإتمام — نفس `openCompletion` في الملف: أي خانة فيها كتابة. */
+export function openCompleted(answer: OpenAnswer | null | undefined, q: { fields?: OpenField[] }): boolean {
+  if (!answer) return false;
+  const ids = (q.fields ?? []).map((f) => f.id);
+  return ids.some((id) => String(answer[id] ?? '').trim().length > 0);
+}
 
 export type TrainingModule = {
   title: string;
@@ -235,8 +266,19 @@ export type CourseContent = {
   modules: (Omit<TrainingModule, 'questions'> & {
     questions: (TrainingQuestion & { correct: number; why: string })[];
   })[];
-  finalQuestions: (TrainingQuestion & { correct: number; why: string; critical?: boolean })[];
+  finalQuestions: (TrainingQuestion & {
+    correct: number;
+    why: string;
+    critical?: boolean;
+    /** للإدارة بس: الموقف ده بيخص أنهي فئة عمرية (A/B/C/DE). */
+    adminBand?: string;
+  })[];
   topics: string[];
+  /**
+   * للإدارة بس (`ADMIN_FOLLOWUP_RULES` في الملف): لكل سؤال، لكل اختيار
+   * غلط ← [المجال، الملاحظة، المتابعة المقترحة].
+   */
+  adminFollowups?: Record<string, Record<string, [string, string, string]>>;
 };
 
 export type ImportResult =
@@ -276,18 +318,26 @@ export function validateContent(raw: unknown): { ok: true; content: CourseConten
   if (!Array.isArray(c.finalQuestions) || c.finalQuestions.length === 0) {
     return { ok: false, error: 'مفيش أسئلة تقييم نهائي في الملف.' };
   }
-  const qOk = (q: { q?: unknown; opts?: unknown; correct?: unknown }) =>
+  const mcOk = (q: { q?: unknown; opts?: unknown; correct?: unknown }) =>
     typeof q?.q === 'string' &&
     Array.isArray(q.opts) &&
     q.opts.length >= 2 &&
     Number.isInteger(q.correct) &&
     (q.correct as number) >= 0 &&
     (q.correct as number) < q.opts.length;
+  // السؤال المفتوح مالوش إجابة صحيحة — المطلوب نص السؤال وخانات الكتابة.
+  const openOk = (q: { q?: unknown; fields?: unknown }) =>
+    typeof q?.q === 'string' &&
+    Array.isArray(q.fields) &&
+    q.fields.length > 0 &&
+    q.fields.every((f) => typeof f?.id === 'string' && /^[a-z0-9_]{1,40}$/i.test(f.id) && typeof f?.label === 'string');
+  const qOk = (q: { type?: unknown; q?: unknown; opts?: unknown; correct?: unknown; fields?: unknown }) =>
+    q?.type === 'open_response' ? openOk(q) : mcOk(q);
   for (const [i, m] of c.modules.entries()) {
     if (typeof m?.title !== 'string' || !Array.isArray(m.pages) || m.pages.length === 0) {
       return { ok: false, error: `الوحدة ${i + 1} ناقصة (العنوان أو الصفحات).` };
     }
-    if (!Array.isArray(m.questions) || m.questions.length === 0 || !m.questions.every(qOk)) {
+    if (!Array.isArray(m.questions) || m.questions.length === 0 || !m.questions.every(mcOk)) {
       return { ok: false, error: `أسئلة الوحدة ${i + 1} ناقصة أو إجابتها الصحيحة مش محدّدة.` };
     }
     for (const [j, p] of m.pages.entries()) {
@@ -296,13 +346,74 @@ export function validateContent(raw: unknown): { ok: true; content: CourseConten
       }
     }
   }
-  if (!c.finalQuestions.every(qOk)) {
-    return { ok: false, error: 'فيه سؤال نهائي ناقص أو إجابته الصحيحة مش محدّدة.' };
+  const badFinal = c.finalQuestions.findIndex((q) => !qOk(q));
+  if (badFinal >= 0) {
+    return {
+      ok: false,
+      error: isOpenQuestion(c.finalQuestions[badFinal])
+        ? `السؤال النهائي ${badFinal + 1} (سؤال كتابة): ناقص نص السؤال أو خانات الإجابة.`
+        : `السؤال النهائي ${badFinal + 1} ناقص أو إجابته الصحيحة مش محدّدة.`,
+    };
+  }
+  if (!c.finalQuestions.some((q) => !isOpenQuestion(q))) {
+    return { ok: false, error: 'التقييم النهائي محتاج سؤال اختيار واحد على الأقل.' };
+  }
+  const ids = c.finalQuestions.map((q) => q.id);
+  if (ids.some((id) => typeof id !== 'string' || !id) || new Set(ids).size !== ids.length) {
+    return { ok: false, error: 'كل سؤال نهائي محتاج رقم تعريف (id) مختلف.' };
   }
   const topics = Array.isArray(c.topics) && c.topics.length > 0
     ? c.topics.filter((t): t is string => typeof t === 'string')
     : [...new Set(c.finalQuestions.map((q) => q.topic).filter((t): t is string => typeof t === 'string'))];
-  return { ok: true, content: { modules: c.modules, finalQuestions: c.finalQuestions, topics } as CourseContent };
+  const content = { modules: c.modules, finalQuestions: c.finalQuestions, topics } as CourseContent;
+  if (c.adminFollowups && typeof c.adminFollowups === 'object') content.adminFollowups = c.adminFollowups;
+  return { ok: true, content };
+}
+
+/** كائن JS بمفاتيح من غير تنصيص (`{f18:{0:[…]}}`) ← JSON. `null` لو ماتقراش. */
+export function parseLooseObject(src: string): Record<string, Record<string, [string, string, string]>> | null {
+  // بنحط التنصيص على المفاتيح بس — بره النصوص.
+  let out = '';
+  let inStr: string | null = null;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\') out += src[++i] ?? '';
+      else if (c === inStr) inStr = null;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inStr = c;
+      out += '"';
+      if (c === "'") {
+        // نص بعلامة مفردة ← نحوّله لمزدوجة.
+        let j = i + 1;
+        let body = '';
+        while (j < src.length && src[j] !== "'") {
+          if (src[j] === '\\') body += src[j++];
+          body += src[j++];
+        }
+        out += body.replace(/"/g, '\\"') + '"';
+        i = j;
+        inStr = null;
+      }
+      continue;
+    }
+    const key = /^[A-Za-z_0-9]+(?=\s*:)/.exec(src.slice(i));
+    if (key && /[{,\s]$/.test(out.trimEnd().slice(-1) || '{')) {
+      out += `"${key[0]}"`;
+      i += key[0].length - 1;
+      continue;
+    }
+    out += c;
+  }
+  try {
+    const v = JSON.parse(out.replace(/,\s*([}\]])/g, '$1'));
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 /** يقرا ملف HTML بتاع الدورة (أو JSON) ويرجّع المحتوى بعد التحقق. */
@@ -322,6 +433,12 @@ export function importCourseFile(text: string): ImportResult {
       data = JSON.parse(obj);
     } catch {
       return { ok: false, error: 'بيانات الدورة في الملف مش بصيغة سليمة.' };
+    }
+    // ملاحظات المتابعة للإدارة — كائن JS (مفاتيح من غير علامات تنصيص).
+    const rules = extractObject(text, /const\s+ADMIN_FOLLOWUP_RULES\s*=\s*/);
+    if (rules && data && typeof data === 'object') {
+      const parsed = parseLooseObject(rules);
+      if (parsed) (data as Record<string, unknown>).adminFollowups = parsed;
     }
     const topicsMatch = /const\s+TOPICS\s*=\s*(\[[^\]]*\])/.exec(text);
     if (topicsMatch && data && typeof data === 'object' && !('topics' in data)) {

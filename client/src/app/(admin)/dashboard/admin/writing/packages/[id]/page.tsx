@@ -1,4 +1,5 @@
 import React from 'react';
+import { AGE_GROUP_LABEL, TRACK_LABEL } from '@/lib/package-labels';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
@@ -89,8 +90,8 @@ export default async function Page({
               required
             >
               <Select defaultValue={target.ageGroup}>
-                <option value="under_12">أقل من 12 سنة</option>
-                <option value="12_plus">12 سنة فأكثر</option>
+                <option value="under_12">{AGE_GROUP_LABEL.under_12}</option>
+                <option value="12_plus">{AGE_GROUP_LABEL['12_plus']}</option>
               </Select>
             </Field>
             <Field
@@ -100,9 +101,9 @@ export default async function Page({
             >
               <Select defaultValue={target.track ?? ''}>
                 <option value="">بدون مسار</option>
-                <option value="foundation">مسار التأسيس</option>
-                <option value="youth">مسار اليافعين والكبار</option>
-                <option value="specialization">مسار التخصص</option>
+                <option value="foundation">{TRACK_LABEL.foundation}</option>
+                <option value="youth">{TRACK_LABEL.youth}</option>
+                <option value="specialization">{TRACK_LABEL.specialization}</option>
               </Select>
             </Field>
           </FormSection>

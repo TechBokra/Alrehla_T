@@ -1,5 +1,6 @@
 'use client';
 
+import { TRACK_SHORT } from '@/lib/package-labels';
 import React from 'react';
 
 /**
@@ -22,11 +23,7 @@ export type PackageChoice = {
   sessionsCount: number | null;
 };
 
-const TRACK_LABEL: Record<string, string> = {
-  foundation: 'تأسيس',
-  youth: 'يافعين',
-  specialization: 'تخصص',
-};
+const TRACK_LABEL: Record<string, string> = TRACK_SHORT;
 
 export function PackagePicker({
   packages,

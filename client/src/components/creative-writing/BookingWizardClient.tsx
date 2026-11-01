@@ -1,4 +1,6 @@
 'use client';
+
+import { AGE_GROUP_LABEL } from '@/lib/package-labels';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { isBefore, isValid, parseISO } from 'date-fns';
 import { calendarDate } from '@/lib/time-values';
@@ -238,8 +240,8 @@ export function BookingWizardClient({
                   <p className="text-xs font-medium text-slate-500">
                     {/* بند ١٠ (٢٤ أكتوبر): السن بقى شرط مش توضيح. */}
                     {chosenPackage.ageGroup === 'under_12'
-                      ? 'الباقة دي لأقل من 12 سنة — والحجز فيها للأطفال في السن ده.'
-                      : 'الباقة دي لـ 12 سنة فأكثر — والحجز فيها للمشاركين في السن ده.'}
+                      ? `الباقة دي لـ${AGE_GROUP_LABEL.under_12} — والحجز فيها للأطفال في السن ده.`
+                      : `الباقة دي لـ${AGE_GROUP_LABEL['12_plus']} — والحجز فيها للمشاركين في السن ده.`}
                   </p>
                 )}
               </div>

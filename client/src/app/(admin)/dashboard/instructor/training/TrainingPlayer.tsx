@@ -28,7 +28,10 @@ import {
   type TrainingQuestion,
   type TrainingPosition,
   type TrainingScenario,
+  type OpenAnswer,
+  isOpenQuestion,
 } from '@/lib/training';
+import { OpenQuestionBlock } from './OpenQuestionBlock';
 
 /** قراءة/كتابة الجهاز — ممكن ترمي (تصفّح خاص)، فكله جوّه try. */
 function readLocal<T>(key: string): T | null {
@@ -677,6 +680,13 @@ function QuestionBlock({
   );
 }
 
+/** إجابات أسئلة الكتابة (V1.5) — كائن لكل سؤال. */
+function useOpenAnswers() {
+  const [open, setOpen] = useState<Record<string, OpenAnswer>>({});
+  const restoreOpen = useCallback((v: Record<string, OpenAnswer>) => setOpen(v), []);
+  return { open, setOpen, restoreOpen };
+}
+
 function useAnswers(count: number) {
   const [answers, setAnswers] = useState<(number | undefined)[]>(() => Array(count).fill(undefined));
   const set = (i: number, v: number) => setAnswers((a) => a.map((x, j) => (j === i ? v : x)));
@@ -795,7 +805,21 @@ function FinalExam({
   onPause?: () => void;
 }) {
   const qs = course.finalQuestions;
-  const { answers, set, missing, restore } = useAnswers(qs.length);
+  const { answers, set, restore } = useAnswers(qs.length);
+  // سؤال الكتابة (V1.5) مش بيتحسب «ناقص» — نقطته بتيجي من الكتابة نفسها.
+  const missing = answers.findIndex((a, i) => a === undefined && !isOpenQuestion(qs[i]));
+  const openKey = `${finalDraftKey(course.id)}:open`;
+  const { open, setOpen, restoreOpen } = useOpenAnswers();
+  useEffect(() => {
+    const saved = readLocal<Record<string, OpenAnswer>>(openKey);
+    if (saved && typeof saved === 'object') restoreOpen(saved);
+  }, [openKey, restoreOpen]);
+  const setOpenAnswer = (id: string, v: OpenAnswer) =>
+    setOpen((prev) => {
+      const next = { ...prev, [id]: v };
+      writeLocal(openKey, next);
+      return next;
+    });
   // ⚠️ إجابات التقييم اللي لسه ماتسلّمتش بتتفتكر على الجهاز — لو وقف في
   //    النص ورجع، يلاقيها زي ما سابها.
   const draftKey = finalDraftKey(course.id);
@@ -822,13 +846,15 @@ function FinalExam({
       return;
     }
     start(async () => {
-      const r = await submitTrainingFinal(answers as number[], course.id);
+      const payload = qs.map((q, i) => (isOpenQuestion(q) ? (open[q.id] ?? {}) : (answers[i] as number)));
+      const r = await submitTrainingFinal(payload, course.id);
       if (!r.ok) {
         setError(r.error);
         setConfirming(false);
         return;
       }
       writeLocal(draftKey, null);
+      writeLocal(openKey, null);
       onResult(r);
     });
   };
@@ -854,7 +880,11 @@ function FinalExam({
       </header>
       {qs.map((q, i) => (
         <div key={q.id ?? i} id={`fq-${i}`} className="scroll-mt-28">
-          <QuestionBlock number={i + 1} q={q} value={answers[i]} onChange={(v) => set(i, v)} />
+          {isOpenQuestion(q) ? (
+            <OpenQuestionBlock number={i + 1} q={q} value={open[q.id] ?? {}} onChange={(v) => setOpenAnswer(q.id, v)} />
+          ) : (
+            <QuestionBlock number={i + 1} q={q} value={answers[i]} onChange={(v) => set(i, v)} />
+          )}
         </div>
       ))}
       {error && (

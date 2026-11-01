@@ -1316,13 +1316,13 @@ const writingPackages: ContentGroup = {
       key: 'packages.track.foundation.title',
       label: 'مسار التأسيس — العنوان',
       type: 'text',
-      fallback: 'مسار التأسيس',
+      fallback: 'مسار التأسيس الإبداعي',
     },
     {
       key: 'packages.track.foundation.subtitle',
       label: 'مسار التأسيس — السطر تحته',
       type: 'text',
-      fallback: 'دون 12 سنة',
+      fallback: 'دون 13 سنة',
     },
     {
       key: 'packages.track.youth.title',
@@ -1334,19 +1334,19 @@ const writingPackages: ContentGroup = {
       key: 'packages.track.youth.subtitle',
       label: 'مسار اليافعين — السطر تحته',
       type: 'text',
-      fallback: '12 سنة فأعلى',
+      fallback: '13 سنة فما فوق',
     },
     {
       key: 'packages.track.specialization.title',
       label: 'مسار التخصص — العنوان',
       type: 'text',
-      fallback: 'مسار التخصص',
+      fallback: 'مسار التخصص الأدبي',
     },
     {
       key: 'packages.track.specialization.subtitle',
       label: 'مسار التخصص — السطر تحته',
       type: 'text',
-      fallback: '12 سنة فأعلى — لمن أنهى مسارًا سابقًا أو يكتب بالفعل',
+      fallback: '13 سنة فما فوق — لمن أنهى مسارًا سابقًا أو يكتب بالفعل',
     },
     {
       key: 'packages.help.text',

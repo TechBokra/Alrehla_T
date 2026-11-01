@@ -19,10 +19,11 @@ describe('السن والفئة', () => {
     expect(ageInYears('2014-10-16', NOW)).toBe(11);
   });
 
-  /** ⚠️ ١٢ بالظبط = «١٢ فأكثر» — نفس `child_age_group` في القاعدة. */
-  it('يوم عيد ميلاده الـ١٢ بيدخل ١٢ فأكثر', () => {
-    expect(childAgeGroup(kid('2014-10-15'), NOW)).toBe('12_plus');
-    expect(childAgeGroup(kid('2014-10-16'), NOW)).toBe('under_12');
+  /** ⚠️ ١٣ بالظبط = «١٣ فما فوق» (قرار ١ نوفمبر) — نفس `child_age_group` في القاعدة. */
+  it('يوم عيد ميلاده الـ١٣ بيدخل ١٣ فما فوق، والـ١٢ لسه «دون ١٣»', () => {
+    expect(childAgeGroup(kid('2013-10-15'), NOW)).toBe('12_plus');
+    expect(childAgeGroup(kid('2013-10-16'), NOW)).toBe('under_12');
+    expect(childAgeGroup(kid('2014-10-15'), NOW)).toBe('under_12');
   });
 
   it('استثناء الإدارة بيغلب تاريخ الميلاد', () => {
@@ -76,8 +77,12 @@ describe('حارس القاعدة', () => {
     expect(sql).toMatch(/v_group <> v_pkg\.age_group/);
   });
 
-  it('١٢ بالظبط = ١٢ فأكثر في القاعدة كمان', () => {
-    expect(sql).toMatch(/< 12\s+then 'under_12'/);
+  it('١٣ بالظبط = ١٣ فما فوق في القاعدة كمان', () => {
+    const cutoff = readFileSync(
+      new URL('../../supabase/migrations/20261101090000_package_age_cutoff_13.sql', import.meta.url),
+      'utf8'
+    );
+    expect(cutoff).toMatch(/< 13\s+then 'under_12'/);
   });
 
   it('ولي الأمر مايقدرش يحط الاستثناء لنفسه', () => {

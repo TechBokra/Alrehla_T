@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Target, Clock, Calendar, ArrowLeft, Feather, Sparkles, PenTool } from 'lucide-react';
 import type { PackageTrack, WritingPackage } from '@/types';
 import { formatPrice } from '@/lib/utils';
+import { AGE_GROUP_LABEL } from '@/lib/package-labels';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { Button } from '@/components/ui/Button';
 import { PackageInterestButton } from '@/components/creative-writing/PackageInterestButton';
@@ -13,7 +14,7 @@ export function packageHref(pkg: Pick<WritingPackage, 'slug' | 'id'>): string {
 }
 
 export function ageGroupLabel(ageGroup: WritingPackage['ageGroup']): string {
-  return ageGroup === 'under_12' ? 'مناسبة لأقل من 12 سنة' : 'مناسبة لـ 12 سنة فأكثر';
+  return `مناسبة لـ${AGE_GROUP_LABEL[ageGroup]}`;
 }
 
 /**

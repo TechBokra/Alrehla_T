@@ -39,6 +39,38 @@ version:'1.2'</script>`;
     expect(importCourseFile('<html>مفيش بيانات</html>').ok).toBe(false);
   });
 
+  it('V1.5: سؤال الكتابة (open_response) مقبول، وملاحظات المتابعة بتتقري', () => {
+    const open = {
+      id: 'f25_open',
+      type: 'open_response',
+      q: 'كيف تساند المشارك ليبدأ؟',
+      fields: [
+        { id: 'age7', type: 'textarea', label: '7 سنوات' },
+        { id: 'dialogue', type: 'textarea', label: 'حوار قصير' },
+      ],
+    };
+    const v15 = { ...content, finalQuestions: [...content.finalQuestions, open] };
+    const html = `<script>const COURSE_DATA = ${JSON.stringify(v15)};
+const ADMIN_FOLLOWUP_RULES={
+ f1:{0:['الحماية','الوعد بسرية مطلقة.','راجع حدود السرية.'],2:["الخصوصية","طلب النص, كاملًا: الآن","اطلب بدائل"]},
+};</script>`;
+    const r = importCourseFile(html);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.content.finalQuestions).toHaveLength(2);
+    expect(r.content.adminFollowups?.f1?.['0']).toEqual(['الحماية', 'الوعد بسرية مطلقة.', 'راجع حدود السرية.']);
+    expect(r.content.adminFollowups?.f1?.['2']?.[1]).toBe('طلب النص, كاملًا: الآن');
+  });
+
+  it('سؤال الكتابة من غير خانات مرفوض برسالة واضحة، ولازم سؤال اختيار واحد على الأقل', () => {
+    const noFields = { ...content, finalQuestions: [...content.finalQuestions, { id: 'o', type: 'open_response', q: 'اكتب' }] };
+    const r = validateContent(noFields);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/سؤال كتابة/);
+    const onlyOpen = { ...content, finalQuestions: [{ id: 'o', type: 'open_response', q: 'اكتب', fields: [{ id: 'a', label: 'أ' }] }] };
+    expect(validateContent(onlyOpen).ok).toBe(false);
+  });
+
   it('JSON مباشر مقبول', () => {
     expect(importCourseFile(JSON.stringify(content)).ok).toBe(true);
   });

@@ -1,5 +1,7 @@
 'use client';
 
+import { AGE_GROUP_LABEL, TRACK_SHORT } from '@/lib/package-labels';
+import type { AgeGroup } from '@/types';
 import { SITE_URL } from '@/lib/site-url';
 import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
 import React, { useState, useMemo } from 'react';
@@ -87,11 +89,7 @@ const ARABIC_DAYS: Record<string, string> = {
 
 const DAY_KEYS = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
-const TRACK_LABELS: Record<string, string> = {
-  foundation: 'تأسيس',
-  youth: 'يافعين',
-  specialization: 'تخصص',
-};
+const TRACK_LABELS: Record<string, string> = TRACK_SHORT;
 
 type ActiveTab = 'overview' | 'requests' | 'packages' | 'schedule' | 'profile' | 'services';
 
@@ -1345,7 +1343,7 @@ export function AdminInstructorClient({
                     <span className="block text-[11px] text-slate-500 mt-0.5">
                       {TRACK_LABELS[pkg.track ?? ''] ?? pkg.track ?? 'مسار عام'}
                       {' · '}
-                      {pkg.ageGroup === 'under_12' ? 'تحت ١٢ سنة' : '١٢ سنة فأكثر'}
+                      {AGE_GROUP_LABEL[pkg.ageGroup as AgeGroup] ?? pkg.ageGroup}
                       {pkg.sessionsCount ? ` · ${pkg.sessionsCount} جلسات` : ''}
                     </span>
                   </div>

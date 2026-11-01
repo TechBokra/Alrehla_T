@@ -8,7 +8,9 @@ import {
   type CourseContent,
   type LearnerCourse,
   type TrainingProgress,
+  type OpenAnswer,
 } from '@/lib/training';
+import { readAdminReview, type AdminReview } from '@/lib/training-review';
 
 /**
  * التأهيل التأسيسي — القراءة.
@@ -108,6 +110,11 @@ export type FinalAttempt = {
   criticalTotal: number;
   passed: boolean;
   submittedAt: string;
+  /** للمراجعة: الاختيارات وإجابات سؤال الكتابة ومراجعة الإدارة. */
+  selected: Record<string, number> | null;
+  openAnswers: Record<string, OpenAnswer> | null;
+  review: AdminReview | null;
+  reviewedAt: string | null;
 };
 
 export type LearnerRecord = {
@@ -129,7 +136,7 @@ export async function getTrainingRecords(
   let pq = supabase.from('training_progress').select('*').eq('course_id', courseId);
   let aq = supabase
     .from('training_final_attempts')
-    .select('id, user_id, course_version, score, correct, total, critical_correct, critical_total, passed, submitted_at')
+    .select('*')
     .eq('course_id', courseId)
     .order('submitted_at', { ascending: false })
     .limit(2000);
@@ -156,6 +163,10 @@ export async function getTrainingRecords(
       criticalTotal: a.critical_total,
       passed: a.passed,
       submittedAt: a.submitted_at,
+      selected: (a.selected as Record<string, number> | null) ?? null,
+      openAnswers: (a.open_answers as Record<string, OpenAnswer> | null) ?? null,
+      review: readAdminReview(a.admin_review),
+      reviewedAt: a.reviewed_at ?? null,
     });
     out.set(a.user_id, rec);
   }
