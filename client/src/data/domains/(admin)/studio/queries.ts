@@ -624,6 +624,8 @@ export type StudioImageReview = {
   sentAt: string;
   decidedAt: string | null;
   clientNote: string | null;
+  /** أسباب طلب التعديل (من ١ نوفمبر). */
+  clientReasons: string[];
 };
 
 /**
@@ -636,7 +638,7 @@ export async function getStudioImageReviews(projectId: string): Promise<StudioIm
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('story_image_reviews')
-    .select('id, image_url, staff_note, status, sent_at, decided_at, client_note')
+    .select('*')
     .eq('project_id', projectId)
     .order('sent_at', { ascending: false })
     .limit(20);
@@ -652,5 +654,6 @@ export async function getStudioImageReviews(projectId: string): Promise<StudioIm
     sentAt: r.sent_at,
     decidedAt: r.decided_at,
     clientNote: r.client_note,
+    clientReasons: r.client_reasons ?? [],
   }));
 }

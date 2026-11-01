@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireUser, requireAdmin } from '@/lib/auth-guard';
 import { notifyUser, notifyAdmins } from '@/lib/notifications';
 import { logAuditAction } from '@/lib/audit';
-import { imageNoteProblem } from '@/lib/image-review';
+import { imageNoteProblem, reasonLabel, validReasons } from '@/lib/image-review';
 import { REVIEW_DELAY_NOTE } from '@/lib/delivery-days';
 
 /**
@@ -93,6 +93,7 @@ export async function decideCharacterImage(params: {
   orderId: string;
   approve: boolean;
   note?: string;
+  reasons?: string[];
 }): Promise<{ ok: true; decision: 'approved' | 'changes_requested' } | Fail> {
   let user;
   try {
@@ -101,7 +102,9 @@ export async function decideCharacterImage(params: {
     return { ok: false, error: errMessage(err, 'لازم تسجّل الدخول') };
   }
 
+  const reasons = validReasons(params.reasons);
   if (!params.approve) {
+    if (reasons.length === 0) return { ok: false, error: 'اختار إيه اللي محتاج يتعدّل.' };
     const problem = imageNoteProblem(params.note ?? '');
     if (problem) return { ok: false, error: problem };
   }
@@ -111,6 +114,7 @@ export async function decideCharacterImage(params: {
     p_review_id: params.reviewId,
     p_approve: params.approve,
     p_note: params.note?.trim() || null,
+    p_reasons: params.approve ? null : reasons,
   });
 
   if (error) {
@@ -125,7 +129,7 @@ export async function decideCharacterImage(params: {
     message:
       decision === 'approved'
         ? 'المرجع اتعتمد — المشاهد بقت مفتوحة.'
-        : (params.note?.trim().slice(0, 200) ?? ''),
+        : `${reasons.map(reasonLabel).join('، ')} — ${params.note?.trim().slice(0, 200) ?? ''}`,
     link: `/dashboard/admin/orders/${params.orderId}`,
     event: 'story_preview',
   });

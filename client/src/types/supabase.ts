@@ -3932,6 +3932,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           client_note: string | null
+          client_reasons?: string[] | null
         }
         Insert: {
           id?: string
@@ -5108,7 +5109,7 @@ export type Database = {
         }[]
       }
       story_image_decide: {
-        Args: { p_review_id: string; p_approve: boolean; p_note?: string | null }
+        Args: { p_review_id: string; p_approve: boolean; p_note?: string | null; p_reasons?: string[] | null }
         Returns: string
       }
       next_payment_reference: { Args: never; Returns: string }

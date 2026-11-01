@@ -5,7 +5,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getOrders } from '@/data/domains/(client)/orders/queries';
 import { getMyImageReviews } from '@/data/domains/(client)/story-preview/queries';
 import { getProductNamesFor } from '@/data/domains/(shared)/products/queries';
-import { awaitingImageCount, latestImagePerItem } from '@/lib/image-review';
+import { awaitingImageCount, changesUsed, latestImagePerItem } from '@/lib/image-review';
 import { REVIEW_DELAY_NOTE } from '@/lib/delivery-days';
 import { pageMetadata } from '@/lib/seo';
 import { ImageReviewCard } from './ImageReviewClient';
@@ -83,6 +83,7 @@ export default async function StoryPreviewPage({
               orderId={id}
               productName={names[row.productId] ?? 'قصة مخصّصة'}
               delayNote={REVIEW_DELAY_NOTE}
+              changesUsed={changesUsed(rows, row.orderItemId)}
             />
           ))}
         </div>

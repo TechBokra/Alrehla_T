@@ -68,3 +68,22 @@ export function lastMessages(
   }
   return out;
 }
+
+/**
+ * إشعار المتابعة اليومي (طلب تامر، ١ نوفمبر): الطلبات اللي حصل فيها تواصل
+ * مابقتش «طلبات» في الرئيسية — بس لو فيها حاجة محتاجة تحديث، بيوصل إشعار.
+ *   replied + late  رد المتقدّم مستني مننا من يومين أو أكتر
+ *   stale           المتقدّم مارد علينا من ٣ أيام أو أكتر
+ * `null` = مفيش حاجة تستاهل إشعار النهارده.
+ */
+export function joinFollowUpDigest(followUps: FollowUp[]): { title: string; message: string } | null {
+  const replied = followUps.filter((f) => f.kind === 'replied' && f.late).length;
+  const stale = followUps.filter((f) => f.kind === 'stale').length;
+  if (replied + stale === 0) return null;
+  const ar = (n: number) => n.toLocaleString('ar-EG');
+  const parts = [
+    replied > 0 ? `${ar(replied)} رد من متقدّمين مستني ردنا من ${ar(OUR_REPLY_DAYS)} يوم أو أكتر` : '',
+    stale > 0 ? `${ar(stale)} متقدّم مارد علينا من ${ar(APPLICANT_REPLY_DAYS)} أيام — تابع أو اقفل الطلب` : '',
+  ].filter(Boolean);
+  return { title: 'طلبات انضمام محتاجة متابعة', message: parts.join(' · ') };
+}

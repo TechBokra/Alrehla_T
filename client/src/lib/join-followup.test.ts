@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { joinFollowUp, lastMessages } from './join-followup';
+import { joinFollowUp, joinFollowUpDigest, lastMessages } from './join-followup';
 
 const now = Date.parse('2026-10-27T10:00:00Z');
 const ago = (d: number) => new Date(now - d * 86_400_000).toISOString();
@@ -30,5 +30,21 @@ describe('متابعة طلبات الانضمام', () => {
       { request_id: 'a', author: 'applicant', created_at: ago(1) },
     ]);
     expect(m.get('a')?.author).toBe('applicant');
+  });
+});
+
+describe('joinFollowUpDigest', () => {
+  it('بيجمع الرد المتأخر والمتقدّم اللي مارد بس — والجديد مالوش إشعار هنا', () => {
+    const now = Date.parse('2026-11-01T10:00:00Z');
+    const f = [
+      joinFollowUp({ status: 'pending', createdAt: '2026-10-20T10:00:00Z' }, null, now),
+      joinFollowUp({ status: 'pending', createdAt: '2026-10-20T10:00:00Z' }, { author: 'applicant', createdAt: '2026-10-28T10:00:00Z' }, now),
+      joinFollowUp({ status: 'pending', createdAt: '2026-10-20T10:00:00Z' }, { author: 'admin', createdAt: '2026-10-25T10:00:00Z' }, now),
+      joinFollowUp({ status: 'pending', createdAt: '2026-10-20T10:00:00Z' }, { author: 'admin', createdAt: '2026-10-31T10:00:00Z' }, now),
+    ];
+    const d = joinFollowUpDigest(f);
+    expect(d?.message).toMatch(/١ رد/);
+    expect(d?.message).toMatch(/١ متقدّم مارد/);
+    expect(joinFollowUpDigest([f[0], f[3]])).toBeNull();
   });
 });

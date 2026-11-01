@@ -3,8 +3,15 @@
 import { useState, useTransition } from 'react';
 import { CheckCircle2, MessageSquarePlus, Clock, PenLine } from 'lucide-react';
 import { decideCharacterImage } from '@/actions/image-review';
-import { Field, TextArea } from '@/components/forms/Form';
-import { IMAGE_NOTE_MAX, imageNoteProblem, imageReviewState, type ImageReviewRow } from '@/lib/image-review';
+import { Checkbox, Field, TextArea } from '@/components/forms/Form';
+import {
+  IMAGE_CHANGE_LIMIT,
+  IMAGE_CHANGE_REASONS,
+  IMAGE_NOTE_MAX,
+  imageNoteProblem,
+  imageReviewState,
+  type ImageReviewRow,
+} from '@/lib/image-review';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 
 const TONE = {
@@ -33,12 +40,17 @@ export function ImageReviewCard({
   orderId,
   productName,
   delayNote,
+  changesUsed = 0,
 }: {
   row: ImageReviewRow;
   orderId: string;
   productName: string;
   delayNote: string;
+  /** طلبات التعديل اللي اتطلبت قبل كده على الكتاب ده. */
+  changesUsed?: number;
 }) {
+  const changesLeft = Math.max(0, IMAGE_CHANGE_LIMIT - changesUsed);
+  const [reasons, setReasons] = useState<string[]>([]);
   const state = imageReviewState(row);
   const [mode, setMode] = useState<'idle' | 'changes'>('idle');
   const [note, setNote] = useState('');
@@ -48,6 +60,10 @@ export function ImageReviewCard({
   const submit = (approve: boolean) => {
     setError('');
     if (!approve) {
+      if (reasons.length === 0) {
+        setError('اختار إيه اللي محتاج يتعدّل.');
+        return;
+      }
       const problem = imageNoteProblem(note);
       if (problem) {
         setError(problem);
@@ -60,6 +76,7 @@ export function ImageReviewCard({
         orderId,
         approve,
         note: approve ? undefined : note,
+        reasons: approve ? undefined : reasons,
       });
       if (!result.ok) setError(result.error);
     });
@@ -79,6 +96,13 @@ export function ImageReviewCard({
         <p className="font-black">{state.title}</p>
         <p className="mt-1 text-sm font-medium leading-relaxed">{state.text}</p>
         {state.kind === 'awaiting' && <p className="mt-2 text-sm font-bold leading-relaxed">{delayNote}</p>}
+        {state.kind === 'awaiting' && (
+          <p className="mt-2 text-sm font-bold leading-relaxed">
+            {changesLeft > 0
+              ? `متاح لك ${changesLeft === IMAGE_CHANGE_LIMIT ? 'طلبين تعديل' : 'طلب تعديل واحد'} على الصورة.`
+              : 'استخدمت طلبي التعديل المتاحين — لو فيه مشكلة كبيرة كلّمنا من صفحة الدعم.'}
+          </p>
+        )}
       </div>
 
       <div className="flex justify-center rounded-2xl bg-slate-50 p-4 md:p-6">
@@ -112,7 +136,7 @@ export function ImageReviewCard({
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                 {pending ? 'جارٍ التسجيل…' : 'الصورة عاجباني — ابدأوا الرسم'}
               </button>
-              <button
+              {changesLeft > 0 && <button
                 type="button"
                 disabled={pending}
                 onClick={() => setMode('changes')}
@@ -120,12 +144,31 @@ export function ImageReviewCard({
               >
                 <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
                 فيه حاجة عايزة تتعدّل
-              </button>
+              </button>}
             </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 p-5">
+              <fieldset className="mb-4">
+                <legend className="mb-2 text-sm font-bold text-slate-700">
+                  إيه اللي محتاج يتعدّل؟ <span className="text-red-500" aria-hidden="true">*</span>
+                </legend>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {IMAGE_CHANGE_REASONS.map((r) => (
+                    <Checkbox
+                      key={r.id}
+                      label={r.label}
+                      checked={reasons.includes(r.id)}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setReasons((prev) => (on ? [...prev, r.id] : prev.filter((x) => x !== r.id)));
+                        if (error) setError('');
+                      }}
+                    />
+                  ))}
+                </div>
+              </fieldset>
               <Field
-                label="عايز نعدّل إيه في الصورة؟"
+                label="اشرح لنا التعديل"
                 name="note"
                 required
                 hint="مثال: «الشعر أطول وأغمق» أو «النضارة مش موجودة»."

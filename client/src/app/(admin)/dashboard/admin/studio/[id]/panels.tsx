@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { ActionForm } from '@/components/dashboard/ActionForm';
+import { ImageField } from '@/components/dashboard/ImageField';
+import { IMAGE_CHANGE_LIMIT, reasonLabel } from '@/lib/image-review';
 import { DecisionButton } from '@/components/forms/DecisionButton';
 import {
   Checkbox,
@@ -411,6 +413,7 @@ export function CharacterPanel({
   reviews?: StudioImageReview[];
 }) {
   const pendingReview = reviews.find((r) => r.status === 'pending');
+  const changesUsed = reviews.filter((r) => r.status === 'changes_requested').length;
   const canSend = project.status === 'character' && !project.characterApprovedAt && !!project.characterRefUrl;
   return (
     <div className="space-y-6">
@@ -428,13 +431,15 @@ export function CharacterPanel({
           <Field label="وصف الشخصية (الملامح، الملابس، الألوان)" name="characterNotes">
             <TextArea name="characterNotes" rows={6} maxLength={4000} defaultValue={project.characterNotes ?? ''} />
           </Field>
-          <Field
-            label="رابط صورة المرجع"
+          {/* ⚠️ رفع مباشر (طلب تامر، ١ نوفمبر) — كان لصق رابط بس. */}
+          <ImageField
             name="characterRefUrl"
-            hint="رابط https، ويفضّل رابط Cloudinary (غيره ممكن مايظهرش في المعاينة). رفع الملفات من هنا لسه مش متاح."
-          >
-            <TextInput name="characterRefUrl" type="url" dir="ltr" maxLength={500} defaultValue={project.characterRefUrl ?? ''} />
-          </Field>
+            label="صورة البطل"
+            folder="alrehla/studio/characters"
+            value={project.characterRefUrl ?? ''}
+            aspect="square"
+            hint="ارفع الصورة واضغط «حفظ»، وبعدين «ابعت الصورة للعميل» تحت."
+          />
           <FormActions>
             <SubmitButton>حفظ</SubmitButton>
           </FormActions>
@@ -485,6 +490,11 @@ export function CharacterPanel({
           <h3 id="char-reviews" className={h3}>
             مراجعات العميل
           </h3>
+          <p className="text-sm font-bold text-slate-600">
+            طلبات التعديل: {changesUsed.toLocaleString('ar-EG')} من {IMAGE_CHANGE_LIMIT.toLocaleString('ar-EG')}
+            {changesUsed >= IMAGE_CHANGE_LIMIT ? ' — العميل مايقدرش يطلب تعديل تاني، يوافق أو يكلّم الدعم.' : ''}
+            {' '}· وقت انتظار العميل بيتضاف على مواعيد المشروع لوحده.
+          </p>
           <ul className="space-y-3">
             {reviews.map((r) => {
               const meta = REVIEW_LABELS[r.status] ?? REVIEW_LABELS.withdrawn;
@@ -505,6 +515,15 @@ export function CharacterPanel({
                       {r.decidedAt ? ` · القرار ${formatDate(r.decidedAt)}` : ''}
                       {r.status === 'withdrawn' ? '' : waitedDaysText(r)}
                     </p>
+                    {r.clientReasons.length > 0 && (
+                      <p className="flex flex-wrap gap-1">
+                        {r.clientReasons.map((x) => (
+                          <span key={x} className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-900">
+                            {reasonLabel(x)}
+                          </span>
+                        ))}
+                      </p>
+                    )}
                     {r.clientNote && <p className="font-bold text-slate-800">«{r.clientNote}»</p>}
                   </div>
                 </li>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient, isAdminApiConfigured } from '@/lib/supabase/admin';
 import { adminAlertEmails, sendEmail } from '@/lib/email';
 import { SITE_URL } from '@/lib/site-url';
+import { joinFollowUp, joinFollowUpDigest, lastMessages } from '@/lib/join-followup';
 
 const LINE_LABELS: Record<string, string> = {
   studio: 'الاستوديو (قصص أنت البطل)',
@@ -86,6 +87,49 @@ export async function GET(request: Request) {
     console.error('task-deadlines cron: digest', e);
   }
 
+  // ══ متابعة طلبات الانضمام (طلب تامر، ١ نوفمبر) ══════════════
+  //
+  // الطلب اللي حصل فيه تواصل مابقاش «طلب» في الرئيسية. لو اتأخر الرد
+  // (مننا أو من المتقدّم) بيوصل إشعار واحد في اليوم للإدارة.
+  let joinDigest: unknown = null;
+  try {
+    const { data: reqs } = await admin
+      .from('join_requests')
+      .select('id, status, created_at')
+      .eq('status', 'pending')
+      .limit(500);
+    const open = reqs ?? [];
+    if (open.length > 0) {
+      const { data: msgs } = await admin
+        .from('join_request_messages')
+        .select('request_id, author, created_at')
+        .in('request_id', open.map((r) => r.id));
+      const last = lastMessages(msgs ?? []);
+      const digest = joinFollowUpDigest(
+        open.map((r) => joinFollowUp({ status: r.status, createdAt: r.created_at }, last.get(r.id) ?? null)),
+      );
+      if (digest) {
+        const { data: admins } = await admin
+          .from('user_profiles')
+          .select('id')
+          .in('role', ['super_admin', 'general_supervisor']);
+        const rows = (admins ?? []).map((a) => ({
+          recipient_profile_id: a.id,
+          title: digest.title,
+          message: digest.message,
+          link: '/dashboard/admin/join-requests?filter=action',
+        }));
+        if (rows.length > 0) {
+          const { error: nErr } = await admin.from('notifications').insert(rows);
+          if (nErr) console.error('task-deadlines cron: join digest', nErr.message);
+        }
+        joinDigest = { ...digest, recipients: rows.length };
+      }
+    }
+  } catch (e) {
+    console.error('task-deadlines cron: join follow-ups', e);
+  }
+
   // ══ الحفظ: الإشعارات المقروءة القديمة + أرشفة السجل ═══════════
   const retention = await admin.rpc('ops_retention_sweep');
   if (retention.error && retention.error.code !== 'PGRST202') {
@@ -96,6 +140,7 @@ export async function GET(request: Request) {
     ...((data ?? {}) as Record<string, unknown>),
     box: boxRes.data ?? null,
     digest,
+    joinDigest,
     retention: retention.data ?? null,
   });
 }

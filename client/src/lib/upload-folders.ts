@@ -37,6 +37,8 @@ export const UPLOAD_FOLDERS: Record<string, Who[]> = {
   'alrehla/avatars': ['anyone'],
   'alrehla/children': ['anyone'],
   'alrehla/publishers': ['admin', 'publisher'],
+  // صورة البطل في الاستوديو — بتتبعت لولي الأمر يعتمدها.
+  'alrehla/studio/characters': ['admin'],
 };
 
 /** `null` = مسموح، وإلا رسالة الرفض. */

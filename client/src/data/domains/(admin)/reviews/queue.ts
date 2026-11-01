@@ -42,8 +42,9 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   ] = await Promise.all([
     supabase.from('orders').select('id', head).eq('status', 'awaiting_verification'),
     supabase.from('service_orders').select('id', head).eq('status', 'awaiting_verification'),
-    // ⚠️ مش «كل قيد المراجعة» (طلب تامر، ٢٧ أكتوبر): اللي رديت عليه ومستني
-    //    المتقدّم مالوش مكان هنا — بس الجديد، واللي فيه رد جديد، واللي اتأخر.
+    // ⚠️ (طلب تامر، ١ نوفمبر): «طالما حصل تواصل يبقى مفيش طلب انضمام جديد».
+    //    هنا الجديد بس (محدش رد عليه). رد المتقدّم بيوصل إشعار، والمتابعة
+    //    المتأخرة إشعار يومي (`cron/task-deadlines`) — مش طلبات.
     supabase.from('join_requests').select('id, status, created_at').eq('status', 'pending'),
     supabase.from('profile_update_requests').select('id', head).eq('status', 'pending'),
     // "قيد المراجعة" plus an approved offer whose instructor has asked for a
@@ -77,7 +78,7 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
   const followUps = await getJoinFollowUps(
     (joinRequests.data ?? []).map((r) => ({ id: r.id, status: r.status, createdAt: r.created_at })),
   );
-  const joinNeedsAction = [...followUps.values()].filter((f) => f.needsAction);
+  const joinNew = [...followUps.values()].filter((f) => f.kind === 'new');
 
   const pendingOffers = (serviceOffers.data ?? []).filter((o) => offerRequestKind(o) !== null).length;
 
@@ -132,11 +133,11 @@ export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
     },
     {
       key: 'join_requests',
-      label: 'طلبات انضمام محتاجة رد أو متابعة',
-      count: joinNeedsAction.length,
+      label: 'طلبات انضمام جديدة (محدش تواصل معاها)',
+      count: joinNew.length,
       href: '/dashboard/admin/join-requests',
       permission: 'canManageSupport',
-      urgent: joinNeedsAction.some((f) => f.late),
+      urgent: joinNew.some((f) => f.late),
     },
     {
       // ملف المدرب وصوره بيتراجعوا من مكان واحد — فبند واحد بعددهم.

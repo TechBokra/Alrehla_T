@@ -18,6 +18,37 @@
  */
 
 export const IMAGE_NOTE_MIN = 5;
+
+/** طلبات التعديل المسموحة لكل كتاب — قرار تامر (١ نوفمبر). نفس الرقم في `story_image_decide`. */
+export const IMAGE_CHANGE_LIMIT = 2;
+
+/** أسباب التعديل — نفس القايمة في `story_image_decide` (ترحيل 20261101120000). */
+export const IMAGE_CHANGE_REASONS = [
+  { id: 'face', label: 'ملامح الوجه' },
+  { id: 'hair', label: 'الشعر' },
+  { id: 'skin', label: 'لون البشرة' },
+  { id: 'clothes', label: 'الملابس والألوان' },
+  { id: 'age', label: 'السن أو الحجم' },
+  { id: 'accessories', label: 'نضارة أو إكسسوارات' },
+  { id: 'other', label: 'حاجة تانية' },
+] as const;
+
+export type ImageChangeReason = (typeof IMAGE_CHANGE_REASONS)[number]['id'];
+
+export function reasonLabel(id: string): string {
+  return IMAGE_CHANGE_REASONS.find((r) => r.id === id)?.label ?? id;
+}
+
+export function validReasons(input: unknown): ImageChangeReason[] {
+  if (!Array.isArray(input)) return [];
+  const ids = new Set<string>(IMAGE_CHANGE_REASONS.map((r) => r.id));
+  return [...new Set(input.filter((x): x is ImageChangeReason => typeof x === 'string' && ids.has(x)))];
+}
+
+/** طلبات التعديل اللي اتطلبت على البند ده لحد دلوقتي. */
+export function changesUsed(rows: Pick<ImageReviewRow, 'orderItemId' | 'status'>[], orderItemId: string): number {
+  return rows.filter((r) => r.orderItemId === orderItemId && r.status === 'changes_requested').length;
+}
 export const IMAGE_NOTE_MAX = 500;
 
 export type ImageReviewStatus = 'pending' | 'approved' | 'changes_requested';
