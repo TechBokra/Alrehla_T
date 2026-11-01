@@ -19,6 +19,7 @@ export interface UseResourceFormCrudOptions<TRecord extends BaseRecord> {
   canEdit?: (record: TRecord) => boolean;
   getErrorMessage?: (error: unknown) => string;
   onSaved?: (record: TRecord, action: ResourceFormAction) => void;
+  suppressNotifications?: boolean;
 }
 
 /** Refine form reads, create/update mutations, guards and cache invalidation. */
@@ -29,12 +30,14 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   canEdit = () => true,
   getErrorMessage = () => "تعذّر حفظ البيانات. حاول مرة أخرى.",
   onSaved,
+  suppressNotifications = false,
 }: UseResourceFormCrudOptions<TRecord>) {
   const editing = id !== undefined;
   const access = useResourceAuthorization(resource, editing ? "edit" : "create", { id });
   const [checkingAccess, setCheckingAccess] = useState(false);
   const loaded = useRef(false);
   const inFlight = useRef(false);
+  const lastFailure = useRef<unknown>(undefined);
   const [flowError, setFlowError] = useState<string | null>(null);
   const query = useOne<TRecord, HttpError>({
     resource,
@@ -50,9 +53,13 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     },
   });
   const create = useCreate<TRecord, HttpError, Record<string, unknown>>({
+    successNotification: suppressNotifications ? false : undefined,
+    errorNotification: suppressNotifications ? false : undefined,
     mutationOptions: { retry: false },
   });
   const update = useUpdate<TRecord, HttpError, Record<string, unknown>>({
+    successNotification: suppressNotifications ? false : undefined,
+    errorNotification: suppressNotifications ? false : undefined,
     mutationOptions: { retry: false },
   });
   const pending = checkingAccess || create.mutation.isPending || update.mutation.isPending;
@@ -64,12 +71,17 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   const error =
     flowError ?? (access.isError ? "تعذّر التحقق من الصلاحيات. حاول مرة أخرى." : !access.isPending && !access.allowed ? access.data?.reason : null) ?? (mutationError ? getErrorMessage(mutationError) : null);
   const fetching = editing && access.allowed && (query.query.isPending || query.query.isFetching);
-  const state = editRecordState({
+  const recordState = editRecordState({
     loading: fetching,
     error: query.query.error,
     record: query.result,
     canEdit,
   });
+  const state = access.isError
+    ? "failed"
+    : !access.isPending && !access.allowed
+      ? "forbidden"
+      : recordState;
   if (editing && state === "ready") loaded.current = true;
 
   const initialLoading = access.isPending || (editing && !loaded.current && fetching);
@@ -81,6 +93,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   async function save(values: Record<string, unknown>) {
     if (inFlight.current || busy || unavailable) return false;
     inFlight.current = true;
+    lastFailure.current = undefined;
     setFlowError(null);
     setCheckingAccess(true);
     try {
@@ -94,6 +107,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
           if (!fresh.data?.data || !canEdit(fresh.data.data))
             throw { code: "42501" };
         } catch (failure) {
+          lastFailure.current = failure;
           setFlowError(getErrorMessage(failure));
           return false;
         }
@@ -102,7 +116,8 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
           saved = (
             await update.mutateAsync({ ...common, id: id!, values })
           ).data;
-        } catch {
+        } catch (failure) {
+          lastFailure.current = failure;
           // Refine's update mutation owns and exposes its pending/error state.
           return false;
         }
@@ -110,7 +125,8 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
         setCheckingAccess(false);
         try {
           saved = (await create.mutateAsync({ ...common, values })).data;
-        } catch {
+        } catch (failure) {
+          lastFailure.current = failure;
           // Refine's create mutation owns and exposes its pending/error state.
           return false;
         }
@@ -118,11 +134,13 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
       try {
         onSaved?.(saved, editing ? "edit" : "create");
       } catch (failure) {
+        lastFailure.current = failure;
         setFlowError(getErrorMessage(failure));
         return false;
       }
-      return true;
+      return saved;
     } catch (failure) {
+      lastFailure.current = failure;
       setFlowError(failure instanceof Error ? failure.message : getErrorMessage(failure));
       return false;
     } finally {
@@ -142,6 +160,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     pending,
     error,
     save,
+    getLastError: () => lastFailure.current,
     canRetry: access.isError || state === "failed",
     retryLoad: async () => {
       const result = await access.refetch();

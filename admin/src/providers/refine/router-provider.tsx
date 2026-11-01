@@ -9,7 +9,7 @@ import { resources } from "./resources";
 
 export function resolveAdminPath(to: string) {
   const path = to.replace(/\/+$/, "") || "/";
-  return [
+  const staticPath = [
     "/",
     "/sign-in",
     "/catalog/products",
@@ -19,9 +19,11 @@ export function resolveAdminPath(to: string) {
     "/users",
     "/profile",
     "/reset-password",
-  ].includes(path)
-    ? path
-    : "/sign-in";
+  ].includes(path);
+  const productPath =
+    path === "/catalog/products/create" ||
+    /^\/catalog\/products\/[^/]+\/edit$/.test(path);
+  return staticPath || productPath ? path : "/sign-in";
 }
 
 export const authRouterProvider: RouterProvider = {
@@ -41,10 +43,25 @@ export const authRouterProvider: RouterProvider = {
     const location = useLocation();
     return () => {
       const path = location.pathname.replace(/\/+$/, "");
-      const resource = resources.find((item) => item.list === path);
+      const resource = resources.find((item) =>
+        item.list === path ||
+        (item.name === "personalized_products" &&
+          (path === "/catalog/products/create" ||
+            /^\/catalog\/products\/[^/]+\/edit$/.test(path))),
+      );
+      const editingProduct = /^\/catalog\/products\/([^/]+)\/edit$/.exec(path);
+      const action = path === "/catalog/products/create"
+        ? "create"
+        : editingProduct
+          ? "edit"
+          : resource
+            ? "list"
+            : undefined;
       return {
         pathname: location.pathname,
-        ...(resource ? { resource, action: "list" as const } : {}),
+        ...(resource && action
+          ? { resource, action, ...(editingProduct ? { id: editingProduct[1] } : {}) }
+          : {}),
       };
     };
   },

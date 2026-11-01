@@ -360,3 +360,47 @@ change.
   resource/architecture guides. All 31 admin tests, direct TypeScript check,
   production build and whitespace checks pass. The existing large-chunk
   warning remains.
+
+### Route-based product forms — 2026-11-01
+
+- Added `/catalog/products/create` and `/catalog/products/:id/edit` using the
+  shared `ResourceFormPage`, Refine CRUD hook, TanStack Form footer and dirty
+  navigation guard. The list CreateButton and product Edit row action now use
+  those routes; delete and other resource dialogs remain unchanged. Successful
+  create navigates to the new product's edit page; edit saves reset the form
+  from the Refine mutation result and show an Arabic success toast.
+- Added platform product fields for category, pricing, custom writing styles,
+  ages, descriptions, features, active status and cover/gallery images. New
+  files stay in UploadCN until Save and use the existing signed Cloudinary
+  adapter; the media-library picker reads through the named Refine provider
+  behind media permissions. Preparation-day values save separately and display
+  a staging setup notice when the production columns are absent.
+- Fixed first-load validation: product and preparation schemas now validate on
+  the first Save attempt, then revalidate on edits, so empty required fields do
+  not render errors before interaction. A single responsive grid arranges the
+  section cards (one column on small screens, two at medium widths and three at
+  wide widths); fields remain stacked inside sections, while content and image
+  sections and the save footer span the full grid. The live
+  create page showed no initial errors; an empty Save attempt showed the expected
+  name and paper-price errors and disabled Save.
+- Added the local migration `20261101193607_add_product_preparation_days.sql`
+  for nullable 1–120 day columns. It was not applied to any remote database.
+  Updated the English resource guide and architecture notes.
+- Validation: 35 tests pass, `pnpm typecheck`, `pnpm build` and `git diff --check`
+  pass. The route generator circular-dependency and Vite large-chunk
+  warnings remain. No live product writes, media uploads, remote schema
+  changes or deployments were performed.
+
+### Product form and resource form organization — 2026-11-01
+
+- Grouped the product route form into `features/catalog/products/form-page/`:
+  page composition, TanStack form, schema, route-specific defaults/payload
+  mapping and image field now have local files and a folder entry point. The
+  product root keeps its existing dialog model and list modules.
+- Split shared resource forms into `forms/dialog/` and `forms/page/`, each with
+  a presentation object. The root `forms/registry.ts` composes both objects;
+  shared context contracts and public exports stay in `forms/`. ResourceView
+  and product form routes now consume the registry.
+- Updated the resource/architecture guides and authorization test module mock.
+  TypeScript, tests, production build and whitespace checks pass. No runtime
+  behavior or remote data/schema was changed by this organization refactor.

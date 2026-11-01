@@ -19,6 +19,9 @@ export const resources: ResourceProps[] = [
   ...Object.values(navigationItems).map((item) => ({
     name: item.resource,
     list: item.to,
+    ...(item.resource === "personalized_products"
+      ? { create: "/catalog/products/create", edit: "/catalog/products/:id/edit" }
+      : {}),
     meta: {
       label: item.label,
       ...(item.resource === "users" ? { dataProviderName: "users" } : {}),

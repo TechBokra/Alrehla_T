@@ -2,6 +2,7 @@ import { ResourceView } from "@/components/resources";
 import { productForm } from "./dialogs";
 import { productColumns } from "./columns";
 import type { Product } from "./model";
+import { CreateButton } from "@/components/refine-ui/buttons/create";
 
 export function ProductsPage() {
   return (
@@ -11,6 +12,11 @@ export function ProductsPage() {
       description="إدارة منتجات المكتبة والقصص المخصصة. المنتجات الجديدة تُحفظ غير نشطة."
       columns={productColumns}
       form={productForm}
+      createAction={
+        <CreateButton resource="personalized_products">
+          إضافة منتج
+        </CreateButton>
+      }
       deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
       enableRowReordering
       refineCoreProps={{

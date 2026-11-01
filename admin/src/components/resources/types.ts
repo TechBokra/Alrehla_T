@@ -50,6 +50,8 @@ export interface ResourceViewProps<TRecord extends ResourceRecord> {
   pageSizeOptions?: number[];
   initialState?: UseDataTableOptions<TRecord>["initialState"];
   toolbarContent?: (table: UseTableReturnType<TRecord, HttpError>) => ReactNode;
+  /** Replace the default create-dialog trigger with a route-based action. */
+  createAction?: ReactNode;
   children?: ReactNode;
   refineCoreProps?: Omit<NonNullable<UseDataTableOptions<TRecord>["refineCoreProps"]>, "resource">;
   deleteConsequence?: string;

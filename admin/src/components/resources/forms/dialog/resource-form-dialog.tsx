@@ -5,14 +5,9 @@ import { FormDialog } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResourceFormCrud } from "@/hooks/resources";
+import type { ResourceFormDialogContext } from "../types";
 
-export interface ResourceFormDialogContext<TRecord> {
-  record?: TRecord;
-  formId: string;
-  disabled: boolean;
-  onFormValidityChange: (isValid: boolean) => void;
-  onSave: (values: Record<string, unknown>) => Promise<void>;
-}
+export type { ResourceFormDialogContext } from "../types";
 
 /** Shared create/edit controller and dialog. Features own fields and payloads. */
 export function ResourceFormDialog<TRecord extends BaseRecord>({

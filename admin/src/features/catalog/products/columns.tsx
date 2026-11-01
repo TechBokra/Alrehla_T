@@ -1,6 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { ResourceRowActions } from "@/components/resources";
+import { createResourceActions, ResourceRowActions } from "@/components/resources";
+import { useResourceContext } from "@/hooks/resources";
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "./model";
 
@@ -74,7 +77,20 @@ export function productColumns(): ColumnDef<Product, unknown>[] {
       enableColumnFilter: false,
       enableHiding: false,
       header: "الإجراءات",
-      cell: ({ row }) => <ResourceRowActions id={row.original.id} />,
+      cell: ({ row }) => <ProductRowActions product={row.original} />,
     },
   ];
+}
+
+function ProductRowActions({ product }: { product: Product }) {
+  const navigate = useNavigate();
+  const context = useResourceContext();
+  const actions = useMemo(
+    () => createResourceActions({
+      onEdit: (id) => void navigate({ to: "/catalog/products/$id/edit", params: { id } }),
+      onDelete: context.openDelete,
+    }),
+    [context.openDelete, navigate],
+  );
+  return <ResourceRowActions id={String(product.id)} actions={actions} />;
 }

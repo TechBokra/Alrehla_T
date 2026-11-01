@@ -111,8 +111,9 @@ A provider does not own React pending/error state or the table cache. It returns
 | `src/contexts/resource/types.ts` | Define the selected-action target and resource context value contracts. Its UI type dependency is imported with `import type`, so there is no runtime import from presentation. |
 | `view/resource-page.tsx` / `ResourcePage` | Render the title, description, table, Add new button and toolbar content. Execute no save/delete requests. Currently toolbarContent appears inside toolbarActions only when creation is available. |
 | `dialogs/resource-dialogs.tsx` / `ResourceDialogs` | Mount one dialog for the selected target. Pass the record, name and restrictions to deletion; mount the editor for create/edit. An incrementing key resets the dialog for each new action selection. |
-| `forms/resource-editor.tsx` / `ResourceEditor` | Map the target to create/edit, build the title and pass feature configuration such as canEdit, dataProviderName, fields and onSaved. |
-| `forms/resource-form-dialog.tsx` / `ResourceFormDialog` | Use the CRUD hook and render edit-record loading, errors or fields. Connect the Save button to the form through formId and close after successful save. Pass record, disabled and onSave to fields. |
+| `forms/dialog/resource-editor.tsx` / `ResourceEditor` | Map the selected target to create/edit, build the title and pass feature configuration such as canEdit, dataProviderName, fields and onSaved. |
+| `forms/dialog/resource-form-dialog.tsx` / `ResourceFormDialog` | Use the CRUD hook and render edit-record loading, errors or fields. Connect the Save button to the form through formId and close after successful save. Pass record, disabled and onSave to fields. |
+| `forms/registry.ts` | Select the dialog or route-page presentation. Each presentation folder exports its own object; the root `forms/` module holds the shared registry, context types and public exports. |
 | `dialogs/resource-delete-dialog.tsx` / `ResourceDeleteDialog` | Render deletion confirmation using AlertDialog. Show consequences/errors and disable confirmation while pending or forbidden. Prevent dismissal during the request and close on success. |
 | `actions/resource-row-actions.tsx` / `ResourceRowActions` | Resolve default/custom actions and apply edit/delete row restrictions. |
 | Same file / `AuthorizeActions` | Check each authorizationAction with a separate component/hook instance. Exclude forbidden actions from the menu. |
@@ -263,7 +264,7 @@ Currently, notifications use Refine useCustomMutation for their command. usersDa
 | List refresh | Overlay while isFetching after initial loading. |
 | Read failure | Arabic feedback and refetch button; table and pagination are hidden during query error. |
 | Empty list or no matching results | DataTableEmpty with a clear-search/filters action. |
-| Loading/forbidden/missing edit record | useResourceFormCrud and editRecordState, presented by ResourceFormDialog. |
+| Loading/forbidden/missing edit record | useResourceFormCrud and editRecordState, presented by ResourceFormDialog for dialog resources or ResourceFormPage for route-based forms. |
 | Pending/failed save or delete | Refine mutation state plus preflight state; buttons disabled and errors displayed. |
 
 Keep these implementation limits visible when extending the feature:
@@ -286,3 +287,47 @@ Keep these implementation limits visible when extending the feature:
 ## 14. Documentation verification
 
 The component, hook, provider and product/add-on/user page implementations were traced, and invalidation was checked against the installed Refine source. The current resource API, centralized defaults, mutation/error behavior and provider authorization are documented here. Runtime verification is recorded in `context/progress-tracker.md`.
+
+## 15. Route-based resource forms — products first
+
+Products use dedicated routes while other resources continue to use the shared create/edit dialogs:
+
+- `/catalog/products/create` creates a platform product.
+- `/catalog/products/:id/edit` edits an existing platform product.
+- The list uses Refine `CreateButton`; its row Edit action navigates to the edit route. Delete still opens the existing resource AlertDialog.
+- After a successful create, the returned record ID opens that product's edit route. Later saves stay on the edit route.
+
+The route form flow is:
+
+```text
+Route → ResourceFormPage → useResourceFormCrud permission gate
+→ (edit only) Refine useOne → platform-record check
+→ ProductForm/useAppForm → ResourceFormFooter
+→ upload queued local images → Refine useCreate/useUpdate
+→ automatic Refine invalidation → reset form baseline from saved row
+```
+
+`components/resources/forms/page/resource-form-page.tsx` owns the shared page heading, route-form access/read states, retry and unavailable-record feedback. It does not define feature fields. `hooks/resources/crud/use-resource-form-crud.ts` owns Refine `useOne`, fresh access and record checks, duplicate-submit protection and Refine `useCreate`/`useUpdate`; it returns the saved record and Refine handles list/detail cache invalidation. `forms/page/resource-form-footer.tsx` subscribes to TanStack Form state inside `form.AppForm`, composes `SubmitButton`, `Button` and `FormActions`, and disables actions for invalid, validating, submitting or externally blocked form states. `forms/page/resource-form-dirty-guard.tsx` uses the existing AlertDialog styling for route navigation and the browser's native before-unload prompt. The root `forms/registry.ts` composes the dialog and page presentation objects; shared context contracts and stable exports live beside that registry.
+
+`features/catalog/products/form-page/` owns the route form as one coherent create/edit module: `page.tsx` composes the shared registry page, `form.tsx` owns fields and saves, `schema.ts` owns validation, `images-field.tsx` owns the media picker and local upload queue, and `model.ts` owns route-form defaults, saved-row mapping and allowlisted payloads. The product root `model.ts` continues to own the dialog model. The page payload intentionally does not include `sort_order`; table drag order remains a separate UI extension, not a product-form field. Product creation is always platform-owned, approved and inactive. Editing changes the active state only on the edit route. Product platform ownership remains the edit restriction.
+
+Product forms use TanStack Form's submit-first `revalidateLogic`: a fresh form has no validation errors, the first Save attempt runs the schema and shows field errors, and later edits revalidate so the footer enables again once the values are valid. One responsive grid arranges the `FormSection` cards across the form (`grid-cols-1`, then two columns at medium widths and three at wide widths). Fields inside each section stay stacked. Content and image sections span the full grid width, and the save footer spans every column. Cards stack on narrow screens.
+
+The product form includes:
+
+| Section | Data and behavior |
+|---|---|
+| Basic details | Name, library/custom category, read-only platform owner and short description. |
+| Pricing | Required paper price; optional electronic price for custom stories. |
+| Custom-story options | Writing styles `فصحى`, `عربية مبسطة` and `لهجة`; at least one is required for custom stories. Selecting all three stores `writing_styles = null`, preserving current database semantics. |
+| Age | Optional minimum and maximum from 0 to 20, with a valid range and the database requirement that a maximum has a minimum. |
+| Content | Markdown-supported long description and one feature per line. |
+| Images | Cover plus at most eight gallery images. Saved Cloudinary URLs and selected local files can be removed/reordered; the first image is the cover. Removing an association never deletes the Cloudinary asset. |
+| Display | `is_active` appears only when editing. |
+| Preparation | Electronic and printed preparation days are a separate edit-only form and save operation; each accepts blank or 1–120. |
+
+New device images are added to UploadCN with `autoUpload: false`; selecting them does not send bytes. The signed `useLibraryUploadAdapter("alrehla/products")` is used only after Save starts. Form `isSubmitting` remains true until each upload and the Refine save complete, disabling fields and actions. Successful upload results are mapped in the selected order into `cover_image_url` and `gallery_image_urls`. If the Refine save fails, form values and completed upload results remain available for a save retry. A failed upload must be removed and selected again before Save is enabled. Existing media selection reads through Refine's `mediaLibrary` provider and `uploads` list authorization; uploads use the `uploads` upload policy. No media asset is deleted by product-form changes.
+
+The migration `client/supabase/migrations/20261101193607_add_product_preparation_days.sql` adds nullable `smallint` columns `delivery_days_electronic` and `delivery_days_printed`, each constrained to 1–120 when set. Production already has these columns; staging does not. The migration file is local and has not been applied remotely. Until the target environment receives the migration, the edit page shows an Arabic setup notice and disables only the preparation-days save; the main product form remains usable. Do not update remote schema or deploy as part of this feature.
+
+Save/backend failures on the product form use the Arabic `catalogError` formatter through the existing toast provider. Field validation stays beside its fields; there is no generic validation banner. A successful save resets TanStack Form's baseline from the returned record so the form is clean without letting a background query refresh replace unsaved values.

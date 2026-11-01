@@ -24,6 +24,8 @@ import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/in
 import { Route as AuthLinkIndexRouteImport } from './routes/auth/link/index'
 import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
 import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
+import { Route as CatalogProductsCreateRouteImport } from './routes/catalog/products/create'
+import { Route as CatalogProductsIdEditRouteImport } from './routes/catalog/products/$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +102,16 @@ const CatalogProductsIndexRoute = CatalogProductsIndexRouteImport.update({
   path: '/products/',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
+const CatalogProductsCreateRoute = CatalogProductsCreateRouteImport.update({
+  id: '/products/create',
+  path: '/products/create',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
+const CatalogProductsIdEditRoute = CatalogProductsIdEditRouteImport.update({
+  id: '/products/$id/edit',
+  path: '/products/$id/edit',
+  getParentRoute: () => CatalogRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -113,10 +125,12 @@ export interface FileRoutesByFullPath {
   '/sign-in/': typeof SignInIndexRoute
   '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
+  '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,10 +140,12 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInIndexRoute
   '/uploads': typeof UploadsIndexRoute
   '/users': typeof UsersIndexRoute
+  '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/auth/link': typeof AuthLinkIndexRoute
   '/catalog/addons': typeof CatalogAddonsIndexRoute
   '/catalog/products': typeof CatalogProductsIndexRoute
+  '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,10 +160,12 @@ export interface FileRoutesById {
   '/sign-in/': typeof SignInIndexRoute
   '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
+  '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
+  '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -163,10 +181,12 @@ export interface FileRouteTypes {
     | '/sign-in/'
     | '/uploads/'
     | '/users/'
+    | '/catalog/products/create'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
     | '/catalog/products/'
+    | '/catalog/products/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -176,10 +196,12 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/uploads'
     | '/users'
+    | '/catalog/products/create'
     | '/auth/callback'
     | '/auth/link'
     | '/catalog/addons'
     | '/catalog/products'
+    | '/catalog/products/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -193,10 +215,12 @@ export interface FileRouteTypes {
     | '/sign-in/'
     | '/uploads/'
     | '/users/'
+    | '/catalog/products/create'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
     | '/catalog/products/'
+    | '/catalog/products/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -318,17 +342,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogProductsIndexRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
+    '/catalog/products/create': {
+      id: '/catalog/products/create'
+      path: '/products/create'
+      fullPath: '/catalog/products/create'
+      preLoaderRoute: typeof CatalogProductsCreateRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/products/$id/edit': {
+      id: '/catalog/products/$id/edit'
+      path: '/products/$id/edit'
+      fullPath: '/catalog/products/$id/edit'
+      preLoaderRoute: typeof CatalogProductsIdEditRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
   }
 }
 
 interface CatalogRouteRouteChildren {
+  CatalogProductsCreateRoute: typeof CatalogProductsCreateRoute
   CatalogAddonsIndexRoute: typeof CatalogAddonsIndexRoute
   CatalogProductsIndexRoute: typeof CatalogProductsIndexRoute
+  CatalogProductsIdEditRoute: typeof CatalogProductsIdEditRoute
 }
 
 const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
+  CatalogProductsCreateRoute: CatalogProductsCreateRoute,
   CatalogAddonsIndexRoute: CatalogAddonsIndexRoute,
   CatalogProductsIndexRoute: CatalogProductsIndexRoute,
+  CatalogProductsIdEditRoute: CatalogProductsIdEditRoute,
 }
 
 const CatalogRouteRouteWithChildren = CatalogRouteRoute._addFileChildren(

@@ -12,6 +12,7 @@ export function ResourcePage<TRecord extends BaseRecord>({
   title,
   description,
   canCreate = true,
+  createAction,
   pageSizeOptions,
   toolbarContent,
   table,
@@ -22,6 +23,7 @@ export function ResourcePage<TRecord extends BaseRecord>({
   title: string;
   description: string;
   canCreate?: boolean;
+  createAction?: ReactNode;
   pageSizeOptions?: number[];
   toolbarContent?: ReactNode;
   table: UseTableReturnType<TRecord, HttpError>;
@@ -47,10 +49,12 @@ export function ResourcePage<TRecord extends BaseRecord>({
           canCreate ? (
             <div className="flex flex-wrap items-center gap-2">
               {toolbarContent}
-              <Button onClick={openCreate}>
-                <Plus data-icon="inline-start" />
-                إضافة جديد
-              </Button>
+              {createAction ?? (
+                <Button onClick={openCreate}>
+                  <Plus data-icon="inline-start" />
+                  إضافة جديد
+                </Button>
+              )}
             </div>
           ) : null
         }

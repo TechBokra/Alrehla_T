@@ -1,7 +1,7 @@
 import type { BaseRecord } from "@refinedev/core";
 import { ResourceFormDialog } from "./resource-form-dialog";
 import { useResourceContext } from "@/hooks/resources";
-import type { ResourceFormDefinition } from "../types";
+import type { ResourceFormDefinition } from "../../types";
 export function ResourceEditor<TRecord extends BaseRecord>({
   form,
 }: {

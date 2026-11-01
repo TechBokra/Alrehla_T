@@ -4,7 +4,7 @@ import { ResourceContextProvider } from "@/contexts/resource";
 import { useResourceController } from "@/hooks/resources";
 import { ResourcePage } from "./resource-page";
 import { ResourceDialogs } from "../dialogs/resource-dialogs";
-import { ResourceEditor } from "../forms/resource-editor";
+import { resourceFormRegistry } from "../forms/registry";
 import type { ResourceViewProps } from "../types";
 
 type ResourceRecord = BaseRecord & { id: string | number };
@@ -23,6 +23,7 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
   props: ResourceViewProps<TRecord>,
 ) {
   const { table, reorder, scope, canCreate, canSort } = useResourceController(props);
+  const DialogEditor = resourceFormRegistry.dialog.Editor;
   return (
     <ResourceContextProvider value={scope}>
       <ResourcePage
@@ -31,6 +32,7 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
         table={table}
         pageSizeOptions={props.pageSizeOptions}
         toolbarContent={props.toolbarContent?.(table)}
+        createAction={props.createAction}
         canCreate={canCreate}
         storageKey={props.storageKey ?? `live-${props.resource}`}
         rowReordering={
@@ -41,7 +43,7 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
         }
       >
         <ResourceDialogs>
-          <ResourceEditor form={props.form} />
+          <DialogEditor form={props.form} />
         </ResourceDialogs>
         {props.children}
       </ResourcePage>

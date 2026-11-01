@@ -190,7 +190,7 @@ function uiFixture(allowedActions, status = {}) {
     '@/contexts/resource': { ResourceContextProvider: ({ value, children }) => { scope = value; return children; } },
     './resource-page': { ResourcePage: (props) => { page = props; return null; } },
     '../dialogs/resource-dialogs': { ResourceDialogs: box },
-    '../forms/resource-editor': { ResourceEditor: () => null },
+    '../forms/registry': { resourceFormRegistry: { dialog: { Editor: () => null } } },
     '@/components/ui/alert': { Alert: box, AlertTitle: box, AlertDescription: box },
     '@/components/ui/button': { Button: ({ children }) => React.createElement('button', null, children) },
     '@/components/ui/skeleton': { Skeleton: () => React.createElement('span', null, 'loading') },
