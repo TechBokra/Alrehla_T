@@ -2,6 +2,7 @@
 export { ResourceAccessGate } from "./access";
 export { ResourceRowActions, createResourceActions } from "./actions";
 export { ResourceView } from "./view";
+export { createResourceSwitchColumn, ResourceSwitchCell } from "./columns";
 export { createResourcePage } from "./page";
 export type {
   ResourceDeleteDialogProps,

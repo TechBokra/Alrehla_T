@@ -601,3 +601,31 @@ change.
   checks pass. Existing route-generator circular-dependency and bundle-size
   warnings remain. Verification used controlled adapters and did not reorder
   live records.
+
+
+### Shared inline boolean resource columns — 2026-11-02
+
+- Added createResourceSwitchColumn and ResourceSwitchCell, composed from the
+  existing shadcn Switch. Products/add-ons now declare is_active switch columns
+  with existing status filter labels. Custom action cells can use the same cell
+  by registering their field in column metadata.
+- Resource context carries the configured-field allowlist, named provider/meta,
+  formatter and edit/record policy. Edit record eligibility falls back to the
+  existing page/dialog form rule when there is no explicit ResourceView override.
+  Context providers remain thin; feature columns contain no mutation logic.
+- Shared per-cell useResourceBooleanField performs fresh authorization, a fresh
+  provider read and eligibility/stale-field checks before a pessimistic Refine
+  useUpdate containing only the registered boolean field. Duplicate requests
+  are blocked through preflight/mutation/refresh; independent rows can save
+  independently. Refine owns request state and cache.
+- The hook awaits one list/many/detail invalidation on the same provider/ID,
+  supplies Arabic accessible pending/success/error feedback and reconciles failed/ambiguous
+  responses without automatic retries. Existing command workflows, server RLS
+  and backend/schema/configuration remain unchanged.
+- Saved the flow, custom-action example and module map in
+  doc/resource-inline-fields.md and linked the central guides. Added controlled
+  tests for toggling, payload allowlisting, access/record restrictions, stale
+  values, duplicate clicks, errors/retry, response validation and cache failures.
+- Verification: all 42 tests, TypeScript, production build and whitespace
+  checks pass. Existing route-generator circular-dependency and bundle warnings
+  remain. No live product/add-on flags or backend configuration were changed.

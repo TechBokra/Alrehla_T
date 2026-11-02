@@ -1,4 +1,4 @@
-import type { BaseRecord } from "@refinedev/core";
+import type { BaseRecord, MetaQuery } from "@refinedev/core";
 import type { ResourceRowAction } from "@/components/resources/types";
 import type { ResourceFormMode } from "@/components/resources/types";
 
@@ -11,6 +11,13 @@ export type ResourceActionTarget =
 
 export interface ResourceContextValue {
   resource: string;
+  fieldUpdates?: {
+    fields: readonly string[];
+    dataProviderName?: string;
+    meta?: MetaQuery;
+    canEditRecord: (record: BaseRecord) => boolean;
+    getErrorMessage?: (error: unknown) => string;
+  };
   formMode: ResourceFormMode;
   target: ResourceActionTarget | null;
   rowId?: string;

@@ -167,3 +167,10 @@ Resource table position persistence is documented in
 [Resource row reordering](./resource-reordering.md). It is opt-in through
 `orderField`, debounced only after drop, and uses the existing named Refine
 provider and `useUpdate` without backend changes.
+
+
+Inline boolean table actions use `createResourceSwitchColumn` and the same
+resource context/provider identity. The shared per-cell hook owns Refine updates,
+pending/errors, authorization and cache refresh. See
+[Inline resource fields](./resource-inline-fields.md) for the full flow,
+column/custom-action examples and component/hook responsibility map.

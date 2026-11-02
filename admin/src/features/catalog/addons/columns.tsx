@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { ResourceRowActions } from "@/components/resources";
-import { Badge } from "@/components/ui/badge";
+import { ResourceRowActions, createResourceSwitchColumn } from "@/components/resources";
 import type { Addon } from "./model";
 
 export function addonColumns(): ColumnDef<Addon, unknown>[] {
@@ -29,23 +28,10 @@ export function addonColumns(): ColumnDef<Addon, unknown>[] {
         </bdi>
       ),
     },
-    {
-      accessorKey: "is_active",
-      meta: {
-        label: "الحالة",
-        variant: "multiSelect",
-        options: [
-          { value: "true", label: "نشط" },
-          { value: "false", label: "غير نشط" },
-        ],
-      },
-      header: "الحالة",
-      cell: ({ row }) => (
-        <Badge variant={row.original.is_active ? "secondary" : "outline"}>
-          {row.original.is_active ? "نشط" : "غير نشط"}
-        </Badge>
-      ),
-    },
+    createResourceSwitchColumn<Addon>({
+      field: "is_active",
+      label: "الحالة",
+    }),
     {
       accessorKey: "sort_order",
       meta: { label: "ترتيب العرض", variant: "number" },

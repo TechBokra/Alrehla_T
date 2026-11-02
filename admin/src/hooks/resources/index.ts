@@ -2,7 +2,7 @@
 export { useResourceAuthorization } from "./authorization";
 export { useResourceRowActions } from "./actions";
 export { useResourceController } from "./controller";
-export { useResourceDeleteCrud, useResourceFormCrud } from "./crud";
+export { useResourceDeleteCrud, useResourceFormCrud, useResourceBooleanField } from "./crud";
 export { useResourceContext, useResourceScope } from "./scope";
 export { useResourceTable } from "./table";
 export { useResourcePage } from "./page/use-resource-page";

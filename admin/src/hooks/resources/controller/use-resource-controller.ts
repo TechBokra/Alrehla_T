@@ -27,8 +27,9 @@ export function useResourceController<TRecord extends ResourceRecord>(
   const sortAccess = useResourceAuthorization(resource, "sort");
   const reorderAllowed = (enableRowReordering || Boolean(orderField)) && sortAccess.allowed;
   const canCreateResource = createAccess.allowed;
+  const editRecordRule = canEdit ?? (mode === "page" ? props.form.page?.canEdit : props.form.dialog?.canEdit);
   const canEditRecord = useCallback((record: TRecord) =>
-    editAccess.allowed && (canEdit?.(record) ?? true), [editAccess.allowed, canEdit]);
+    editAccess.allowed && (editRecordRule?.(record) ?? true), [editAccess.allowed, editRecordRule]);
   const canDeleteRecord = useCallback((record: TRecord) =>
     deleteAccess.allowed && (canEdit?.(record) ?? true), [deleteAccess.allowed, canEdit]);
   const { table, reorder, reorderSaving } = useResourceTable<TRecord>({
@@ -55,5 +56,19 @@ export function useResourceController<TRecord extends ResourceRecord>(
     deleteConsequence: props.deleteConsequence,
     rowActions: props.rowActions,
   });
-  return { table, reorder, reorderSaving, scope, canCreate: canCreateResource, canSort };
+  return {
+    table, reorder, reorderSaving,
+    scope: {
+      ...scope,
+      fieldUpdates: {
+        fields: table.reactTable.getAllLeafColumns().flatMap((column) =>
+          column.columnDef.meta?.resourceBooleanField ? [column.columnDef.meta.resourceBooleanField] : []),
+        dataProviderName: refineCoreProps?.dataProviderName,
+        meta: refineCoreProps?.meta,
+        canEditRecord: (record: BaseRecord) => canEditRecord(record as TRecord),
+        getErrorMessage: mode === "page" ? props.form.page?.getErrorMessage : props.form.dialog?.getErrorMessage,
+      },
+    },
+    canCreate: canCreateResource, canSort,
+  };
 }

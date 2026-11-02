@@ -381,3 +381,14 @@ callback. Existing enableRowReordering without an order field remains local-only
 See [Resource row reordering](./resource-reordering.md) for authorization, complete
 scope reads, pagination/filter behavior, mutation/cache ownership and partial
 failure handling.
+
+
+## Inline boolean resource columns
+
+Use `createResourceSwitchColumn<Product>({ field: "is_active", label: "الحالة" })`
+for a boolean CRUD switch. Column metadata registers the field with the resource
+context; shared hooks perform fresh edit/record checks, a single-field Refine
+useUpdate and awaited list/many/detail invalidation. The existing shadcn Switch
+shows per-cell pending state and retains server-controlled values on failure.
+See [Inline resource fields](./resource-inline-fields.md) for custom action cells,
+allowlisting, provider identity and mutation/cache ownership.
