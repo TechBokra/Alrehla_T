@@ -27,6 +27,7 @@ Refine authorization policy.
 | Media library | `mediaLibrary` | `media-library-data-provider.ts` and the existing Supabase Edge Function |
 | Users | `users` | `users-data-provider.ts` and the existing `admin-users` Edge Function |
 | Store orders | `orders` | `orders-data-provider.ts`; list/detail enrichment and allowlisted custom commands |
+| Customization fields, goals and dialects | `catalogSettings` | Existing tables through the validated catalog adapter; dialect code-to-ID mapping |
 
 The registered `refineDataProviders` map is in
 `src/providers/refine/data-provider/index.ts`. Providers translate Refine
@@ -34,6 +35,12 @@ requests into existing Supabase reads/writes and return `{ data, total }` or
 `{ data }`; they do not own React UI state or a second cache. The admin order
 provider uses the shared authenticated Supabase client, existing RLS/tables,
 triggers and already deployed RPCs.
+
+Catalog settings are registered under `/catalog/settings/` with create/edit
+Dialogs and a permission-aware collapsible `NavMain` sidebar group. Fields
+and goals reuse saved numeric row ordering. See
+[Catalog personalization settings](./catalog-settings.md) for the full flow,
+component map, provider boundaries and verification.
 
 ## Resource list architecture
 

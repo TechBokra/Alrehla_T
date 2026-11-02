@@ -9,7 +9,7 @@ declare module "@tanstack/react-table" {
   }
 }
 
-type BooleanField<TRecord> = Extract<keyof TRecord, string> & {
+export type BooleanField<TRecord> = Extract<keyof TRecord, string> & {
   [TKey in keyof TRecord]-?: NonNullable<TRecord[TKey]> extends boolean
     ? TKey
     : never;

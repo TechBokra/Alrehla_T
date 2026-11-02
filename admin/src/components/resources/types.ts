@@ -37,7 +37,7 @@ type ResourceRecord = BaseRecord & { id: string | number };
 interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   resource: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   columns: ColumnDef<TRecord, unknown>[] | (() => ColumnDef<TRecord, unknown>[]);
   /** Additional record-level rule; authorization still comes from Refine. */
   canEdit?: (record: TRecord) => boolean;

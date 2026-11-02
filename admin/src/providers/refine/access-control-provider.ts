@@ -52,6 +52,16 @@ export function evaluateResourceAccess(
     if (action === "edit" && record && (record.archived_at || record.is_child_account)) return deny("لا يمكن تعديل هذا الحساب هنا.");
     return ["list", "show", "create", "edit", "activity"].includes(action) ? { can: true } : deny();
   }
+  if (["catalog_settings", "customization_fields", "story_goals", "writing_dialects"].includes(resource ?? "")) {
+    const allowed = resource === "catalog_settings"
+      ? action === "list"
+      : resource === "writing_dialects"
+        ? ["list", "show", "create", "edit", "delete"].includes(action)
+        : ["list", "show", "create", "edit", "delete", "sort"].includes(action);
+    if (!allowed) return deny("هذا الإجراء غير متاح لإعدادات الكتالوج.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
+      ? { can: true } : deny("لا تملك صلاحية إدارة الكتالوج.");
+  }
   const permission = resource === "personalized_products" || resource === "addon_products"
     ? "canManageCatalog"
     : resource === "uploads" ? "canManageContent" : undefined;

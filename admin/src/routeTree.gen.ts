@@ -27,6 +27,9 @@ import { Route as AuthLinkIndexRouteImport } from './routes/auth/link/index'
 import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/index'
 import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
 import { Route as CatalogProductsCreateRouteImport } from './routes/catalog/products/create'
+import { Route as CatalogSettingsCustomizationFieldsRouteImport } from './routes/catalog/settings/customization-fields'
+import { Route as CatalogSettingsStoryGoalsRouteImport } from './routes/catalog/settings/story-goals'
+import { Route as CatalogSettingsWritingDialectsRouteImport } from './routes/catalog/settings/writing-dialects'
 import { Route as CatalogProductsIdEditRouteImport } from './routes/catalog/products/$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -119,6 +122,24 @@ const CatalogProductsCreateRoute = CatalogProductsCreateRouteImport.update({
   path: '/products/create',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
+const CatalogSettingsCustomizationFieldsRoute =
+  CatalogSettingsCustomizationFieldsRouteImport.update({
+    id: '/settings/customization-fields',
+    path: '/settings/customization-fields',
+    getParentRoute: () => CatalogRouteRoute,
+  } as any)
+const CatalogSettingsStoryGoalsRoute =
+  CatalogSettingsStoryGoalsRouteImport.update({
+    id: '/settings/story-goals',
+    path: '/settings/story-goals',
+    getParentRoute: () => CatalogRouteRoute,
+  } as any)
+const CatalogSettingsWritingDialectsRoute =
+  CatalogSettingsWritingDialectsRouteImport.update({
+    id: '/settings/writing-dialects',
+    path: '/settings/writing-dialects',
+    getParentRoute: () => CatalogRouteRoute,
+  } as any)
 const CatalogProductsIdEditRoute = CatalogProductsIdEditRouteImport.update({
   id: '/products/$id/edit',
   path: '/products/$id/edit',
@@ -140,6 +161,9 @@ export interface FileRoutesByFullPath {
   '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
+  '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
+  '/catalog/settings/story-goals': typeof CatalogSettingsStoryGoalsRoute
+  '/catalog/settings/writing-dialects': typeof CatalogSettingsWritingDialectsRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
@@ -157,6 +181,9 @@ export interface FileRoutesByTo {
   '/uploads': typeof UploadsIndexRoute
   '/users': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
+  '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
+  '/catalog/settings/story-goals': typeof CatalogSettingsStoryGoalsRoute
+  '/catalog/settings/writing-dialects': typeof CatalogSettingsWritingDialectsRoute
   '/auth/callback': typeof AuthCallbackIndexRoute
   '/auth/link': typeof AuthLinkIndexRoute
   '/catalog/addons': typeof CatalogAddonsIndexRoute
@@ -179,6 +206,9 @@ export interface FileRoutesById {
   '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
+  '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
+  '/catalog/settings/story-goals': typeof CatalogSettingsStoryGoalsRoute
+  '/catalog/settings/writing-dialects': typeof CatalogSettingsWritingDialectsRoute
   '/auth/callback/': typeof AuthCallbackIndexRoute
   '/auth/link/': typeof AuthLinkIndexRoute
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
@@ -202,6 +232,9 @@ export interface FileRouteTypes {
     | '/uploads/'
     | '/users/'
     | '/catalog/products/create'
+    | '/catalog/settings/customization-fields'
+    | '/catalog/settings/story-goals'
+    | '/catalog/settings/writing-dialects'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
@@ -219,6 +252,9 @@ export interface FileRouteTypes {
     | '/uploads'
     | '/users'
     | '/catalog/products/create'
+    | '/catalog/settings/customization-fields'
+    | '/catalog/settings/story-goals'
+    | '/catalog/settings/writing-dialects'
     | '/auth/callback'
     | '/auth/link'
     | '/catalog/addons'
@@ -240,6 +276,9 @@ export interface FileRouteTypes {
     | '/uploads/'
     | '/users/'
     | '/catalog/products/create'
+    | '/catalog/settings/customization-fields'
+    | '/catalog/settings/story-goals'
+    | '/catalog/settings/writing-dialects'
     | '/auth/callback/'
     | '/auth/link/'
     | '/catalog/addons/'
@@ -389,6 +428,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogProductsCreateRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
+    '/catalog/settings/customization-fields': {
+      id: '/catalog/settings/customization-fields'
+      path: '/settings/customization-fields'
+      fullPath: '/catalog/settings/customization-fields'
+      preLoaderRoute: typeof CatalogSettingsCustomizationFieldsRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/settings/story-goals': {
+      id: '/catalog/settings/story-goals'
+      path: '/settings/story-goals'
+      fullPath: '/catalog/settings/story-goals'
+      preLoaderRoute: typeof CatalogSettingsStoryGoalsRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
+    '/catalog/settings/writing-dialects': {
+      id: '/catalog/settings/writing-dialects'
+      path: '/settings/writing-dialects'
+      fullPath: '/catalog/settings/writing-dialects'
+      preLoaderRoute: typeof CatalogSettingsWritingDialectsRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
     '/catalog/products/$id/edit': {
       id: '/catalog/products/$id/edit'
       path: '/products/$id/edit'
@@ -401,6 +461,9 @@ declare module '@tanstack/react-router' {
 
 interface CatalogRouteRouteChildren {
   CatalogProductsCreateRoute: typeof CatalogProductsCreateRoute
+  CatalogSettingsCustomizationFieldsRoute: typeof CatalogSettingsCustomizationFieldsRoute
+  CatalogSettingsStoryGoalsRoute: typeof CatalogSettingsStoryGoalsRoute
+  CatalogSettingsWritingDialectsRoute: typeof CatalogSettingsWritingDialectsRoute
   CatalogAddonsIndexRoute: typeof CatalogAddonsIndexRoute
   CatalogProductsIndexRoute: typeof CatalogProductsIndexRoute
   CatalogProductsIdEditRoute: typeof CatalogProductsIdEditRoute
@@ -408,6 +471,10 @@ interface CatalogRouteRouteChildren {
 
 const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
   CatalogProductsCreateRoute: CatalogProductsCreateRoute,
+  CatalogSettingsCustomizationFieldsRoute:
+    CatalogSettingsCustomizationFieldsRoute,
+  CatalogSettingsStoryGoalsRoute: CatalogSettingsStoryGoalsRoute,
+  CatalogSettingsWritingDialectsRoute: CatalogSettingsWritingDialectsRoute,
   CatalogAddonsIndexRoute: CatalogAddonsIndexRoute,
   CatalogProductsIndexRoute: CatalogProductsIndexRoute,
   CatalogProductsIdEditRoute: CatalogProductsIdEditRoute,

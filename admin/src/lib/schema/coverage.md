@@ -36,4 +36,10 @@ Paths below are relative to `/dashboard/admin`. Multiple pages can share one res
 
 ## Integration status
 
-Auth and current platform products/add-ons already import the shared layer. The additional contracts are prepared here for upcoming admin feature forms. No legacy client code was changed. Each new page still needs its own defaults, fields, query options, payload allowlist, server integration and authorization review before being connected.
+Auth and current platform products/add-ons already import the shared layer.
+Catalog personalization settings now compose the field/goal/dialect contracts
+in `features/catalog/settings/` with dialog forms, scope inputs and the
+named `catalogSettings` provider. The remaining contracts are prepared for
+upcoming feature forms. No legacy client code was changed. Each additional
+page still needs defaults, fields, queries, payload mapping and authorization
+before it is connected. See [the catalog settings guide](../../../doc/catalog-settings.md).

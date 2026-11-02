@@ -1,5 +1,53 @@
 # Progress Tracker
 
+### Catalog settings status switches and delete actions — 2026-11-02
+
+- Replaced read-only status badges with the shared inline `is_active` switch on
+  customization fields, story goals and writing dialects. The shared boolean
+  update flow rechecks permission, reads the latest row, sends only the changed
+  boolean and invalidates the named resource cache.
+- Enabled single-row deletion for these three settings resources in the
+  permission policy and catalog settings provider. Existing row dropdowns now
+  expose delete when authorized and open the shared confirmation dialog;
+  provider authorization is refreshed before calling existing Supabase CRUD.
+  Bulk deletion remains blocked. Existing database admin policies already
+  grant row-level `DELETE`; no schema or policy changes were made.
+- Documented customer-choice and order-snapshot effects in the delete
+  confirmation copy and catalog settings guide. No live setting rows were
+  toggled or deleted. TypeScript and production build pass; no tests were run
+  for this follow-up.
+
+### Catalog settings order controls removed — 2026-11-02
+
+- Removed numeric order inputs from all three settings Dialogs and order
+  columns from all three lists. Removed order from form schemas/defaults/save
+  payloads, so ordinary edits preserve positions saved through dragging.
+- Create writes use existing database order defaults. Fields/goals retain
+  shared persistent drag reordering; dialect display sorting remains unchanged.
+- Updated the feature guide. TypeScript, production build and all seven
+  focused adapter tests pass; the new regression confirms that saves omit
+  order while shared drag updates remain supported.
+
+
+### Catalog personalization settings — 2026-11-02
+
+- Added `/catalog/settings/customization-fields`, `/story-goals` and
+  `/writing-dialects` with shared ResourceView lists and create/edit Dialogs.
+- Fields/goals expose `sort_order` columns and reuse debounced persistent row
+  reordering. Forms preserve all/selected product/box applicability and require
+  at least one target for restricted scope. Dialects retain immutable codes.
+- Registered a permission-aware collapsible `NavMain` settings group, Arabic
+  breadcrumbs, catalog permissions and a named `catalogSettings` provider.
+  The adapter validates write allowlists, caps fields/goals at 15/30 through
+  preflight counts and adapts dialect codes to virtual Refine IDs. No database,
+  backend or deployment changes. Product-form selectors remain future work.
+- Saved the request flow, state ownership and complete affected component map
+  in `doc/catalog-settings.md`, linked from the architecture documents.
+- Verification: TypeScript, production build, whitespace checks and all 48
+  tests pass (six new adapter tests). Existing route-generator and bundle-size
+  warnings remain. Browser showed settings navigation and the add-dialect
+  Dialog; a separate preview attempt timed out. No agent live record mutations.
+
 ### Shared resource form uploads — 2026-11-02
 
 - Moved signed media-library adapter setup into `hooks/uploads/` and made

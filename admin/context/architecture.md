@@ -62,6 +62,14 @@ Do not add or modify Supabase functions, migrations, schema, policies, Next.js A
 
 #### Adoption status
 
+Catalog personalization settings use three registered resources under
+`/catalog/settings/`, each in dialog create/edit mode. A named `catalogSettings`
+adapter wraps existing Supabase CRUD, validates write allowlists and maps the
+existing dialect `code` primary key to Refine `id`. Fields/goals opt into shared
+saved ordering. Settings navigation uses the authorized `NavMain` group.
+Existing `applies_to` product IDs/box scope is preserved. No backend/schema
+change is included; see [the feature guide](../doc/catalog-settings.md).
+
 This is the standard for resource commands and page forms. CRUD uses Refine `useForm`; feature field state remains in `useAppForm`. Notification mark-all-read continues through its existing `useCustomMutation` adapter. No parallel TanStack Query cache or separate CRUD lifecycle is introduced.
 
 ### Application error handling

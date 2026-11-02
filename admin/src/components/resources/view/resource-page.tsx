@@ -26,7 +26,7 @@ export function ResourcePage<TRecord extends BaseRecord>({
 }: {
   resource: string;
   title: string;
-  description: string;
+  description?: ReactNode;
   formMode: ResourceFormMode;
   canCreate?: boolean;
   createAction?: ReactNode;
@@ -42,7 +42,19 @@ export function ResourcePage<TRecord extends BaseRecord>({
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">{title}</h1>
-        {description && <p className="text-muted-foreground">{description}</p>}
+        {description && (
+          typeof description === "string" ? (
+            <div className="space-y-2 text-muted-foreground text-sm leading-relaxed">
+              {description.split(/\n\s*\n/).map((paragraph, index) => (
+                <p key={index} className="whitespace-pre-line">
+                  {paragraph.trim()}
+                </p>
+              ))}
+            </div>
+          ) : (
+            description
+          )
+        )}
       </header>
       <DataTable
         table={table}

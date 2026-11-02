@@ -147,6 +147,9 @@ function matchesResourcePath(route: string, pathname: string) {
 }
 
 function getPageLabel(pathname: string) {
+  if (pathname.startsWith("/catalog/settings/customization-fields")) return "خانات التخصيص";
+  if (pathname.startsWith("/catalog/settings/story-goals")) return "أهداف التخصيص";
+  if (pathname.startsWith("/catalog/settings/writing-dialects")) return "لهجات الكتابة";
   if (pathname.startsWith("/catalog/addons")) return "الإضافات";
   if (pathname.startsWith("/catalog/products")) return "منتجات المنصة";
   if (pathname.startsWith("/orders")) return "الطلبات";
