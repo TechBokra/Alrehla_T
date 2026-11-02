@@ -370,3 +370,14 @@ authorized work.
 
 Shared page submission ownership and the full flow are documented in
 [Resource form submission](./resource-form-submission.md).
+
+
+## Resource row order persistence
+
+Pass `orderField="sort_order"` to ResourceView to enable persisted dragging.
+The shared hook supplies ascending field/ID sorting and waits for the shared
+300 ms debounce after the final drop. Features supply no update/invalidation
+callback. Existing enableRowReordering without an order field remains local-only.
+See [Resource row reordering](./resource-reordering.md) for authorization, complete
+scope reads, pagination/filter behavior, mutation/cache ownership and partial
+failure handling.

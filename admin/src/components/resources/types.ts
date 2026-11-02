@@ -57,8 +57,10 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   rowActions?: ResourceRowAction[];
   storageKey?: string;
   enableRowReordering?: boolean;
+  /** Numeric position column; enables debounced drop persistence. */
+  orderField?: Extract<keyof TRecord, string>;
   getRowLabel?: (row: TRecord) => string;
-  /** UI callback only. The resource view does not persist dragged positions. */
+  /** Optional drop notification; persistence is configured through orderField. */
   onReorder?: (orderedIds: string[], orderedRows: TRecord[]) => void;
 }
 

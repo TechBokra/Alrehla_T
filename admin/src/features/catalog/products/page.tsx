@@ -13,17 +13,11 @@ export function ProductsPage() {
       mode="page"
       form={productForm}
       deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
-      enableRowReordering
+      orderField="sort_order"
       refineCoreProps={{
         filters: {
           permanent: [
             { field: "owner_type", operator: "eq", value: "platform" },
-          ],
-        },
-        sorters: {
-          initial: [
-            { field: "sort_order", order: "asc" },
-            { field: "id", order: "asc" },
           ],
         },
       }}

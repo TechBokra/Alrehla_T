@@ -12,15 +12,7 @@ export function AddonsPage() {
       columns={addonColumns}
       mode="dialog"
       form={addonForm}
-      enableRowReordering
-      refineCoreProps={{
-        sorters: {
-          initial: [
-            { field: "sort_order", order: "asc" },
-            { field: "id", order: "asc" },
-          ],
-        },
-      }}
+      orderField="sort_order"
     />
   );
 }

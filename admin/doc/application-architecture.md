@@ -161,3 +161,9 @@ remain authoritative for payment.
 See [Resource pages, forms and commands](./doc.md) for component and hook
 ownership, list/page flows, form lifecycle, command descriptors, order command
 rules, cache behavior and verification steps.
+
+
+Resource table position persistence is documented in
+[Resource row reordering](./resource-reordering.md). It is opt-in through
+`orderField`, debounced only after drop, and uses the existing named Refine
+provider and `useUpdate` without backend changes.

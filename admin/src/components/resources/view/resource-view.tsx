@@ -22,7 +22,7 @@ export function ResourceView<TRecord extends ResourceRecord>(
 function AuthorizedResourceView<TRecord extends ResourceRecord>(
   props: ResourceViewProps<TRecord>,
 ) {
-  const { table, reorder, scope, canCreate, canSort } = useResourceController(props);
+  const { table, reorder, reorderSaving, scope, canCreate, canSort } = useResourceController(props);
   const DialogEditor = resourceFormRegistry.dialog.Editor;
   return (
     <ResourceContextProvider value={scope}>
@@ -39,6 +39,7 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
         storageKey={props.storageKey ?? `live-${props.resource}`}
         rowReordering={
           canSort ? {
+            disabled: reorderSaving,
             getRowLabel: props.getRowLabel ?? ((row) => String(row.name ?? row.id)),
             onReorder: reorder,
           } : undefined

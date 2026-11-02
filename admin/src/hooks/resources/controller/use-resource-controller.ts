@@ -17,6 +17,7 @@ export function useResourceController<TRecord extends ResourceRecord>(
     mode,
     canEdit,
     enableRowReordering = false,
+    orderField,
     onReorder,
     refineCoreProps,
   } = props;
@@ -24,23 +25,26 @@ export function useResourceController<TRecord extends ResourceRecord>(
   const editAccess = useResourceAuthorization(resource, "edit");
   const deleteAccess = useResourceAuthorization(resource, "delete");
   const sortAccess = useResourceAuthorization(resource, "sort");
-  const canSort = enableRowReordering && sortAccess.allowed;
+  const reorderAllowed = (enableRowReordering || Boolean(orderField)) && sortAccess.allowed;
   const canCreateResource = createAccess.allowed;
   const canEditRecord = useCallback((record: TRecord) =>
     editAccess.allowed && (canEdit?.(record) ?? true), [editAccess.allowed, canEdit]);
   const canDeleteRecord = useCallback((record: TRecord) =>
     deleteAccess.allowed && (canEdit?.(record) ?? true), [deleteAccess.allowed, canEdit]);
-  const { table, reorder } = useResourceTable<TRecord>({
+  const { table, reorder, reorderSaving } = useResourceTable<TRecord>({
     resource,
     columns,
     searchField: props.searchField,
     searchFields: props.searchFields,
     searchDebounceMs: props.searchDebounceMs,
     initialState: props.initialState,
-    enableRowReordering: canSort,
+    enableRowReordering: reorderAllowed,
+    orderField,
     onReorder,
     refineCoreProps,
   });
+  const canSort = reorderAllowed && (!orderField ||
+    (table.refineCore.sorters[0]?.field === orderField && table.refineCore.sorters[0]?.order === "asc"));
   const scope = useResourceScope({
     resource,
     formMode: mode,
@@ -51,5 +55,5 @@ export function useResourceController<TRecord extends ResourceRecord>(
     deleteConsequence: props.deleteConsequence,
     rowActions: props.rowActions,
   });
-  return { table, reorder, scope, canCreate: canCreateResource, canSort };
+  return { table, reorder, reorderSaving, scope, canCreate: canCreateResource, canSort };
 }

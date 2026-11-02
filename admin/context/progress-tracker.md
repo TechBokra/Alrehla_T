@@ -573,3 +573,31 @@ change.
 - Verification: all 19 tests, TypeScript, production build and whitespace
   checks pass. Existing route-generator circular-dependency and bundle-size
   warnings remain. No live product writes or backend changes were performed.
+
+
+### Debounced persistent resource row ordering — 2026-11-02
+
+- Added `ResourceView.orderField`, adopted as `orderField="sort_order"` by products
+  and add-ons. Removed their repeated initial sort configuration because the
+  shared table supplies ascending field/ID sorting. Existing local-only reorder
+  mode and optional drop notifications remain available.
+- The existing DnD end callback creates an immediate local preview and schedules
+  one trailing save after DEFAULT_DEBOUNCE_MS (300 ms). Later drops replace it;
+  returning to the original order, navigation, query-scope changes or unmount
+  cancel pending writes. Active saving disables existing drag handles.
+- Shared persistence rechecks sort access, reads the complete permanent-filter
+  scope with server pagination and plans changed positions. Existing unique rank
+  slots are preserved; duplicate/null ranks normalize the scoped sequence.
+  Visible rows exchange their positions without treating a table page as the
+  complete resource. Reads remain operation snapshots through useDataProvider.
+- Per-row Refine useUpdate calls write only the order field, use the same named
+  provider, disable retries/optimism and defer invalidation until batch completion.
+  One resource invalidation refreshes lists/details, including partial failures.
+  Writes are not transactional; no backend/schema/RPC changes or deployments.
+- Saved the complete flow/module map in doc/resource-reordering.md and linked
+  it from the architecture/resource guides. Added focused scheduler, pagination,
+  rank planning, authorization, partial failure and refresh-failure tests.
+- Verification: all 31 tests, TypeScript, production build and whitespace
+  checks pass. Existing route-generator circular-dependency and bundle-size
+  warnings remain. Verification used controlled adapters and did not reorder
+  live records.

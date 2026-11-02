@@ -23,7 +23,7 @@ The [resource migration plan](./resource-migration-plan.md) specifies proposed v
 | Create/update/delete a resource                     | Shared CRUD hooks under `src/hooks/resources/`, using Refine mutations      | Selected Refine data provider                            |
 | Run an order or another business command             | Shared command controller using Refine `useCustomMutation`                 | Named provider custom command using existing tables/RPCs |
 | Column sorting, filters and pagination              | Refine table state                                                         | Provider applies these to the database query              |
-| Persist a manually reordered sequence               | Feature command mutation                                                   | RPC saves the permitted sequence atomically               |
+| Persist numeric row positions after drop | Shared resource reorder hook using Refine `useUpdate` | Existing named provider and RLS; per-row writes |
 
 #### CRUD resources and tables
 
@@ -52,8 +52,11 @@ Do not add or modify Supabase functions, migrations, schema, policies, Next.js A
 
 #### Saved row ordering
 
-- Existing row dragging remains UI-only and limited to the loaded page. `onReorder(ids, rows)` is an extension point, not an automatic persistence contract.
-- When a feature explicitly requires saved ordering, define its sequence field (for example the catalog's `sort_order`), scope and pagination/filter behavior first. A feature mutation calls an RPC that validates the rows and permissions and writes the sequence atomically, then invalidates the Refine list. Do not assume the currently loaded page is the complete sequence.
+- `ResourceView` accepts `orderField="sort_order"` (or another numeric position column). This enables drag handles and default field/ID ascending sorting without feature mutation callbacks. Without an order field, the existing `enableRowReordering` mode remains a local preview.
+- Only `onDragEnd` schedules persistence. The shared drop scheduler waits for `DEFAULT_DEBOUNCE_MS` (300 ms); later drops replace the pending sequence. Navigation, filter/sort/source changes and unmount cancel pending work. Dragging is disabled while the active batch saves.
+- Fresh sort authorization precedes a complete paginated read through the existing named Refine data provider. The read uses permanent scope filters, including platform ownership, and is an operation snapshot, not a parallel cache. Selected visible IDs exchange their existing global slots, preserving unselected sequence positions. Unique numeric ranks are retained; duplicate/null ranks normalize the complete scoped sequence to zero-based positions.
+- Shared persistence calls Refine `useUpdate` only for changed rows and only the configured field. Mutations are pessimistic with retries and per-row invalidation disabled. One final `useInvalidate` refreshes all resource queries under the same provider. A partial failure also invalidates, restores the server view and reports partial completion without replaying writes.
+- These explicitly requested per-row updates are not transactional and do not guarantee atomic concurrent reordering. No new RPC, migration, schema, policy or deployment is included. Store-order business transitions remain commands and do not use this row-position mechanism.
 
 #### Adoption status
 
