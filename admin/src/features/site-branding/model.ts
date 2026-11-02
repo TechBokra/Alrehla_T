@@ -31,22 +31,27 @@ export function siteBrandingValues(
   };
 }
 
-/** Mounted beneath the root route's existing authentication guard. */
-export function siteBrandingQuery(pathname: string) {
-  const path = pathname.replace(/\/+$/, "") || "/";
+/** Start alongside permissions once the shared session has verified an admin. */
+export function siteBrandingQuery({ enabled, version, profileId }: {
+  enabled: boolean;
+  version: number;
+  profileId?: string;
+}) {
   return {
     resource: "site_settings",
     id: "general",
     dataProviderName: "siteSettings",
     meta: {
       idColumnName: "key",
+      authVersion: version,
+      identity: profileId,
       select:
         "id,siteName:value->>siteName,logo:value->images->>logo,favicon:value->images->>favicon",
     },
     queryOptions: {
-      enabled: path !== "/sign-in" && path !== "/auth/callback",
+      enabled,
       staleTime: 5 * 60_000,
-      gcTime: 30 * 60_000,
+      gcTime: 0,
       refetchInterval: false as const,
       refetchOnWindowFocus: false,
       retry: false as const,

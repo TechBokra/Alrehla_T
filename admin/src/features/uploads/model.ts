@@ -2,8 +2,6 @@ import { z } from "zod";
 
 export const MEDIA_PROVIDER = "mediaLibrary";
 export const MEDIA_RESOURCE = "uploads";
-export const MEDIA_PRESET = "alrehla_media_library";
-export const MEDIA_FORMATS = "jpg,jpeg,png,webp,avif";
 export const uploadFolders = [
   "alrehla/uploads",
   "alrehla/products",

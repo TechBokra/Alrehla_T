@@ -1,21 +1,30 @@
 import type { Database } from "@/types/supabase";
 import { productSlug } from "../model";
-import { addonSchema, type CatalogValues } from "@/lib/schema";
+import { addonSchema, type AddonFormValues } from "@/lib/schema";
 export type Addon = Database["public"]["Tables"]["addon_products"]["Row"];
-export function addonValues(row: Addon): CatalogValues {
+export function defaultAddonValues(): AddonFormValues {
+  return {
+    name: "",
+    description: "",
+    longDescription: "",
+    price: "",
+    imageUrl: "",
+    isActive: false,
+    sortOrder: "0",
+  };
+}
+export function addonValues(row: Addon): AddonFormValues {
   return {
     name: row.name,
     description: row.description ?? "",
     longDescription: row.long_description ?? "",
     price: String(row.price),
-    electronicPrice: "",
     imageUrl: row.image_url ?? "",
-    category: "library",
     isActive: row.is_active,
     sortOrder: String(row.sort_order),
   };
 }
-export function addonUpdate(input: CatalogValues) {
+export function addonUpdate(input: AddonFormValues) {
   const value = addonSchema.parse(input);
   return {
     name: value.name,
@@ -30,7 +39,7 @@ export function addonUpdate(input: CatalogValues) {
     updated_at: new Date().toISOString(),
   } satisfies Database["public"]["Tables"]["addon_products"]["Update"];
 }
-export function addonCreate(input: CatalogValues) {
+export function addonCreate(input: AddonFormValues) {
   return {
     ...addonUpdate(input),
     slug: productSlug(input.name),

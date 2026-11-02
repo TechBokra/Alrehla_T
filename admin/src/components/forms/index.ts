@@ -2,7 +2,6 @@ export { useAppForm, withFieldGroup, withForm } from "@/lib/form";
 
 export {
   FormActions,
-  FormErrorSummary,
   BaseFormField,
   FormFieldLabel,
   FormFieldHelp,

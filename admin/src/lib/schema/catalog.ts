@@ -25,7 +25,7 @@ const imageUrl = z
     }
   }, "اكتب رابط صورة HTTP أو HTTPS صالحًا");
 
-const catalogFields = z.object({
+const catalogFields = {
   name: z
     .string()
     .trim()
@@ -36,11 +36,6 @@ const catalogFields = z.object({
     .string()
     .trim()
     .max(5000, "الوصف الكامل بحد أقصى ٥٠٠٠ حرف"),
-  price: priceText(),
-  electronicPrice: z.string().trim(),
-  imageUrl,
-  category: z.enum(["library", "custom"]),
-  isActive: z.boolean(),
   sortOrder: z
     .string()
     .trim()
@@ -52,27 +47,39 @@ const catalogFields = z.object({
         Number(value) <= 2147483647,
       "الترتيب يجب أن يكون عددًا صحيحًا",
     ),
-});
-export type CatalogValues = z.infer<typeof catalogFields>;
-export const productSchema = catalogFields.superRefine((value, context) => {
-  if (
-    value.category === "custom" &&
-    value.electronicPrice &&
-    !priceText().safeParse(value.electronicPrice).success
-  ) {
-    context.addIssue({
-      code: "custom",
-      path: ["electronicPrice"],
-      message: "السعر الإلكتروني غير صحيح",
-    });
-  }
-});
-export const addonSchema = catalogFields.extend({
+};
+
+export const productSchema = z
+  .object({
+    ...catalogFields,
+    price: priceText(),
+    electronicPrice: z.string().trim(),
+    imageUrl,
+    category: z.enum(["library", "custom"]),
+    isActive: z.boolean(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.category === "custom" &&
+      value.electronicPrice &&
+      !priceText().safeParse(value.electronicPrice).success
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["electronicPrice"],
+        message: "السعر الإلكتروني غير صحيح",
+      });
+    }
+  });
+
+export const addonSchema = z.object({
+  ...catalogFields,
   price: priceText(true),
   imageUrl: imageUrl.refine(
     (value) => !value || value.startsWith("https://res.cloudinary.com/"),
     "صورة الإضافة يجب أن تكون رابط Cloudinary",
   ),
+  isActive: z.boolean(),
 });
 
 export type ProductFormInput = z.input<typeof productSchema>;

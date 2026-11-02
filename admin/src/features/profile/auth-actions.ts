@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabaseConnection } from "@/providers/supabase-client";
-import { currentUser, requireClient } from "./data-provider";
+import {
+  currentUser,
+  requireClient,
+} from "@/providers/refine/data-provider/account-data-provider";
 import {
   changePasswordSchema,
   newPasswordSchema,

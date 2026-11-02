@@ -1,4 +1,4 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";

@@ -12,7 +12,6 @@ export type {
 } from "./auth";
 export { productSchema, addonSchema } from "./catalog";
 export type {
-  CatalogValues,
   ProductFormInput,
   ProductFormValues,
   AddonFormInput,

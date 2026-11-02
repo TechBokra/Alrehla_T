@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppForm } from "@/lib/form";
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import type { CloudinaryUploadResult, UploadAdapter } from "@uploadcn/core";
 import {
   Empty,
@@ -64,7 +64,7 @@ import {
   type MediaAsset,
   type MediaPage,
 } from "./model";
-import { useLibraryUploadAdapter } from "./use-upload-adapter";
+import { useLibraryUploadAdapter } from "@/hooks/uploads";
 
 const number = new Intl.NumberFormat("ar-EG");
 const bytes = (value: number) =>

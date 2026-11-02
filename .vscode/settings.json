@@ -1,0 +1,26 @@
+{
+  "githubPullRequests.remotes": ["origin"],
+  "githubPullRequests.queries": [
+    {
+      "label": "All Open Pull Requests",
+      "query": "is:open repo:TechBokra/Alrehla_T"
+    },
+    {
+      "label": "Created By Me",
+      "query": "is:pr author:${user} repo:TechBokra/Alrehla_T"
+    },
+    {
+      "label": "All Pull Requests (Open & Closed)",
+      "query": "is:pr repo:TechBokra/Alrehla_T sort:updated-desc"
+    },
+    {
+      "label": "Waiting For My Review",
+      "query": "is:open review-requested:${user}"
+    },
+    {
+      "label": "Assigned To Me",
+      "query": "is:open assignee:${user}"
+    }
+  ]
+}
+

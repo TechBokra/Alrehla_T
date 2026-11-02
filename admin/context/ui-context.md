@@ -63,3 +63,7 @@ h-4 w-4 for inline, h-5 w-5 for buttons.]
 Text inputs, textareas, select triggers, input groups, checkboxes and radio controls use `border-input` for a visible neutral border. Focus and invalid styles remain owned by the primitives. Floating surfaces use opaque `bg-popover` and `text-popover-foreground`: white in light mode and the configured dark surface in dark mode. Menus must inherit the app theme, without a local `dark` class or translucent background.
 
 Text-entry controls and select triggers use `bg-background` with `border-input`, giving white interiors and gray outlines in light mode. Grouped inputs retain transparent inner controls so only the outer group draws a border. Dialogs, alert dialogs, popovers, select menus and dropdown menus use a solid theme surface and an explicit `border-border`.
+
+## Toast notifications
+
+Use the shared Sonner toaster with RTL direction and Arabic accessible labels. Refine default operation messages are translated through `arabicEgyptI18nProvider`; feature calls to `toast` supply Arabic titles/descriptions. The shared notification provider maps non-Arabic server errors to actionable Arabic messages.

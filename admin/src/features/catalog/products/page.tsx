@@ -1,52 +1,19 @@
-import type { ColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
-import { productSchema } from "@/lib/schema";
-import { catalogColumns } from "../columns";
-import { CatalogResource } from "../resource";
-import type { CatalogDefinition } from "../editor";
-import {
-  productCreate,
-  productUpdate,
-  productValues,
-  isEditableProduct,
-  type Product,
-} from "./model";
+import { ResourceView } from "@/components/resources";
+import { productColumns } from "./columns";
+import { type Product } from "./model";
+import { productForm } from "./form-page";
 
-const definition: CatalogDefinition<Product> = {
-  title: "منتج للمنصة",
-  schema: productSchema,
-  createPayload: productCreate,
-  updatePayload: productUpdate,
-  fromRecord: productValues,
-  canEdit: isEditableProduct,
-};
-const categories = [
-  { value: "library", label: "المكتبة" },
-  { value: "custom", label: "قصة مخصصة" },
-];
-function columns(): ColumnDef<Product, unknown>[] {
-  const columns = catalogColumns<Product>();
-  columns.splice(1, 0, {
-    accessorKey: "category",
-    meta: { label: "التصنيف", variant: "multiSelect", options: categories },
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="التصنيف" />
-    ),
-    cell: ({ row }) =>
-      categories.find((category) => category.value === row.original.category)
-        ?.label ?? "اشتراك",
-  });
-  return columns;
-}
 export function ProductsPage() {
   return (
-    <CatalogResource
+    <ResourceView<Product>
       resource="personalized_products"
-      definition={definition}
-      deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
       title="منتجات المنصة"
-      description="إدارة منتجات المكتبة والقصص المخصصة. المنتجات الجديدة تُحفظ غير نشطة."
-      columns={columns}
+      description="اللي المنصة بتقدّمه بنفسها: «أنت البطل هنا» وتخصيص غلاف المكتبة والإضافات. منتجات دور النشر في قسم «الناشرون»."
+      columns={productColumns}
+      mode="page"
+      form={productForm}
+      deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
+      orderField="sort_order"
       refineCoreProps={{
         filters: {
           permanent: [

@@ -1,9 +1,9 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { useRef, useState } from "react";
 import { useCustomMutation, useInvalidate } from "@refinedev/core";
 import { CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MARK_ALL_READ } from "./data-provider";
+import { MARK_ALL_READ } from "@/providers/refine/data-provider/notifications-data-provider";
 import { NOTIFICATIONS_PROVIDER } from "./queries";
 
 export function MarkAllReadButton({ unreadCount }: { unreadCount?: number }) {

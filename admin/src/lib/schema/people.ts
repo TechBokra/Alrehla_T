@@ -52,6 +52,28 @@ export const inviteUserSchema = z.object({
 export const createUserSchema = inviteUserSchema.extend({
   password: passwordSchema,
 });
+export const userResourceCreateSchema = inviteUserSchema
+  .extend({
+    adminRoleId: z.union([profileIdSchema, z.literal(""), z.null()]).optional(),
+    creationMethod: z.enum(["invite", "password"]),
+    password: passwordSchema,
+  })
+  .strict();
+export const userResourceUpdateSchema = z
+  .object({
+    fullName: requiredTextSchema,
+    role: z.enum([
+      "visitor",
+      "customer",
+      "student",
+      "instructor",
+      "publisher",
+      "general_supervisor",
+      "super_admin",
+      "service_provider",
+    ]),
+    adminRoleId: z.union([profileIdSchema, z.literal(""), z.null()]).optional(),
+  });
 export const userRoleSchema = z.object({
   userId: profileIdSchema,
   role: assignableRoleSchema,

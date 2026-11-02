@@ -21,7 +21,12 @@ const packageResult =
 const orderResult = adminActionSchemas.orders.fulfilment.safeParse(command);
 ```
 
-These registries do **not** register Refine resources or enable pages. Products and add-ons remain the only live catalog resource pages. Authentication and current catalog consumers retain their existing schemas. New contracts are available for future feature forms; they are not wired to the legacy application.
+These registries do **not** register Refine resources or enable pages. Products,
+add-ons and catalog personalization settings (fields, goals and dialects) have
+live resource pages registered separately. The settings Dialogs compose the
+contracts from `catalog-settings.ts` with feature-owned scope validation
+and payload mapping. Other contracts remain available for future forms; the
+registry does not wire them to the legacy application.
 
 ## Modules and reviewed sources
 

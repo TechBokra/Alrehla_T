@@ -4,7 +4,13 @@
 
 ## Real Cloudinary integration
 
-`features/uploads/use-upload-adapter.ts` builds a stable signed adapter. Supabase's `media-library` Edge Function authenticates the current admin, checks content permissions and signs restricted image parameters. The browser uploads bytes directly to Cloudinary. Successful uploads invalidate the Refine media list.
+`hooks/uploads/use-library-upload-adapter.ts` builds the shared signed adapter. Supabase's existing `media-library` Edge Function authenticates the current admin, checks content permissions and signs restricted image parameters. The browser uploads bytes directly to Cloudinary. Successful media-library uploads invalidate the Refine media list.
+
+Resource form pages declare upload slots in their page definition. The shared
+resource upload layer creates a non-auto-starting UploadCN queue for each slot;
+the registered `ImageUploadField` selects files and shows queue state. Product
+submission waits for the selected cover upload to complete before calling the
+Refine CRUD mutation, and aborts that mutation when upload preparation fails.
 
 The `/uploads` grid supports folder/search filters, date sorting, cursor pagination, previews, copying URLs, caption/alt/tags editing and deletion. Refine uses the named `mediaLibrary` provider. Product-media ordering in the upload dialog is a local preview; it does not save product associations. Removing queued items does not delete Cloudinary assets.
 

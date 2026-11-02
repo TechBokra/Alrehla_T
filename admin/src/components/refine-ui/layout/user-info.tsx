@@ -1,4 +1,4 @@
-import { useAdminIdentity } from "@/features/auth/identity-provider";
+import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/refine-ui/layout/user-avatar";
 import { cn } from "@/lib/utils";

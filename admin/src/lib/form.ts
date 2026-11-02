@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/shuip/tanstack-form/form-context";
 import { SubmitButton } from "@/components/ui/shuip/tanstack-form/submit-button";
 import { FormActions } from "@/components/forms/components/form-actions";
-import { FormErrorSummary } from "@/components/forms/components/form-error-summary";
 import { ImageUploadField } from "@/components/forms/fields/image-upload-field";
 import { AttachmentsField } from "@/components/forms/fields/attachments-field";
 import { AutocompleteField } from "@/components/ui/shuip/tanstack-form/autocomplete-field";
@@ -48,6 +47,5 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
   formComponents: {
     SubmitButton,
     FormActions,
-    FormErrorSummary,
   },
 });

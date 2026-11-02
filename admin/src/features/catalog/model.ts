@@ -1,21 +1,4 @@
-import type { CatalogValues } from "@/lib/schema";
-// Compatibility exports for existing callers; definitions live only in lib/schema.
-export { productSchema as catalogSchema, addonSchema } from "@/lib/schema";
-export type { CatalogValues } from "@/lib/schema";
-
-export function defaultCatalogValues(): CatalogValues {
-  return {
-    name: "",
-    description: "",
-    longDescription: "",
-    price: "",
-    electronicPrice: "",
-    imageUrl: "",
-    category: "library",
-    isActive: false,
-    sortOrder: "0",
-  };
-}
+/** Small catalog helpers shared by the product and add-on feature modules. */
 export function productSlug(
   name: string,
   suffix = crypto.randomUUID().slice(0, 8),
