@@ -67,11 +67,28 @@ reader in `src/hooks/resources/page/`. Page context remains separate from list
 selection context. Form pages expose the TanStack instance as `page.form` and
 feature-owned helpers as `page.feature`; details pages expose no form.
 
+Form definitions may declare named upload slots with a folder, accepted types,
+maximum size and file count. `ResourceUploadSlots` creates one signed UploadCN
+queue per slot through `useResourceUploadSlot`, with `autoUpload: false`, retry
+disabled and the same Refine `uploads/upload` permission used by the media
+library. The registered `ImageUploadField` reads its named slot, renders the
+shared UploadCN picker/progress/preview/removal UI through `BaseFormField`, and
+can compose a feature-owned source picker such as the product media library.
+The preview shows `جارٍ الرفع…` only for IDs being resolved by the current Save
+submission; merely selecting a file does not show upload progress.
+
 For form pages, `useResourceFormCrud` is a thin adapter around Refine `useForm`.
 Refine owns edit query state, create/update mutations, CRUD invalidation and
 redirect helpers. The adapter performs fresh authorization and record checks.
 Feature `useAppForm` owns values, validation, dirty/touched state and
-`isSubmitting`; upload preparation and payload mapping remain in the feature.
+`isSubmitting`; the shared page upload resolver checks permission, starts the
+selected files, waits for all of them and returns their Cloudinary URLs. The
+feature maps those URLs into its allowlisted payload.
+After a successful direct upload, the slot invalidates `uploads` list/many
+queries through the named `mediaLibrary` provider. Product form mutations set
+Refine's automatic invalidation targets to an empty list, then await one
+`useInvalidate` call for product list/many/detail after save. This refreshes
+cover replacements and removals without creating a separate cache.
 Successful creation resets the form baseline before the Refine redirect opens
 the new record's edit route. Add-ons keep the same form contract in dialog mode.
 
@@ -80,6 +97,11 @@ Products use `/catalog/products/create` and
 ID. Resource metadata drives the CreateButton and row Edit navigation. Details
 resources use Refine show paths and do not receive a form or implicit Save
 button.
+
+The product `onSubmit` awaits `resolveImages("cover", values.images)` before
+building the payload and calling `save`. If any upload fails or returns no
+secure URL, the resolver rejects and the Refine create/update mutation is never
+called. TanStack Form remains submitting through both upload and save.
 
 ## Command architecture and orders
 

@@ -81,11 +81,11 @@ provider, title, read content and command map. Both expose bound `.Page`,
 the factory is not called during render.
 
 The `useResourcePage(definition)` hook reads the page context and returns its
-record, optional ID, request state, stable bound components' data and typed
-`actions`. Form definitions expose the TanStack `useAppForm` instance as
-`form` and the complete feature-owned state (uploader, access and other
-helpers) separately as `feature`. Details definitions return action
-descriptors; they do not return a form.
+record, optional ID, request state, named shared upload handles, stable bound
+components' data and typed `actions`. Form definitions expose the TanStack
+`useAppForm` instance as `form` and feature-owned state separately as
+`feature`. Details definitions return action descriptors; they do not return a
+form.
 Page context (`src/contexts/resource-page/`) is separate from table/dialog
 selection context (`src/contexts/resource/`). Both providers accept prepared
 values and contain no request or permission logic.
@@ -131,6 +131,8 @@ does not need a fake form definition.
 | `hooks/resources/page/use-resource-page.ts` | Read the context with definition-derived record/form/action types |
 | `hooks/resources/page/use-resource-commands.ts` | One Refine custom mutation, permission/record preflight, duplicate guard and explicit invalidation per detail scope |
 | `hooks/resources/crud/use-resource-form-crud.ts` | Thin Refine `useForm` adapter for access, fresh record check, save result and page redirect helper |
+| `components/resources/page/resource-upload-slots.tsx` and `hooks/resources/page/use-resource-upload-slot.ts` | Build named UploadCN queues and signed adapters from page configuration, check upload permission and await selected files |
+| `components/forms/fields/image-upload-field.tsx` | Registered image field with BaseFormField, UploadCN queue/preview UI and an optional feature media picker |
 | `components/resources/forms/page/resource-form-footer.tsx` | Subscribe to TanStack Form and render save/cancel buttons |
 | `components/resources/forms/page/resource-form-dirty-guard.tsx` | Confirm dirty route navigation and use the browser's unload warning |
 | `features/<feature>/` | Schemas, defaults, payload mapping, fields, detail content and business rules |
@@ -146,18 +148,33 @@ Refine core `useForm` is the CRUD lifecycle owner:
 |---|---|
 | Edit record read/query state | Refine `useForm` query |
 | Create/update request and mutation state | Refine `useForm` mutation and `onFinish` |
-| CRUD cache invalidation | Refine automatic invalidation |
+| CRUD cache invalidation | Refine automatic invalidation by default; product saves declare one explicit Refine invalidation |
 | Redirect helper | Refine `useForm.redirect`; automatic redirect is disabled |
 | Field values, validation, touched/dirty and `isSubmitting` | TanStack `useAppForm` |
 | Fresh access and record eligibility | Thin application preflight |
-| Upload preparation and payload allowlist | Feature form hook |
+| Named adapter/uploader setup, queue and upload permission | Shared resource upload slots |
+| Waiting for selected image uploads and rejecting failures | Shared resource upload resolver |
+| Image field state and media-library picker composition | Registered shared field plus optional feature picker |
+| Mapping uploaded URLs into an allowlisted resource payload | Feature form hook |
 
 The edit query is enabled only after access is allowed and uses retries disabled.
 The adapter rechecks access before save, refetches the same edit query for
 record eligibility, then calls Refine `onFinish`. It does not mount a second
-detail query. The feature's `onSubmit` awaits any upload preparation and payload
-mapping before the save call, so TanStack Form remains submitting until the
-whole operation completes.
+detail query. The feature's `onSubmit` asks the shared upload resolver for
+selected image URLs, maps them into the allowlisted payload, and only then calls
+save. The resolver waits until all selected files finish; any upload failure
+rejects before the Refine create/update mutation can run. TanStack Form remains
+submitting through upload and save.
+
+Queued covers do not show upload progress before Save. The shared upload slot
+marks only IDs being resolved by the current save operation as active, and
+disables queue controls until those uploads finish. After a direct Cloudinary
+upload succeeds, it invalidates the `uploads` list/many queries under the
+`mediaLibrary` provider so the asset appears in the picker. The product form
+sets Refine's built-in invalidation targets to an empty list and then awaits
+one Refine `useInvalidate` call for product list/many/detail queries after a
+successful create/edit. This refreshes the table when a cover URL is replaced
+or removed. Removing an association still does not delete the Cloudinary asset.
 
 On success, the feature resets TanStack Form's baseline from the returned
 record. A successful create then calls Refine's redirect helper to open Edit;
@@ -173,7 +190,7 @@ validation banner is shown. Backend errors can be mapped through a feature
 `getErrorMessage` formatter; field validation remains beside each field.
 
 The product page keeps the existing responsive field grid, Shuip fields,
-`BaseFormField`, signed Cloudinary adapter, deferred cover upload, media
+`BaseFormField`, a declared signed Cloudinary cover slot, deferred upload, media
 permission gate and product schema. Its separate preparation-days save uses a
 Refine update mutation and reuses `useForm`'s detail query for its fresh record
 check. It is blocked while the main product form is dirty. Add-ons use the same
@@ -188,11 +205,12 @@ platform-owned, approved and inactive. Writing styles keep their existing
 storage semantics. Sort order stays out of the form and remains a table
 ordering concern.
 
-Selected image files remain local until Save. The signed UploadCN adapter
-uploads the cover before Refine submits the product payload; the form stays
-submitting until both operations finish. Existing saved images are preserved
-unless the user replaces/removes the association; removing an association
-never deletes a Cloudinary asset. Failed/pending uploads disable Save.
+Selected image files remain local until Save. The shared UploadCN slot uploads
+the cover before Refine submits the product payload; the form stays submitting
+until both operations finish. Failed uploads reject preparation and do not
+create or update the product. Existing saved images are preserved unless the
+user replaces/removes the association; removing an association never deletes a
+Cloudinary asset. Failed/pending uploads disable Save.
 Preparation days are a separate edit-only save, 1–120 or blank. The staging
 setup notice reflects the local nullable-column migration; this implementation
 does not apply that migration remotely.
@@ -302,12 +320,15 @@ broader administrator order access than `canManageOrders` UI policy.
 ## 9. Cache behavior
 
 Refine and its TanStack Query client own resource query keys and CRUD cache
-invalidation. Ordinary create/edit calls rely on `useForm` automatic
-invalidation; no parallel cache or per-save `useInvalidate` is added. Details
-commands are outside ordinary CRUD, so they explicitly invalidate their
-declared Refine targets. The `orders` provider name is supplied on both reads
-and writes to keep cache/provider identity aligned. `ResourceContext` and
-`ResourcePageContext` contain UI state only and are not data caches.
+invalidation. Ordinary create/edit calls use Refine's automatic invalidation.
+The product form suppresses those default targets and awaits one explicit
+Refine invalidation after saving, covering list/many/detail when the cover URL
+changes or is removed. Direct Cloudinary uploads invalidate the `mediaLibrary`
+uploads list/many queries because they bypass Refine mutations. Details
+commands explicitly invalidate their declared Refine targets. The `orders`
+provider name is supplied on reads and writes to keep cache/provider identity
+aligned. `ResourceContext` and `ResourcePageContext` contain UI state only and
+are not data caches.
 
 ## 10. Backend boundary
 
@@ -324,7 +345,8 @@ authorized work.
   navigate through the central resource metadata.
 - A denied list/detail page mounts no resource query; the details page owns one
   Refine `useOne` record query.
-- Create/edit use Refine `useForm` lifecycle and automatic invalidation; a
+- Create/edit use Refine `useForm` lifecycle and Refine invalidation (automatic
+  by default; product image saves use one explicit targeted invalidation); a
   successful create resets the form before Refine redirects to Edit.
 - Compound button/menu/custom command presentations use one descriptor and
   execution path. Duplicate clicks, stale records, invalid input and permission

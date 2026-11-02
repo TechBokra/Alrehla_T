@@ -20,6 +20,7 @@ export interface UseResourceFormCrudOptions<TRecord extends BaseRecord> {
   suppressNotifications?: boolean;
   presentation?: "page" | "dialog";
   redirectAfterCreate?: "edit" | "list" | false;
+  invalidates?: Array<"list" | "many" | "detail" | "resourceAll">;
 }
 
 /**
@@ -36,6 +37,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   suppressNotifications = false,
   presentation = "dialog",
   redirectAfterCreate: redirectAfterCreateAction = "edit",
+  invalidates,
 }: UseResourceFormCrudOptions<TRecord>) {
   const editing = id !== undefined;
   const action: ResourceFormAction = editing ? "edit" : "create";
@@ -58,6 +60,7 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     dataProviderName,
     mutationMode: "pessimistic",
     redirect: false,
+    invalidates,
     queryOptions: {
       enabled: editing && access.allowed,
       retry: false,

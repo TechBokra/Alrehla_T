@@ -1,5 +1,5 @@
 import { useOne, type BaseRecord } from "@refinedev/core";
-import type { ComponentType, ReactNode } from "react";
+import { useCallback, type ComponentType, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -13,9 +13,12 @@ import type { ResourcePageRuntime } from "@/contexts/resource-page/types";
 import { ResourceFormFooter } from "../forms/page/resource-form-footer";
 import { ResourceFormDirtyGuard } from "../forms/page/resource-form-dirty-guard";
 import { ResourceCommandDialogs } from "./resource-command-dialogs";
+import { ResourceUploadSlots } from "./resource-upload-slots";
+import { useResourceUploads } from "@/contexts/resource-page/uploads";
+import { resolveImageSelectionUrls } from "@/hooks/uploads";
 import type {
   ResourceDetailsPageDefinition,
-  ResourceFormFeatureContext,
+  ResourceFormBaseContext,
   ResourceFormPageDefinition,
   ResourceFormFeatureState,
   ResourcePageFactory,
@@ -152,6 +155,7 @@ function FormPageRoute<TRecord extends BaseRecord>({
     suppressNotifications: true,
     presentation: "page",
     redirectAfterCreate: pageDefinition.redirectAfterCreate,
+    invalidates: pageDefinition.invalidates,
   });
   const mode = id === undefined ? "create" : "edit";
   const title = pageDefinition.title(mode);
@@ -220,11 +224,37 @@ function FormPageContent<TRecord extends BaseRecord>({
   crud,
 }: {
   definition: ResourceFormPageDefinition<TRecord, ResourceFormFeatureState>;
-  context: ResourceFormFeatureContext<TRecord>;
+  context: ResourceFormBaseContext<TRecord>;
   crud: ReturnType<typeof useResourceFormCrud<TRecord>>;
 }) {
   const pageDefinition = definition.page!;
-  const feature = pageDefinition.useFeatureForm(context);
+  return (
+    <ResourceUploadSlots definitions={pageDefinition.uploads ?? {}}>
+      <FormPageContentReady definition={definition} context={context} crud={crud} />
+    </ResourceUploadSlots>
+  );
+}
+
+function FormPageContentReady<TRecord extends BaseRecord>({
+  definition,
+  context,
+  crud,
+}: {
+  definition: ResourceFormPageDefinition<TRecord, ResourceFormFeatureState>;
+  context: ResourceFormBaseContext<TRecord>;
+  crud: ReturnType<typeof useResourceFormCrud<TRecord>>;
+}) {
+  const pageDefinition = definition.page!;
+  const uploads = useResourceUploads();
+  const resolveImages = useCallback(
+    async (slot: string, images: Parameters<typeof resolveImageSelectionUrls>[1]) => {
+      const upload = uploads[slot];
+      if (!upload) throw new Error("إعداد رفع الصور غير مكتمل لهذا الحقل.");
+      return resolveImageSelectionUrls(upload.resolve, images);
+    },
+    [uploads],
+  );
+  const feature = pageDefinition.useFeatureForm({ ...context, uploads, resolveImages });
   const featureIsDirty = Boolean(feature.isDirty);
   const commandBlockReason = featureIsDirty
     ? "احفظ تغييرات النموذج أو ألغِها قبل تنفيذ الإجراء."
@@ -258,6 +288,8 @@ function FormPageContent<TRecord extends BaseRecord>({
     canRetry: crud.canRetry,
     form: feature.form,
     feature,
+    uploads,
+    resolveImages,
     actions: commandController.actions,
     activeCommandKey: commandController.activeCommandKey,
     closeCommand: commandController.close,

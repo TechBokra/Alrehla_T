@@ -1,17 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useList } from "@refinedev/core";
-import { Upload, UploadDropzone, UploadDropzoneTitle } from "@/components/ui/upload";
-import { useUploadSelector } from "@uploadcn/react";
-import type { CloudinaryUploadResult, Uploader } from "@uploadcn/core";
-import { Images, ImagePlus, LoaderCircle, Star, X } from "lucide-react";
-import { BaseFormField } from "@/components/forms/components/base-form-field";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Images } from "lucide-react";
 import { useResourceAuthorization } from "@/hooks/resources";
 import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { MEDIA_PROVIDER, MEDIA_RESOURCE, type MediaAsset, type MediaPage } from "@/features/uploads/model";
-import type { ProductImageSelection } from "./schema";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -21,189 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export function ProductImagesField({
-  value,
-  onChange,
-  uploader,
-  disabled,
-  uploadConfigured,
-}: {
-  value: ProductImageSelection[];
-  onChange: (value: ProductImageSelection[]) => void;
-  uploader: Uploader<CloudinaryUploadResult>;
-  disabled: boolean;
-  uploadConfigured: boolean;
-}) {
-  const uploadAccess = useResourceAuthorization("uploads", "upload");
-  const items = useUploadSelector(uploader, (state) => state.items);
-  const queueIds = items
-    .filter((item) => item.status !== "rejected" && item.status !== "cancelled")
-    .map((item) => item.id);
-  const queueKey = queueIds.join("|");
-  const onChangeRef = useRef(onChange);
-  const valueRef = useRef(value);
-  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
-  useEffect(() => { valueRef.current = value; }, [value]);
-
-  useEffect(() => {
-    const available = new Set(queueIds);
-    const kept = valueRef.current.filter(
-      (image) => image.kind === "saved" || (image.kind === "queued" && available.has(image.uploadId)),
-    );
-    const known = new Set(kept.filter((image) => image.kind === "queued").map((image) => image.uploadId));
-    const added = queueIds
-      .filter((id) => !known.has(id))
-      .map((id) => {
-        const item = items.find((entry) => entry.id === id)!;
-        return { kind: "queued", uploadId: id, name: item.name } satisfies ProductImageSelection;
-      });
-    if (added.length || kept.length !== valueRef.current.length) {
-      const next = [...kept, ...added];
-      valueRef.current = next;
-      onChangeRef.current(next);
-    }
-    // Queue IDs change only when files are added or removed, not during upload progress.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueKey]);
-
-  const failedUpload = items.some((item) => ["error", "rejected", "cancelled"].includes(item.status));
-  const uploadBusy = items.some((item) => ["queued", "validating", "uploading", "processing", "scanning", "paused"].includes(item.status));
-  const setImages = (next: ProductImageSelection[]) => {
-    valueRef.current = next;
-    onChange(next);
-  };
-  const removeImage = (index: number) => {
-    const image = value[index];
-    if (image?.kind === "queued") uploader.remove(image.uploadId);
-    setImages(value.filter((_, current) => current !== index));
-  };
-  return (
-    <BaseFormField
-      label="غلاف الكتاب — يفضّل طولي (3:4)"
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          {uploadAccess.allowed && uploadConfigured ? (
-            <Upload
-              uploader={uploader}
-              disabled={disabled || uploadBusy || value.length >= 1}
-              className="w-auto"
-            >
-              <UploadDropzone size="sm" className="min-h-10 flex-row gap-2 px-3 py-2 text-start">
-                <ImagePlus className="size-4" />
-                <UploadDropzoneTitle className="text-sm">اختيار صورة الغلاف</UploadDropzoneTitle>
-              </UploadDropzone>
-            </Upload>
-          ) : null}
-          <LibraryImagePicker
-            disabled={disabled || uploadBusy || value.length >= 1}
-            onPick={(asset) => {
-              if (uploadBusy || value.length >= 1) return;
-              setImages([...value, { kind: "saved", url: asset.url }]);
-            }}
-          />
-        </div>
-        {value.length ? (
-          <ol className="flex flex-wrap gap-3">
-            {value.map((image) => (
-              <ProductImageCard
-                key={image.kind === "saved" ? image.url : image.uploadId}
-                image={image}
-                upload={image.kind === "queued" ? items.find((item) => item.id === image.uploadId) : undefined}
-                disabled={disabled || uploadBusy}
-                onRemove={() => removeImage(0)}
-              />
-            ))}
-          </ol>
-        ) : (
-          <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-            <Images className="size-5" />
-            <span>لم يُضف غلاف الكتاب بعد</span>
-          </div>
-        )}
-        {failedUpload ? (
-          <p role="alert" className="text-sm text-destructive">
-            تعذّر رفع الغلاف. أزل الملف الفاشل ثم اختره مجددًا قبل حفظ المنتج.
-          </p>
-        ) : null}
-        {items.filter((item) => item.status === "rejected" || item.status === "cancelled").map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 p-3 text-sm">
-            <span className="min-w-0 truncate">{item.name}: {item.issues[0]?.message ?? "لم يكتمل الملف"}</span>
-            <Button type="button" variant="outline" size="sm" onClick={() => uploader.remove(item.id)}>إزالة الملف</Button>
-          </div>
-        ))}
-        {uploadAccess.allowed && !uploadConfigured ? (
-          <p role="status" className="text-sm text-muted-foreground">إعداد رفع الصور غير مكتمل؛ يمكنك استخدام مكتبة الصور.</p>
-        ) : null}
-        {!uploadAccess.isPending && !uploadAccess.allowed ? (
-          <p className="text-sm text-muted-foreground">رفع صور جديدة غير متاح لهذه الصلاحية، ويمكنك اختيار صورة موجودة من المكتبة إذا كان لديك إذن عرضها.</p>
-        ) : null}
-      </div>
-    </BaseFormField>
-  );
-}
-
-function ProductImageCard({
-  image,
-  upload,
-  disabled,
-  onRemove,
-}: {
-  image: ProductImageSelection;
-  upload?: ReturnType<Uploader<CloudinaryUploadResult>["getItem"]>;
-  disabled: boolean;
-  onRemove: () => void;
-}) {
-  const preview = useObjectUrl(image.kind === "saved" ? undefined : upload?.file);
-  const src = image.kind === "saved" ? image.url : preview;
-  const loading = upload && !["success", "error", "rejected", "cancelled"].includes(upload.status);
-  return (
-    <li className="relative w-44 overflow-hidden rounded-xl border bg-card">
-      <div className="relative aspect-[3/4] bg-muted/30">
-        {src ? <img src={src} alt="غلاف الكتاب" className="size-full object-cover" /> : null}
-        <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs shadow">
-          <Star className="size-3 fill-current" /> الغلاف
-        </span>
-        {loading ? (
-          <span className="absolute inset-x-2 bottom-2 flex items-center gap-2 rounded-lg bg-background/90 p-2 text-xs">
-            <LoaderCircle className="size-3.5 animate-spin" />
-            <span className="min-w-0 flex-1 truncate">جارٍ الرفع…</span>
-            <span>{Math.round(upload.progress.percent)}%</span>
-          </span>
-        ) : null}
-        {upload?.status === "error" ? (
-          <span className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-1 rounded-lg bg-destructive/90 p-1.5 text-xs text-destructive-foreground">
-            فشل الرفع؛ أزل الملف لإعادة اختياره
-          </span>
-        ) : null}
-      </div>
-      <div className="flex items-center justify-between gap-1 p-1.5">
-        <span className="min-w-0 flex-1 truncate px-1 text-xs text-muted-foreground">
-          {image.kind === "queued" ? image.name : "غلاف الكتاب"}
-        </span>
-        <div className="flex shrink-0">
-          <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="إزالة غلاف الكتاب" onClick={onRemove}><X /></Button>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-function useObjectUrl(file?: File) {
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    if (!file) {
-      setUrl("");
-      return;
-    }
-    const next = URL.createObjectURL(file);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [file]);
-  return url;
-}
-
-function LibraryImagePicker({
+/** Product-specific media-library picker, composed by the shared image field. */
+export function ProductImageLibraryPicker({
   disabled,
   onPick,
 }: {
@@ -233,6 +47,7 @@ function LibraryImagePicker({
     },
   });
   const page = query.data as MediaPage | undefined;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

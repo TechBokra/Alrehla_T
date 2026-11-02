@@ -1,5 +1,6 @@
 import type { BaseRecord } from "@refinedev/core";
 import type { ReactNode } from "react";
+import type { ResourceUploadHandles, ResolveImages } from "@/hooks/uploads";
 
 export type ResourcePageMode = "create" | "edit" | "details";
 
@@ -34,6 +35,8 @@ export interface ResourcePageRuntime<TRecord extends BaseRecord = BaseRecord> {
   error?: string;
   form?: unknown;
   feature?: unknown;
+  uploads?: ResourceUploadHandles;
+  resolveImages?: ResolveImages;
   commandBlockReason?: string;
   save?: (values: Record<string, unknown>) => Promise<BaseRecord | false>;
   refreshRecord?: () => Promise<TRecord | undefined>;

@@ -3,6 +3,11 @@ import type { ComponentType, ReactNode } from "react";
 import type { ResourceFormDialogContext } from "../forms/types";
 import type { ResourceFormFieldsContext } from "../types";
 import type { ResourceCommandMap } from "@/hooks/resources/page/use-resource-commands";
+import type {
+  ResourceUploadDefinition,
+  ResourceUploadHandles,
+  ResolveImages,
+} from "@/hooks/uploads";
 
 export interface ResourceFormFeatureContext<TRecord extends BaseRecord> {
   record?: TRecord;
@@ -10,11 +15,18 @@ export interface ResourceFormFeatureContext<TRecord extends BaseRecord> {
   mode: "create" | "edit";
   disabled: boolean;
   pending: boolean;
+  uploads: ResourceUploadHandles;
+  resolveImages: ResolveImages;
   save: (values: Record<string, unknown>) => Promise<TRecord | false>;
   refreshRecord: () => Promise<TRecord | undefined>;
   getLastError: () => unknown;
   redirectAfterCreate?: (record: TRecord) => void;
 }
+
+export type ResourceFormBaseContext<TRecord extends BaseRecord> = Omit<
+  ResourceFormFeatureContext<TRecord>,
+  "uploads" | "resolveImages"
+>;
 
 export interface ResourceFormFeatureState {
   form: unknown;
@@ -40,6 +52,9 @@ export interface ResourceFormPageDefinition<
     title: (mode: "create" | "edit") => string;
     description?: (mode: "create" | "edit") => string | undefined;
     redirectAfterCreate?: "edit" | "list" | false;
+    /** Query targets invalidated by Refine after save; omitted uses Refine defaults. */
+    invalidates?: Array<"list" | "many" | "detail" | "resourceAll">;
+    uploads?: Record<string, ResourceUploadDefinition>;
     canEdit?: (record: TRecord) => boolean;
     getErrorMessage?: (error: unknown) => string;
     commands?: TCommands;

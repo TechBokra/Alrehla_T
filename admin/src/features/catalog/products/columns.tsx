@@ -62,13 +62,6 @@ export function productColumns(): ColumnDef<Product, unknown>[] {
       ),
     },
     {
-      accessorKey: "sort_order",
-      meta: { label: "ترتيب العرض", variant: "number" },
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="ترتيب العرض" />
-      ),
-    },
-    {
       id: "actions",
       enableSorting: false,
       enableColumnFilter: false,

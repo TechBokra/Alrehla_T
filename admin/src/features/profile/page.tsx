@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useAppForm } from "@/lib/form";
 import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
 import { adminAuthProvider } from "@/providers/refine/auth-provider";
-import { useLibraryUploadAdapter } from "@/features/uploads/use-upload-adapter";
+import { useLibraryUploadAdapter } from "@/hooks/uploads";
 import { AvatarUpload } from "@/components/upload/avatar-upload";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {

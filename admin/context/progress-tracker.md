@@ -1,5 +1,26 @@
 # Progress Tracker
 
+### Shared resource form uploads — 2026-11-02
+
+- Moved signed media-library adapter setup into `hooks/uploads/` and made
+  resource form page definitions declare named upload slots with folder,
+  accepted formats, file-size and count limits. `ResourceUploadSlots` and
+  `useResourceUploadSlot` own UploadCN queue creation, permission state and
+  upload resolution; retries remain disabled and uploads do not start on file
+  selection.
+- Reworked the registered `ImageUploadField` to use `BaseFormField` and a
+  resource upload slot. It keeps the queue, preview, progress, removal and
+  optional source-picker UI. The product media-library picker remains a small
+  feature-owned composition.
+- Product Save now waits for the shared resolver to complete every selected
+  cover upload before mapping URLs and calling the Refine create/update
+  mutation. A denied upload, failed/cancelled queue item or missing
+  `secure_url` stops submission before the record mutation. Successful uploads
+  followed by a database-save failure stay available for retry without
+  uploading the same file again.
+- Updated the resource and upload architecture guides. No Supabase function,
+  migration, schema, policy, API or deployment changed.
+
 Update this file after every meaningful implementation
 change.
 
@@ -462,10 +483,25 @@ change.
   warning and Vite retains its large-chunk warning. Browser verification was
   attempted in the existing Chrome session, but CUA returned “Debugger
   unattached”; no order command or real fulfillment/payout mutation was run.
-- Fixed the product form page context contract: `page.form` now exposes the
-  TanStack form instance, while `page.feature` exposes uploader/access helpers.
+- Fixed the product form page context contract: `page.form` exposes the
+  TanStack form instance; `page.feature` exposes form-specific state, while
+  shared upload handles are exposed separately as `page.uploads`.
   The reported `form.store` crash now shows a working product edit page in the
   existing Chrome session. Command eligibility is skipped until a details
   record loads, preventing predicates from reading fields on the temporary
   empty record. Verification for this fix: `pnpm test`, `pnpm typecheck`,
   `pnpm build` and `git diff --check` pass.
+
+### Product image cache and upload progress — 2026-11-02
+
+- Product form saves suppress Refine's default invalidation targets and await
+  one Refine invalidation for `personalized_products` list/many/detail, so
+  cover URL replacement and removal refresh table and record data.
+- Successful browser-direct Cloudinary uploads invalidate `uploads` list/many
+  through the named `mediaLibrary` provider. Queued covers show
+  `جارٍ الرفع…` only while the Save submission resolves those upload IDs; they
+  remain removable and show no progress before Save.
+- Added a regression test for pre-save versus save-started upload IDs. No
+  backend or Cloudinary schema changes. `pnpm test` (9 tests), `pnpm typecheck`,
+  `pnpm build` and `git diff --check` pass; Vite retains the existing large
+  chunk warning.

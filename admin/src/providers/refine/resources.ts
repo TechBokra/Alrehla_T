@@ -44,7 +44,7 @@ export const adminNavigationGroups = [
   { label: "إدارة الحسابات", items: [navigationItems.users] },
   { label: "إدارة الطلبات", items: [navigationItems.orders] },
   {
-    label: "إدارة الكتالوج",
+    label: "إنها لك",
     items: [
       navigationItems.uploads,
       navigationItems.products,

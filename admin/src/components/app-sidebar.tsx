@@ -55,11 +55,16 @@ export function AppSidebar({
 
       <SidebarContent className="gap-1">
         {adminNavigationGroups.map((group) => (
-          <SidebarGroup key={group.label} className="hidden py-1 has-[[data-authorized-sidebar-item]]:flex">
+          <SidebarGroup
+            key={group.label}
+            className="hidden py-1 has-data-authorized-sidebar-item:flex"
+          >
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => <AuthorizedSidebarItem key={item.resource} item={item} />)}
+                {group.items.map((item) => (
+                  <AuthorizedSidebarItem key={item.resource} item={item} />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

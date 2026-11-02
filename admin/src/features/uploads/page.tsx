@@ -64,7 +64,7 @@ import {
   type MediaAsset,
   type MediaPage,
 } from "./model";
-import { useLibraryUploadAdapter } from "./use-upload-adapter";
+import { useLibraryUploadAdapter } from "@/hooks/uploads";
 
 const number = new Intl.NumberFormat("ar-EG");
 const bytes = (value: number) =>

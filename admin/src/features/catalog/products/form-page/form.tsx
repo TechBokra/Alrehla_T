@@ -1,13 +1,11 @@
 import { useRef, useState } from "react";
 import { revalidateLogic, useStore } from "@tanstack/react-form";
-import { useUpdate } from "@refinedev/core";
+import { useInvalidate, useUpdate } from "@refinedev/core";
 import { useNavigate } from "@tanstack/react-router";
-import { useUploader, useUploadSelector } from "@uploadcn/react";
-import type { CloudinaryUploadResult, UploadAdapter } from "@uploadcn/core";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { useAppForm } from "@/lib/form";
-import { productPageSchema, preparationDaysSchema, type ProductImageSelection } from "./schema";
+import { productPageSchema, preparationDaysSchema } from "./schema";
 import { catalogError } from "../../model";
 import {
   defaultValues,
@@ -27,8 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useLibraryUploadAdapter } from "@/features/uploads/use-upload-adapter";
-import { ProductImagesField } from "./images-field";
+import { ProductImageLibraryPicker } from "./images-field";
 import { useResourceAuthorization } from "@/hooks/resources";
 import { assertResourceAccess } from "@/providers/refine/access-control-provider";
 
@@ -38,27 +35,9 @@ const writingStyleOptions = [
   { value: "dialect", label: "لهجة" },
 ] as const;
 
-const unavailableUploadAdapter: UploadAdapter<CloudinaryUploadResult> = {
-  name: "cloudinary-unconfigured",
-  async upload() {
-    throw new Error("إعداد Cloudinary غير مكتمل.");
-  },
-};
-
 function useProductFeatureForm(context: ResourceFormFeatureContext<Product>) {
-  const { mode, record, save, getLastError, redirectAfterCreate } = context;
-  const access = useResourceAuthorization("uploads", "upload");
-  const adapter = useLibraryUploadAdapter("alrehla/products");
-  const uploader = useUploader<CloudinaryUploadResult>({
-    adapter: adapter ?? unavailableUploadAdapter,
-    autoUpload: false,
-    accept: "image/jpeg,image/png,image/webp,image/avif",
-    maxSize: 5 * 1024 * 1024,
-    maxFiles: 1,
-    retry: false,
-  });
-  const queuedItems = useUploadSelector(uploader, (state) => state.items);
-  const failedUpload = queuedItems.some((item) => ["error", "rejected", "cancelled"].includes(item.status));
+  const { mode, record, save, getLastError, redirectAfterCreate, uploads, resolveImages } = context;
+  const invalidate = useInvalidate();
   const [defaults] = useState(() => record ? valuesFromProduct(record) : defaultValues());
   const form = useAppForm({
     defaultValues: defaults,
@@ -70,9 +49,9 @@ function useProductFeatureForm(context: ResourceFormFeatureContext<Product>) {
       const values = productPageSchema.parse(value);
       let imageUrls: string[];
       try {
-        imageUrls = await resolveImageUrls(values.images, uploader);
-      } catch {
-        toast.error("تعذّر رفع غلاف الكتاب. أعد اختيار الصورة ثم احفظ المنتج.");
+        imageUrls = await resolveImages("cover", values.images);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "تعذّر رفع غلاف الكتاب. أعد اختيار الصورة ثم احفظ المنتج.");
         return;
       }
       const payload = mode === "edit"
@@ -83,14 +62,24 @@ function useProductFeatureForm(context: ResourceFormFeatureContext<Product>) {
         toast.error(catalogError(getLastError()));
         return;
       }
-      uploader.clearCompleted();
+      try {
+        await invalidate({
+          resource: "personalized_products",
+          dataProviderName: "default",
+          id: saved.id,
+          invalidates: ["list", "many", "detail"],
+        });
+      } catch {
+        toast.error("تم حفظ المنتج، لكن تعذّر تحديث البيانات المعروضة. أعد تحميل الصفحة.");
+      }
+      uploads.cover?.clearCompleted();
       form.reset(valuesFromProduct(saved));
       toast.success(mode === "edit" ? "تم حفظ التغييرات." : "تم حفظ المنتج.");
       if (mode === "create") redirectAfterCreate?.(saved);
     },
   });
   const isDirty = useStore(form.store, (state) => state.isDirty);
-  return { form, uploader, adapter, access, failedUpload, isDirty };
+  return { form, isDirty };
 }
 
 type ProductFeatureForm = ReturnType<typeof useProductFeatureForm>;
@@ -101,6 +90,16 @@ export const productForm: ResourceFormFactory<Product, ProductFeatureForm> = cre
   dataProviderName: "default",
   page: {
     title: (mode) => mode === "create" ? "إضافة منتج للمنصة" : "تعديل المنتج",
+    // This page invalidates these Refine queries after its full save flow below.
+    invalidates: [],
+    uploads: {
+      cover: {
+        folder: "alrehla/products",
+        accept: "image/jpeg,image/png,image/webp,image/avif",
+        maxSize: 5 * 1024 * 1024,
+        maxFiles: 1,
+      },
+    },
     canEdit: isEditableProduct,
     getErrorMessage: catalogError,
     useFeatureForm: useProductFeatureForm,
@@ -117,14 +116,14 @@ export function ProductFormPage({ id }: { id?: string }) {
 function ProductFormContent() {
   const page = useResourcePage(productForm);
   const form = page.form;
-  const { uploader, adapter, access, failedUpload } = page.feature;
+  const upload = page.uploads?.cover;
   const navigate = useNavigate();
   const values = useStore(form.store, (state) => state.values);
   const submitting = useStore(form.store, (state) => state.isSubmitting);
   const formDirty = useStore(form.store, (state) => state.isDirty);
   const formDisabled = page.disabled || submitting;
   const hasQueuedImages = values.images.some((image) => image.kind === "queued");
-  const saveDisabled = page.disabled || failedUpload || (hasQueuedImages && (!adapter || !access.allowed || access.isPending));
+  const saveDisabled = page.disabled || Boolean(upload?.failed) || (hasQueuedImages && (!upload?.adapter || !upload.allowed || upload.accessPending));
   const cancel = () => void navigate({ to: "/catalog/products" });
 
   return (
@@ -159,12 +158,9 @@ function ProductFormContent() {
 function ProductFormFields() {
   const page = useResourcePage(productForm);
   const form = page.form;
-  const { uploader, adapter, access, failedUpload } = page.feature;
   const category = useStore(form.store, (state) => state.values.category);
-  const values = useStore(form.store, (state) => state.values);
   const submitting = useStore(form.store, (state) => state.isSubmitting);
   const formDisabled = page.disabled || submitting;
-  const hasQueuedImages = values.images.some((image) => image.kind === "queued");
 
   return (
     <>
@@ -241,11 +237,20 @@ function ProductFormFields() {
       </div>
       <div className="col-span-full min-w-0">
         <form.AppField name="images">
-          {(field) => <ProductImagesField value={field.state.value as ProductImageSelection[]} onChange={field.handleChange} uploader={uploader} disabled={formDisabled} uploadConfigured={Boolean(adapter)} />}
+          {(Fields) => (
+            <Fields.ImageUploadField
+              label="غلاف الكتاب — يفضّل طولي (3:4)"
+              uploadKey="cover"
+              disabled={formDisabled}
+              renderSourcePicker={({ disabled, onPick }) => (
+                <ProductImageLibraryPicker
+                  disabled={disabled}
+                  onPick={(asset) => onPick(asset.url)}
+                />
+              )}
+            />
+          )}
         </form.AppField>
-        {hasQueuedImages && !adapter ? <Alert variant="destructive"><AlertTitle>إعداد رفع الصور غير مكتمل</AlertTitle><AlertDescription>أضف إعداد Cloudinary الموقّع قبل استخدام صور جديدة.</AlertDescription></Alert> : null}
-        {failedUpload ? <p role="alert" className="text-sm text-destructive">تعذّر رفع صورة محددة. أعد اختيارها قبل الحفظ.</p> : null}
-        {hasQueuedImages && (!access.allowed || access.isPending) ? <p role="status" className="text-sm text-muted-foreground">جارٍ التحقق من صلاحية رفع الصور…</p> : null}
       </div>
       {page.mode === "edit" ? (
         <div className="col-span-full min-w-0">
@@ -256,39 +261,6 @@ function ProductFormFields() {
       ) : null}
     </>
   );
-}
-
-async function resolveImageUrls(
-  images: ProductImageSelection[],
-  uploader: ReturnType<typeof useUploader<CloudinaryUploadResult>>,
-) {
-  const queued = images.filter((image): image is Extract<ProductImageSelection, { kind: "queued" }> => image.kind === "queued");
-  const ids = queued.map((image) => image.uploadId);
-  const pending = ids.filter((id) => uploader.getItem(id)?.status !== "success");
-  if (pending.length) {
-    await new Promise<void>((resolve, reject) => {
-      let unsubscribe = () => {};
-      const inspect = () => {
-        const current = pending.map((id) => uploader.getItem(id));
-        if (current.some((item) => !item || ["error", "rejected", "cancelled"].includes(item.status))) {
-          unsubscribe();
-          reject(new Error("تعذّر رفع الصورة."));
-        } else if (current.every((item) => item?.status === "success")) {
-          unsubscribe();
-          resolve();
-        }
-      };
-      unsubscribe = uploader.subscribe(inspect);
-      uploader.start(pending);
-      inspect();
-    });
-  }
-  return images.map((image) => {
-    if (image.kind === "saved") return image.url;
-    const result = uploader.getItem(image.uploadId)?.result;
-    if (!result?.secure_url) throw new Error("لم يرجع رفع الصورة رابطًا صالحًا.");
-    return result.secure_url;
-  });
 }
 
 function PreparationDaysSection({ record, disabled }: { record: Product; disabled: boolean }) {
