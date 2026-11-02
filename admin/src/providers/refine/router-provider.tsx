@@ -29,7 +29,7 @@ function matchRoutePattern(pattern: string, path: string) {
 
 function findResourceAction(path: string) {
   for (const resource of resources) {
-    for (const action of ["create", "edit"] as const) {
+    for (const action of ["create", "edit", "show"] as const) {
       const route = resource[action];
       if (!route) continue;
       const params = matchRoutePattern(route, path);

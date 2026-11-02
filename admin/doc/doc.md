@@ -1,336 +1,338 @@
-# ResourceView: flow, architecture, components and hooks
+# Resource pages, forms and commands
 
-This guide describes the current `admin` implementation as of 2026-11-01. File paths below are relative to `admin/`. It distinguishes implemented behavior from the agreed extension pattern.
+This guide describes the implemented Refine architecture in `admin/` as of
+2026-11-02. Refine owns resource metadata, provider selection, reads, CRUD
+mutations and query invalidation. The application adds feature-owned forms,
+authorization checks, record rules and business commands without creating a
+second data cache or resource registry.
 
 ## 1. Ownership
 
-| Layer | Responsibility | Location |
+| Concern | Owner | Code |
 |---|---|---|
-| Feature | Columns, fields, validation, defaults, payload mapping and record restrictions | `src/features/<feature>/` |
-| Shared resource UI | Compose the table, dialogs, action buttons and access checks | `src/components/resources/` |
-| Shared CRUD logic | Table queries, edit-record reads, saves, deletes and duplicate-submission guards | `src/hooks/resources/` |
-| Table/Refine bridge | Map Shuip/TanStack Table search, filters, sorting and pagination to Refine state | `src/components/refine-ui/data-table/use-data-table.ts` |
-| Refine | Invoke data providers; manage query/mutation state, cache keys and invalidation | `@refinedev/core` |
-| TanStack Query | Request and cache engine used by Refine | The QueryClient backing the same Refine context |
-| TanStack Form | Form values, validation, touched state and field errors | `useAppForm` from `src/lib/form.ts` |
-| Data provider | Execute requests and map server responses to Refine's contract | `src/providers/refine/data-provider/` |
-| Backend | Enforce data access and business rules | Supabase RLS and Edge Functions, depending on the resource |
+| Resource identity, routes and provider names | Refine registry | `src/providers/refine/resources.ts` |
+| App providers, auth, notifications and i18n | Refine composition | `src/providers/refine/provider.tsx` |
+| Table request state and cache | Refine core + TanStack Query | `useDataTable` bridge and Refine hooks |
+| List/dialog composition | Shared resource UI | `src/components/resources/` |
+| Page and command context | Thin context + shared hooks | `src/contexts/resource-page/`, `src/hooks/resources/page/` |
+| CRUD record query/save/invalidation | Refine `useForm` adapter | `src/hooks/resources/crud/use-resource-form-crud.ts` |
+| Form values and validation | TanStack Form via Shuip | Feature forms using `useAppForm` |
+| Field and page business rules | Feature modules | `src/features/<feature>/` |
+| Supabase request mapping | Named data providers | `src/providers/refine/data-provider/` |
+| Server-side authorization | Existing Supabase RLS and existing functions | No backend changes in this work |
 
-`ResourceView` composes a resource screen. A `dataProvider` executes data requests. `RefineProvider` configures the whole application, while each resource page has its own `ResourceView` instance. `ResourceContextProvider` follows Refine core’s resource-context role: it only exposes registry-independent page state through React context.
+Refine remains useful beyond calling a data provider: it supplies the resource
+registry and provider abstraction, route helpers, table state, auth/access
+integration, notifications/i18n, the `useForm` CRUD lifecycle, cache keys and
+automatic invalidation. TanStack Form is used only for field values, validation,
+dirty state and submission state.
 
-## Directory layout
+## 2. Resource list flow
 
 ```text
-src/
-├── contexts/resource/       # Thin provider and context contracts
-├── hooks/resources/
-│   ├── authorization/       # Resource permission query hook
-│   ├── actions/             # Row-action authorization and execution
-│   ├── controller/          # Compose permissions, table and page scope
-│   ├── crud/                # Create/edit/delete behavior and lifecycle helpers
-│   ├── scope/               # Dialog selection and context reader
-│   ├── table/               # Refine table state and local reorder behavior
-│   └── index.ts             # Stable public hook exports
-└── components/resources/
-    ├── access/              # Permission gate and loading/denied states
-    ├── actions/             # Authorized row-action menu
-    ├── dialogs/             # Dialog host and delete confirmation
-    ├── forms/               # Create/edit dialog composition
-    ├── view/                # ResourceView and table page presentation
-    ├── index.ts             # Stable public exports
-    └── types.ts             # Shared resource UI contracts
+Feature list page
+  → ResourceView
+  → Refine list authorization gate
+  → useResourceController / useResourceTable
+  → useDataTable bridge / Refine useTable
+  → named data provider getList
+  → Supabase
+  → Refine / TanStack Query cache
+  → DataTable, row actions and dialogs
 ```
 
-Feature-specific schemas, defaults, columns and fields remain under `src/features/`. Refine's own resource registry and named data providers stay under `src/providers/refine/`.
+The list gate mounts the table controller only after `list` access is allowed.
+Pending, denied and failed permission checks do not start list reads. Refine
+holds table query state and owns the cache; context holds only selected rows and
+dialog state.
 
-## 2. Complete flow
+`ResourceView` owns the reusable table presentation. Feature pages supply
+columns, search fields, initial sorters and permanent filters. The bridge maps
+search, filters, sorting and pagination to Refine's server request. Shared
+defaults are `DEFAULT_SEARCH_DEBOUNCE_MS` (300 ms) and
+`DEFAULT_RESOURCE_PAGE_SIZE` (20 rows), both in `src/lib/const.ts`. A resource
+may choose visible page-size options independently.
 
-```mermaid
-flowchart TD
-  Root[RefineProvider] --> Admin[AdminAccessProvider]
-  Admin -->|Session, permissions and identity ready| Page[Feature page]
-  Page --> Resource[ResourceView]
-  Resource --> Gate[ResourceAccessGate: list]
-  Gate -->|Allowed| Content[AuthorizedResourceView]
-  Gate -->|Pending, denied or failed| Feedback[Access feedback without mounting table]
-  TableHook --> Bridge[useDataTable bridge]
-  Bridge --> RefineTable[Refine core useTable]
-  RefineTable --> List[Data provider getList]
-  List --> Backend[Supabase or Edge Function]
-  Backend --> Cache[Refine / TanStack Query cache]
-  Cache --> UI[ResourcePage → DataTable → Shuip table]
-  Content --> Controller[useResourceController]
-  Controller --> TableHook[useResourceTable]
-  Controller --> ScopeHook[useResourceScope]
-  ScopeHook --> Scope[ResourceContextProvider]
-  Scope --> Dialogs[ResourceDialogs]
-  Dialogs --> Form[ResourceEditor → ResourceFormDialog]
-  Form --> CRUD[useResourceFormCrud]
-  Dialogs --> Delete[ResourceDeleteDialog → useResourceDeleteCrud]
-  CRUD --> Mutations[Refine useCreate / useUpdate]
-  Delete --> DeleteMutation[Refine useDelete]
-  Mutations --> Provider[Data provider create / update / deleteOne]
-  DeleteMutation --> Provider
-  Provider --> Backend
-  Mutations --> Invalidate[Refine automatic invalidation]
-  DeleteMutation --> Invalidate
-  Invalidate --> Cache
-```
+`ResourceContextProvider` in `src/contexts/resource/` receives a prepared value
+only. `useResourceScope` prepares selection state and record lookup;
+`useResourceController` composes scope, resource permissions and table state.
+Row action components perform their own Refine authorization checks and call
+the shared CRUD hooks. Feature `canEdit(record)` rules may restrict eligible
+records but never grant permission.
 
-The order matters: `AdminAccessProvider` first guards application access, then `ResourceAccessGate` checks the resource's `list` permission. The table controller remains unmounted and resource queries do not start while page access is pending or denied.
+## 3. Shared route-page factory
 
-## 3. Refine configuration and data-provider selection
+`createResourcePage` is defined in
+`src/components/resources/page/create-resource-page.tsx`. It is called once at
+module scope and returns stable compound components bound to one typed
+definition. Its definitions are discriminated:
 
-| File | Responsibility |
-|---|---|
-| `src/providers/refine/provider.tsx` | Mount `<Refine>` and register resources, data providers, authentication, access control, routing, notifications and translations. |
-| `src/providers/refine/resources.ts` | Central registry of resource names, URLs, labels and navigation metadata. `meta.dataProviderName` associates a resource with a named provider. |
-| `src/providers/refine/data-provider/index.ts` | Map provider names to their implementations. |
-| `src/providers/supabase-client.ts` | Shared Supabase connection used by adapters. |
-
-Refine selects an explicit `dataProviderName` supplied with a request first, otherwise the provider configured in the resource registry, then the default provider.
-
-| Provider name | Implementation | Current use |
+| Kind | Read/lifecycle | Composition |
 |---|---|---|
-| `default` | `supabase-data-provider.ts` / `adminDataProvider` | CRUD through `@refinedev/supabase`, including `personalized_products` and `addon_products`. |
-| `siteSettings` | The same `adminDataProvider` | Site branding settings. |
-| `users` | `users-data-provider.ts` | Invoke the `admin-users` Edge Function and validate response shapes with schemas. |
-| `mediaLibrary` | `media-library-data-provider.ts` | Media-library operations through its backend. File-byte upload is a separate operation. |
-| `account` | `account-data-provider.ts` | Current administrator's profile resource. |
-| `notifications` | `notifications-data-provider.ts` | Notification reads and specialized commands. |
+| `kind: "form"` | Refine core `useForm` for create/edit | Feature form, fields, footer, dirty guard, optional commands |
+| `kind: "details"` | One Refine `useOne` query plus command controller | Feature details, command actions/dialogs; no form or implicit Save button |
 
-A provider does not own React pending/error state or the table cache. It returns structures such as `{ data, total }` for a list and `{ data }` for a record or mutation, and throws errors for Refine to handle. Service keys and privileged administrative operations stay on the server.
+The form definition holds resource and provider identity, optional dialog/page
+configuration, titles, feature form adapter, record restriction, error
+formatter and save behavior. The details definition holds its resource,
+provider, title, read content and command map. Both expose bound `.Page`,
+`.Fields`, `.Footer`, `.DirtyGuard`, `.Action`, `.ActionMenuItem` and
+`.CommandDialogs` components. Their component identities are stable because
+the factory is not called during render.
 
-## 4. Components in components/resources
+The `useResourcePage(definition)` hook reads the page context and returns its
+record, optional ID, request state, stable bound components' data and typed
+`actions`. Form definitions expose the TanStack `useAppForm` instance as
+`form` and the complete feature-owned state (uploader, access and other
+helpers) separately as `feature`. Details definitions return action
+descriptors; they do not return a form.
+Page context (`src/contexts/resource-page/`) is separate from table/dialog
+selection context (`src/contexts/resource/`). Both providers accept prepared
+values and contain no request or permission logic.
 
-| File / component | Responsibility and logic |
-|---|---|
-| `view/resource-view.tsx` / `ResourceView` | Page composer. Puts the list access gate before the authorized view, then renders the context boundary, table and dialogs. |
-| `access/resource-access-gate.tsx` / `ResourceAccessGate` | Render permission loading, denial or a retryable error. Mount children only when allowed. Also used for standalone pages. |
-| `src/contexts/resource/index.tsx` / `ResourceContextProvider` | Thin context boundary. Accept a prepared value and children; it contains no state, requests, permission checks or table setup. |
-| `src/contexts/resource/types.ts` | Define the selected-action target and resource context value contracts. Its UI type dependency is imported with `import type`, so there is no runtime import from presentation. |
-| `view/resource-page.tsx` / `ResourcePage` | Render the title, description, table, Add new button and toolbar content. Execute no save/delete requests. Currently toolbarContent appears inside toolbarActions only when creation is available. |
-| `dialogs/resource-dialogs.tsx` / `ResourceDialogs` | Mount one dialog for the selected target. Pass the record, name and restrictions to deletion; mount the editor for create/edit. An incrementing key resets the dialog for each new action selection. |
-| `forms/dialog/resource-editor.tsx` / `ResourceEditor` | Map the selected target to create/edit, build the title and pass feature configuration such as canEdit, dataProviderName, fields and onSaved. |
-| `forms/dialog/resource-form-dialog.tsx` / `ResourceFormDialog` | Use the CRUD hook and render edit-record loading, errors or fields. Connect the Save button to the form through formId and close after successful save. Pass record, disabled and onSave to fields. |
-| `forms/registry.ts` | Select the dialog or route-page presentation. Each presentation folder exports its own object; the root `forms/` module holds the shared registry, context types and public exports. |
-| `dialogs/resource-delete-dialog.tsx` / `ResourceDeleteDialog` | Render deletion confirmation using AlertDialog. Show consequences/errors and disable confirmation while pending or forbidden. Prevent dismissal during the request and close on success. |
-| `actions/resource-row-actions.tsx` / `ResourceRowActions` | Resolve default/custom actions and apply edit/delete row restrictions. |
-| Same file / `AuthorizeActions` | Check each authorizationAction with a separate component/hook instance. Exclude forbidden actions from the menu. |
-| Same file / `AuthorizedActionMenu` | Render the menu and call the row-action hook on selection. The menu does not execute the business mutation itself. |
-| Same file / `createResourceActions` | Build the default Edit and Delete action definitions. |
-| `index.ts` and each subfolder's `index.ts` | Expose a small public entry for feature pages/routes and keep each presentation group internally organized. |
+Example feature ownership:
 
-`useResourceScope` owns selection state and prepares the value passed to `ResourceContextProvider`. Refine owns list data, detail data and mutation state.
+```tsx
+export const productForm = createResourcePage<Product, ProductFeatureForm>({
+  kind: "form",
+  resource: "personalized_products",
+  page: {
+    title: (mode) => mode === "create" ? "إضافة منتج" : "تعديل المنتج",
+    canEdit: isEditableProduct,
+    getErrorMessage: catalogError,
+    useFeatureForm: useProductFeatureForm,
+    Content: ProductFormContent,
+    Fields: ProductFormFields,
+  },
+});
 
-## 5. Shared hooks and logic modules
-
-| File / hook | Inputs, outputs and logic |
-|---|---|
-| `src/hooks/resources/controller/use-resource-controller.ts` / `useResourceController` | Combine create/edit/delete/sort access with feature record restrictions, table state and scope state. Runs only after the outer list gate allows access. Return the table, reorder handler, context value and toolbar/reordering access flags. |
-| `src/hooks/resources/scope/use-resource-scope.ts` / `useResourceScope` | Own selected create/edit/delete target, dialog keys, row lookup and open/close callbacks. Apply per-record edit/delete constraints and prepare the context value. |
-| `src/hooks/resources/scope/use-resource-context.ts` / `useResourceContext` | Read the thin resource context and throw a descriptive error if a consumer is outside `ResourceContextProvider`. |
-| `src/hooks/resources/actions/use-resource-row-actions.ts` / `useResourceRowActions` | Own fresh authorization preflight, duplicate execution guard, pending state and failure toast for a selected custom action. |
-| `src/hooks/resources/table/use-resource-table.ts` / `useResourceTable` | Accept resource, columns, search and Refine options. Resolve columns with useMemo, call the useDataTable bridge and return `{ table, reorder }`. Keep a local display-order draft only. |
-| `src/components/refine-ui/data-table/use-data-table.ts` / `useDataTable` | Use `useTable` from **@refinedev/core** for reads/state, then Shuip's `useDataTable` to build TanStack Table. Return `{ reactTable, refineCore }`. The return type comes from @refinedev/react-table; this implementation does not call that package's useTable. |
-| Same file / `toRefineFilters` | Convert UI filter operators to CrudFilter and prepare the adapter's ncontains/nin formats. Incomplete filters remain local drafts and are not submitted. |
-| `src/hooks/resources/crud/use-resource-form-crud.ts` / `useResourceFormCrud` | Check create/edit access, read edit records with useOne, save through useCreate/useUpdate, handle preflight errors and guard repeated submissions. Return record, pending, busy, error, save, loading/retry states and dismissal checks. |
-| `src/hooks/resources/crud/use-resource-delete-crud.ts` / `useResourceDeleteCrud` | Check delete access and recheck before execution. Use useDelete with pessimistic mode and retry:false. Return remove, isPending, error, allowed and canDismiss. |
-| `src/hooks/resources/authorization/use-resource-authorization.ts` / `useResourceAuthorization` | Wrap useCan. Include session version and permission revision in params and seed decisions from the verified access snapshot. Deny when the session is not ready or the query fails. |
-| `src/hooks/resources/crud/lifecycle.ts` / `editRecordState` | Classify edit state as loading/forbidden/missing/failed/ready using the query and canEdit. Used by form CRUD. |
-| Same file / `closeDecision` and `createSubmissionGuard` | Available lifecycle helpers. Current CRUD hooks use inFlight refs directly. Their presence does not mean every dialog uses them or confirms discarded edits. |
-| `src/providers/refine/access-control-provider.ts` / `evaluateResourceAccess` | Pure shared policy for resource, action and record access. |
-| Same file / `assertResourceAccess` | Perform a fresh permission preflight using refresh:true and throw an Arabic message on failure or denial. |
-
-### Search, filters, sorting and pagination
-
-- The default mode is server: search, filters, sorting and pagination reach the data provider instead of operating only on loaded rows.
-- Global search requires `searchField` or `searchFields`. Multiple fields produce an OR filter named `__data_table_search`. searchFields takes priority while retaining searchField compatibility.
-- `searchDebounceMs` defaults to `DEFAULT_SEARCH_DEBOUNCE_MS` (**300ms**) from `src/lib/const.ts`.
-- Resource page requests default to `DEFAULT_RESOURCE_PAGE_SIZE` (**20 rows**) from `src/lib/const.ts`. `pageSizeOptions` only controls the choices shown in the pagination UI.
-- Create and delete availability comes from the access-control provider. `ResourceViewProps` has no `canCreate` or `canDelete` permission overrides. A feature may supply top-level `canEdit(record)` for additional record eligibility; authorization is still required.
-- Search, filter and sorting changes reset the page to 1. Changing pageSize also resets it. The bridge converts the table's zero-based pageIndex to Refine's one-based currentPage.
-- Column definitions and their metadata determine UI capabilities. Permanent constraints such as owner_type remain in Refine configuration.
-- `DataTable` renders the toolbar, filters and pagination. Sort-menu and saved-views components are imported, but their JSX is **currently commented out**. Passing storageKey does not enable a working views interface by itself.
-- `users-query.ts` maps filters to the admin-users contract: search/role/guardian/status/sort/order/offset/limit. It caps limit at 100, hides archived users by default, uses the first supported sorter and defaults to created_at.
-
-## 6. Reading lists and edit records
-
-1. The feature page passes its resource name and columns to ResourceView.
-2. After list access is granted, `useResourceTable → useDataTable → Refine useTable` runs.
-3. Refine calls `getList` with resource, pagination, sorters, filters and metadata.
-4. The provider executes the request; Refine stores the response in the TanStack Query cache.
-5. `table.refineCore.tableQuery` exposes data/total and request state; reactTable prepares the display.
-6. Opening Edit mounts `useResourceFormCrud`, which uses `useOne → getOne`. The editor disables retries and automatic focus/reconnect refetch, and requests a refresh on mount.
-
-The loaded table row supports selection and deletion labels. Editing reads the record from its source rather than assuming the table row is current.
-
-## 7. Create and update flow
-
-```mermaid
-sequenceDiagram
-  participant UI as Feature useAppForm
-  participant Hook as useResourceFormCrud
-  participant Auth as assertResourceAccess
-  participant Refine as Refine mutation
-  participant API as Data provider / backend
-  UI->>UI: Validate schema + map allowed payload
-  UI->>Hook: onSave(values)
-  Hook->>Hook: inFlight / busy / unavailable guard
-  Hook->>Auth: Fresh create/edit permission check
-  opt Edit
-    Hook->>API: Refetch record via useOne
-    Hook->>Hook: Recheck canEdit on fresh record
-  end
-  Hook->>Refine: useCreate or useUpdate mutateAsync
-  Refine->>API: create or update
-  API-->>Refine: Saved record or error
-  Refine->>Refine: Automatic cache invalidation
-  Refine-->>Hook: Result / mutation state
-  Hook->>Hook: onSaved callback when provided
-  Hook-->>UI: Success closes dialog; failure remains visible
+// The route wrapper only forwards the optional route ID.
+export function ProductFormPage({ id }: { id?: string }) {
+  const Page = productForm.Page;
+  return <Page id={id} />;
+}
 ```
 
-For dialog forms, the feature supplies `form={{ title, fields, ... }}`. Page forms omit `form` entirely and use their standalone route form. Both modes use top-level `canEdit(record)` only for extra record eligibility. For example, add-ons own their dialog fields under `features/catalog/addons/`, while products own the route form under `features/catalog/products/form-page/` and their shared edit rule in `products/model.ts`.
+The product list passes `form={productForm}` and `mode="page"` to
+`ResourceView`. The resource registry provides the create/edit route patterns;
+Refine's CreateButton and the default row Edit action use those registered
+routes. Dialog resources use the same `kind: "form"` contract with a dialog
+field renderer. A details-only resource uses the `kind: "details"` contract and
+does not need a fake form definition.
 
-TanStack Form owns field values and validation errors. create.mutation or update.mutation supplies save pending/error state. Local hook state is limited to permission checks and preflight/onSaved errors; it does not mirror mutation state.
+## 4. Component and hook responsibilities
 
-`form.getErrorMessage` formats a failed save/backend response into user-facing text; it does not format client-side field validation. For example, `catalogError` maps PostgreSQL `23505` (unique conflict) to an Arabic duplicate-link message, `23514` (check constraint) to a data-rules message, and unknown server errors to a safe retry message. TanStack Form and the Zod schema continue to show field-level validation errors next to the relevant inputs.
+| Module | Responsibility |
+|---|---|
+| `components/resources/view/resource-view.tsx` | List permission boundary, table page and dialog host |
+| `components/resources/page/create-resource-page.tsx` | Bind stable route page components; render loading, failure and unavailable states; prepare context |
+| `components/resources/page/resource-command-dialogs.tsx` | Render a command's AlertDialog or input dialog using the shared descriptor |
+| `contexts/resource-page/index.tsx` | Thin page context provider and context reader |
+| `hooks/resources/page/use-resource-page.ts` | Read the context with definition-derived record/form/action types |
+| `hooks/resources/page/use-resource-commands.ts` | One Refine custom mutation, permission/record preflight, duplicate guard and explicit invalidation per detail scope |
+| `hooks/resources/crud/use-resource-form-crud.ts` | Thin Refine `useForm` adapter for access, fresh record check, save result and page redirect helper |
+| `components/resources/forms/page/resource-form-footer.tsx` | Subscribe to TanStack Form and render save/cancel buttons |
+| `components/resources/forms/page/resource-form-dirty-guard.tsx` | Confirm dirty route navigation and use the browser's unload warning |
+| `features/<feature>/` | Schemas, defaults, payload mapping, fields, detail content and business rules |
 
-Create/update requests use retry:false and leave mutationMode to Refine configuration; the default is pessimistic. Browser duplicate-click guards do not provide server idempotency. If onSaved throws after a successful write, the dialog can remain open with an error even though data was saved. The callback and database write are not one transaction.
+Presentation components render descriptor props. They do not create a second
+mutation, permission check or cache path for a feature command.
 
-## 8. Delete flow
+## 5. CRUD form lifecycle
 
-1. The row menu checks the access-control policy for the action and record, then rechecks permission on selection. Feature `canEdit` eligibility also restricts protected rows when supplied.
-2. useResourceScope selects the delete target; the context value makes it available to ResourceDialogs, which mounts ResourceDeleteDialog.
-3. On confirmation, useResourceDeleteCrud applies its inFlight guard and performs a fresh permission check.
-4. Refine useDelete calls dataProvider.deleteOne with pessimistic mode and retry:false.
-5. Refine handles cache updates and the dialog closes on success. Failure leaves it open for an intentional retry.
+Refine core `useForm` is the CRUD lifecycle owner:
 
-The generic dialog does not check user activity or request an archival reason. Those business flows require specialized UI and commands; the generic dialog is not a complete account-deletion workflow.
+| Responsibility | Owner |
+|---|---|
+| Edit record read/query state | Refine `useForm` query |
+| Create/update request and mutation state | Refine `useForm` mutation and `onFinish` |
+| CRUD cache invalidation | Refine automatic invalidation |
+| Redirect helper | Refine `useForm.redirect`; automatic redirect is disabled |
+| Field values, validation, touched/dirty and `isSubmitting` | TanStack `useAppForm` |
+| Fresh access and record eligibility | Thin application preflight |
+| Upload preparation and payload allowlist | Feature form hook |
 
-## 9. Cache and invalidation
+The edit query is enabled only after access is allowed and uses retries disabled.
+The adapter rechecks access before save, refetches the same edit query for
+record eligibility, then calls Refine `onFinish`. It does not mount a second
+detail query. The feature's `onSubmit` awaits any upload preparation and payload
+mapping before the save call, so TanStack Form remains submitting until the
+whole operation completes.
 
-**Query cache**, **dialog selection** and **form values** have separate owners. Refine hooks manage query cache through TanStack Query. ResourceContext does not own a data cache, and data providers do not reload the table themselves.
+On success, the feature resets TanStack Form's baseline from the returned
+record. A successful create then calls Refine's redirect helper to open Edit;
+subsequent edit saves stay on that route. A dialog closes after save. Failed
+saves retain entered values for retry. Background query refreshes do not reset
+dirty form state. Refine mutation state supplies pending and server errors;
+local state is limited to permission/preflight and non-mutation feedback.
 
-Refine query keys identify the provider/resource, request type and inputs such as pagination, filters, sorters and metadata. Detail keys include the record ID. Changing inputs selects the corresponding dataset; feature hooks should not create a parallel list cache.
+`ResourceFormFooter` is rendered inside `form.AppForm`; it disables Save while
+TanStack validation is running/invalid or the page is externally disabled or
+pending. Save labels and cancel visibility are presentation props. No generic
+validation banner is shown. Backend errors can be mapped through a feature
+`getErrorMessage` formatter; field validation remains beside each field.
 
-The following behavior was checked against the installed Refine source:
+The product page keeps the existing responsive field grid, Shuip fields,
+`BaseFormField`, signed Cloudinary adapter, deferred cover upload, media
+permission gate and product schema. Its separate preparation-days save uses a
+Refine update mutation and reuses `useForm`'s detail query for its fresh record
+check. It is blocked while the main product form is dirty. Add-ons use the same
+form contract in dialog mode. The users resource has only a placeholder form
+configuration; this change does not expand it.
 
-| Operation | Hook | Default cache behavior used here |
-|---|---|---|
-| Create | useCreate | Invalidate list and many after success. |
-| Update | useUpdate | Invalidate list, many and detail in the installed implementation's onSettled lifecycle. |
-| Delete | useDelete | Invalidate list and many onSettled; remove the record's detail query on success. |
-| Manual read retry | tableQuery.refetch / useOne query.refetch | Refetch that specific query. |
-| Business command outside CRUD | Feature mutation followed by useInvalidate | Explicitly select affected resources, IDs and providers. |
+The product form presents name, category, read-only platform ownership, short
+and long descriptions, paper/electronic prices, custom-story writing styles,
+minimum/maximum age, feature lines, one book cover and the edit-only active
+flag. The long description keeps its Markdown helper copy. Creation remains
+platform-owned, approved and inactive. Writing styles keep their existing
+storage semantics. Sort order stays out of the form and remains a table
+ordering concern.
 
-Shared CRUD hooks therefore **do not manually call useInvalidate** after every save/delete. They rely on Refine and do not contain refreshSavedResource. Affected active queries refetch according to invalidation behavior; inactive queries become stale and can refetch when used. A successful write does not guarantee that the following read succeeds; read failures appear in the table.
+Selected image files remain local until Save. The signed UploadCN adapter
+uploads the cover before Refine submits the product payload; the form stays
+submitting until both operations finish. Existing saved images are preserved
+unless the user replaces/removes the association; removing an association
+never deletes a Cloudinary asset. Failed/pending uploads disable Save.
+Preparation days are a separate edit-only save, 1–120 or blank. The staging
+setup notice reflects the local nullable-column migration; this implementation
+does not apply that migration remotely.
 
-Use useInvalidate for additional effects outside the default operation, such as a command changing an order and totals in another resource. Target the **same dataProviderName** used for reads. Use the existing QueryClient rather than mounting another client or reconstructing Refine query keys manually.
+## 6. Shared command actions
 
-Access-query cache is separate from resource-data cache. useResourceAuthorization includes authVersion and permissionsVersion so old-session grants cannot carry over. This does not automatically add sessionVersion to every generic table query; identity and branding isolation is documented in the AdminAccessProvider guide.
+Every command definition contains a key, Arabic label and description,
+authorization action, provider command identifier, eligibility rule, payload
+mapper, optional fields/validation/error formatter, and Refine invalidation
+targets. Feature command contracts live beside feature rules, such as
+`src/features/orders/commands.ts`.
 
-## 10. Business commands and CRUD
+`useResourcePage(orderPage)` returns typed descriptors such as:
 
-The agreed extension pattern for a command such as confirm_order is:
-
-```text
-Feature dialog / row action
-→ feature-owned TanStack useMutation (retry:false)
-→ authenticated RPC or protected Edge Function
-→ server validates permissions and transitions and performs writes
-→ Refine useInvalidate for affected resource/provider/list/detail/counts
-→ existing resource queries refresh
+```tsx
+const order = useResourcePage(orderPage);
+order.actions.startPreparation.buttonProps;
+order.actions.startPreparation.menuItemProps;
+order.actions.startPreparation.isPending;
+order.actions.startPreparation.error;
 ```
 
-This is an **extension pattern**. ResourceView does not implement confirm_order or automatically execute a command from a row-action definition. Custom actions need an authorizationAction registered in the policy and an onSelect handler that starts the specialized flow. Backend enforcement remains responsible for business rules.
+`<OrderPage.Action name="startPreparation" />` renders a Button from the same
+descriptor's `buttonProps`; menu items use `menuItemProps`. Feature UI may use
+those props directly. Each presentation opens the same shared AlertDialog or
+input dialog; confirmation calls the descriptor's `execute`. Therefore the
+button, menu item and custom feature presentation all share one authorization
+check, fresh record check, mutation, duplicate guard, pending/error state,
+feedback and invalidation.
 
-Currently, notifications use Refine useCustomMutation for their command. usersDataProvider exposes custom command contracts for suspension, deletion, activity checks and administrator groups. Their existence does not mean the current users page connects all corresponding interfaces.
+Command inputs use `useAppForm` and existing Shuip fields. The shared controller
+validates, checks fresh access, refetches the current record and reruns feature
+eligibility before mutation. There is one active command per mounted detail
+page; conflicting actions are disabled. Commands use Refine `useCustomMutation`
+with retry disabled and the named provider's `custom` method. On success the
+controller calls Refine `useInvalidate` for the declared resource/provider and
+record targets. A refresh failure is reported separately from command success.
+Refine mutation state owns command pending/error; local state stores only the
+selected command, field input, preflight and refresh feedback.
 
-## 11. Row reordering and persistence
+Form-page definitions may also register commands. Their feature form adapter
+exposes its current dirty state; the shared controller blocks opening and
+executing record-refreshing commands while the form is dirty and renders an
+Arabic prompt to save or discard first. All command presentations still use the
+same descriptor and execution path.
 
-`useResourceTable` validates that dragged IDs match all loaded rows on the current page without duplicates. It stores a draft tied to the source result-array reference. A new result does not inherit the old draft.
+## 7. Store orders implementation
 
-`onReorder(ids, rows)` is an extension callback. It does not call update, RPC or invalidation by default. Persistent ordering needs a specialized command that defines the ordering scope, writes on the server and invalidates affected queries. The controller's sort permission controls drag reordering; column sorting is managed independently by table state.
+The order resource is registered centrally at `/orders` with the named
+`orders` provider and `/orders/:id` show route. Both routes remain inside the
+shared `AdminLayout`; the sidebar's `AuthorizedSidebarItem` and the page gate
+use the same Refine `list` permission. Orders require `canManageOrders`, with
+active `super_admin` access. Generic create, edit, delete and sort actions are
+denied.
 
-## 12. States and current implementation limits
+The list uses Refine table state, server pagination (20 default; 20/50/100
+choices), newest-first plus ID sorting, 300 ms search across order reference
+and recipient name/phone, and the status, payment method and date filters.
+Columns show reference/date, customer, products/add-ons, discount, total,
+status, payment method and a Show action. The provider reads the current page
+with the existing Supabase data provider, then batches related order items,
+profiles and product/add-on names for that page.
 
-| State | Owner |
+The details page uses one Refine `useOne` record, enriched by the same provider.
+Its components read that record through `useResourcePage(orderPage)` and render
+customer, payment/XPay state, shipping address, products/customization, totals
+and timestamps. Legacy public Cloudinary child-photo URLs are previewed;
+private photo references are never converted to public URLs and show an
+unavailable-preview message. Box monthly fulfillment is not handled here.
+
+The `orders` provider exposes only these allowlisted commands:
+
+| Command | Eligibility |
 |---|---|
-| Initial session, permissions, identity and branding | AdminAccessProvider and shared Loading before the shell. |
-| Pending/denied resource access | ResourceAccessGate; the table remains unmounted. |
-| Initial list loading | DataTable displays a skeleton from tableQuery state. |
-| List refresh | Overlay while isFetching after initial loading. |
-| Read failure | Arabic feedback and refetch button; table and pagination are hidden during query error. |
-| Empty list or no matching results | DataTableEmpty with a clear-search/filters action. |
-| Loading/forbidden/missing edit record | useResourceFormCrud and editRecordState, presented by ResourceFormDialog for dialog resources or ResourceFormPage for route-based forms. |
-| Pending/failed save or delete | Refine mutation state plus preflight state; buttons disabled and errors displayed. |
+| Start preparation | `paid` → `preparing` |
+| Mark shipped | `paid` or `preparing` → `shipped`; tracking is optional |
+| Mark delivered | `shipped` → `delivered` |
+| Cancel | Existing cancellable states; a reason is required |
+| Mark electronic delivery | Paid fulfillment state, electronic item and delivery email, not already marked sent; records the event but does not send the file |
+| Retry publisher earnings | Existing idempotent RPC, available after delivery |
 
-Keep these implementation limits visible when extending the feature:
+XPay callbacks remain the authority for payment; there is no manual payment
+confirmation, receipt-upload or refund command. Before a write, the provider
+checks the current Supabase session/admin permission and reloads the order. It
+conditionally updates against both expected `status` and `updated_at`; zero
+changed rows become a conflict requiring refresh and intentional retry. It
+preserves existing timestamp fields and calls existing audit, notification and
+publisher-payout operations after the transition. Follow-up work is not
+transactional with the status update: partial completion is returned as a
+warning, and the transition is never retried automatically. Notification event
+settings are respected; a failed settings read is fail-open as in the existing
+notification helper.
 
-- `features/users/page.tsx` uses the shared table and name/email search, but form.fields returns an empty Fragment. Its create/edit form is incomplete in this version.
-- Specialized user fields and suspension/deletion dialogs with reasons and activity checks are not connected by the current page. The earlier users plan is not fully implemented UI.
-- Shared deletion does not accept an explicit dataProviderName; it relies on the resource registry. Configure the named provider in resource metadata when applicable.
-- ResourceView does not automatically add comprehensive dirty-form confirmation or server idempotency.
-- Supabase RLS and Edge Function checks remain authoritative. Frontend permission checks alone do not protect an endpoint.
+## 8. Access, route and sidebar behavior
 
-## 13. Adding a resource
+`src/providers/refine/access-control-provider.ts` is the frontend policy.
+Resource pages call Refine `useCan`; submission and command hooks use a fresh
+preflight. Active administrators without a matching permission are denied for
+orders. The order provider checks session and permission again before custom
+commands. The shared route metadata and sidebar definitions remain in
+`src/providers/refine/resources.ts`; no second registry is added.
 
-1. Register its name, list route, form `mode` (`"page"` or `"dialog"`) and provider in `providers/refine/resources.ts`, and define policies for allowed actions. Page mode derives `create` and `:id/edit` route patterns from the list route; the router provider resolves and parses those patterns generically.
-2. Create feature-owned model, columns, dialogs and page files.
-3. For dialog mode, pass `mode="dialog"` and a `form` config with title and field renderer. For page mode, pass `mode="page"` without a dialog `form` prop, and implement its create/edit route forms separately.
-4. Define schemas, defaults, allowed payload mapping and any feature-specific `canEdit` record eligibility in the feature. Define create/delete grants and record policies in the access-control provider.
-5. Pass the shared table configuration to ResourceView, explicitly configuring search, debounce, page size, filters and sorting as needed.
-6. Use shared CRUD hooks for ordinary writes and a feature command for specialized business flows.
-7. Verify provider selection, error states, automatic/additional cache invalidation and server authorization.
+Authorization gates control the admin UI and must not be treated as a database
+security boundary. Existing Supabase RLS is unchanged and currently allows
+broader administrator order access than `canManageOrders` UI policy.
 
-## 14. Documentation verification
+## 9. Cache behavior
 
-The component, hook, provider and product/add-on/user page implementations were traced, and invalidation was checked against the installed Refine source. The current resource API, centralized defaults, mutation/error behavior and provider authorization are documented here. Runtime verification is recorded in `context/progress-tracker.md`.
+Refine and its TanStack Query client own resource query keys and CRUD cache
+invalidation. Ordinary create/edit calls rely on `useForm` automatic
+invalidation; no parallel cache or per-save `useInvalidate` is added. Details
+commands are outside ordinary CRUD, so they explicitly invalidate their
+declared Refine targets. The `orders` provider name is supplied on both reads
+and writes to keep cache/provider identity aligned. `ResourceContext` and
+`ResourcePageContext` contain UI state only and are not data caches.
 
-## 15. Route-based resource forms — products first
+## 10. Backend boundary
 
-`ResourceView` has an explicit form `mode`. Dialog mode requires a `form` definition containing its title and fields; page mode has no dialog form prop and uses standalone create/edit routes. The Refine resource registry adds route patterns for each resource whose mode is `"page"`, and the router provider matches those registered patterns generically. The Refine `CreateButton` and the default row Edit action therefore navigate using the same registered resource routes. Record-specific `canEdit` rules stay on ResourceView rather than being hidden inside a dialog field definition.
+No new or modified Supabase functions, migrations, tables/columns, policies,
+Next.js APIs or deployments are included. The order commands use only existing
+tables, RLS, triggers and already deployed RPCs. Do not apply a remote schema
+or policy change under this work. Tightening the existing broad order RLS and
+introducing server-enforced `canManageOrders` are separate, explicitly
+authorized work.
 
-Products use dedicated routes while other resources continue to use the shared create/edit dialogs:
+## 11. Verification checklist
 
-- `/catalog/products/create` creates a platform product.
-- `/catalog/products/:id/edit` edits an existing platform product.
-- The list uses Refine `CreateButton`; its row Edit action navigates to the edit route. Delete still opens the existing resource AlertDialog.
-- After a successful create, the returned record ID opens that product's edit route. Later saves stay on the edit route.
-
-The route form flow is:
-
-```text
-Route → ResourceFormPage → useResourceFormCrud permission gate
-→ (edit only) Refine useOne → platform-record check
-→ ProductForm/useAppForm → ResourceFormFooter
-→ upload queued local images → Refine useCreate/useUpdate
-→ automatic Refine invalidation → reset form baseline from saved row
-```
-
-`components/resources/forms/page/resource-form-page.tsx` owns the shared page heading, route-form access/read states, retry and unavailable-record feedback. It does not define feature fields. `hooks/resources/crud/use-resource-form-crud.ts` owns Refine `useOne`, fresh access and record checks, duplicate-submit protection and Refine `useCreate`/`useUpdate`; it returns the saved record and Refine handles list/detail cache invalidation. `forms/page/resource-form-footer.tsx` subscribes to TanStack Form state inside `form.AppForm`, composes `SubmitButton`, `Button` and `FormActions`, and disables actions for invalid, validating, submitting or externally blocked form states. `forms/page/resource-form-dirty-guard.tsx` uses the existing AlertDialog styling for route navigation and the browser's native before-unload prompt. The root `forms/registry.ts` composes the dialog and page presentation objects; shared context contracts and stable exports live beside that registry.
-
-`features/catalog/products/form-page/` owns the route form as one coherent create/edit module: `page.tsx` composes the shared registry page, `form.tsx` owns fields and saves, `schema.ts` owns validation, `images-field.tsx` owns the media picker and local upload queue, and `model.ts` owns route-form defaults, saved-row mapping and allowlisted payloads. The product root `model.ts` continues to own the dialog model. The page payload intentionally does not include `sort_order`; table drag order remains a separate UI extension, not a product-form field. Product creation is always platform-owned, approved and inactive. Editing changes the active state only on the edit route. Product platform ownership remains the edit restriction.
-
-Product forms use TanStack Form's submit-first `revalidateLogic`: a fresh form has no validation errors, the first Save attempt runs the schema and shows field errors, and later edits revalidate so the footer enables again once the values are valid. The product form uses one responsive field grid (`grid-cols-1` and two columns at medium widths), without section cards or section headings. Related inputs and the two content fields sit side by side. Only the long-description field has helper copy, with its optional status and Markdown syntax; the short description, image controls and save footer span both columns. On narrow screens, fields stack in one column.
-
-The product form includes:
-
-| Section | Data and behavior |
-|---|---|
-| Basic details | Name, library/custom category, read-only platform owner and short description. |
-| Pricing | Required paper price; optional electronic price for custom stories. |
-| Custom-story options | Writing styles `فصحى`, `عربية مبسطة` and `لهجة`; at least one is required for custom stories. Selecting all three stores `writing_styles = null`, preserving current database semantics. |
-| Age | Optional minimum and maximum from 0 to 20, with a valid range and the database requirement that a maximum has a minimum. |
-| Content | Markdown-supported long description and one feature per line. |
-| Images | One book cover, labeled “غلاف الكتاب — يفضّل طولي (3:4)”. Portrait 3:4 is a recommendation, not a hard upload constraint. The saved Cloudinary URL or selected local file can be removed and replaced. Removing an association never deletes the Cloudinary asset. |
-| Display | `is_active` appears only when editing. |
-| Preparation | Electronic and printed preparation days are a separate edit-only form and save operation; each accepts blank or 1–120. |
-
-One device cover is added to UploadCN with `autoUpload: false`; selecting it does not send bytes. The signed `useLibraryUploadAdapter("alrehla/products")` is used only after Save starts. Form `isSubmitting` remains true until the upload and Refine save complete, disabling fields and actions. The successful upload result maps to `cover_image_url`; `gallery_image_urls` is saved as an empty array. Existing records show their cover image, or the first legacy gallery image if no cover is set; saving those records normalizes them to one cover and clears additional gallery associations without deleting Cloudinary assets. If the Refine save fails, form values and a completed upload remain available for retry. A failed upload must be removed and selected again before Save is enabled. Existing media selection reads through Refine's `mediaLibrary` provider and `uploads` list authorization; uploads use the `uploads` upload policy. No media asset is deleted by product-form changes.
-
-The migration `client/supabase/migrations/20261101193607_add_product_preparation_days.sql` adds nullable `smallint` columns `delivery_days_electronic` and `delivery_days_printed`, each constrained to 1–120 when set. Production already has these columns; staging does not. The migration file is local and has not been applied remotely. Until the target environment receives the migration, the edit page shows an Arabic setup notice and disables only the preparation-days save; the main product form remains usable. Do not update remote schema or deploy as part of this feature.
-
-Save/backend failures on the product form use the Arabic `catalogError` formatter through the existing toast provider. Field validation stays beside its fields; there is no generic validation banner. A successful save resets TanStack Form's baseline from the returned record so the form is clean without letting a background query refresh replace unsaved values.
+- Create/edit routes resolve directly and refresh; Refine Create/Edit actions
+  navigate through the central resource metadata.
+- A denied list/detail page mounts no resource query; the details page owns one
+  Refine `useOne` record query.
+- Create/edit use Refine `useForm` lifecycle and automatic invalidation; a
+  successful create resets the form before Refine redirects to Edit.
+- Compound button/menu/custom command presentations use one descriptor and
+  execution path. Duplicate clicks, stale records, invalid input and permission
+  failures are guarded.
+- Order transitions are limited to the allowlisted states and compare both
+  `status` and `updated_at`; payment callbacks remain authoritative.
+- Public child-photo URLs may render; private references remain unavailable.
+- Arabic RTL loading, error, dialog, keyboard and footer behavior is checked.
+- Run `pnpm test`, `pnpm typecheck`, `pnpm build` and `git diff --check` from
+  `admin/`. Browser verification should use controlled test records and must
+  not make real fulfillment or payout changes.

@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useStore } from "@tanstack/react-form";
 import { addonSchema } from "@/lib/schema";
 import { useAppForm } from "@/lib/form";
+import { createResourcePage } from "@/components/resources/page";
 import { FieldGroup } from "@/components/ui/field";
-import type {
-  ResourceFormDefinition,
-  ResourceFormFieldsContext,
-} from "@/components/resources/types";
+import type { ResourceFormFieldsContext } from "@/components/resources/types";
 import { catalogError } from "../model";
 import {
   addonCreate,
@@ -16,11 +14,16 @@ import {
   type Addon,
 } from "./model";
 
-export const addonForm: ResourceFormDefinition<Addon> = {
-  title: "إضافة",
-  getErrorMessage: catalogError,
-  fields: (context) => <AddonDialogFields {...context} />,
-};
+export const addonForm = createResourcePage<Addon>({
+  kind: "form",
+  resource: "addon_products",
+  dataProviderName: "default",
+  dialog: {
+    title: "إضافة",
+    getErrorMessage: catalogError,
+    fields: (context) => <AddonDialogFields {...context} />,
+  },
+});
 
 function AddonDialogFields({
   action,

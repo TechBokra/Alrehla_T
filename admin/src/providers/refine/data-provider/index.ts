@@ -4,6 +4,7 @@ import { notificationsDataProvider } from "./notifications-data-provider";
 import { profileDataProvider } from "./account-data-provider";
 import { mediaDataProvider } from "./media-library-data-provider";
 import { usersDataProvider } from "./users-data-provider";
+import { ordersDataProvider } from "./orders-data-provider";
 
 export const refineDataProviders = {
   default: adminDataProvider,
@@ -12,4 +13,5 @@ export const refineDataProviders = {
   mediaLibrary: mediaDataProvider,
   account: profileDataProvider,
   users: usersDataProvider,
+  orders: ordersDataProvider,
 } satisfies DataProviders;

@@ -5,11 +5,11 @@ change.
 
 ## Current Phase
 
-- [e.g. Not started / In progress / Complete]
+- Implemented: Refine-backed resource pages and store orders. The product edit page and reported runtime crash were verified in the live Chrome session; order details were not separately browser-tested.
 
 ## Current Goal
 
-- [What you are building right now]
+- Resource pages use Refine core `useForm`; a shared typed page context supports form and details definitions; store orders use an allowlisted named provider with shared command descriptors and existing Supabase objects only.
 
 ## Completed
 
@@ -432,3 +432,40 @@ change.
   and the production build pass. There is no `admin/tests` directory in this
   checkout, so no admin test suite was available. No backend, schema, or remote
   changes were made.
+
+### Refine resource pages and store orders — 2026-11-02
+
+- Replaced the route-form-specific page composer with the module-scope
+  `createResourcePage` factory and typed `useResourcePage` context. Form pages
+  use Refine core `useForm` for query, mutation, redirect and CRUD invalidation;
+  TanStack `useAppForm` remains the values/validation/dirty/submitting owner.
+  Product and add-on forms use the shared contract, and the incomplete users
+  form remains unchanged.
+- Added one command controller using Refine `useCustomMutation`, fresh Refine
+  access checks, fresh-record eligibility checks, duplicate guards and declared
+  `useInvalidate` targets. Compound button and menu actions share their
+  descriptor and one confirmation/input dialog path. Form-page commands block
+  while the feature form is dirty.
+- Registered `/orders` and `/orders/:id`, the named `orders` provider,
+  `canManageOrders` UI policy and sidebar entry. The provider enriches list and
+  detail reads from existing tables, checks command inputs/session/permissions,
+  and conditionally updates against expected status plus `updated_at`. Existing
+  notification, audit and payout work is preserved with partial-success
+  feedback; XPay remains authoritative. Public child-photo previews remain
+  public-only, while private references show unavailable previews.
+- No Supabase functions, migrations, schema, policies, Next.js APIs or
+  deployments were added or changed. Existing broad admin order RLS is
+  unchanged and documented as broader than the frontend permission gate.
+- Added pure fulfillment/electronic-delivery policy tests. Validation:
+  `pnpm test` passes 6 tests, `pnpm typecheck`, `pnpm build` and
+  `git diff --check` pass. The route generator retains its circular-dependency
+  warning and Vite retains its large-chunk warning. Browser verification was
+  attempted in the existing Chrome session, but CUA returned “Debugger
+  unattached”; no order command or real fulfillment/payout mutation was run.
+- Fixed the product form page context contract: `page.form` now exposes the
+  TanStack form instance, while `page.feature` exposes uploader/access helpers.
+  The reported `form.store` crash now shows a working product edit page in the
+  existing Chrome session. Command eligibility is skipped until a details
+  record loads, preventing predicates from reading fields on the temporary
+  empty record. Verification for this fix: `pnpm test`, `pnpm typecheck`,
+  `pnpm build` and `git diff --check` pass.

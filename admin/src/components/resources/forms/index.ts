@@ -8,8 +8,6 @@ export {
 export type { ResourceFormDialogContext } from "./dialog";
 export {
   resourcePageForms,
-  ResourceFormPage,
   ResourceFormFooter,
   ResourceFormDirtyGuard,
 } from "./page";
-export type { ResourceFormPageContext } from "./page";

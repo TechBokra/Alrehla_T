@@ -1,6 +1,17 @@
 import { ResourceView } from "@/components/resources";
+import { createResourcePage } from "@/components/resources/page";
 import { usersColumn } from "./columns";
 import type { UserRecord } from "./model";
+
+const usersForm = createResourcePage<UserRecord>({
+  kind: "form",
+  resource: "users",
+  dataProviderName: "users",
+  dialog: {
+    title: "مستخدم",
+    fields: () => null,
+  },
+});
 
 export function UsersPage() {
   return (
@@ -11,11 +22,7 @@ export function UsersPage() {
       searchFields={["full_name", "email"]}
       columns={usersColumn}
       mode="dialog"
-      form={{
-        title: "مستخدم",
-        dataProviderName: "users",
-        fields: (context) => <></>,
-      }}
+      form={usersForm}
     />
   );
 }

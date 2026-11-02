@@ -13,7 +13,7 @@
 
 ### Refine resources and business commands (agreed standard)
 
-Refine owns resource CRUD, table query state and the resource cache, backed by TanStack Query. Business commands use feature-owned TanStack Query `useMutation` hooks that call Supabase RPC through the shared authenticated client, then refresh affected Refine queries with `useInvalidate`.
+Refine owns resource CRUD, table query state and the resource cache, backed by TanStack Query. CRUD pages use Refine core `useForm` for loading, create/update mutations, invalidation and redirect helpers; TanStack Form remains the field/value/validation state layer. Feature commands use Refine `useCustomMutation` through a named provider and explicitly invalidate affected Refine queries.
 
 The [resource migration plan](./resource-migration-plan.md) specifies proposed views, filters, search, sorting, pagination, forms and delivery phases for the legacy admin. Its [route inventory](./legacy-admin-route-inventory.md) maps all 88 source page routes and the 58 navigation tabs/permissions. These documents are a plan and source audit, not evidence that the resources or RPCs are implemented or deployed.
 
@@ -21,7 +21,7 @@ The [resource migration plan](./resource-migration-plan.md) specifies proposed v
 | --------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------- |
 | List/detail reads                                   | Refine `useTable`, `useList`, `useOne`                                     | Existing Supabase data provider                           |
 | Create/update/delete a resource                     | Shared CRUD hooks under `src/hooks/resources/`, using Refine mutations      | Selected Refine data provider                            |
-| Confirm/cancel an order or another business command | Feature hook using TanStack Query `useMutation`                            | Named database function through `supabaseClient.rpc(...)` |
+| Run an order or another business command             | Shared command controller using Refine `useCustomMutation`                 | Named provider custom command using existing tables/RPCs |
 | Column sorting, filters and pagination              | Refine table state                                                         | Provider applies these to the database query              |
 | Persist a manually reordered sequence               | Feature command mutation                                                   | RPC saves the permitted sequence atomically               |
 
@@ -34,13 +34,17 @@ The [resource migration plan](./resource-migration-plan.md) specifies proposed v
 
 #### Command flow and cache ownership
 
-1. A row/menu/dialog action calls a feature hook such as `useConfirmOrder`. The component supplies explicit command inputs and renders pending/error/success states; it does not own database rules.
-2. The hook uses `useMutation` from `@tanstack/react-query` and calls a feature command function using the existing shared Supabase client. Pass typed, validated arguments to `supabaseClient.rpc("confirm_order", { p_order_id: orderId })`; throw returned Supabase errors so the mutation enters its error state.
-3. The database function enforces authorization and allowed transitions, and performs related database writes in one transaction. RLS and appropriate function permissions remain authoritative. Prefer security-invoker functions; any privileged execution requires explicit authorization checks. An RPC name in this document is illustrative, not an existing database contract.
-4. After success, use Refine `useInvalidate` for the affected resource list/detail queries, the affected record ID and any related counts or resources changed by the command. Specify `dataProviderName` when the resource uses a named provider. Invalidation must target the same Refine context/provider that owns the reads.
-5. Use the QueryClient backing that Refine context. Do not mount a separate QueryClient/cache for commands or manually reproduce Refine query keys. Guard duplicate submissions and disable automatic retries (`retry: false`) unless the command is explicitly designed for safe retries. A mutation pending state alone does not provide server-side idempotency.
+1. A compound action or custom button reads one typed descriptor from `useResourcePage`, such as `order.actions.startPreparation`; its button props, menu props, confirmation and execution all come from the same command controller.
+2. The controller performs a fresh Refine access check and record-eligibility check, validates command input, then calls `useCustomMutation` with a named provider command identifier and retries disabled.
+3. The provider verifies the current Supabase session and applies an allowlisted command using existing tables and already deployed RPCs. Existing RLS and database triggers remain authoritative. UI permission checks do not narrow direct database access.
+4. After success, the controller calls Refine `useInvalidate` for the orders list/detail and other declared affected resources. Cache keys and query state remain owned by Refine's QueryClient.
+5. Conditional status and `updated_at` checks detect stale writes. A conflict prompts refresh and intentional retry. Follow-up notifications/audit/payout work may fail after the order transition; the UI reports partial completion and never replays the transition automatically.
 
-Commands belong in their feature, for example `features/orders/commands.ts` for RPC calls and `features/orders/use-confirm-order.ts` for mutation state and invalidation. Reuse schemas from `src/lib/schema/` where applicable. Generic resource components supply action handlers and remain unaware of order-specific RPCs. Commands involving external services may use a server/Edge Function boundary; database rules and atomic database writes still belong on the server.
+Order command contracts, eligibility and UI copy belong in `features/orders/`; execution is exposed through the named `orders` provider's `custom` method. Shared resource components render typed descriptors but remain unaware of order rules. Reuse schemas from `src/lib/schema/` where applicable.
+
+#### Backend change restriction
+
+Do not add or modify Supabase functions, migrations, schema, policies, Next.js APIs, or deployments without separate authorization. This is an explicit project constraint. The orders provider uses only existing tables, policies, triggers and already deployed RPCs. Existing broad admin order RLS is unchanged; client-side `canManageOrders` gates the UI but does not prevent a signed-in admin client from making other database requests allowed by RLS. XPay callbacks remain authoritative for payment; the admin must not manually confirm XPay payment or upload receipts.
 
 #### Saved row ordering
 
@@ -49,7 +53,7 @@ Commands belong in their feature, for example `features/orders/commands.ts` for 
 
 #### Adoption status
 
-This is the standard for new business commands. Current CRUD/resource table behavior already follows the Refine path. Notification mark-all-read still uses the existing Refine `useCustomMutation` adapter described below; it has not been migrated by this documentation change. Before implementing a direct TanStack mutation, declare `@tanstack/react-query` as a direct admin dependency at a version compatible with Refine's installed QueryClient. No order RPC, persisted reordering, dependency change or runtime migration is introduced here.
+This is the standard for resource commands and page forms. CRUD uses Refine `useForm`; feature field state remains in `useAppForm`. Notification mark-all-read continues through its existing `useCustomMutation` adapter. No parallel TanStack Query cache or separate CRUD lifecycle is introduced.
 
 ### Application error handling
 
@@ -71,7 +75,7 @@ This is the standard for new business commands. Current CRUD/resource table beha
   feature action from that folder only when their UI flow needs it.
 - The named adapter map uses `default` and `siteSettings` for the shared RLS
   Supabase adapter in `data-provider/supabase-data-provider.ts`, plus
-  `notifications`, `mediaLibrary`, `account` and `users` for their scoped
+  `notifications`, `mediaLibrary`, `account`, `users` and `orders` for their scoped
   adapters. The users adapter invokes the protected
   `admin-users` Edge Function; list filters, sorting and pagination are sent to
   the server through `data-provider/users-query.ts`.
@@ -257,24 +261,15 @@ Forms use the shared `useAppForm` factory. `ImageUploadField` requires an explic
 
 The previous `/api/upload/sign` implementation was removed. Supabase now supplies the existing backend connection for the Vite uploads page. See `components/upload/README.md` for integration and deployment details.
 
-### Resource page composition (implemented)
+### Resource pages and business commands (implemented)
 
-- `components/resources/view/resource-view.tsx` exports `ResourceView`, the page composer. Its list `ResourceAccessGate` is outside the authorized content, so table/controller hooks mount only after list access succeeds.
-- `contexts/resource/` contains a thin `ResourceContextProvider` and the selected-action/context contracts. `hooks/resources/` groups shared hooks by concern: `authorization/`, `actions/`, `controller/`, `crud/`, `scope/` and `table/`. Each group has an `index.ts`; the root `index.ts` is the stable hook entry used by presentation components.
-- `hooks/resources/scope/use-resource-scope.ts` owns per-page dialog selection, row lookup, action keys and record restrictions; `scope/use-resource-context.ts` is the shared context reader.
-- `hooks/resources/controller/use-resource-controller.ts` combines action permissions, feature restrictions, table state and scope state. `table/use-resource-table.ts` owns Refine table configuration and local-only drag order. `actions/use-resource-row-actions.ts` owns fresh action preflight, duplicate execution protection and error feedback.
-- Create/delete grants are read from the access-control provider; `ResourceViewProps` does not accept duplicate `canCreate` or `canDelete` overrides. Feature-owned top-level `canEdit(record)`, when present, can further restrict records and never grants access. Resource search delay (300 ms) and default page size (20) come from `src/lib/const.ts`.
-- `ResourceView` has `mode="dialog" | "page"`. Dialog mode requires the `form` title/fields config; page mode omits it and uses standalone route forms. The Refine registry derives create/edit paths from page-mode resources, and both `CreateButton` and default row Edit actions navigate through these registered routes.
-- `components/resources/` groups presentation by concern: `access/` for the permission gate, `actions/` for row menus, `dialogs/` for dialog hosting/deletion, `forms/` for create/edit composition and `view/` for the resource page. Each group has an `index.ts`; the root `index.ts` is the stable public entry for feature pages/routes. Shared contracts stay in `components/resources/types.ts`. Context/hooks use type-only UI contract imports and have no runtime dependency on presentation components.
-- `ResourceDialogs` mounts one keyed create/edit/delete dialog; `ResourceEditor` binds feature fields to `ResourceFormDialog`. `use-resource-form-crud.ts` owns the Refine detail read, create/update calls, edit recheck and submission guard. Form pending/error comes from Refine mutations; local errors cover preflight and callbacks. Create/update rely on Refine automatic invalidation. `use-resource-delete-crud.ts` owns pessimistic delete and relies on Refine invalidation. Products and add-ons own their schemas, fields, columns and payload mapping in separate feature folders.
-- Products are the first route-based form resource: `/catalog/products/create` and `/catalog/products/:id/edit`. The root `components/resources/forms/registry.ts` selects one of two presentation objects: `forms/dialog/` for resource dialogs and `forms/page/` for route forms; shared contracts and exports stay in `forms/`. Product route-form behavior, schema, image picker and payload mapping stay together in `features/catalog/products/form-page/`; the product root folder retains its dialog model. Create navigates to the new row's edit route. Other resources continue to use dialogs.
-- Product local image files stay in UploadCN until Save; a signed Cloudinary upload completes before the Refine mutation, whose automatic invalidation updates list/detail data. Existing media is read through the `mediaLibrary` provider with the media list policy. Product preparation days save separately. A local migration adds nullable 1–120 columns for staging compatibility; it has not been applied to any remote database. See [`doc.md`](../doc/doc.md#15-route-based-resource-forms--products-first) for fields, payload mapping and state flow.
-- Delete identity/name comes from loaded list rows. The resource scope holds UI selection only; Refine owns list/detail data and mutation cache. Dragging is local to the loaded page and does not persist by default. See [`doc/doc.md`](../doc/doc.md) for the full flow/component/hook/cache guide.
-
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
+- `ResourceView` owns list/table composition and gates list access before the table controller mounts. `ResourceContextProvider` and `ResourcePageContextProvider` are separate thin providers: the former carries table/dialog selection; the latter carries a prepared form or details record, action descriptors and request state.
+- `createResourcePage` is a module-scope factory with `kind: "form"` and `kind: "details"` contracts. It exposes stable bound Page/Fields/Footer/DirtyGuard/Action/ActionMenuItem/CommandDialogs components. `useResourcePage(definition)` is the typed context reader in `hooks/resources/page/`.
+- Ordinary create/edit uses Refine core `useForm` through the thin `useResourceFormCrud` adapter. Refine owns the edit query, mutation, redirect helper and automatic CRUD invalidation. TanStack `useAppForm` owns feature form values/validation/dirty/submitting state. Fresh authorization and record restrictions remain explicit preflights. Products use `/catalog/products/create` and `/catalog/products/:id/edit`; add-ons use the form contract in dialog mode; the users form remains intentionally incomplete.
+- Details pages use one Refine `useOne` record query and no form or implicit Save action. `useResourceCommands` uses one Refine `useCustomMutation` path for button props, menu props and confirmation/input dialogs, rechecks access and record eligibility, blocks duplicate execution and calls `useInvalidate` for declared targets. Pending and mutation errors come from Refine.
+- Orders are registered as a named `orders` provider with `/orders` and `/orders/:id`. The list uses Refine server table state; the provider batches current-page item/profile/product lookups. The details context supplies order data and feature-owned command contracts cover fulfillment, cancellation, electronic-delivery recording and idempotent publisher-earnings recovery.
+- Order transitions recheck session/permission, compare expected status and `updated_at`, and use a conditional update. Existing audit, notification and payout effects remain follow-up operations; failures are surfaced as partial success and never replay the status transition automatically. XPay callbacks remain authoritative.
+- No Supabase functions, migrations, schema, policies, Next.js APIs or deployments were added or changed. Existing broad admin order RLS is unchanged; `canManageOrders` controls the UI but does not narrow direct database access. See [`doc.md`](../doc/doc.md) for the detailed component/hook flow.
 
 ## Storage Model
 

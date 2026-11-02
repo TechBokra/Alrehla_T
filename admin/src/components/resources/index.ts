@@ -2,6 +2,7 @@
 export { ResourceAccessGate } from "./access";
 export { ResourceRowActions, createResourceActions } from "./actions";
 export { ResourceView } from "./view";
+export { createResourcePage } from "./page";
 export type {
   ResourceDeleteDialogProps,
   ResourceFormDefinition,
@@ -11,3 +12,4 @@ export type {
   ResourceRowAction,
   ResourceViewProps,
 } from "./types";
+export type { ResourcePageFactory, ResourceFormFactory } from "./page";

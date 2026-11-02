@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { revalidateLogic, useStore } from "@tanstack/react-form";
-import { useOne, useUpdate } from "@refinedev/core";
+import { useUpdate } from "@refinedev/core";
 import { useNavigate } from "@tanstack/react-router";
 import { useUploader, useUploadSelector } from "@uploadcn/react";
 import type { CloudinaryUploadResult, UploadAdapter } from "@uploadcn/core";
@@ -18,8 +18,10 @@ import {
   type ProductPreparationRow,
 } from "./model";
 import { isEditableProduct, type Product } from "../model";
-import type { ResourceFormPageContext } from "@/components/resources/forms/types";
-import { resourcePageForms } from "@/components/resources/forms/page";
+import { createResourcePage } from "@/components/resources/page";
+import type { ResourceFormFactory, ResourceFormFeatureContext } from "@/components/resources/page";
+import { useResourcePage } from "@/hooks/resources";
+import { ResourceFormDirtyGuard, ResourceFormFooter } from "@/components/resources/forms/page";
 import { BaseFormField } from "@/components/forms/components/base-form-field";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +38,6 @@ const writingStyleOptions = [
   { value: "dialect", label: "لهجة" },
 ] as const;
 
-const { Footer: ResourceFormFooter, DirtyGuard: ResourceFormDirtyGuard } = resourcePageForms;
-
 const unavailableUploadAdapter: UploadAdapter<CloudinaryUploadResult> = {
   name: "cloudinary-unconfigured",
   async upload() {
@@ -45,14 +45,8 @@ const unavailableUploadAdapter: UploadAdapter<CloudinaryUploadResult> = {
   },
 };
 
-export function ProductForm({
-  mode,
-  record,
-  disabled,
-  save,
-  getLastError,
-}: ResourceFormPageContext<Product>) {
-  const navigate = useNavigate();
+function useProductFeatureForm(context: ResourceFormFeatureContext<Product>) {
+  const { mode, record, save, getLastError, redirectAfterCreate } = context;
   const access = useResourceAuthorization("uploads", "upload");
   const adapter = useLibraryUploadAdapter("alrehla/products");
   const uploader = useUploader<CloudinaryUploadResult>({
@@ -92,27 +86,51 @@ export function ProductForm({
       uploader.clearCompleted();
       form.reset(valuesFromProduct(saved));
       toast.success(mode === "edit" ? "تم حفظ التغييرات." : "تم حفظ المنتج.");
-      if (mode === "create") {
-        await navigate({
-          to: "/catalog/products/$id/edit",
-          params: { id: String(saved.id) },
-          replace: true,
-        });
-      }
+      if (mode === "create") redirectAfterCreate?.(saved);
     },
   });
-  const category = useStore(form.store, (state) => state.values.category);
+  const isDirty = useStore(form.store, (state) => state.isDirty);
+  return { form, uploader, adapter, access, failedUpload, isDirty };
+}
+
+type ProductFeatureForm = ReturnType<typeof useProductFeatureForm>;
+
+export const productForm: ResourceFormFactory<Product, ProductFeatureForm> = createResourcePage<Product, ProductFeatureForm>({
+  kind: "form",
+  resource: "personalized_products",
+  dataProviderName: "default",
+  page: {
+    title: (mode) => mode === "create" ? "إضافة منتج للمنصة" : "تعديل المنتج",
+    canEdit: isEditableProduct,
+    getErrorMessage: catalogError,
+    useFeatureForm: useProductFeatureForm,
+    Content: ProductFormContent,
+    Fields: ProductFormFields,
+  },
+});
+
+export function ProductFormPage({ id }: { id?: string }) {
+  const Page = productForm.Page;
+  return <Page id={id} />;
+}
+
+function ProductFormContent() {
+  const page = useResourcePage(productForm);
+  const form = page.form;
+  const { uploader, adapter, access, failedUpload } = page.feature;
+  const navigate = useNavigate();
   const values = useStore(form.store, (state) => state.values);
   const submitting = useStore(form.store, (state) => state.isSubmitting);
-  const formDisabled = disabled || submitting;
+  const formDirty = useStore(form.store, (state) => state.isDirty);
+  const formDisabled = page.disabled || submitting;
   const hasQueuedImages = values.images.some((image) => image.kind === "queued");
-  const saveDisabled = disabled || failedUpload || (hasQueuedImages && (!adapter || !access.allowed || access.isPending));
+  const saveDisabled = page.disabled || failedUpload || (hasQueuedImages && (!adapter || !access.allowed || access.isPending));
   const cancel = () => void navigate({ to: "/catalog/products" });
 
   return (
     <div className="flex flex-col gap-6">
       <form.AppForm>
-        <ResourceFormDirtyGuard />
+        <productForm.DirtyGuard />
         <form
           noValidate
           onSubmit={(event) => {
@@ -122,138 +140,121 @@ export function ProductForm({
           }}
           className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2"
         >
-          <div className="min-w-0">
-            <form.AppField name="name">
-              {(Fields) => <Fields.InputField label="اسم المنتج" required props={{ disabled: formDisabled }} />}
-            </form.AppField>
-          </div>
-          <div className="min-w-0">
-            <form.AppField name="category">
-              {(Fields) => <Fields.SelectField label="التصنيف" required options={{ "منتج المكتبة": "library", "قصة مخصصة": "custom" }} props={{ disabled: formDisabled }} />}
-            </form.AppField>
-          </div>
-          <div className="min-w-0">
-            <Field>
-              <FieldLabel>مالك المنتج</FieldLabel>
-              <Badge variant="secondary" className="w-fit">المنصة</Badge>
-            </Field>
-          </div>
-          <div className="col-span-full min-w-0">
-            <form.AppField name="description">
-              {(Fields) => <Fields.TextareaField label="الوصف المختصر" props={{ disabled: formDisabled, maxLength: 600, rows: 3 }} />}
-            </form.AppField>
-          </div>
-
-          <div className="min-w-0">
-            <form.AppField name="price">
-              {(Fields) => <Fields.InputField label="السعر الورقي (ج.م)" required props={{ disabled: formDisabled, inputMode: "decimal" }} />}
-            </form.AppField>
-          </div>
-          {category === "custom" ? (
-            <div className="min-w-0">
-              <form.AppField name="electronicPrice">
-                {(Fields) => <Fields.InputField label="السعر الإلكتروني (ج.م)" props={{ disabled: formDisabled, inputMode: "decimal" }} />}
-              </form.AppField>
-            </div>
-          ) : null}
-
-          {category === "custom" ? (
-            <div className="col-span-full min-w-0">
-              <form.AppField name="writingStyles">
-                {(field) => (
-                  <BaseFormField label="أساليب الكتابة" required variant="fieldset">
-                    <div role="group" aria-label="أساليب الكتابة" className="flex flex-wrap gap-2">
-                      {writingStyleOptions.map((option) => {
-                        const selected = field.state.value.includes(option.value);
-                        return (
-                          <Button
-                            key={option.value}
-                            type="button"
-                            variant={selected ? "secondary" : "outline"}
-                            aria-pressed={selected}
-                            disabled={formDisabled}
-                            onClick={() => field.handleChange(selected ? field.state.value.filter((value) => value !== option.value) : [...field.state.value, option.value])}
-                          >
-                            {option.label}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </BaseFormField>
-                )}
-              </form.AppField>
-            </div>
-          ) : null}
-
-          <div className="min-w-0">
-            <form.AppField name="minAge">
-              {(Fields) => <Fields.InputField label="العمر من" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
-            </form.AppField>
-          </div>
-          <div className="min-w-0">
-            <form.AppField name="maxAge">
-              {(Fields) => <Fields.InputField label="العمر إلى" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
-            </form.AppField>
-          </div>
-
-          <div className="min-w-0">
-            <form.AppField name="longDescription">
-              {(Fields) => (
-                <Fields.TextareaField
-                  label="الوصف الكامل"
-                  description="اختياري — بيظهر في صفحة المنتج. يدعم ## عنوان و- نقطة و**عريض**."
-                  props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }}
-                />
-              )}
-            </form.AppField>
-          </div>
-          <div className="min-w-0">
-            <form.AppField name="featuresText">
-              {(Fields) => <Fields.TextareaField label="مميزات المنتج" props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
-            </form.AppField>
-          </div>
-
-          <div className="col-span-full min-w-0">
-            <form.AppField name="images">
-              {(field) => (
-                <ProductImagesField
-                  value={field.state.value as ProductImageSelection[]}
-                  onChange={field.handleChange}
-                  uploader={uploader}
-                  disabled={formDisabled}
-                  uploadConfigured={Boolean(adapter)}
-                />
-              )}
-            </form.AppField>
-            {hasQueuedImages && !adapter ? (
-              <Alert variant="destructive">
-                <AlertTitle>إعداد رفع الصور غير مكتمل</AlertTitle>
-                <AlertDescription>أضف إعداد Cloudinary الموقّع قبل استخدام صور جديدة.</AlertDescription>
-              </Alert>
-            ) : null}
-          </div>
-
-          {mode === "edit" ? (
-            <div className="col-span-full min-w-0">
-              <form.AppField name="isActive">
-                {(Fields) => <Fields.CheckboxField label="المنتج نشط" props={{ disabled: formDisabled }} />}
-              </form.AppField>
-            </div>
-          ) : null}
-
-          <ResourceFormFooter
-            mode={mode}
+          <productForm.Fields />
+          <productForm.Footer
             disabled={saveDisabled}
-            onCancel={mode === "edit" ? cancel : undefined}
+            onCancel={page.mode === "edit" ? cancel : undefined}
             className="col-span-full"
           />
         </form>
       </form.AppForm>
 
-      {mode === "edit" && record ? (
-        <PreparationDaysSection record={record} disabled={disabled || submitting} />
+      {page.mode === "edit" && page.record ? (
+        <PreparationDaysSection record={page.record} disabled={page.disabled || submitting || formDirty} />
       ) : null}
     </div>
+  );
+}
+
+function ProductFormFields() {
+  const page = useResourcePage(productForm);
+  const form = page.form;
+  const { uploader, adapter, access, failedUpload } = page.feature;
+  const category = useStore(form.store, (state) => state.values.category);
+  const values = useStore(form.store, (state) => state.values);
+  const submitting = useStore(form.store, (state) => state.isSubmitting);
+  const formDisabled = page.disabled || submitting;
+  const hasQueuedImages = values.images.some((image) => image.kind === "queued");
+
+  return (
+    <>
+      <div className="min-w-0">
+        <form.AppField name="name">
+          {(Fields) => <Fields.InputField label="اسم المنتج" required props={{ disabled: formDisabled }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <form.AppField name="category">
+          {(Fields) => <Fields.SelectField label="التصنيف" required options={{ "منتج المكتبة": "library", "قصة مخصصة": "custom" }} props={{ disabled: formDisabled }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <Field><FieldLabel>مالك المنتج</FieldLabel><Badge variant="secondary" className="w-fit">المنصة</Badge></Field>
+      </div>
+      <div className="col-span-full min-w-0">
+        <form.AppField name="description">
+          {(Fields) => <Fields.TextareaField label="الوصف المختصر" props={{ disabled: formDisabled, maxLength: 600, rows: 3 }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <form.AppField name="price">
+          {(Fields) => <Fields.InputField label="السعر الورقي (ج.م)" required props={{ disabled: formDisabled, inputMode: "decimal" }} />}
+        </form.AppField>
+      </div>
+      {category === "custom" ? (
+        <div className="min-w-0">
+          <form.AppField name="electronicPrice">
+            {(Fields) => <Fields.InputField label="السعر الإلكتروني (ج.م)" props={{ disabled: formDisabled, inputMode: "decimal" }} />}
+          </form.AppField>
+        </div>
+      ) : null}
+      {category === "custom" ? (
+        <div className="col-span-full min-w-0">
+          <form.AppField name="writingStyles">
+            {(field) => (
+              <BaseFormField label="أساليب الكتابة" required variant="fieldset">
+                <div role="group" aria-label="أساليب الكتابة" className="flex flex-wrap gap-2">
+                  {writingStyleOptions.map((option) => {
+                    const selected = field.state.value.includes(option.value);
+                    return (
+                      <Button key={option.value} type="button" variant={selected ? "secondary" : "outline"} aria-pressed={selected} disabled={formDisabled}
+                        onClick={() => field.handleChange(selected ? field.state.value.filter((value) => value !== option.value) : [...field.state.value, option.value])}>
+                        {option.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </BaseFormField>
+            )}
+          </form.AppField>
+        </div>
+      ) : null}
+      <div className="min-w-0">
+        <form.AppField name="minAge">
+          {(Fields) => <Fields.InputField label="العمر من" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <form.AppField name="maxAge">
+          {(Fields) => <Fields.InputField label="العمر إلى" props={{ type: "number", min: 0, max: 20, disabled: formDisabled }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <form.AppField name="longDescription">
+          {(Fields) => <Fields.TextareaField label="الوصف الكامل" description="اختياري — بيظهر في صفحة المنتج. يدعم ## عنوان و- نقطة و**عريض**." props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
+        </form.AppField>
+      </div>
+      <div className="min-w-0">
+        <form.AppField name="featuresText">
+          {(Fields) => <Fields.TextareaField label="مميزات المنتج" props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }} />}
+        </form.AppField>
+      </div>
+      <div className="col-span-full min-w-0">
+        <form.AppField name="images">
+          {(field) => <ProductImagesField value={field.state.value as ProductImageSelection[]} onChange={field.handleChange} uploader={uploader} disabled={formDisabled} uploadConfigured={Boolean(adapter)} />}
+        </form.AppField>
+        {hasQueuedImages && !adapter ? <Alert variant="destructive"><AlertTitle>إعداد رفع الصور غير مكتمل</AlertTitle><AlertDescription>أضف إعداد Cloudinary الموقّع قبل استخدام صور جديدة.</AlertDescription></Alert> : null}
+        {failedUpload ? <p role="alert" className="text-sm text-destructive">تعذّر رفع صورة محددة. أعد اختيارها قبل الحفظ.</p> : null}
+        {hasQueuedImages && (!access.allowed || access.isPending) ? <p role="status" className="text-sm text-muted-foreground">جارٍ التحقق من صلاحية رفع الصور…</p> : null}
+      </div>
+      {page.mode === "edit" ? (
+        <div className="col-span-full min-w-0">
+          <form.AppField name="isActive">
+            {(Fields) => <Fields.CheckboxField label="المنتج نشط" props={{ disabled: formDisabled }} />}
+          </form.AppField>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -291,16 +292,12 @@ async function resolveImageUrls(
 }
 
 function PreparationDaysSection({ record, disabled }: { record: Product; disabled: boolean }) {
+  const page = useResourcePage(productForm);
   const canEdit = isEditableProduct(record);
   const access = useResourceAuthorization("personalized_products", "edit", { id: record.id, record });
   const available = hasPreparationDaysColumns(record);
-  const detail = useOne<Product>({
-    resource: "personalized_products",
-    id: record.id,
-    errorNotification: false,
-    queryOptions: { enabled: available, retry: false, refetchOnWindowFocus: false },
-  });
   const mutation = useUpdate<Product>({
+    mutationMode: "pessimistic",
     successNotification: false,
     errorNotification: false,
     mutationOptions: { retry: false },
@@ -319,9 +316,7 @@ function PreparationDaysSection({ record, disabled }: { record: Product; disable
       if (inFlight.current || !available || !canEdit || !access.allowed) return;
       inFlight.current = true;
       try {
-        const refreshed = await detail.query.refetch();
-        if (refreshed.error) throw refreshed.error;
-        const currentRecord = refreshed.data?.data;
+        const currentRecord = await page.refreshRecord?.();
         if (!currentRecord || !isEditableProduct(currentRecord)) {
           throw new Error("هذا المنتج غير متاح للتعديل.");
         }
@@ -348,7 +343,7 @@ function PreparationDaysSection({ record, disabled }: { record: Product; disable
       }
     },
   });
-  const formDisabled = disabled || mutation.mutation.isPending || !access.allowed || !available;
+  const formDisabled = disabled || mutation.mutation.isPending || !access.allowed || access.isPending || !available;
   const submitting = useStore(form.store, (state) => state.isSubmitting);
   const fieldsDisabled = formDisabled || submitting;
   return (

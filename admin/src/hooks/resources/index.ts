@@ -5,6 +5,13 @@ export { useResourceController } from "./controller";
 export { useResourceDeleteCrud, useResourceFormCrud } from "./crud";
 export { useResourceContext, useResourceScope } from "./scope";
 export { useResourceTable } from "./table";
+export { useResourcePage } from "./page/use-resource-page";
+export { useResourceCommands } from "./page/use-resource-commands";
+export type {
+  ResourceCommandDefinition,
+  ResourceCommandField,
+  ResourceCommandMap,
+} from "./page/use-resource-commands";
 export type {
   UseResourceDeleteCrudOptions,
   UseResourceFormCrudOptions,

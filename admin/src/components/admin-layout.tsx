@@ -90,7 +90,11 @@ export function AdminLayout({
                     </BreadcrumbSeparator>
                     <BreadcrumbItem className="hidden min-w-0 sm:inline-flex">
                       <BreadcrumbPage className="max-w-48 truncate">
-                        {resourceAction.action === "create" ? "إنشاء" : "تعديل"}
+                        {resourceAction.action === "create"
+                          ? "إنشاء"
+                          : resourceAction.action === "edit"
+                            ? "تعديل"
+                            : "التفاصيل"}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
                   </>
@@ -126,6 +130,9 @@ function getResourceAction(pathname: string) {
     if (resource.edit && matchesResourcePath(resource.edit, pathname)) {
       return { resource, action: "edit" as const };
     }
+    if (resource.show && matchesResourcePath(resource.show, pathname)) {
+      return { resource, action: "show" as const };
+    }
   }
   return undefined;
 }
@@ -142,6 +149,7 @@ function matchesResourcePath(route: string, pathname: string) {
 function getPageLabel(pathname: string) {
   if (pathname.startsWith("/catalog/addons")) return "الإضافات";
   if (pathname.startsWith("/catalog/products")) return "منتجات المنصة";
+  if (pathname.startsWith("/orders")) return "الطلبات";
   if (pathname.startsWith("/notifications")) return "الإشعارات";
   if (pathname.startsWith("/users")) return "المستخدمون";
   if (pathname.startsWith("/uploads")) return "المرفوعات";

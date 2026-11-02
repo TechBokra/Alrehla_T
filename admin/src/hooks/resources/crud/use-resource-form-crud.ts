@@ -1,8 +1,6 @@
 import { useRef, useState } from "react";
 import {
-  useCreate,
-  useOne,
-  useUpdate,
+  useForm as useRefineForm,
   type BaseRecord,
   type HttpError,
 } from "@refinedev/core";
@@ -18,11 +16,16 @@ export interface UseResourceFormCrudOptions<TRecord extends BaseRecord> {
   dataProviderName?: string;
   canEdit?: (record: TRecord) => boolean;
   getErrorMessage?: (error: unknown) => string;
-  onSaved?: (record: TRecord, action: ResourceFormAction) => void;
+  onSaved?: (record: TRecord, action: ResourceFormAction) => void | Promise<void>;
   suppressNotifications?: boolean;
+  presentation?: "page" | "dialog";
+  redirectAfterCreate?: "edit" | "list" | false;
 }
 
-/** Refine form reads, create/update mutations, guards and cache invalidation. */
+/**
+ * Thin guard/presentation adapter around Refine core useForm. Refine owns the
+ * record query, create/update mutation, cache invalidation and redirect helper.
+ */
 export function useResourceFormCrud<TRecord extends BaseRecord>({
   resource,
   id,
@@ -31,19 +34,30 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
   getErrorMessage = () => "تعذّر حفظ البيانات. حاول مرة أخرى.",
   onSaved,
   suppressNotifications = false,
+  presentation = "dialog",
+  redirectAfterCreate: redirectAfterCreateAction = "edit",
 }: UseResourceFormCrudOptions<TRecord>) {
   const editing = id !== undefined;
-  const access = useResourceAuthorization(resource, editing ? "edit" : "create", { id });
+  const action: ResourceFormAction = editing ? "edit" : "create";
+  const access = useResourceAuthorization(resource, action, { id });
   const [checkingAccess, setCheckingAccess] = useState(false);
-  const loaded = useRef(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
   const inFlight = useRef(false);
   const lastFailure = useRef<unknown>(undefined);
-  const [flowError, setFlowError] = useState<string | null>(null);
-  const query = useOne<TRecord, HttpError>({
+
+  const refineForm = useRefineForm<
+    TRecord,
+    HttpError,
+    Record<string, unknown>,
+    TRecord,
+    TRecord
+  >({
     resource,
+    action,
+    id,
     dataProviderName,
-    id: id ?? "",
-    errorNotification: false,
+    mutationMode: "pessimistic",
+    redirect: false,
     queryOptions: {
       enabled: editing && access.allowed,
       retry: false,
@@ -51,30 +65,22 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
       refetchOnReconnect: false,
       refetchOnMount: "always",
     },
-  });
-  const create = useCreate<TRecord, HttpError, Record<string, unknown>>({
+    createMutationOptions: { retry: false },
+    updateMutationOptions: { retry: false },
     successNotification: suppressNotifications ? false : undefined,
     errorNotification: suppressNotifications ? false : undefined,
-    mutationOptions: { retry: false },
   });
-  const update = useUpdate<TRecord, HttpError, Record<string, unknown>>({
-    successNotification: suppressNotifications ? false : undefined,
-    errorNotification: suppressNotifications ? false : undefined,
-    mutationOptions: { retry: false },
-  });
-  const pending = checkingAccess || create.mutation.isPending || update.mutation.isPending;
-  const mutationError = editing
-    ? update.mutation.error
-    : create.mutation.error;
-  // Refine owns CRUD mutation state; local state covers only work outside
-  // those calls.
-  const error =
-    flowError ?? (access.isError ? "تعذّر التحقق من الصلاحيات. حاول مرة أخرى." : !access.isPending && !access.allowed ? access.data?.reason : null) ?? (mutationError ? getErrorMessage(mutationError) : null);
-  const fetching = editing && access.allowed && (query.query.isPending || query.query.isFetching);
+
+  const record = refineForm.query?.data?.data;
+  const mutationError = refineForm.mutation.error;
+  const fetching = editing && access.allowed && Boolean(
+    refineForm.query?.isPending || refineForm.query?.isFetching,
+  );
+  const queryError = refineForm.query?.error;
   const recordState = editRecordState({
     loading: fetching,
-    error: query.query.error,
-    record: query.result,
+    error: queryError,
+    record,
     canEdit,
   });
   const state = access.isError
@@ -82,66 +88,54 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     : !access.isPending && !access.allowed
       ? "forbidden"
       : recordState;
-  if (editing && state === "ready") loaded.current = true;
-
-  const initialLoading = access.isPending || (editing && !loaded.current && fetching);
+  const queryPending = editing && Boolean(refineForm.query?.isPending);
+  const initialLoading = access.isPending || (editing && queryPending);
   const initialError =
-    !access.isPending && (!access.allowed || (editing && !loaded.current && !fetching && state !== "ready"));
-  const busy = pending || fetching || access.isPending;
-  const unavailable = !access.allowed || (editing && (!query.result || !canEdit(query.result)));
+    !access.isPending &&
+    (!access.allowed || (editing && !fetching && state !== "ready"));
+  const busy = checkingAccess || refineForm.mutation.isPending || fetching || access.isPending;
+  const unavailable = !access.allowed || (editing && (!record || !canEdit(record)));
+  const error =
+    flowError ??
+    (access.isError
+      ? "تعذّر التحقق من الصلاحيات. حاول مرة أخرى."
+      : !access.isPending && !access.allowed
+        ? access.data?.reason
+        : null) ??
+    (mutationError ? getErrorMessage(mutationError) : null);
 
-  async function save(values: Record<string, unknown>) {
+  async function save(values: Record<string, unknown>): Promise<TRecord | false> {
     if (inFlight.current || busy || unavailable) return false;
     inFlight.current = true;
     lastFailure.current = undefined;
     setFlowError(null);
     setCheckingAccess(true);
     try {
-      await assertResourceAccess(resource, editing ? "edit" : "create", { id, record: query.result });
-      const common = { resource, dataProviderName };
-      let saved: TRecord;
+      await assertResourceAccess(resource, action, { id, record });
       if (editing) {
-        try {
-          const fresh = await query.query.refetch();
-          if (fresh.error) throw fresh.error;
-          if (!fresh.data?.data || !canEdit(fresh.data.data))
-            throw { code: "42501" };
-        } catch (failure) {
-          lastFailure.current = failure;
-          setFlowError(getErrorMessage(failure));
-          return false;
+        const fresh = await refineForm.query?.refetch();
+        const freshRecord = fresh?.data?.data;
+        if (fresh?.error) throw fresh.error;
+        if (!freshRecord || !canEdit(freshRecord)) {
+          throw new Error("هذا السجل غير متاح لهذا الإجراء.");
         }
-        setCheckingAccess(false);
-        try {
-          saved = (
-            await update.mutateAsync({ ...common, id: id!, values })
-          ).data;
-        } catch (failure) {
-          lastFailure.current = failure;
-          // Refine's update mutation owns and exposes its pending/error state.
-          return false;
-        }
-      } else {
-        setCheckingAccess(false);
-        try {
-          saved = (await create.mutateAsync({ ...common, values })).data;
-        } catch (failure) {
-          lastFailure.current = failure;
-          // Refine's create mutation owns and exposes its pending/error state.
-          return false;
-        }
+        await assertResourceAccess(resource, action, { id, record: freshRecord });
       }
-      try {
-        onSaved?.(saved, editing ? "edit" : "create");
-      } catch (failure) {
-        lastFailure.current = failure;
-        setFlowError(getErrorMessage(failure));
-        return false;
-      }
+      setCheckingAccess(false);
+      const result = await refineForm.onFinish(values);
+      const saved = result?.data as TRecord | undefined;
+      if (!saved) throw new Error("لم يرجع النظام السجل المحفوظ.");
+      await onSaved?.(saved, action);
       return saved;
     } catch (failure) {
       lastFailure.current = failure;
-      setFlowError(failure instanceof Error ? failure.message : getErrorMessage(failure));
+      // Refine keeps mutation errors on its mutation result. This local error
+      // is only for authorization, record-refresh and post-save flow failures.
+      if (!refineForm.mutation.error) {
+        setFlowError(
+          failure instanceof Error ? failure.message : getErrorMessage(failure),
+        );
+      }
       return false;
     } finally {
       setCheckingAccess(false);
@@ -149,22 +143,36 @@ export function useResourceFormCrud<TRecord extends BaseRecord>({
     }
   }
 
+  async function refreshRecord(): Promise<TRecord | undefined> {
+    if (!editing || !refineForm.query) return undefined;
+    const refreshed = await refineForm.query.refetch();
+    if (refreshed.error) throw refreshed.error;
+    return refreshed.data?.data;
+  }
+
   return {
-    record: query.result,
+    record,
+    refineForm,
     state,
     fetching,
     initialLoading,
     initialError,
     busy,
     unavailable,
-    pending,
+    pending: checkingAccess || refineForm.mutation.isPending,
     error,
     save,
-    getLastError: () => lastFailure.current,
+    refreshRecord,
+    redirectAfterCreate: (saved: TRecord) => {
+      if (!editing && presentation === "page" && redirectAfterCreateAction) {
+        refineForm.redirect(redirectAfterCreateAction, saved.id);
+      }
+    },
+    getLastError: () => lastFailure.current ?? mutationError,
     canRetry: access.isError || state === "failed",
     retryLoad: async () => {
       const result = await access.refetch();
-      if (result.data?.can && editing) await query.query.refetch();
+      if (result.data?.can && editing) await refineForm.query?.refetch();
     },
     canDismiss: () => !inFlight.current,
   };

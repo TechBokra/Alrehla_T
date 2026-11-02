@@ -21,6 +21,22 @@ export function evaluateResourceAccess(
   if (resource === "notifications")
     return (params?.recipientId == null || params.recipientId === actor.id) &&
       ["list", "show", "edit", "mark_all_read"].includes(action) ? { can: true } : deny();
+  if (resource === "orders") {
+    const orderActions = new Set([
+      "list",
+      "show",
+      "start_preparation",
+      "mark_shipped",
+      "mark_delivered",
+      "cancel",
+      "mark_electronic_delivery",
+      "retry_publisher_earnings",
+    ]);
+    if (!orderActions.has(action)) return deny("لا توجد صلاحية لهذا الإجراء على الطلبات.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageOrders")
+      ? { can: true }
+      : deny("لا تملك صلاحية إدارة الطلبات.");
+  }
   if (resource === "users") {
     if (["admin_roles", "assign_admin_role"].includes(action))
       return actor.role === "super_admin" ? { can: true } : deny("إسناد الأدوار الإدارية متاح لمدير النظام فقط.");

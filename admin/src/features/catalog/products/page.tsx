@@ -1,6 +1,7 @@
 import { ResourceView } from "@/components/resources";
 import { productColumns } from "./columns";
-import { isEditableProduct, type Product } from "./model";
+import { type Product } from "./model";
+import { productForm } from "./form-page";
 
 export function ProductsPage() {
   return (
@@ -10,7 +11,7 @@ export function ProductsPage() {
       description="اللي المنصة بتقدّمه بنفسها: «أنت البطل هنا» وتخصيص غلاف المكتبة والإضافات. منتجات دور النشر في قسم «الناشرون»."
       columns={productColumns}
       mode="page"
-      canEdit={isEditableProduct}
+      form={productForm}
       deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
       enableRowReordering
       refineCoreProps={{

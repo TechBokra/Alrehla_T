@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { UseTableReturnType } from "@refinedev/react-table";
 import type { UseDataTableOptions } from "@/components/refine-ui/data-table/use-data-table";
 import type { RowReordering } from "@/components/block/shuip/data-table";
+import type { ResourceFormFactory } from "./page/types";
 
 export interface ResourceRowAction {
   key: string;
@@ -27,18 +28,10 @@ export interface ResourceFormFieldsContext<TRecord> {
 
 export type ResourceFormMode = "dialog" | "page";
 
-export interface ResourceDialogFormDefinition<TRecord extends BaseRecord> {
-  title: string;
-  dataProviderName?: string;
-  /** Maps save/backend failures to user-facing copy; form field validation stays in the form. */
-  getErrorMessage?: (error: unknown) => string;
-  onSaved?: (record: TRecord, action: "create" | "edit") => void;
-  fields: (context: ResourceFormFieldsContext<TRecord>) => ReactNode;
-}
-
-/** Kept as the concise name used by resource dialog definitions. */
+export type ResourceDialogFormDefinition<TRecord extends BaseRecord> =
+  ResourceFormFactory<TRecord>;
 export type ResourceFormDefinition<TRecord extends BaseRecord> =
-  ResourceDialogFormDefinition<TRecord>;
+  ResourceFormFactory<TRecord>;
 
 type ResourceRecord = BaseRecord & { id: string | number };
 interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
@@ -69,11 +62,11 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   onReorder?: (orderedIds: string[], orderedRows: TRecord[]) => void;
 }
 
-/** Dialog resources require fields; page resources use standalone route forms. */
+/** Page and dialog modes share the same module-scope form definition. */
 export type ResourceViewProps<TRecord extends ResourceRecord> =
   ResourceViewBaseProps<TRecord> &
     (
-      | { mode: "page"; form?: never }
+      | { mode: "page"; form: ResourceFormDefinition<TRecord> }
       | { mode: "dialog"; form: ResourceFormDefinition<TRecord> }
     );
 

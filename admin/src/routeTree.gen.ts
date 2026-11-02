@@ -16,6 +16,8 @@ import { Route as ProfileRouteRouteImport } from './routes/profile/route'
 import { Route as UploadsRouteRouteImport } from './routes/uploads/route'
 import { Route as UsersRouteRouteImport } from './routes/users/route'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
+import { Route as OrdersIndexRouteImport } from './routes/orders/index'
+import { Route as OrdersIdRouteImport } from './routes/orders/$id'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
 import { Route as UploadsIndexRouteImport } from './routes/uploads/index'
@@ -61,6 +63,16 @@ const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => NotificationsRouteRoute,
+} as any)
+const OrdersIndexRoute = OrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersIdRoute = OrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/',
@@ -120,7 +132,9 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRouteRouteWithChildren
   '/uploads': typeof UploadsRouteRouteWithChildren
   '/users': typeof UsersRouteRouteWithChildren
+  '/orders/$id': typeof OrdersIdRoute
   '/notifications/': typeof NotificationsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/uploads/': typeof UploadsIndexRoute
@@ -135,7 +149,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRouteRouteWithChildren
+  '/orders/$id': typeof OrdersIdRoute
   '/notifications': typeof NotificationsIndexRoute
+  '/orders': typeof OrdersIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/sign-in': typeof SignInIndexRoute
   '/uploads': typeof UploadsIndexRoute
@@ -155,7 +171,9 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRouteRouteWithChildren
   '/uploads': typeof UploadsRouteRouteWithChildren
   '/users': typeof UsersRouteRouteWithChildren
+  '/orders/$id': typeof OrdersIdRoute
   '/notifications/': typeof NotificationsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/sign-in/': typeof SignInIndexRoute
   '/uploads/': typeof UploadsIndexRoute
@@ -176,7 +194,9 @@ export interface FileRouteTypes {
     | '/profile'
     | '/uploads'
     | '/users'
+    | '/orders/$id'
     | '/notifications/'
+    | '/orders/'
     | '/profile/'
     | '/sign-in/'
     | '/uploads/'
@@ -191,7 +211,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/catalog'
+    | '/orders/$id'
     | '/notifications'
+    | '/orders'
     | '/profile'
     | '/sign-in'
     | '/uploads'
@@ -210,7 +232,9 @@ export interface FileRouteTypes {
     | '/profile'
     | '/uploads'
     | '/users'
+    | '/orders/$id'
     | '/notifications/'
+    | '/orders/'
     | '/profile/'
     | '/sign-in/'
     | '/uploads/'
@@ -230,6 +254,8 @@ export interface RootRouteChildren {
   ProfileRouteRoute: typeof ProfileRouteRouteWithChildren
   UploadsRouteRoute: typeof UploadsRouteRouteWithChildren
   UsersRouteRoute: typeof UsersRouteRouteWithChildren
+  OrdersIdRoute: typeof OrdersIdRoute
+  OrdersIndexRoute: typeof OrdersIndexRoute
   SignInIndexRoute: typeof SignInIndexRoute
   AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
   AuthLinkIndexRoute: typeof AuthLinkIndexRoute
@@ -285,6 +311,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/notifications/'
       preLoaderRoute: typeof NotificationsIndexRouteImport
       parentRoute: typeof NotificationsRouteRoute
+    }
+    '/orders/': {
+      id: '/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof OrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/$id': {
+      id: '/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/orders/$id'
+      preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/profile/': {
       id: '/profile/'
@@ -431,6 +471,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRouteRoute: ProfileRouteRouteWithChildren,
   UploadsRouteRoute: UploadsRouteRouteWithChildren,
   UsersRouteRoute: UsersRouteRouteWithChildren,
+  OrdersIdRoute: OrdersIdRoute,
+  OrdersIndexRoute: OrdersIndexRoute,
   SignInIndexRoute: SignInIndexRoute,
   AuthCallbackIndexRoute: AuthCallbackIndexRoute,
   AuthLinkIndexRoute: AuthLinkIndexRoute,
