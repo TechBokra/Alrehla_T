@@ -495,8 +495,10 @@ change.
 ### Product image cache and upload progress — 2026-11-02
 
 - Product form saves suppress Refine's default invalidation targets and await
-  one Refine invalidation for `personalized_products` list/many/detail, so
-  cover URL replacement and removal refresh table and record data.
+  one targeted Refine invalidation for `personalized_products` list/many/detail.
+  Edit saves also refetch the detail query and reset the form from that server
+  response, so cover URL replacement and removal refresh both table and form
+  state.
 - Successful browser-direct Cloudinary uploads invalidate `uploads` list/many
   through the named `mediaLibrary` provider. Queued covers show
   `جارٍ الرفع…` only while the Save submission resolves those upload IDs; they
@@ -505,3 +507,69 @@ change.
   backend or Cloudinary schema changes. `pnpm test` (9 tests), `pnpm typecheck`,
   `pnpm build` and `git diff --check` pass; Vite retains the existing large
   chunk warning.
+
+
+### Shared page-form submission ownership — 2026-11-02
+
+- Moved main product CRUD save orchestration out of the feature hook into
+  `useResourceFormSubmission` and its tested submission sequence. Resource
+  composition exposes `context.submit({ prepare, reset })`; the feature keeps
+  schema/values, upload-to-payload mapping and its typed TanStack reset adapter.
+- Shared submission owns prepare/backend error toasts, the submission guard,
+  one awaited Refine invalidation on the same provider and saved record ID,
+  authoritative edit refresh, completed-upload cleanup, reset and create
+  redirect. The page composer disables automatic mutation invalidation once;
+  existing dialog forms retain automatic invalidation and their current UI.
+- Separated feature context from internal CRUD dependencies and removed unused
+  raw save/error/redirect methods from public page context. Context providers
+  accept prepared values. Refine remains query/mutation/cache owner; TanStack
+  Form remains values/validation/dirty/isSubmitting owner.
+- Removed the product-specific saved-row selection helper; shared submission
+  now selects the refreshed row before invoking the feature reset callback.
+  Image replacement/removal behavior and deferred-upload progress are retained.
+- Saved the flow and complete module responsibility map in
+  `doc/resource-form-submission.md`, linked from the architecture/resource guides.
+  The separate preparation-days operation retains its existing behavior.
+- Verification: 17 tests pass, including upload/save failures, intentional
+  retry, cache/detail partial refresh failures, image replacement/removal,
+  reset-before-redirect and duplicate preparation submissions. TypeScript,
+  production build and whitespace checks pass; existing route-generator and
+  bundle-size warnings remain. No live product mutations or backend changes.
+
+
+### Product submission connection follow-up — 2026-11-02
+
+- Found the old main product save handler present again while the shared
+  submission interface was still installed. Reconnected the product hook to
+  `context.submit({ prepare, reset })` and removed its obsolete invalidation
+  override and deleted-helper import.
+- Preserved the current product success notifications through optional
+  `page.successMessage` text. The shared submission displays that toast after
+  reset and before redirect; the product hook contains no CRUD feedback/cache
+  orchestration. The hook itself remains to own TanStack form state, schema,
+  defaults and payload mapping.
+- Updated the lifecycle ordering test and focused resource submission guide.
+- Follow-up validation: all 17 tests, TypeScript, production build and
+  whitespace checks pass. Existing route-generator and bundle warnings remain.
+
+
+### Validation-save rollback root cause — 2026-11-02
+
+- Reproduced the reported rollback with the installed TanStack Form library:
+  reject an invalid submit, correct the name/image, save once, reset from the
+  fresh record, then run the option-update effect used by useAppForm. The form
+  returned to the original name and cover despite successful persistence.
+- Cause: frozen initial `defaultValues` were passed back after reset cleared
+  touched metadata. TanStack Form's option update then reapplied those original
+  values. Cache invalidation alone cannot prevent this form-state rollback.
+- Added shared `createResourceFormBaseline`/`useResourceFormBaseline` to advance
+  configured defaults before reset notifies subscribers. Product main and
+  preparation-days forms now use it. Live values and dirty/validation state
+  stay in TanStack Form; failed saves and background reads do not reset fields.
+- Added regression tests using real FormApi/FieldApi, the product schema and
+  shared submission path. Removal/replacement cases failed before the baseline
+  change and pass after it; subsequent unsaved edits survive option updates.
+  Updated the resource guide and module responsibility map.
+- Verification: all 19 tests, TypeScript, production build and whitespace
+  checks pass. Existing route-generator circular-dependency and bundle-size
+  warnings remain. No live product writes or backend changes were performed.

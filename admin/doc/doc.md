@@ -148,7 +148,7 @@ Refine core `useForm` is the CRUD lifecycle owner:
 |---|---|
 | Edit record read/query state | Refine `useForm` query |
 | Create/update request and mutation state | Refine `useForm` mutation and `onFinish` |
-| CRUD cache invalidation | Refine automatic invalidation by default; product saves declare one explicit Refine invalidation |
+| CRUD cache invalidation | Refine automatic invalidation by default; shared page submissions await explicit Refine invalidation |
 | Redirect helper | Refine `useForm.redirect`; automatic redirect is disabled |
 | Field values, validation, touched/dirty and `isSubmitting` | TanStack `useAppForm` |
 | Fresh access and record eligibility | Thin application preflight |
@@ -161,8 +161,10 @@ The edit query is enabled only after access is allowed and uses retries disabled
 The adapter rechecks access before save, refetches the same edit query for
 record eligibility, then calls Refine `onFinish`. It does not mount a second
 detail query. The feature's `onSubmit` asks the shared upload resolver for
-selected image URLs, maps them into the allowlisted payload, and only then calls
-save. The resolver waits until all selected files finish; any upload failure
+selected image URLs and maps them into the allowlisted payload inside the
+`prepare` callback passed to shared `context.submit({ prepare, reset })`. The
+shared resource submission invokes save only after preparation succeeds. The
+resolver waits until all selected files finish; any upload failure
 rejects before the Refine create/update mutation can run. TanStack Form remains
 submitting through upload and save.
 
@@ -170,17 +172,22 @@ Queued covers do not show upload progress before Save. The shared upload slot
 marks only IDs being resolved by the current save operation as active, and
 disables queue controls until those uploads finish. After a direct Cloudinary
 upload succeeds, it invalidates the `uploads` list/many queries under the
-`mediaLibrary` provider so the asset appears in the picker. The product form
-sets Refine's built-in invalidation targets to an empty list and then awaits
-one Refine `useInvalidate` call for product list/many/detail queries after a
-successful create/edit. This refreshes the table when a cover URL is replaced
-or removed. Removing an association still does not delete the Cloudinary asset.
+`mediaLibrary` provider so the asset appears in the picker. The shared page
+composer disables automatic mutation invalidation; `useResourceFormSubmission`
+then awaits one Refine invalidation for the resource's list/many/detail targets.
+On edit it refreshes the existing detail query and invokes the feature's reset
+callback with that server result. The product adapter uses
+`useResourceFormBaseline`: it advances the configured defaults before calling
+TanStack reset so the next render cannot reapply the original record. It clears completed uploads and redirects a
+successful create only after reset. Image replacement/removal therefore updates
+the form baseline, while removing an association never deletes the asset.
 
-On success, the feature resets TanStack Form's baseline from the returned
-record. A successful create then calls Refine's redirect helper to open Edit;
-subsequent edit saves stay on that route. A dialog closes after save. Failed
-saves retain entered values for retry. Background query refreshes do not reset
-dirty form state. Refine mutation state supplies pending and server errors;
+Shared resource submission owns prepare/save error toasts, refresh-failure
+feedback and the duplicate guard across preparation through reset. Product
+feature code retains validation, defaults, upload-to-payload mapping and its
+TanStack reset adapter. Dialogs retain automatic Refine invalidation and close
+after save. Failed saves retain entered values for retry. Background query
+refreshes do not reset dirty form state. Refine mutation state supplies pending and server errors;
 local state is limited to permission/preflight and non-mutation feedback.
 
 `ResourceFormFooter` is rendered inside `form.AppForm`; it disables Save while
@@ -320,15 +327,17 @@ broader administrator order access than `canManageOrders` UI policy.
 ## 9. Cache behavior
 
 Refine and its TanStack Query client own resource query keys and CRUD cache
-invalidation. Ordinary create/edit calls use Refine's automatic invalidation.
-The product form suppresses those default targets and awaits one explicit
-Refine invalidation after saving, covering list/many/detail when the cover URL
-changes or is removed. Direct Cloudinary uploads invalidate the `mediaLibrary`
-uploads list/many queries because they bypass Refine mutations. Details
-commands explicitly invalidate their declared Refine targets. The `orders`
-provider name is supplied on reads and writes to keep cache/provider identity
-aligned. `ResourceContext` and `ResourcePageContext` contain UI state only and
-are not data caches.
+invalidation. Dialog create/edit calls use Refine's automatic invalidation.
+Page forms use shared `useResourceFormSubmission`, which awaits one explicit
+Refine invalidation for list/many/detail after saving. The page composer disables
+automatic mutation targets once to prevent duplicate invalidation. On edit the
+shared hook also refreshes the existing detail query and passes that server row
+to the feature reset adapter. Direct
+Cloudinary uploads invalidate the `mediaLibrary` uploads list/many queries
+because they bypass Refine mutations. Details commands explicitly invalidate
+their declared Refine targets. The `orders` provider name is supplied on reads
+and writes to keep cache/provider identity aligned. `ResourceContext` and
+`ResourcePageContext` contain UI state only and are not data caches.
 
 ## 10. Backend boundary
 
@@ -346,7 +355,7 @@ authorized work.
 - A denied list/detail page mounts no resource query; the details page owns one
   Refine `useOne` record query.
 - Create/edit use Refine `useForm` lifecycle and Refine invalidation (automatic
-  by default; product image saves use one explicit targeted invalidation); a
+  for dialogs; shared page submission awaits explicit targeted invalidation); a
   successful create resets the form before Refine redirects to Edit.
 - Compound button/menu/custom command presentations use one descriptor and
   execution path. Duplicate clicks, stale records, invalid input and permission
@@ -358,3 +367,6 @@ authorized work.
 - Run `pnpm test`, `pnpm typecheck`, `pnpm build` and `git diff --check` from
   `admin/`. Browser verification should use controlled test records and must
   not make real fulfillment or payout changes.
+
+Shared page submission ownership and the full flow are documented in
+[Resource form submission](./resource-form-submission.md).

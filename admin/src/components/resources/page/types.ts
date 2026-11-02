@@ -3,30 +3,34 @@ import type { ComponentType, ReactNode } from "react";
 import type { ResourceFormDialogContext } from "../forms/types";
 import type { ResourceFormFieldsContext } from "../types";
 import type { ResourceCommandMap } from "@/hooks/resources/page/use-resource-commands";
+import type { ResourceFormSubmit } from "@/hooks/resources/page/form-submission";
 import type {
   ResourceUploadDefinition,
   ResourceUploadHandles,
   ResolveImages,
 } from "@/hooks/uploads";
 
-export interface ResourceFormFeatureContext<TRecord extends BaseRecord> {
+interface ResourceFormScope<TRecord extends BaseRecord> {
   record?: TRecord;
   id?: string;
   mode: "create" | "edit";
   disabled: boolean;
   pending: boolean;
+}
+
+export interface ResourceFormFeatureContext<TRecord extends BaseRecord> extends ResourceFormScope<TRecord> {
   uploads: ResourceUploadHandles;
   resolveImages: ResolveImages;
+  submit: ResourceFormSubmit<TRecord>;
+}
+
+/** Internal CRUD dependencies; feature forms use submit instead. */
+export interface ResourceFormBaseContext<TRecord extends BaseRecord> extends ResourceFormScope<TRecord> {
   save: (values: Record<string, unknown>) => Promise<TRecord | false>;
   refreshRecord: () => Promise<TRecord | undefined>;
   getLastError: () => unknown;
   redirectAfterCreate?: (record: TRecord) => void;
 }
-
-export type ResourceFormBaseContext<TRecord extends BaseRecord> = Omit<
-  ResourceFormFeatureContext<TRecord>,
-  "uploads" | "resolveImages"
->;
 
 export interface ResourceFormFeatureState {
   form: unknown;
@@ -52,12 +56,13 @@ export interface ResourceFormPageDefinition<
     title: (mode: "create" | "edit") => string;
     description?: (mode: "create" | "edit") => string | undefined;
     redirectAfterCreate?: "edit" | "list" | false;
-    /** Query targets invalidated by Refine after save; omitted uses Refine defaults. */
+    /** Query targets awaited by shared page submission after save. */
     invalidates?: Array<"list" | "many" | "detail" | "resourceAll">;
     uploads?: Record<string, ResourceUploadDefinition>;
     canEdit?: (record: TRecord) => boolean;
     getErrorMessage?: (error: unknown) => string;
     commands?: TCommands;
+    successMessage?: (mode: "create" | "edit") => string;
     useFeatureForm: (context: ResourceFormFeatureContext<TRecord>) => TFeature;
     Content: ComponentType;
     Fields?: ComponentType;

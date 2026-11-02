@@ -1,6 +1,7 @@
 import type { BaseRecord } from "@refinedev/core";
 import type { ReactNode } from "react";
 import type { ResourceUploadHandles, ResolveImages } from "@/hooks/uploads";
+import type { ResourceFormSubmit } from "@/hooks/resources/page/form-submission";
 
 export type ResourcePageMode = "create" | "edit" | "details";
 
@@ -37,11 +38,9 @@ export interface ResourcePageRuntime<TRecord extends BaseRecord = BaseRecord> {
   feature?: unknown;
   uploads?: ResourceUploadHandles;
   resolveImages?: ResolveImages;
+  submit?: ResourceFormSubmit<TRecord>;
   commandBlockReason?: string;
-  save?: (values: Record<string, unknown>) => Promise<BaseRecord | false>;
   refreshRecord?: () => Promise<TRecord | undefined>;
-  redirectAfterCreate?: (record: BaseRecord) => void;
-  getLastError?: () => unknown;
   retry?: () => Promise<void>;
   canRetry?: boolean;
   actions: Record<string, ResourcePageActionDescriptor<any>>;

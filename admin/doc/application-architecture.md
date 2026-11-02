@@ -80,17 +80,26 @@ submission; merely selecting a file does not show upload progress.
 For form pages, `useResourceFormCrud` is a thin adapter around Refine `useForm`.
 Refine owns edit query state, create/update mutations, CRUD invalidation and
 redirect helpers. The adapter performs fresh authorization and record checks.
+Resource forms use `useResourceFormBaseline` to keep rendered defaults aligned
+with successful resets; its configuration reference advances before TanStack
+notifies subscribers, preventing the next layout effect from restoring the
+original record. Failed saves and background reads never change that baseline.
 Feature `useAppForm` owns values, validation, dirty/touched state and
 `isSubmitting`; the shared page upload resolver checks permission, starts the
 selected files, waits for all of them and returns their Cloudinary URLs. The
 feature maps those URLs into its allowlisted payload.
 After a successful direct upload, the slot invalidates `uploads` list/many
-queries through the named `mediaLibrary` provider. Product form mutations set
-Refine's automatic invalidation targets to an empty list, then await one
-`useInvalidate` call for product list/many/detail after save. This refreshes
-cover replacements and removals without creating a separate cache.
-Successful creation resets the form baseline before the Refine redirect opens
-the new record's edit route. Add-ons keep the same form contract in dialog mode.
+queries through the named `mediaLibrary` provider. Page forms call the shared
+`context.submit({ prepare, reset })`. `useResourceFormSubmission` owns error
+toasts, the whole-submission guard, one awaited Refine list/many/detail
+invalidation, authoritative edit refresh, upload cleanup, baseline reset and
+create redirect. The page composer disables automatic mutation invalidation
+once to avoid duplicating that explicit refresh. Dialogs retain automatic
+Refine invalidation. Features own only their schema, values, payload mapping
+and reset adapter. The context provider accepts the prepared runtime.
+
+See [Resource form submission](./resource-form-submission.md) for the final
+flow, component/hook responsibilities, failure states and verification.
 
 Products use `/catalog/products/create` and
 `/catalog/products/:id/edit`; their route wrappers forward only the optional

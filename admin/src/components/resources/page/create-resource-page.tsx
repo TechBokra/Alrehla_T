@@ -6,6 +6,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResourceAuthorization } from "@/hooks/resources";
 import { useResourceFormCrud } from "@/hooks/resources/crud/use-resource-form-crud";
+import { useResourceFormSubmission } from "@/hooks/resources/page/use-resource-form-submission";
 import { useResourceCommands } from "@/hooks/resources/page/use-resource-commands";
 import { useResourcePage } from "@/hooks/resources/page/use-resource-page";
 import { ResourcePageContextProvider } from "@/contexts/resource-page";
@@ -45,14 +46,21 @@ export function createResourcePage<
   TCommands extends ResourceCommandMap<TRecord> = ResourceCommandMap<TRecord>,
 >(
   definition: ResourceDetailsPageDefinition<TRecord, TCommands>,
-): Extract<ResourcePageFactory<TRecord, { form: unknown }, TCommands>, { kind: "details" }>;
+): Extract<
+  ResourcePageFactory<TRecord, { form: unknown }, TCommands>,
+  { kind: "details" }
+>;
 export function createResourcePage<TRecord extends BaseRecord>(
-  definition: ResourceFormPageDefinition<TRecord, any, any> | ResourceDetailsPageDefinition<TRecord, any>,
+  definition:
+    | ResourceFormPageDefinition<TRecord, any, any>
+    | ResourceDetailsPageDefinition<TRecord, any>,
 ): ResourcePageFactory<TRecord> {
   function Page({ id }: { id?: string }) {
     if (definition.kind === "form") {
       if (!definition.page) {
-        return <UnavailablePage message="صفحة النموذج غير مهيأة لهذا المورد." />;
+        return (
+          <UnavailablePage message="صفحة النموذج غير مهيأة لهذا المورد." />
+        );
       }
       return <FormPageRoute definition={definition} id={id} />;
     }
@@ -93,23 +101,25 @@ export function createResourcePage<TRecord extends BaseRecord>(
   }
 
   function DirtyGuard() {
-    return definition.kind === "form" && definition.page
-      ? <ResourceFormDirtyGuard />
-      : null;
+    return definition.kind === "form" && definition.page ? (
+      <ResourceFormDirtyGuard />
+    ) : null;
   }
 
   function Action({ name, children }: { name: string; children?: ReactNode }) {
     const page = useResourcePage(definition);
     const action = page.actions[name];
     if (!action) return null;
-    return (
-      <Button {...action.buttonProps}>
-        {children ?? action.label}
-      </Button>
-    );
+    return <Button {...action.buttonProps}>{children ?? action.label}</Button>;
   }
 
-  function ActionMenuItem({ name, children }: { name: string; children?: ReactNode }) {
+  function ActionMenuItem({
+    name,
+    children,
+  }: {
+    name: string;
+    children?: ReactNode;
+  }) {
     const page = useResourcePage(definition);
     const action = page.actions[name];
     if (!action) return null;
@@ -142,7 +152,7 @@ function FormPageRoute<TRecord extends BaseRecord>({
   definition,
   id,
 }: {
-      definition: ResourceFormPageDefinition<TRecord, ResourceFormFeatureState>;
+  definition: ResourceFormPageDefinition<TRecord, ResourceFormFeatureState>;
   id?: string;
 }) {
   const pageDefinition = definition.page!;
@@ -155,7 +165,8 @@ function FormPageRoute<TRecord extends BaseRecord>({
     suppressNotifications: true,
     presentation: "page",
     redirectAfterCreate: pageDefinition.redirectAfterCreate,
-    invalidates: pageDefinition.invalidates,
+    // The shared page submission awaits invalidation after preparation/save.
+    invalidates: [],
   });
   const mode = id === undefined ? "create" : "edit";
   const title = pageDefinition.title(mode);
@@ -165,7 +176,9 @@ function FormPageRoute<TRecord extends BaseRecord>({
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">{title}</h1>
         {pageDefinition.description?.(mode) ? (
-          <p className="text-muted-foreground">{pageDefinition.description(mode)}</p>
+          <p className="text-muted-foreground">
+            {pageDefinition.description(mode)}
+          </p>
         ) : null}
       </header>
       {crud.initialLoading ? (
@@ -184,9 +197,15 @@ function FormPageRoute<TRecord extends BaseRecord>({
                 : "تعذّر تحميل البيانات"}
           </AlertTitle>
           <AlertDescription className="mt-2 flex flex-col items-start gap-3">
-            <p>{crud.error ?? "تحقق من الاتصال ثم حاول تحميل السجل مرة أخرى."}</p>
+            <p>
+              {crud.error ?? "تحقق من الاتصال ثم حاول تحميل السجل مرة أخرى."}
+            </p>
             {crud.canRetry ? (
-              <Button variant="outline" disabled={crud.busy} onClick={() => void crud.retryLoad()}>
+              <Button
+                variant="outline"
+                disabled={crud.busy}
+                onClick={() => void crud.retryLoad()}
+              >
                 إعادة المحاولة
               </Button>
             ) : null}
@@ -195,7 +214,9 @@ function FormPageRoute<TRecord extends BaseRecord>({
       ) : crud.unavailable ? (
         <Alert>
           <AlertTitle>السجل غير متاح للتعديل</AlertTitle>
-          <AlertDescription>لا يمكن تعديل هذا السجل من هذه الصفحة.</AlertDescription>
+          <AlertDescription>
+            لا يمكن تعديل هذا السجل من هذه الصفحة.
+          </AlertDescription>
         </Alert>
       ) : (
         <FormPageContent
@@ -230,7 +251,11 @@ function FormPageContent<TRecord extends BaseRecord>({
   const pageDefinition = definition.page!;
   return (
     <ResourceUploadSlots definitions={pageDefinition.uploads ?? {}}>
-      <FormPageContentReady definition={definition} context={context} crud={crud} />
+      <FormPageContentReady
+        definition={definition}
+        context={context}
+        crud={crud}
+      />
     </ResourceUploadSlots>
   );
 }
@@ -247,14 +272,27 @@ function FormPageContentReady<TRecord extends BaseRecord>({
   const pageDefinition = definition.page!;
   const uploads = useResourceUploads();
   const resolveImages = useCallback(
-    async (slot: string, images: Parameters<typeof resolveImageSelectionUrls>[1]) => {
+    async (
+      slot: string,
+      images: Parameters<typeof resolveImageSelectionUrls>[1],
+    ) => {
       const upload = uploads[slot];
       if (!upload) throw new Error("إعداد رفع الصور غير مكتمل لهذا الحقل.");
       return resolveImageSelectionUrls(upload.resolve, images);
     },
     [uploads],
   );
-  const feature = pageDefinition.useFeatureForm({ ...context, uploads, resolveImages });
+  const submit = useResourceFormSubmission({ definition, context, uploads });
+  const feature = pageDefinition.useFeatureForm({
+    record: context.record,
+    id: context.id,
+    mode: context.mode,
+    disabled: context.disabled,
+    pending: context.pending,
+    uploads,
+    resolveImages,
+    submit,
+  });
   const featureIsDirty = Boolean(feature.isDirty);
   const commandBlockReason = featureIsDirty
     ? "احفظ تغييرات النموذج أو ألغِها قبل تنفيذ الإجراء."
@@ -280,16 +318,14 @@ function FormPageContentReady<TRecord extends BaseRecord>({
     pending: context.pending,
     loading: crud.busy,
     error: crud.error ?? undefined,
-    save: crud.save as ResourcePageRuntime<TRecord>["save"],
     refreshRecord: crud.refreshRecord,
-    redirectAfterCreate: crud.redirectAfterCreate as ResourcePageRuntime<TRecord>["redirectAfterCreate"],
-    getLastError: crud.getLastError,
     retry: crud.retryLoad,
     canRetry: crud.canRetry,
     form: feature.form,
     feature,
     uploads,
     resolveImages,
+    submit,
     actions: commandController.actions,
     activeCommandKey: commandController.activeCommandKey,
     closeCommand: commandController.close,
@@ -305,7 +341,9 @@ function FormPageContentReady<TRecord extends BaseRecord>({
         </Alert>
       ) : null}
       <Content />
-      {pageDefinition.commands ? <ResourceCommandDialogs commands={pageDefinition.commands} /> : null}
+      {pageDefinition.commands ? (
+        <ResourceCommandDialogs commands={pageDefinition.commands} />
+      ) : null}
     </ResourcePageContextProvider>
   );
 }
@@ -343,12 +381,17 @@ function DetailsPageRoute<TRecord extends BaseRecord>({
       return refreshed.data?.data;
     },
   });
-  if (access.isPending || (access.allowed && (query.isPending || query.isFetching && !record))) {
+  if (
+    access.isPending ||
+    (access.allowed && (query.isPending || (query.isFetching && !record)))
+  ) {
     return <LoadingPage title={definition.title} />;
   }
   if (!id || access.isError || !access.allowed || query.isError || !record) {
     return (
-      <Alert variant={query.isError || access.isError ? "destructive" : "default"}>
+      <Alert
+        variant={query.isError || access.isError ? "destructive" : "default"}
+      >
         <AlertTitle>
           {!access.allowed && !access.isError
             ? "لا تملك صلاحية الوصول إلى هذا المورد"
@@ -367,7 +410,9 @@ function DetailsPageRoute<TRecord extends BaseRecord>({
             <Button
               variant="outline"
               disabled={access.isFetching || query.isFetching}
-              onClick={() => void (access.isError ? access.refetch() : query.refetch())}
+              onClick={() =>
+                void (access.isError ? access.refetch() : query.refetch())
+              }
             >
               إعادة المحاولة
             </Button>
@@ -398,11 +443,21 @@ function DetailsPageRoute<TRecord extends BaseRecord>({
       <section className="flex flex-col gap-6" aria-busy={runtime.pending}>
         <header className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold">{definition.title}</h1>
-          {definition.description ? <p className="text-muted-foreground">{definition.description}</p> : null}
+          {definition.description ? (
+            <p className="text-muted-foreground">{definition.description}</p>
+          ) : null}
         </header>
         {commandController.feedback ? (
-          <Alert variant={commandController.feedback.kind === "error" ? "destructive" : "default"}>
-            <AlertDescription>{commandController.feedback.message}</AlertDescription>
+          <Alert
+            variant={
+              commandController.feedback.kind === "error"
+                ? "destructive"
+                : "default"
+            }
+          >
+            <AlertDescription>
+              {commandController.feedback.message}
+            </AlertDescription>
           </Alert>
         ) : null}
         <Content />
@@ -415,7 +470,6 @@ function DetailsPageRoute<TRecord extends BaseRecord>({
 function LoadingPage({ title }: { title: string }) {
   return (
     <div role="status" className="flex flex-col gap-4">
-      <span>جارٍ تحميل {title}…</span>
       <Skeleton className="h-40 w-full" />
       <Skeleton className="h-64 w-full" />
     </div>
@@ -423,7 +477,12 @@ function LoadingPage({ title }: { title: string }) {
 }
 
 function UnavailablePage({ message }: { message: string }) {
-  return <Alert><AlertTitle>السجل غير متاح</AlertTitle><AlertDescription>{message}</AlertDescription></Alert>;
+  return (
+    <Alert>
+      <AlertTitle>السجل غير متاح</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
+  );
 }
 
 export type { ResourcePageActionDescriptor } from "@/contexts/resource-page/types";

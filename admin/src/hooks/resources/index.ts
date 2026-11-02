@@ -6,6 +6,7 @@ export { useResourceDeleteCrud, useResourceFormCrud } from "./crud";
 export { useResourceContext, useResourceScope } from "./scope";
 export { useResourceTable } from "./table";
 export { useResourcePage } from "./page/use-resource-page";
+export { useResourceFormBaseline } from "./crud/use-resource-form-baseline";
 export { useResourceCommands } from "./page/use-resource-commands";
 export type {
   ResourceCommandDefinition,
