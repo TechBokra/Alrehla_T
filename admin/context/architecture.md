@@ -9,6 +9,21 @@
 | Auth      | [e.g. supabase auth]                | [Role] |
 | Database  | [e.g. supabase + PostgreSQL]  | [Role] |
 
+## Vite admin resource-page migration boundary (2026-11-02)
+
+The shared resource-page and order-commands specification is **proposed work**, not an implemented feature. Its required boundaries apply to this migration:
+
+- **Do not create or modify Supabase functions, migrations, policies, or schema for this work; reuse the existing backend unless the user separately authorizes a change.**
+- Make all implementation changes within `admin/`. Do not change Next.js APIs, `client/`, or deploy backend changes as part of this effort.
+- Prefer Refine `useOne` / `useCreate` / `useUpdate` / `useDelete` for CRUD, with a single shared page controller and feature-owned schemas and payload mapping.
+- For this migration, commands should use the named provider's allowlisted `custom` method via Refine `useCustomMutation` with retries disabled. The prior direct TanStack/RPC description below is historical guidance; **do not treat its illustrative `confirm_order` RPC as deployed or available**.
+- The new `orders` provider must not expose unrestricted create/edit/delete/status updates. Authorize each allowlisted command against the currently authenticated account and a freshly read target record; protect against races with an expected state and `updated_at` predicate. Existing RLS and triggers remain authoritative.
+- Existing broad order RLS is unchanged by the migration. Frontend permissions and provider checks cannot restrict a caller that bypasses this app; avoid describing them as a substitute for database authorization.
+- Do not expose manual XPay payment confirmation, receipt uploads, or refund execution. Treat payment callbacks as authoritative, and keep box-order fulfillment separate.
+- Resource definitions should be declared at module scope, work on direct navigation, and share stable compound components across list and detail contexts.
+
+This section records scope and safety constraints only; it does not claim that the resource-page factories, order provider, routes or fulfillment commands have been implemented.
+
 ## System Boundaries
 
 ### Refine resources and business commands (agreed standard)
