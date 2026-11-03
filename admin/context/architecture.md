@@ -70,6 +70,14 @@ saved ordering. Settings navigation uses the authorized `NavMain` group.
 Existing `applies_to` product IDs/box scope is preserved. No backend/schema
 change is included; see [the feature guide](../doc/catalog-settings.md).
 
+The product editor composes a separate TanStack Form for field/goal membership
+after the product has an ID. Refine reads definitions and executes the named
+`catalogSettings` personalization command. Its provider rechecks product and
+definition access, validates the complete plan and conditions each scope update
+on its prior timestamp and target set. Global inheritance and other products/box
+remain intact. Partial writes reconcile through the same Refine cache; see
+[product personalization](../doc/product-personalization.md).
+
 This is the standard for resource commands and page forms. CRUD uses Refine `useForm`; feature field state remains in `useAppForm`. Notification mark-all-read continues through its existing `useCustomMutation` adapter. No parallel TanStack Query cache or separate CRUD lifecycle is introduced.
 
 ### Application error handling

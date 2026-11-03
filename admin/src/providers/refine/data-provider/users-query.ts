@@ -20,6 +20,19 @@ function filterValue(filters: CrudFilter[] | undefined, field: string) {
   return filter && "field" in filter ? scalar(filter.value) : undefined;
 }
 
+function roleFilterValue(filters: CrudFilter[] | undefined) {
+  const filter = filters?.find((item) => "field" in item && item.field === "role");
+  if (!filter || !("field" in filter)) return undefined;
+  if (filter.operator !== "eq") {
+    throw new Error(`Unsupported role filter operator: ${filter.operator}`);
+  }
+  const value = scalar(filter.value);
+  if (value != null && typeof value !== "string") {
+    throw new Error("Role filters must use one role value.");
+  }
+  return value;
+}
+
 export function buildUserListRequest(query: UserListQuery = {}) {
   const searchFilter = query.filters?.find(
     (filter) => !("field" in filter) && filter.key === "__data_table_search",
@@ -35,7 +48,7 @@ export function buildUserListRequest(query: UserListQuery = {}) {
     typeof searchValue === "string"
       ? searchValue.replace(/\\(["\\])/g, "$1").slice(0, 120)
       : "";
-  const roleValue = filterValue(query.filters, "role");
+  const roleValue = roleFilterValue(query.filters);
   const guardianValue = filterValue(query.filters, "is_guardian");
   const statusValue = filterValue(query.filters, "status");
   const requestedSort = query.sorters?.[0];

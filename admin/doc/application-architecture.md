@@ -181,3 +181,8 @@ resource context/provider identity. The shared per-cell hook owns Refine updates
 pending/errors, authorization and cache refresh. See
 [Inline resource fields](./resource-inline-fields.md) for the full flow,
 column/custom-action examples and component/hook responsibility map.
+
+Product-scoped personalization choices use the existing settings definitions
+and `applies_to` scope. See [Product personalization](./product-personalization.md)
+for inherited/global behavior, conditional scope writes, dirty protection,
+partial-save recovery, and module responsibilities.

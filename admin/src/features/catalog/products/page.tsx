@@ -10,6 +10,7 @@ export function ProductsPage() {
       title="منتجات المنصة"
       description="اللي المنصة بتقدّمه بنفسها: «أنت البطل هنا» وتخصيص غلاف المكتبة والإضافات. منتجات دور النشر في قسم «الناشرون»."
       columns={productColumns}
+      searchField="name"
       mode="page"
       form={productForm}
       deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."

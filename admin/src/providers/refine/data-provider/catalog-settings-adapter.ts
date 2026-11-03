@@ -78,6 +78,9 @@ export function createCatalogSettingsDataProvider(
     action: "create" | "edit" | "delete",
     id?: BaseKey,
   ) => Promise<void>,
+  customCommand?: (
+    params: Parameters<Required<DataProvider>["custom"]>[0],
+  ) => ReturnType<Required<DataProvider>["custom"]>,
 ): DataProvider {
   return {
     ...base,
@@ -158,8 +161,10 @@ export function createCatalogSettingsDataProvider(
     deleteMany: async () => {
       throw new Error("احذف كل عنصر من إجراءاته.");
     },
-    custom: async () => {
-      throw new Error("هذا الإجراء غير متاح لإعدادات الكتالوج.");
-    },
+    custom: (async (params) => {
+      if (!customCommand)
+        throw new Error("هذا الإجراء غير متاح لإعدادات الكتالوج.");
+      return customCommand(params);
+    }) as Required<DataProvider>["custom"],
   };
 }

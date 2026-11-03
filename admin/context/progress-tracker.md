@@ -1,5 +1,33 @@
 # Progress Tracker
 
+### Product personalization scope selection — 2026-11-02
+
+- Redesigned the product editor into responsive cards for basics, story content,
+  pricing/writing styles and a cover/audience/status rail. Main Save stays
+  reachable while scrolling; preparation days and scope membership remain
+  separate forms with their existing guards. Main product upload/save/reset
+  behavior is preserved.
+
+- Added the standalone product personalization section contract for edit and
+  create routes. It reads full catalog definitions through Refine, shows global
+  definitions as inherited, preserves inactive selections, and saves the two
+  restricted selection sets independently from the main product form.
+- Added a pure planner that retains box/other-product scopes, rejects empty
+  scopes and caps targets at 100. The named catalog settings provider rechecks
+  product eligibility and definition permissions, validates all current scopes
+  before writes, and conditionally updates by ID, timestamp, and prior scope.
+- Partial/unconfirmed writes remain visible; explicit refresh advances the
+  baseline while reapplying only explicit selection changes, preserving
+  unrelated external scope updates. Retry plans only remaining changes.
+  Added scope and retry tests and documented the module flow in
+  `doc/product-personalization.md`, linked from the architecture guide.
+- All 64 tests pass, including scope planning, intent reconciliation and real
+  command execution with authorization, concurrent changes and partial retries.
+  Browser preview confirmed the Arabic form layout, category conditionals and
+  invalid-submit feedback without a real save. TypeScript and the production
+  build pass; existing route-generator and bundle-size warnings remain.
+  OpenCode's final review is pending. No live settings or product rows changed.
+
 ### Catalog settings status switches and delete actions — 2026-11-02
 
 - Replaced read-only status badges with the shared inline `is_active` switch on
@@ -677,3 +705,22 @@ change.
 - Verification: all 42 tests, TypeScript, production build and whitespace
   checks pass. Existing route-generator circular-dependency and bundle warnings
   remain. No live product/add-on flags or backend configuration were changed.
+
+
+### Users role filter contract — 2026-11-02
+
+- The user list RPC accepts one exact `p_role` string. Restricted the role
+  filter builder to its supported `is` operator and made the users query adapter
+  reject non-equality or non-scalar role filters instead of dropping operator
+  information and sending an incorrect equality request.
+- No RPC, migration, schema or remote data changes. Automated tests and build
+  were not run.
+
+
+### Catalog search and customization field rows — 2026-11-02
+
+- Restored server-side name search on platform products and add-ons lists by
+  passing `searchField="name"` to both ResourceView compositions.
+- Consolidated customization field name, required badge, example and product/
+  box visibility into one “خانة التخصيص” column. Status and row actions remain
+  separate controls. No backend changes; tests/build were not run.

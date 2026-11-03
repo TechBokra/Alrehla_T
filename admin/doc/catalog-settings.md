@@ -33,8 +33,11 @@ and use the existing database defaults; ordinary edits leave stored order
 untouched. Dragging fields/goals still writes only `sort_order`. Dialects retain
 their existing stored-order display sorting without an order editor.
 
-The product form's future multi-select/quick-create integration is separate
-work. These screens manage the existing shared definitions and their scopes.
+The product editor now offers field/goal multi-selection after its first save,
+using these existing definitions and scopes. See
+[Product personalization](./product-personalization.md) for inheritance,
+conditional writes and partial-save recovery. Creating definitions stays in
+the catalog settings Dialogs.
 
 ## Request and state ownership
 
