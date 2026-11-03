@@ -2,7 +2,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getProvidersForAdmin, getProviderCandidates } from '@/data/domains/(admin)/providers/queries';
 import { getStandaloneServices } from '@/data/domains/(shared)/services/queries';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { ProvidersClient } from './ProvidersClient';
@@ -24,7 +24,7 @@ export default async function Page() {
   const [providers, services, formula, candidates] = await Promise.all([
     getProvidersForAdmin(),
     getStandaloneServices({ includeInactive: true }),
-    getPricingFormulaSettings(),
+    getProviderPricingSettings(),
     getProviderCandidates(),
   ]);
 

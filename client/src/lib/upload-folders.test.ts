@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { uploadFolderProblem, UPLOAD_FOLDERS } from '@/lib/upload-folders';
 import { publicUploadTicket } from '@/lib/cloudinary-private';
 
@@ -38,6 +40,27 @@ describe('مين يرفع فين', () => {
       expect(f.startsWith('alrehla/')).toBe(true);
       expect(f.startsWith('alrehla/private')).toBe(false);
     }
+  });
+});
+
+describe('كل مجلّد مستعمل في الشاشات مسموح', () => {
+  // ⚠️ صور الباقات والإعلانات كانت بتترفض («مكان رفع الصورة مش معروف»)
+  //    لأن الشاشة بتطلب مجلّد مش في القايمة. الاختبار ده بيمسك ده قبل النشر.
+  it('folder="alrehla/…" في أي ملف tsx موجود في UPLOAD_FOLDERS', () => {
+    const used = new Set<string>();
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (p.endsWith('.tsx')) {
+          for (const m of readFileSync(p, 'utf8').matchAll(/folder=["']([^"']+)["']/g)) used.add(m[1]);
+        }
+      }
+    };
+    walk(join(process.cwd(), 'src'));
+    const missing = [...used].filter((f) => f.startsWith('alrehla/') && !(f in UPLOAD_FOLDERS));
+    expect(missing).toEqual([]);
+    expect(used.has('alrehla/packages')).toBe(true);
   });
 });
 

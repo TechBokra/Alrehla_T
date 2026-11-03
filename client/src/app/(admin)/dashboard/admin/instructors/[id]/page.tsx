@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
 import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
 import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AdminInstructorClient } from './AdminInstructorClient';
@@ -38,7 +38,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const certification = await getInstructorCertification(target.id);
   const services = await getStandaloneServices({ includeInactive: true });
   const serviceOffers = await getInstructorServiceOffers(target.id);
-  const formula = await getPricingFormulaSettings();
+  const formula = await getProviderPricingSettings();
   const media = await getInstructorMediaForAdmin(target.id);
   // التأهيل التأسيسي الذاتي (طلب تامر، ٢٤ أكتوبر).
   const [trainingCourse, trainingRecords] = await Promise.all([

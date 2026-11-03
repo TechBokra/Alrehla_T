@@ -27,6 +27,9 @@ export const UPLOAD_FOLDERS: Record<string, Who[]> = {
   'alrehla/box-plans': ['admin'],
   'alrehla/addons': ['admin'],
   'alrehla/services': ['admin'],
+  // صور باقات الكتابة الإبداعية والإعلانات — كانوا ناقصين فالرفع كان بيترفض.
+  'alrehla/packages': ['admin'],
+  'alrehla/ads': ['admin'],
   // المنتجات — الإدارة والناشرين (منتج الناشر بيعدّي على المراجعة).
   'alrehla/products': ['admin', 'publisher'],
   'alrehla/products/gallery': ['admin', 'publisher'],

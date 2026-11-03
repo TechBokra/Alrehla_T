@@ -1,7 +1,7 @@
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getOfferRequests } from '@/data/domains/(admin)/providers/offer-requests';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { OfferRequestsClient } from './OfferRequestsClient';
@@ -18,7 +18,7 @@ export default async function Page() {
     return <Unauthorized />;
   }
 
-  const [requests, formula] = await Promise.all([getOfferRequests(), getPricingFormulaSettings()]);
+  const [requests, formula] = await Promise.all([getOfferRequests(), getProviderPricingSettings()]);
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">

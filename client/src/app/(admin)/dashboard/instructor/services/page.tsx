@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { MyServiceOffersClient } from './MyServiceOffersClient';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
@@ -59,7 +59,7 @@ export default async function InstructorServicesPage() {
     getStandaloneServices(),
     getInstructorServiceOffers(instructorId),
     getServiceOrdersForInstructor(instructorId),
-    getPricingFormulaSettings(),
+    getProviderPricingSettings(),
     getSiteSettings(),
   ]);
 
