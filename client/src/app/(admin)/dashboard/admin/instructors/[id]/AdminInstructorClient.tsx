@@ -855,7 +855,7 @@ export function AdminInstructorClient({
                 {pendingRequests.map((req) => {
                   const changeItems = getInstructorChangeItems(req.requestedChanges, packages);
                   const isPackagesRequest =
-                    (req.requestedChanges as any)._requestType === 'packages' ||
+                    req.requestedChanges._requestType === 'packages' ||
                     (req.requestedChanges.packageIds !== undefined &&
                       req.requestedChanges.weeklySchedule === undefined &&
                       req.requestedChanges.workModel === undefined &&
@@ -1073,7 +1073,7 @@ export function AdminInstructorClient({
                 {paginatedPastRequests.map((req) => {
                   const pastChangeItems = getInstructorChangeItems(req.requestedChanges, packages);
                   const isPackages =
-                    (req.requestedChanges as any)._requestType === 'packages' ||
+                    req.requestedChanges._requestType === 'packages' ||
                     (req.requestedChanges.packageIds !== undefined &&
                       req.requestedChanges.weeklySchedule === undefined &&
                       req.requestedChanges.workModel === undefined);

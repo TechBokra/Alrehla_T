@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAction } from '@/lib/use-action';
 import { FormError, FormSuccess } from '@/components/ui/FormError';
-import { Instructor, WeeklySlot, PricingFormulaSettings } from '@/types';
+import { Instructor, WeeklySlot, PricingFormulaSettings, type WorkModel } from '@/types';
 import { Info, CheckCircle2, Save, Layers, Clock, AlertTriangle, KeyRound, Lock } from 'lucide-react';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 import { submitInstructorProfileUpdate, submitInstructorPackageUpdateRequest } from '@/actions/instructors';
@@ -34,7 +34,7 @@ export function InstructorSettingsClient({
   packages,
   selectedPackageIds,
 }: InstructorSettingsClientProps) {
-  const [workModel, setWorkModel] = useState(instructor.workModel || 'per_session');
+  const [workModel, setWorkModel] = useState<WorkModel>(instructor.workModel || 'per_session');
   const [monthlyHours, setMonthlyHours] = useState(instructor.monthlyHoursCommitted || 60);
   const [requestedPrice, setRequestedPrice] = useState(instructor.requestedPrice || 100);
   const [schedule, setSchedule] = useState<WeeklySlot[]>(instructor.weeklySchedule || []);
@@ -113,7 +113,7 @@ export function InstructorSettingsClient({
     e.preventDefault();
     setIsSaved(false);
     await saveProfile.run(instructor.id, {
-      workModel: workModel as any,
+      workModel,
       monthlyHoursCommitted: workModel === 'monthly' ? monthlyHours : undefined,
       // في نظام الراتب الشهري لا توجد قيمة للراتب المقترح بل يتم التواصل المباشر مع الإدارة
       requestedPrice: workModel === 'monthly' ? undefined : Number(requestedPrice),
@@ -169,7 +169,7 @@ export function InstructorSettingsClient({
 
           <div className="space-y-6">
             <Field label="نظام العمل" help="بالجلسة: إنت بتحدد حصيلتك من كل جلسة والموقع بيضيف نسبة المنصة على سعر العميل. راتب شهري: اتفاق ثابت مع الإدارة بالتزام 60 ساعة في الشهر على الأقل." name="workModel" required>
-              <Select value={workModel} onChange={(e) => setWorkModel(e.target.value as any)}>
+              <Select value={workModel} onChange={(e) => setWorkModel(e.target.value as WorkModel)}>
                 <option value="per_session">بالجلسة (تحديد حصيلة لكل جلسة)</option>
                 <option value="monthly">راتب شهري (يتطلب 60 ساعة التزام على الأقل)</option>
               </Select>

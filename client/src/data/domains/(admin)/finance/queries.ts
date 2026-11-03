@@ -27,7 +27,7 @@ export const getInstructorPayouts = async (): Promise<InstructorPayout[]> => {
     return [];
   }
 
-  return data.map((p: any) => ({
+  return data.map((p) => ({
     id: p.id,
     instructorId: p.owner_id,
     period: p.period,
@@ -78,7 +78,7 @@ export const getPublisherPayouts = async (): Promise<PublisherPayout[]> => {
     return [];
   }
 
-  return data.map((p: any) => ({
+  return data.map((p) => ({
     id: p.id,
     publisherId: p.owner_id,
     period: p.period,

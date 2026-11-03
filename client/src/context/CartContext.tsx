@@ -53,7 +53,8 @@ export type CartItem = {
    *    اللي كان).
    */
   addonsNeedShipping?: boolean;
-  customizationData?: any;
+  /** بيانات التخصيص كما جمعها المعالج — بتتعرض وبتتبعت مع الطلب كما هي. */
+  customizationData?: { childName?: string } & Record<string, unknown>;
   /**
    * مطبوعة / إلكترونية / الاتنين (ملف 138). فاضي = مطبوعة — السلال
    * القديمة المحفوظة في المتصفح مالهاش الخانة دي.

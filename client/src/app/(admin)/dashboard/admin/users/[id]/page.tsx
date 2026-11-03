@@ -59,7 +59,7 @@ export default async function Page({
     .eq('user_id', id)
     .order('created_at', { ascending: false });
 
-  const orders: UserOrderRow[] = (rawOrders || []).map((o: any) => ({
+  const orders: UserOrderRow[] = (rawOrders || []).map((o) => ({
     id: o.id,
     totalAmount: Number(o.total_amount || 0),
     status: o.status,
@@ -79,7 +79,7 @@ export default async function Page({
     .order('created_at', { ascending: false });
 
   const serviceOrders: UserServiceOrderRow[] = (rawServiceOrders || []).map(
-    (so: any) => ({
+    (so) => ({
       id: so.id,
       serviceName: so.standalone_services?.name || 'خدمة إبداعية',
       instructorName: so.instructors?.display_name || undefined,
@@ -95,7 +95,7 @@ export default async function Page({
     .select('id, package_id, creative_writing_packages(name)')
     .eq('user_id', id);
 
-  const subIds = (subs || []).map((s: any) => s.id);
+  const subIds = (subs || []).map((s) => s.id);
   let sessions: UserSessionRow[] = [];
   if (subIds.length > 0) {
     const { data: rawSessions } = await supabase
@@ -107,9 +107,9 @@ export default async function Page({
       .order('scheduled_at', { ascending: false });
 
     const pkgMap = new Map(
-      (subs || []).map((s: any) => [s.id, s.creative_writing_packages?.name])
+      (subs || []).map((s) => [s.id, s.creative_writing_packages?.name])
     );
-    sessions = (rawSessions || []).map((s: any) => ({
+    sessions = (rawSessions || []).map((s) => ({
       id: s.id,
       sessionNumber: s.session_number,
       scheduledAt: s.scheduled_at,
@@ -145,7 +145,7 @@ export default async function Page({
     .eq('user_id', id)
     .order('created_at', { ascending: false });
 
-  const tickets: UserTicketRow[] = (rawTickets || []).map((t: any) => ({
+  const tickets: UserTicketRow[] = (rawTickets || []).map((t) => ({
     id: t.id,
     subject: t.subject,
     category: t.category,

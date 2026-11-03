@@ -136,10 +136,10 @@ export function LibraryCustomizationWizard({
     const saved = sessionStorage.getItem(`library_wizard_${product.id}`);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(key => {
+        const parsed = JSON.parse(saved) as Partial<LibraryFormValues>;
+        (Object.keys(parsed) as (keyof LibraryFormValues)[]).forEach(key => {
           if (key !== 'coverPhotoFile') {
-            methods.setValue(key as any, parsed[key]);
+            methods.setValue(key, parsed[key]);
           }
         });
       } catch (e) {}

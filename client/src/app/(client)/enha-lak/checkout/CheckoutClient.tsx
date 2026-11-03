@@ -957,7 +957,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
           )}
 
           <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <div key={item.id} className="flex gap-4 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
                 {/* ⚠️ **البند من غير صورة كان بيطلّع أيقونة مكسورة.**
                     `optimizedImageUrl(undefined)` بترجّع `''`، و`<Image src="">`

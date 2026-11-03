@@ -207,7 +207,7 @@ export default async function InstructorDashboard() {
                 <span className="text-amber-800">
                   {pendingRequests.map((r, i) => (
                     <span key={r.id}>
-                      {(r.requestedChanges as any)._requestType === 'packages'
+                      {r.requestedChanges._requestType === 'packages'
                         ? 'طلب باقات تدريب'
                         : 'طلب تعديل الجدول والملف'}
                       {i < pendingRequests.length - 1 ? ' · ' : ''}

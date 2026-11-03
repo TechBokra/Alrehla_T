@@ -7,12 +7,13 @@ export interface Column {
   header: string;
   accessorKey: string;
   /** Optional custom renderer. When present it wins over accessorKey. */
-  cell?: (row: any) => React.ReactNode;
+  cell?: (row: any) => React.ReactNode; // أعمدة عامة لأي صف — الاستثناء الوحيد المقصود
 }
 
 interface SimpleDataTableProps {
   columns: Column[];
-  data: Record<string, any>[];
+  /** أي صفوف — الجدول بيقرا الخانة بالاسم (`accessorKey`) أو بـ`cell`. */
+  data: readonly object[];
   pageSize?: number;
   enableSearch?: boolean;
   enablePagination?: boolean;
@@ -20,8 +21,8 @@ interface SimpleDataTableProps {
   emptyMessage?: string;
 }
 
-const renderCell = (col: Column, row: Record<string, any>): React.ReactNode =>
-  col.cell ? col.cell(row) : row[col.accessorKey];
+const renderCell = (col: Column, row: object): React.ReactNode =>
+  col.cell ? col.cell(row) : ((row as Record<string, unknown>)[col.accessorKey] as React.ReactNode);
 
 export function SimpleDataTable({
   columns,

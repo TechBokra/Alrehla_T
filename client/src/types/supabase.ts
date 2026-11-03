@@ -1383,6 +1383,8 @@ export type Database = {
           target_audience: string | null
           track: string | null
           updated_at: string
+          booking_open: boolean
+          image_url: string | null
         }
         Insert: {
           age_group: Database["public"]["Enums"]["age_group"]
@@ -1402,6 +1404,8 @@ export type Database = {
           target_audience?: string | null
           track?: string | null
           updated_at?: string
+          booking_open?: boolean
+          image_url?: string | null
         }
         Update: {
           age_group?: Database["public"]["Enums"]["age_group"]
@@ -1421,6 +1425,8 @@ export type Database = {
           target_audience?: string | null
           track?: string | null
           updated_at?: string
+          booking_open?: boolean
+          image_url?: string | null
         }
         Relationships: [
           {

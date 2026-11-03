@@ -12,7 +12,7 @@ export const getJoinRequests = async (): Promise<JoinRequest[]> => {
     return [];
   }
 
-  return data.map((r: any) => ({
+  return data.map((r) => ({
     id: r.id,
     applicantName: r.applicant_name,
     requestedRole: r.requested_role,

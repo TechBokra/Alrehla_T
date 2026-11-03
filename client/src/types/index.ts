@@ -180,7 +180,8 @@ export type PublicInstructor = Omit<
 export interface ProfileUpdateRequest {
   id: string;
   instructorId: string;
-  requestedChanges: Partial<Instructor>;
+  /** `_requestType: 'packages'` = طلب باقات منفصل عن الملف. */
+  requestedChanges: Partial<Instructor> & { packageIds?: string[]; _requestType?: 'packages' };
   status: 'pending' | 'approved' | 'rejected';
   adminFeedback?: string;
   createdAt: string;

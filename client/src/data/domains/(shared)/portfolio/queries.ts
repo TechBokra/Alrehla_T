@@ -13,7 +13,7 @@ export async function getStudentDocuments(studentId: string, options: QueryReadO
     return [];
   }
 
-  return data.map((d: any) => ({
+  return data.map((d) => ({
     id: d.id,
     studentId: d.student_id,
     title: d.title,

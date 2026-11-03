@@ -11,13 +11,13 @@ export const getPublishers = async (): Promise<Publisher[]> => {
     return [];
   }
 
-  return data.map((p: any) => ({
+  return data.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
     logoUrl: p.logo_url || undefined,
     bio: p.bio,
-    isSample: p.is_sample,
+    isSample: p.is_sample === true,
     status: p.status
   }));
 };

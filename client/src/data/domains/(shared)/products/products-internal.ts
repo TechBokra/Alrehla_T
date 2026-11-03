@@ -1,4 +1,5 @@
 import { readAppliesTo } from '@/lib/applies-to';
+import type { Database } from '@/types/supabase';
 import { PersonalizedProduct, AddonProduct } from '@/types';
 import { getWatermarkLayer } from '@/lib/watermark';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
@@ -12,7 +13,20 @@ import { watermarkedImageUrl } from '@/lib/cloudinary';
  *    132) كان هيبقى الرابع: يتضاف في القايمة وينسى صفحة المنتج،
  *    فالكارت يقول «٦–٩» والصفحة ماتقولش حاجة.
  */
-export function mapProductRow(p: any): PersonalizedProduct {
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+/**
+ * الصف كما يرجع من القاعدة. `Partial` لأن بعض الاستعلامات بتختار أعمدة
+ * محدّدة، والأعمدة الأحدث ممكن تكون لسه مش موجودة قبل ترحيلها.
+ */
+type DbRow<T extends keyof Database['public']['Tables'], K extends keyof TableRow<T>> =
+  Pick<TableRow<T>, K> & Partial<TableRow<T>> & Record<string, unknown>;
+
+const REVIEW_STATUSES = ['pending', 'approved', 'rejected'] as const;
+type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+const isReviewStatus = (v: unknown): v is ReviewStatus =>
+  (REVIEW_STATUSES as readonly unknown[]).includes(v);
+
+export function mapProductRow(p: DbRow<'personalized_products', 'id' | 'slug' | 'name' | 'category' | 'price' | 'owner_type'>): PersonalizedProduct {
   return {
     id: p.id,
     slug: p.slug,
@@ -39,9 +53,7 @@ export function mapProductRow(p: any): PersonalizedProduct {
     //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات
     //    بتتعامل معاه. وأي قيمة غريبة بتتقري «في الانتظار» — الأأمن:
     //    المنتج يفضل مستخبي لحد ما حد يبصّ.
-    reviewStatus: (['pending', 'approved', 'rejected'] as const).includes(p.review_status)
-      ? p.review_status
-      : 'pending',
+    reviewStatus: isReviewStatus(p.review_status) ? p.review_status : 'pending',
     reviewNote: p.review_note || undefined,
     isActive: p.is_active ?? true,
     createdAt: p.created_at ?? undefined,
@@ -64,7 +76,7 @@ export function mapProductRow(p: any): PersonalizedProduct {
  * بأسعار مكتوبة في كود المتصفح مالهاش جدول. دلوقتي من `addon_products`.
  */
 /** صفّ الإضافة من القاعدة ← شكل الكود. مكان واحد للقايمة والإضافة الواحدة. */
-export function mapAddonRow(a: any): AddonProduct {
+export function mapAddonRow(a: DbRow<'addon_products', 'id' | 'slug' | 'name' | 'price' | 'is_active' | 'sort_order'>): AddonProduct {
   return {
     id: a.id,
     slug: a.slug,

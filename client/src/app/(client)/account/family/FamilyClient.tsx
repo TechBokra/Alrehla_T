@@ -270,7 +270,7 @@ export function FamilyClient({
       <FormError message={listError} />
 
       {members.length > 0 ? (
-        <SimpleDataTable columns={columns} data={members as any} />
+        <SimpleDataTable columns={columns} data={members} />
       ) : (
         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100 text-slate-500">
           لا يوجد أفراد عائلة مضافين بعد

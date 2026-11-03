@@ -1,12 +1,26 @@
 import { createClient } from '@/lib/supabase/server';
 import type { QueryReadOptions } from '@/data/query-result';
 import type { ServiceOrderRow } from '@/data/domains/(shared)/service-orders/types';
+import type { Database } from '@/types/supabase';
+
+/** الصف كما يرجعه `SERVICE_ORDER_SELECT`، بالعلاقات المضمّنة. */
+type ServiceOrderDbRow = Pick<
+  Database['public']['Tables']['service_orders']['Row'],
+  | 'id' | 'buyer_profile_id' | 'standalone_service_id' | 'instructor_id' | 'amount' | 'status'
+  | 'transaction_reference' | 'created_at' | 'participant_type' | 'child_id'
+> & Partial<Database['public']['Tables']['service_orders']['Row']> & {
+  standalone_services?: { name: string } | null;
+  instructors?: { display_name: string } | null;
+  service_providers?: { display_name: string; kind: 'platform' | 'instructor' | 'individual' } | null;
+};
 
 export async function mapServiceOrders(
-  rows: any[],
+  rawRows: readonly unknown[],
   supabase: Awaited<ReturnType<typeof createClient>>,
   options: QueryReadOptions = {},
 ): Promise<ServiceOrderRow[]> {
+  // حدّ واحد بين القاعدة والكود: شكل الصف مضمون من `SERVICE_ORDER_SELECT`.
+  const rows = rawRows as ServiceOrderDbRow[];
   // child_id is an application reference, not a PostgREST foreign-key join.
   // Reuse the session client so child-profile RLS remains enforced.
   const childIds = [...new Set(rows
@@ -26,12 +40,11 @@ export async function mapServiceOrders(
     for (const child of data ?? []) participants.set(child.id, child);
   }
   return rows.map((row) => {
-    const service = row.standalone_services as { name: string } | null;
-    const instructor = row.instructors as { display_name: string } | null;
-    const provider = row.service_providers as
-      | { display_name: string; kind: 'platform' | 'instructor' | 'individual' }
-      | null;
-    const participant = row.participant_type === 'child' ? participants.get(row.child_id) : undefined;
+    const service = row.standalone_services ?? null;
+    const instructor = row.instructors ?? null;
+    const provider = row.service_providers ?? null;
+    const participant =
+      row.participant_type === 'child' && row.child_id ? participants.get(row.child_id) : undefined;
     return {
       id: row.id,
       buyerProfileId: row.buyer_profile_id,

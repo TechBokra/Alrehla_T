@@ -19,21 +19,21 @@ export const getWritingPackages = async (
     return [];
   }
 
-  return data.map((p: any) => ({
+  return data.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
     ageGroup: p.age_group,
     track: (p.track as import('@/types').PackageTrack | null) ?? null,
     price: p.price,
-    durationText: p.duration_text,
-    sessionsCount: p.sessions_count,
+    durationText: p.duration_text ?? '',
+    sessionsCount: p.sessions_count ?? 0,
     sessionDuration: p.session_duration || undefined,
-    targetAudience: p.target_audience,
+    targetAudience: p.target_audience ?? '',
     prerequisiteNote: p.prerequisite_note || undefined,
     prerequisitePackageId: p.prerequisite_package_id || undefined,
-    shortDescription: p.short_description,
-    fullDescription: p.full_description,
+    shortDescription: p.short_description ?? '',
+    fullDescription: p.full_description ?? '',
     isActive: p.is_active,
     // العمود ممكن يكون لسه مش موجود (قبل ترحيل ٢٤ أكتوبر) = مفتوحة.
     bookingOpen: p.booking_open !== false,
