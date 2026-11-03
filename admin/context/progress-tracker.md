@@ -876,3 +876,39 @@ change.
 - Consolidated customization field name, required badge, example and product/
   box visibility into one “خانة التخصيص” column. Status and row actions remain
   separate controls. No backend changes; tests/build were not run.
+
+
+### Catalog list avatars and table options alignment — 2026-11-03
+
+- Restored shared `CatalogImageAvatar` use in product and add-on table cells,
+  including lazy-loaded images and icon fallbacks. Added the image-column rule
+  to `context/ui-context.md`.
+- Aligned `DataTableViewOptions` to the physical left edge of its final header
+  cell in RTL and to the left in LTR. Existing catalog name search and the
+  combined customization-field column were already present and were left intact.
+- Tests/build were not run.
+
+
+### Active sidebar item border — 2026-11-03
+
+- Added a two-pixel right border in the sidebar primary color to active top-level
+  and nested menu links. The indicator follows the shared `isActive` state.
+- Tests/build were not run.
+
+
+### Main sidebar menu corners — 2026-11-03
+
+- Changed main sidebar menu buttons to square corners with `rounded-none`.
+  Nested submenu links retain their existing corner treatment.
+- Tests/build were not run.
+
+
+### Promotions offer column RTL — 2026-11-03
+
+- Set the “العرض” cell content to RTL and aligned its item label to the right,
+  so the target, discount, and period read consistently in Arabic.
+- Tests/build were not run.
+
+- Follow-up: the sortable “العرض” header had its own alignment. Wrapped it in
+  an RTL start-aligned container and removed the header button's negative start
+  margin for this column. Tests/build were not run.

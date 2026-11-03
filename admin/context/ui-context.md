@@ -67,3 +67,9 @@ Text-entry controls and select triggers use `bg-background` with `border-input`,
 ## Toast notifications
 
 Use the shared Sonner toaster with RTL direction and Arabic accessible labels. Refine default operation messages are translated through `arabicEgyptI18nProvider`; feature calls to `toast` supply Arabic titles/descriptions. The shared notification provider maps non-Arabic server errors to actionable Arabic messages.
+
+## Images in table columns
+
+- Render product, add-on, user, and other row images with the shadcn `Avatar`, `AvatarImage`, and `AvatarFallback` composition. Do not use a bare `<img>` or a custom placeholder box in a table cell.
+- Always provide a fallback for missing or failed image URLs. Prefer a relevant Lucide icon or initials on the semantic muted surface. Keep image size and corner shape consistent across related lists; catalog lists use the shared `CatalogImageAvatar`.
+- When the image sits beside a visible record name, use `alt=""` because the name supplies the accessible label. Wrap user-supplied names in `<bdi>`; give mixed-script descriptions `dir="auto"`.

@@ -31,7 +31,13 @@ export function promotionColumns(now: number): ColumnDef<Promotion, unknown>[] {
     {
       accessorKey: "target_type",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="العرض" />
+        <div dir="rtl" className="flex w-full justify-start">
+          <DataTableColumnHeader
+            column={column}
+            title="العرض"
+            className="ms-0 justify-start"
+          />
+        </div>
       ),
       meta: {
         label: "العرض",
@@ -54,8 +60,8 @@ export function promotionColumns(now: number): ColumnDef<Promotion, unknown>[] {
         const dateRange = `من ${date.format(new Date(promotion.starts_at))} إلى ${date.format(new Date(promotion.ends_at))}`;
 
         return (
-          <div className="flex flex-col min-w-0  py-1 ">
-            <bdi className="font-semibold text-foreground text-end">
+          <div dir="rtl" className="flex min-w-0 flex-col gap-1 py-1 text-start">
+            <bdi className="font-semibold text-foreground text-start">
               {promotion.target_name ?? `عنصر غير متاح: ${promotion.target_id}`}{" "}
               <span>({targetType})</span>
             </bdi>

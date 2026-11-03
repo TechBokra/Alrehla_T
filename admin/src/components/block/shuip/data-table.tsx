@@ -517,8 +517,15 @@ export function DataTable<TData>({
                 </TableHead>
               ))}
               {showViewOptions && (
-                <TableHead className="w-[50px]">
-                  <DataTableViewOptions table={table} />
+                <TableHead className=" ">
+                  <div
+                    className={cn(
+                      "flex",
+                      dir === "rtl" ? "justify-end" : "justify-start",
+                    )}
+                  >
+                    <DataTableViewOptions table={table} />
+                  </div>
                 </TableHead>
               )}
             </TableRow>
@@ -551,7 +558,10 @@ export function DataTable<TData>({
                     <TableCell className="w-12">
                       <DataTableDragHandle
                         label={rowReordering.getRowLabel(row.original)}
-                        disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
+                        disabled={
+                          disabled ||
+                          !(rowReordering.canReorderRow?.(row.original) ?? true)
+                        }
                       />
                     </TableCell>
                   )}
@@ -580,7 +590,10 @@ export function DataTable<TData>({
                 <SortableDataRow
                   key={row.id}
                   id={row.id}
-                  disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
+                  disabled={
+                    disabled ||
+                    !(rowReordering.canReorderRow?.(row.original) ?? true)
+                  }
                   selected={row.getIsSelected()}
                   onClick={onClick}
                   clickable={Boolean(onRowClick)}
@@ -862,12 +875,8 @@ export function DataTableViewOptions<TData>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-auto hidden h-8 lg:flex"
-        >
-          <Settings2 className="me-2 size-4" />
+        <Button variant="outline" size="sm" className="hidden  lg:flex">
+          <Settings2 className=" size-4" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-44 p-0">
@@ -1361,10 +1370,9 @@ function getFilterableFields<TData>(table: Table<TData>): FilterField[] {
       id: column.id,
       label: column.columnDef.meta?.label ?? column.id,
       variant: column.columnDef.meta?.variant as FilterVariant,
-      operators:
-        column.columnDef.meta?.filterOperators?.length
-          ? column.columnDef.meta.filterOperators
-          : OPERATORS_BY_VARIANT[column.columnDef.meta?.variant as FilterVariant],
+      operators: column.columnDef.meta?.filterOperators?.length
+        ? column.columnDef.meta.filterOperators
+        : OPERATORS_BY_VARIANT[column.columnDef.meta?.variant as FilterVariant],
       options: column.columnDef.meta?.options,
     }));
 }

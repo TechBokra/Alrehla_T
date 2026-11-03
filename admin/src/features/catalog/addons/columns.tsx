@@ -5,8 +5,8 @@ import {
   createResourceSwitchColumn,
 } from "@/components/resources";
 import type { Addon } from "./model";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PackagePlus } from "lucide-react";
+import { CatalogImageAvatar } from "../catalog-image-avatar";
 
 export function addonColumns(): ColumnDef<Addon, unknown>[] {
   return [
@@ -19,16 +19,10 @@ export function addonColumns(): ColumnDef<Addon, unknown>[] {
       size: 620,
       cell: ({ row }) => (
         <div className="flex min-w-0 items-start gap-3">
-          <Avatar className="mt-0.5 size-14 shrink-0 rounded-lg">
-            <AvatarImage
-              src={row.original.image_url ?? undefined}
-              alt=""
-              className="object-cover"
-            />
-            <AvatarFallback className="rounded-lg">
-              <PackagePlus aria-hidden="true" />
-            </AvatarFallback>
-          </Avatar>
+          <CatalogImageAvatar
+            src={row.original.image_url}
+            fallback={<PackagePlus aria-hidden="true" />}
+          />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <bdi className="break-words font-medium">{row.original.name}</bdi>
             <p

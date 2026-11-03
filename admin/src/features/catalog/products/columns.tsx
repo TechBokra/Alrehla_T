@@ -5,6 +5,7 @@ import {
   ResourceRowActions,
   createResourceSwitchColumn,
 } from "@/components/resources";
+import { CatalogImageAvatar } from "../catalog-image-avatar";
 import type { Product } from "./model";
 
 const categories = [
@@ -24,22 +25,14 @@ export function productColumns(): ColumnDef<Product, unknown>[] {
       cell: ({ row }) => {
         const product = row.original;
         return (
-          <div className="flex items-center gap-3">
-            {product.cover_image_url ? (
-              <img
-                className="size-10 shrink-0 rounded object-cover"
-                src={product.cover_image_url}
-                alt={product.name}
-                title={product.name}
-              />
-            ) : (
-              <div className="flex size-10 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                <Package className="size-5" />
-              </div>
-            )}
-            <p className="font-bold text-sm" title={product.name}>
+          <div className="flex min-w-0 items-start gap-3">
+            <CatalogImageAvatar
+              src={product.cover_image_url}
+              fallback={<Package aria-hidden="true" />}
+            />
+            <bdi className="break-words font-bold text-sm" title={product.name}>
               {product.name}
-            </p>
+            </bdi>
           </div>
         );
       },
