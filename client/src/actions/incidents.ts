@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { sessionPartyRole } from '@/lib/session-party';
 import { requireAdmin, requireUser } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins, notifyUser } from '@/lib/notifications';
@@ -51,21 +52,7 @@ export async function reportIncident(params: {
     .maybeSingle();
   if (!session) return { ok: false, error: 'الجلسة مش موجودة أو مش من حقك' };
 
-  let role: 'instructor' | 'guardian' | 'student' = 'student';
-  const { data: instructor } = await supabase
-    .from('instructors')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (instructor && instructor.id === session.instructor_id) role = 'instructor';
-  else {
-    const { data: sub } = await supabase
-      .from('course_subscriptions')
-      .select('user_id')
-      .eq('id', session.course_subscription_id)
-      .maybeSingle();
-    if (sub?.user_id === user.id && user.role !== 'student') role = 'guardian';
-  }
+  const role = await sessionPartyRole(supabase, user, session);
 
   const { error } = await supabase.from('session_incidents' as never).insert({
     session_id: session.id,

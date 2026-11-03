@@ -123,14 +123,7 @@ export async function createOrder(
     })),
     p_shipping: shipping
       ? {
-          recipientName: shipping.recipientName?.trim() ?? '',
-          // ⚠️ الرقم ده بيروح لشركة الشحن. حروف فيه = شحنة مش هتتسلّم.
-          recipientPhone: normalizePhone(shipping.recipientPhone),
-          addressLine: shipping.addressLine?.trim() ?? '',
-          city: shipping.city?.trim() ?? '',
-          governorate: shipping.governorate?.trim() ?? '',
-          country: shipping.country?.trim().toUpperCase() ?? '',
-          notes: shipping.notes?.trim() ?? '',
+          ...shippingAddressPayload(shipping),
           deliveryEmail: shipping.deliveryEmail?.trim() ?? '',
         }
       : null,
@@ -165,10 +158,37 @@ export async function createOrder(
     return { ok: false, error: error?.message ?? 'تعذّر إنشاء الطلب' };
   }
 
-  const orderId = data as unknown as string;
+  return createdOrderResult(supabase, data as unknown as string);
+}
 
-  // الرقم المرجعي بيتولّد في القاعدة مع الطلب، والعميل محتاجه يكتبه في
-  // ملاحظة التحويل — فبنرجّعه معانا بدل ما يدوّر عليه.
+/** العنوان كما بيروح للقاعدة — مكان واحد للطلب العادي واشتراك الصندوق. */
+function shippingAddressPayload(shipping: ShippingDetails) {
+  return {
+    recipientName: shipping.recipientName?.trim() ?? '',
+    // ⚠️ الرقم ده بيروح لشركة الشحن. حروف فيه = شحنة مش هتتسلّم.
+    recipientPhone: normalizePhone(shipping.recipientPhone),
+    addressLine: shipping.addressLine?.trim() ?? '',
+    city: shipping.city?.trim() ?? '',
+    governorate: shipping.governorate?.trim() ?? '',
+    country: shipping.country?.trim().toUpperCase() ?? '',
+    notes: shipping.notes?.trim() ?? '',
+  };
+}
+
+/**
+ * نتيجة «الطلب اتسجّل»: الرقم المرجعي والمبلغ **من القاعدة**.
+ *
+ * الرقم المرجعي بيتولّد في القاعدة مع الطلب، والعميل محتاجه يكتبه في
+ * ملاحظة التحويل — فبنرجّعه معانا بدل ما يدوّر عليه.
+ *
+ * ⚠️ **المبلغ اللي العميل بيحوّله لازم يبقى بتاع القاعدة**، مش حساب
+ *    الشاشة: السلة كانت بتعرض سعر القصة من غير الإضافات، فالعميل كان
+ *    بيتقاله «حوّل X» والطلب بـX + الإضافات.
+ */
+async function createdOrderResult(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+): Promise<CreateOrderResult> {
   const { data: row } = await supabase
     .from('orders')
     .select('payment_reference, total_amount')
@@ -179,9 +199,6 @@ export async function createOrder(
     ok: true,
     orderId,
     paymentReference: row?.payment_reference ?? '',
-    // ⚠️ **المبلغ اللي العميل بيحوّله لازم يبقى بتاع القاعدة**، مش
-    //    حساب الشاشة: السلة كانت بتعرض سعر القصة من غير الإضافات،
-    //    فالعميل كان بيتقاله «حوّل X» والطلب بـX + الإضافات.
     totalAmount: row?.total_amount != null ? Number(row.total_amount) : null,
   };
 }
@@ -218,15 +235,7 @@ export async function createBoxSubscriptionOrder(
   const { data, error } = await supabase.rpc('create_box_subscription_order', {
     p_plan_id: planId,
     p_details: (details ?? {}) as Json,
-    p_shipping: {
-      recipientName: shipping.recipientName?.trim() ?? '',
-      recipientPhone: normalizePhone(shipping.recipientPhone),
-      addressLine: shipping.addressLine?.trim() ?? '',
-      city: shipping.city?.trim() ?? '',
-      governorate: shipping.governorate?.trim() ?? '',
-      country: shipping.country?.trim().toUpperCase() ?? '',
-      notes: shipping.notes?.trim() ?? '',
-    },
+    p_shipping: shippingAddressPayload(shipping),
     ...(discountCode?.trim() ? { p_discount_code: discountCode.trim() } : {}),
   });
 
@@ -236,19 +245,7 @@ export async function createBoxSubscriptionOrder(
     return { ok: false, error: error?.message ?? 'تعذّر تسجيل الاشتراك' };
   }
 
-  const orderId = data as unknown as string;
-  const { data: row } = await supabase
-    .from('orders')
-    .select('payment_reference, total_amount')
-    .eq('id', orderId)
-    .maybeSingle();
-
-  return {
-    ok: true,
-    orderId,
-    paymentReference: row?.payment_reference ?? '',
-    totalAmount: row?.total_amount != null ? Number(row.total_amount) : null,
-  };
+  return createdOrderResult(supabase, data as unknown as string);
 }
 
 /**

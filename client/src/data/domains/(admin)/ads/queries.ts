@@ -1,22 +1,9 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import { type Ad, adStatus, type AdStatus } from '@/lib/ads';
+import { adStatus, type Ad, type AdStatus } from '@/lib/ads';
+import { AD_COLUMNS, toAd, type AdRow } from '@/data/domains/(shared)/ads/queries';
 
 export type AdWithStats = Ad & { clicks: number; status: AdStatus };
-
-type Row = {
-  id: string;
-  title: string;
-  advertiser_name: string | null;
-  image_url: string;
-  image_url_mobile: string | null;
-  link_url: string | null;
-  placements: string[] | null;
-  starts_at: string | null;
-  ends_at: string | null;
-  is_active: boolean;
-  sort_order: number;
-};
 
 /**
  * إعلانات اللوحة — **كلها**، مش الشغّال بس.
@@ -35,9 +22,7 @@ export async function getAdsForAdmin(now: Date): Promise<{ ads: AdWithStats[]; c
   const supabase = await createClient();
 
   const [adsResult, countsResult] = await Promise.all([
-    supabase.from('ads').select(
-      'id, title, advertiser_name, image_url, image_url_mobile, link_url, placements, starts_at, ends_at, is_active, sort_order',
-    ),
+    supabase.from('ads').select(AD_COLUMNS),
     supabase.rpc('ad_click_counts'),
   ]);
 
@@ -57,21 +42,9 @@ export async function getAdsForAdmin(now: Date): Promise<{ ads: AdWithStats[]; c
     }
   }
 
-  const ads = ((adsResult.data ?? []) as Row[])
+  const ads = ((adsResult.data ?? []) as AdRow[])
     .map((row) => {
-      const ad: Ad = {
-        id: row.id,
-        title: row.title,
-        advertiserName: row.advertiser_name,
-        imageUrl: row.image_url,
-        imageUrlMobile: row.image_url_mobile,
-        linkUrl: row.link_url,
-        placements: row.placements ?? [],
-        startsAt: row.starts_at,
-        endsAt: row.ends_at,
-        isActive: row.is_active,
-        sortOrder: row.sort_order,
-      };
+      const ad = toAd(row);
       return { ...ad, clicks: counts.get(ad.id) ?? 0, status: adStatus(ad, now) };
     })
     // الظاهر الأول، وبعده المجدول، وبعده الموقوف والمنتهي.

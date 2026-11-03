@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { sessionPartyRole } from '@/lib/session-party';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireUser } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
@@ -66,21 +67,7 @@ export async function requestSessionChange(params: {
   }
 
   // مين بيطلب: المدرب المسنَد، ولا صاحب الاشتراك، ولا الطالب نفسه.
-  let role: 'instructor' | 'guardian' | 'student' = 'student';
-  const { data: instructor } = await supabase
-    .from('instructors')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (instructor && instructor.id === session.instructor_id) role = 'instructor';
-  else {
-    const { data: sub } = await supabase
-      .from('course_subscriptions')
-      .select('user_id')
-      .eq('id', session.course_subscription_id)
-      .maybeSingle();
-    if (sub?.user_id === user.id && user.role !== 'student') role = 'guardian';
-  }
+  const role = await sessionPartyRole(supabase, user, session);
 
   // ── سياسة التأجيل (بند ٦، ٢٤ أكتوبر) ──────────────────────
   //
