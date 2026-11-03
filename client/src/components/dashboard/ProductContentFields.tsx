@@ -1,4 +1,3 @@
-import React from 'react';
 import { GalleryField } from '@/components/dashboard/GalleryField';
 import { ProductAgeFields } from '@/components/dashboard/ProductAgeFields';
 import { Field, TextArea } from '@/components/forms/Form';

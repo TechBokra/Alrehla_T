@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlarmClock, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { formatSpan, type DeadlineState } from '@/lib/work-tasks';
 import { formatCairo } from '@/lib/timezone';

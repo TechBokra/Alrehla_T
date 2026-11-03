@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getInstructorPayouts } from '@/data/domains/(admin)/finance/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';

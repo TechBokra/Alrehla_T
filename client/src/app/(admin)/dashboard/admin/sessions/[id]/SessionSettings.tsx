@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Video, Calendar, Check } from 'lucide-react';
 import { updateSessionDetails } from '@/actions/admin-sessions';

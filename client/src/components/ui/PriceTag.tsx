@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 import { formatPrice } from '@/lib/utils';
 import { savingsPercent } from '@/lib/promotions';
 

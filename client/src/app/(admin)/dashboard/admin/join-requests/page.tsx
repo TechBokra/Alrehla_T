@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getJoinFollowUps, getJoinRequests } from '@/data/domains/(admin)/join-requests/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';

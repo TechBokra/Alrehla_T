@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';

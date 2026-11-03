@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Save, Trash2, Search } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { AGE_GROUP_LABEL, TRACK_LABEL } from '@/lib/package-labels';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';

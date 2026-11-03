@@ -1,4 +1,3 @@
-import React from 'react';
 import { AGE_BANDS } from '@/lib/age-bands';
 import { Field, TextInput } from '@/components/forms/Form';
 

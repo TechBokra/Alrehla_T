@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getSupportSessionRequests } from '@/data/domains/(admin)/support/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';

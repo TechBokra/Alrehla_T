@@ -79,7 +79,6 @@ export async function saveProduct(formData: FormData) {
   const id = formData.get('id') as string;
   const isNew = !id;
   
-  const nameRaw = formData.get('name');
   // ⚠️ **الخانة في الواجهة مش دليل** (قاعدة «ع»). النموذج بيعرض
   //    القيم الصالحة بس، لكن اللي بيوصل للخادم نص من المتصفح — وأي
   //    حد يقدر يبعت اللي هو عايزه. والقاعدة هترفض القيمة الغلط،

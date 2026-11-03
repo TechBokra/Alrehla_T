@@ -4,47 +4,11 @@ import { AGE_GROUP_LABEL, TRACK_SHORT } from '@/lib/package-labels';
 import type { AgeGroup } from '@/types';
 import { SITE_URL } from '@/lib/site-url';
 import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Instructor,
-  ProfileUpdateRequest,
-  InstructorCertification,
-  CreativeService,
-  InstructorServiceOffer,
-  PricingFormulaSettings,
-  WeeklySlot,
-} from '@/types';
-import {
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  Calendar,
-  MessageSquare,
-  Save,
-  Layers,
-  Sparkles,
-  FileText,
-  Clock,
-  User,
-  LayoutDashboard,
-  ShieldCheck,
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Check,
-  CalendarDays,
-  ArrowRight,
-  Briefcase,
-  KeyRound,
-  Copy,
-  Lock,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Instructor, ProfileUpdateRequest, InstructorCertification, CreativeService, InstructorServiceOffer, PricingFormulaSettings } from '@/types';
+import { CheckCircle2, AlertCircle, Calendar, MessageSquare, Save, Layers, Sparkles, FileText, Clock, User, LayoutDashboard, ShieldCheck, Search, ChevronLeft, ChevronRight, Check, CalendarDays, Briefcase, KeyRound, Copy, Trash2, X } from 'lucide-react';
 import {
   updateInstructorCertification,
   setInstructorTraining,
@@ -56,7 +20,7 @@ import { type PackageChoice } from '@/components/dashboard/PackagePicker';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { getInstructorChangeItems } from '@/lib/request-summary';
 import { useAction } from '@/lib/use-action';
-import { FormError, FormSuccess, FormNotice } from '@/components/ui/FormError';
+import { FormError, FormSuccess } from '@/components/ui/FormError';
 import { Field, TextInput, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
 import { isoToCairoLocal } from '@/lib/promotions';
 import { InstructorProfileEditor } from './InstructorProfileEditor';

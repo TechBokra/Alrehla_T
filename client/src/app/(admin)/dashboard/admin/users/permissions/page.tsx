@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';

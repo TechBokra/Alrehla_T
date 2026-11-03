@@ -3,7 +3,6 @@ import { pageMetadata } from '@/lib/seo';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { JoinForm } from './JoinForm';
-import { Button } from '@/components/ui/Button';
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { reportIncident } from '@/actions/incidents';
 import { INCIDENT_CATEGORIES } from '@/lib/incidents';

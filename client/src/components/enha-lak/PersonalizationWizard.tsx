@@ -11,7 +11,7 @@ import { physicalVerdict } from '@/lib/delivery';
 import { loadDeliveryRegion } from '@/lib/delivery-region-store';
 import { addonAllowedWith } from '@/lib/addon-availability';
 import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, selectedAddonsNeedShipping, type ItemFormat } from '@/lib/item-format';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { wizardSchema, type WizardFormValues } from './personalization-schema';

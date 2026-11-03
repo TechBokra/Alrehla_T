@@ -29,7 +29,6 @@ import { formatPrice } from '@/lib/utils';
 
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
-import { SectionHeader } from '@/components/SectionHeader';
 
 
 

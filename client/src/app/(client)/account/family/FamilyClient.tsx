@@ -5,7 +5,7 @@ import { ChildProfile } from '@/types';
 import { createFamilyMember, updateFamilyMember, deleteFamilyMember } from '@/app/actions/family';
 import { Button } from '@/components/ui/Button';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { Trash2, Edit2, Plus, X, FileText } from 'lucide-react';
+import { Trash2, Edit2, Plus, FileText } from 'lucide-react';
 import { ageAtTime } from '@/lib/time-values';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';

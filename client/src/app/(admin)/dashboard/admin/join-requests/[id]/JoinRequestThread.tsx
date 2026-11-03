@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Check, Copy, MessageSquare, Send } from 'lucide-react';
 import { postJoinRequestMessage } from '@/actions/join-requests';
 import { Field, TextArea, BusyButton } from '@/components/forms/Form';

@@ -5,24 +5,7 @@ import { isTodayAt } from '@/lib/time-values';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { InstructorSession } from '@/types';
-import {
-  Calendar,
-  Clock,
-  Video,
-  Search,
-  Filter,
-  ArrowUpDown,
-  ChevronRight,
-  ChevronLeft,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  Hourglass,
-  Layers,
-  User,
-  ExternalLink,
-  RotateCcw,
-} from 'lucide-react';
+import { Calendar, Clock, Video, Search, ChevronRight, ChevronLeft, CheckCircle2, Layers, User, ExternalLink, RotateCcw } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { sessionStatusView } from '@/lib/session-status';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';

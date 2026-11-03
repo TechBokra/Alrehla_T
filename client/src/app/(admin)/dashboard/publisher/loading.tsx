@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Loading() {
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 animate-pulse">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, X, ZoomIn } from 'lucide-react';
 import Image from 'next/image';
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';

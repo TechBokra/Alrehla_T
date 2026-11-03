@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { FormError } from '@/components/ui/FormError';

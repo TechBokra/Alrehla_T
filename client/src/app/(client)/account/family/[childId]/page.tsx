@@ -4,7 +4,7 @@ import { sessionStatusView } from '@/lib/session-status';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, FileText, Video, ArrowLeft } from 'lucide-react';
+import { Calendar, FileText, ArrowLeft } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';

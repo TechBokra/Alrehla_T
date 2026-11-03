@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getReviewsForInstructor, getInstructorRatingSummary } from '@/data/domains/(shared)/reviews/queries';

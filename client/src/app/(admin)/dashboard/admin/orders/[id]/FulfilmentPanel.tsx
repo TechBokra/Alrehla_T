@@ -1,7 +1,7 @@
 'use client';
 
 import { PAID_ORDER_STATUSES, REFUND_NOTE } from '@/lib/super-cancel';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Truck, PackageCheck, Package, X, Check } from 'lucide-react';
 import { setOrderFulfilmentStatus } from '@/actions/admin-orders';

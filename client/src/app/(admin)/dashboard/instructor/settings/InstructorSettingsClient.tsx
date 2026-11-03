@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAction } from '@/lib/use-action';
 import { FormError, FormSuccess } from '@/components/ui/FormError';
 import { Instructor, WeeklySlot, PricingFormulaSettings } from '@/types';
-import { Info, CheckCircle2, Save, Layers, Calendar, Clock, AlertTriangle, KeyRound, Lock } from 'lucide-react';
+import { Info, CheckCircle2, Save, Layers, Clock, AlertTriangle, KeyRound, Lock } from 'lucide-react';
 import { calculateFinalSessionPrice } from '@/lib/utils';
 import { submitInstructorProfileUpdate, submitInstructorPackageUpdateRequest } from '@/actions/instructors';
 import { setMyPassword } from '@/actions/set-password';

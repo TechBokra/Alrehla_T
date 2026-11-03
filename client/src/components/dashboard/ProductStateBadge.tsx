@@ -1,4 +1,3 @@
-import React from 'react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { productState } from '@/lib/product-display';
 import type { PersonalizedProduct } from '@/types';

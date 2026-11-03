@@ -7,7 +7,7 @@ import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
-import { hasAdminPermission, calculateFinalSessionPrice } from '@/lib/utils';
+import { calculateFinalSessionPrice } from '@/lib/utils';
 import { notifyUser, notifyAdmins, getInstructorUserId, getProviderUserId } from '@/lib/notifications';
 import { SERVICE_DUE_DAYS } from '@/lib/service-delivery';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';

@@ -18,7 +18,6 @@ import { PageContainer } from '@/components/PageContainer';
 import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
 import { productUnavailableReason } from '@/lib/product-availability';
 import { ProductCard } from '@/components/enha-lak/ProductCard';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { DEFAULT_DELIVERY_DAYS, deliveryText, effectiveDeliveryDays, type DeliveryDays } from '@/lib/delivery-days';
 import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';

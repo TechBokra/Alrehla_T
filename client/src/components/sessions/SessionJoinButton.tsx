@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { ExternalLink, Loader2, Video } from 'lucide-react';
 import { joinSessionRoom } from '@/actions/rooms';
 

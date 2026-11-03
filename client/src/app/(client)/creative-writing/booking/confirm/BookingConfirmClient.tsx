@@ -4,7 +4,6 @@ import type { AgeGroup } from '@/types';
 import { childFitsPackage, type ChildForAge } from '@/lib/package-age';
 import { formatPrice } from '@/lib/utils';
 import React, { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { Calendar, Clock, User, CheckCircle2, ArrowRight } from 'lucide-react';
 import {
   createCourseBooking,
@@ -17,7 +16,6 @@ import {
 import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
 import type { PaymentAvailability } from '@/lib/payments/settings';
 import { Button } from '@/components/ui/Button';
-import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import {

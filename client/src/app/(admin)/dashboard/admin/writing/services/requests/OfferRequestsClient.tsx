@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, ExternalLink, Inbox } from 'lucide-react';
 import type { PricingFormulaSettings } from '@/types';

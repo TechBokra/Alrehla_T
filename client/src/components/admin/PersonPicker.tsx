@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 /**

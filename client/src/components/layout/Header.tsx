@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Compass } from 'lucide-react';
-import React from 'react';
 import { HeaderAccount } from '@/components/layout/HeaderAccount';
 import { NavLinks, NavLinksMobile } from '@/components/layout/NavLinks';
 import { NavCollapseOnScroll } from '@/components/layout/NavCollapseOnScroll';

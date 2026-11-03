@@ -1,5 +1,3 @@
-import React from 'react';
-
 const steps = [
   { step: 1, label: 'البيانات' },
   { step: 2, label: 'تفاصيل القصة' },

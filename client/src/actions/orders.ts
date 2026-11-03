@@ -1,5 +1,5 @@
 'use server';
-import { requireUser, requireAdmin, requireNotDependent, requireBuyer } from '@/lib/auth-guard';
+import { requireAdmin, requireNotDependent, requireBuyer } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
 

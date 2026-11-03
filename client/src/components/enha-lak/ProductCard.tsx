@@ -1,4 +1,3 @@
-import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Building2, Palette } from 'lucide-react';

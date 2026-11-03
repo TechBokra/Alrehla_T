@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getManagedProductById } from '@/data/domains/(admin)/products/queries';
 import { getMyPublisher } from '@/data/domains/(admin)/publishers/queries';

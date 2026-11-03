@@ -1,5 +1,5 @@
 'use server';
-import { requireSuperAdmin as requireSuperAdminGuard, requireAdmin } from '@/lib/auth-guard';
+import { requireSuperAdmin as requireSuperAdminGuard } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';

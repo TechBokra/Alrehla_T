@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Checkbox, Field, Select, TextInput } from '@/components/forms/Form';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Images, Loader2, Search, X } from 'lucide-react';
 import { listLibraryImages, type LibraryImage } from '@/actions/media';

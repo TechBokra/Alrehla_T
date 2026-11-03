@@ -3,7 +3,7 @@ import { formatPrice } from '@/lib/utils';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { StatusBadge } from '@/components/StatusBadge';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { InstructorPayout } from '@/types';
 import { WithdrawalRequestForm } from '@/components/dashboard/WithdrawalRequestForm';
 

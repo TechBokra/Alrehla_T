@@ -7,7 +7,7 @@ import { calendarDate } from '@/lib/time-values';
 import React, { useState } from 'react';
 import { PublicInstructor, WeeklySlot, BookedSlot, DayOfWeek } from '@/types';
 import { formatPrice } from '@/lib/utils';
-import { Calendar, Clock, User, ArrowRight, Video } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';

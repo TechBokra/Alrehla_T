@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { ItemFormat } from '@/lib/item-format';
 import {
   CART_CLEAR_EVENT,

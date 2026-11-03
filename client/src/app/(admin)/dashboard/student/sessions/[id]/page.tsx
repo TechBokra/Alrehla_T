@@ -8,7 +8,6 @@ import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { notFound, redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { Video, Clock, User, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
 import { formatCairo } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';

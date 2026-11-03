@@ -1,7 +1,7 @@
 'use client';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Bold, Check, Eye, Heading1, Heading2, List, Trash2, Upload } from 'lucide-react';

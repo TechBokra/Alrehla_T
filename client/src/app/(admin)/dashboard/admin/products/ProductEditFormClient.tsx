@@ -15,7 +15,7 @@ import {
   TextInput,
 } from '@/components/forms/Form';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Publisher, PersonalizedProduct, PricingFormulaSettings } from '@/types';
 import { customerPriceFromCost } from '@/lib/publisher-pricing';
 import { saveProduct } from '@/actions/products';

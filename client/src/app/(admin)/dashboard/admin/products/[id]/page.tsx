@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getManagedProductById } from '@/data/domains/(admin)/products/queries';
@@ -11,7 +10,6 @@ import { ProductDeliveryDaysForm } from '../ProductDeliveryDaysForm';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { saveProduct } from '@/actions/products';
 
 export const dynamic = 'force-dynamic';
 

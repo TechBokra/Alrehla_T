@@ -1,4 +1,3 @@
-import React from 'react';
 import { Compass, Feather, Rocket, Sprout, type LucideIcon } from 'lucide-react';
 import { ageLabel, primaryAgeBand, type AgeBandId } from '@/lib/age-bands';
 import { cn } from '@/lib/utils';

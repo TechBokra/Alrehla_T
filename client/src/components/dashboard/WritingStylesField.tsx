@@ -1,6 +1,4 @@
 'use client';
-
-import React from 'react';
 import { Checkbox } from '@/components/forms/Form';
 import {
   availableStyles,

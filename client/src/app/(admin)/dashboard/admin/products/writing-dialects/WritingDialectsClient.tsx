@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AdminDialect } from '@/data/domains/(admin)/writing/queries';
 import { addWritingDialect, updateWritingDialect, type DialectResult } from '@/actions/writing-dialects';

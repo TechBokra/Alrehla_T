@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { createClient } from '@/lib/supabase/server';

@@ -15,7 +15,6 @@ import { PackageCard, trackStyle } from '@/components/creative-writing/PackageCa
 import { PageContainer } from '@/components/PageContainer';
 import { PageHero } from '@/components/PageHero';
 import { SectionTabs } from '@/components/SectionTabs';
-import { SectionHeader } from '@/components/SectionHeader';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';

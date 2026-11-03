@@ -1,7 +1,7 @@
 'use client';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Ticket } from 'lucide-react';
 import type { DiscountCodeRow } from '@/data/domains/(admin)/finance/discount-codes';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { uploadImage } from '@/lib/upload-client';
 import { parseMediaInput } from '@/lib/instructor-media-input';
 import Image from 'next/image';

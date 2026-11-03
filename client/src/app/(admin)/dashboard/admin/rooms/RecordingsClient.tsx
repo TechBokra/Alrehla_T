@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Play, Trash2, Loader2, ExternalLink, Eraser } from 'lucide-react';
 import {
   openRecording,

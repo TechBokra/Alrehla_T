@@ -3,7 +3,6 @@ import Header from '@/components/layout/Header';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import Footer from '@/components/layout/Footer';
 import { FloatingActions } from '@/components/layout/FloatingActions';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>

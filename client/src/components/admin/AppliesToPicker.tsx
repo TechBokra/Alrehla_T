@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId } from 'react';
+import { useId } from 'react';
 import { Checkbox } from '@/components/forms/Form';
 import { BOX_TARGET, type AppliesToProduct } from '@/lib/applies-to';
 import { productCategoryLabel } from '@/lib/product-categories';

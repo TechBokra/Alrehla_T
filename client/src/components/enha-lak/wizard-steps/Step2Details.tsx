@@ -1,6 +1,6 @@
 import { PhotoPrivacyNote } from './PhotoPrivacyNote';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useObjectUrl } from '@/lib/use-object-url';
 import { isSavedPhoto } from '@/lib/saved-photo';

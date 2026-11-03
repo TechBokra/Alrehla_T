@@ -1,12 +1,11 @@
 import { notFound } from 'next/navigation';
 import { toUrlToken } from '@/lib/join-token';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getJoinRequests } from '@/data/domains/(admin)/join-requests/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { User, Mail, Phone, Calendar, Briefcase, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Mail, Phone, Calendar, Briefcase, FileText, CheckCircle, Clock } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { joinRequestRoleLabel, joinNextStep } from '@/lib/join-roles';

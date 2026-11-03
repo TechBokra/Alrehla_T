@@ -1,6 +1,6 @@
 'use client';
 import { PHONE_INPUT_PROPS, phoneErrorFor } from '@/lib/phone';
-import { requiredFieldProps, clearCustomValidity, focusField } from '@/lib/form-validation';
+import { requiredFieldProps, focusField } from '@/lib/form-validation';
 import { shippingBlockers, hasOrderableRemainder, blockerLabel } from '@/lib/shipping-blockers';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
@@ -10,9 +10,8 @@ import React, { useState } from 'react';
 import { useCart, type CartItem } from '@/context/CartContext';
 import { loadDeliveryRegion } from '@/lib/delivery-region-store';
 import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
-import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
-import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2, Package } from 'lucide-react';
+import { CreditCard, MapPin, Truck, ShieldCheck, ChevronRight, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -74,12 +73,10 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   // told the payment succeeded, and nothing was ever charged. Until a real
   // payment gateway is integrated, transfer is the only method on offer.
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transactionRef, setTransactionRef] = useState('');
   const [orderError, setOrderError] = useState('');
   const [placedOrder, setPlacedOrder] = useState<{ id: string; reference: string; total: number | null } | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isSuccess, setIsSuccess] = useState(false);
 
   // Form states
   const [shippingInfo, setShippingInfo] = useState({
@@ -262,7 +259,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
 
   // كود الخصم «ذو صلة» لما يكون فيه حاجة يتحسب عليها، وقبل ما الطلب
   // يتسجّل: بعد التسجيل القاعدة قفلت الإجمالي وتغيير الكود مابيعملش حاجة.
-  const discountRelevant = items.length > 0 && !placedOrder && !isSuccess;
+  const discountRelevant = items.length > 0 && !placedOrder;
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,7 +414,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
     });
   };
 
-  if (items.length === 0 && !isSuccess) {
+  if (items.length === 0) {
     return (
       <Section containerClassName="py-16 text-center max-w-3xl">
         <h2 className="text-2xl font-bold text-slate-800 mb-4">عربة التسوق فارغة</h2>
@@ -426,34 +423,6 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
           تصفح المتجر
         </Button>
       </Section>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <Card accentColor="rose" className="p-8 md:p-12 text-center max-w-2xl mx-auto">
-        <div className="flex justify-center mb-6">
-          <div className="h-24 w-24 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-            <CheckCircle2 className="h-12 w-12" />
-          </div>
-        </div>
-        <h2 className="text-3xl font-black text-slate-800 mb-4">تم تأكيد طلبك بنجاح!</h2>
-        {/* A random number used to be shown as "your order number", and the
-            page claimed an invoice had been emailed — no email is sent
-            anywhere in this flow. */}
-        <p className="mb-8 text-slate-600">
-          يمكنك متابعة حالة الطلب من صفحة طلباتك في حسابك.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button href="/dashboard" variant="neutral" className="px-8 py-3">
-            الذهاب للوحة التحكم
-          </Button>
-          <Button href="/enha-lak" variant="secondary" className="px-8 py-3 border-none !bg-rose-50 !text-rose-700 hover:!bg-rose-100">
-            العودة للمتجر
-          </Button>
-        </div>
-      </Card>
     );
   }
 

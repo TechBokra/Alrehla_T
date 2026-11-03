@@ -1,4 +1,3 @@
-import React from 'react';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getInstructorSessions } from '@/data/domains/(admin)/sessions/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
@@ -9,24 +8,7 @@ import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/(shared)/reviews/queries';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Users,
-  Calendar,
-  Video,
-  Clock,
-  Wallet,
-  User,
-  Settings,
-  Sparkles,
-  ArrowLeft,
-  CalendarCheck,
-  ChevronLeft,
-  Star,
-  Layers,
-  AlertCircle,
-  CheckCircle2,
-  BookOpen,
-} from 'lucide-react';
+import { Users, Calendar, Video, Clock, Wallet, User, Settings, Sparkles, ArrowLeft, CalendarCheck, ChevronLeft, Star, Layers, AlertCircle } from 'lucide-react';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
 import { onboardingState } from '@/lib/instructor-onboarding';

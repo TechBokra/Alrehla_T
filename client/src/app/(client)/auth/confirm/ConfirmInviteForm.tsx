@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useActionState } from 'react';
+import { useActionState } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { confirmInvite, type ConfirmState } from '@/actions/auth-confirm';
 import { FormError } from '@/components/ui/FormError';

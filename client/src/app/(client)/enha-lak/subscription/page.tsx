@@ -14,7 +14,6 @@ import Image from 'next/image';
 import { addWatermark, optimizedImageUrl } from '@/lib/cloudinary';
 import { formatPrice } from '@/lib/utils';
 import { PriceTag } from '@/components/ui/PriceTag';
-import Link from 'next/link';
 import { getSubscriptionTiers } from '@/data/domains/(shared)/subscriptions/plans';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { PackageOpen, Sparkles, Gift, Activity, Check } from 'lucide-react';

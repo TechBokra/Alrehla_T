@@ -1,4 +1,3 @@
-import React from 'react';
 import { SessionRequestForm } from './SessionRequestForm';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 

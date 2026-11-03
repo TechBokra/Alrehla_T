@@ -6,7 +6,7 @@ import {
   greetByName,
   SIGN_IN_PATH,
 } from '@/lib/account-message';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { ticketStatus } from '@/lib/ticket-status';
 import { productOrderStatus, serviceOrderStatus } from '@/lib/order-status';
@@ -14,32 +14,8 @@ import { sessionStatusView } from '@/lib/session-status';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  User,
-  Mail,
-  Calendar,
-  KeyRound,
-  Shield,
-  Copy,
-  Check,
-  X,
-  Package,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Users,
-  MessageSquare,
-  Search,
-  Filter,
-  ArrowRight,
-  ExternalLink,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  Layers,
-  Lock,
-} from 'lucide-react';
-import type { UserProfile, UserRole } from '@/types';
+import { User, Mail, Calendar, KeyRound, Shield, Copy, Check, X, Package, CheckCircle2, Users, MessageSquare, Search, ExternalLink, Sparkles, Layers } from 'lucide-react';
+import type { UserProfile } from '@/types';
 import { resetUserPassword, updateUserRole } from '@/actions/admin-users';
 import {
   roleChoices,
@@ -49,7 +25,7 @@ import {
   type AdminRoleOption,
 } from '@/lib/role-choice';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { formatCairo, PLATFORM_TIMEZONE } from '@/lib/timezone';
+import { formatCairo } from '@/lib/timezone';
 import { Pagination } from '@/components/dashboard/Pagination';
 import { FormError } from '@/components/ui/FormError';
 import {

@@ -3,24 +3,20 @@
 import type { DeliveryDays } from '@/lib/delivery-days';
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { addonsDisplayTotal, customizedAddonIdsFor } from '@/lib/item-format';
-import { formatPrice } from '@/lib/utils';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PersonalizedProduct, AddonProduct } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-
-import { WizardStepper } from './wizard-steps/WizardStepper';
 import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
 import { Step2CoverDetails } from './wizard-steps/Step2CoverDetails';
 import { Step3Addons } from './wizard-steps/Step3Addons';
 import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
 import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step3LibraryReview } from './wizard-steps/Step3LibraryReview';
-import Image from 'next/image';
 import { resolveWizardChild } from '@/app/actions/family';
 import {
   checkExtraAnswers,

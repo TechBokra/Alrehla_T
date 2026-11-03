@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Clock, Video, Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';

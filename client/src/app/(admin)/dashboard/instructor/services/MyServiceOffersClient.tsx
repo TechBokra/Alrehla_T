@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, X, Pause, Play, Clock, AlertCircle, Plus, Pencil } from 'lucide-react';
 import type { CreativeService, InstructorServiceOffer, PricingFormulaSettings } from '@/types';

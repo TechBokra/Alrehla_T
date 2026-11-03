@@ -2,7 +2,7 @@ import { formatPrice } from '@/lib/utils';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { BookOpen, DollarSign, ShoppingBag, Star, User } from 'lucide-react';
+import { BookOpen, DollarSign, ShoppingBag, User } from 'lucide-react';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getPublisherOrders } from '@/data/domains/(admin)/publishers/orders';
 import { redirect } from 'next/navigation';

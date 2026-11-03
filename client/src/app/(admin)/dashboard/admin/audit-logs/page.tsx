@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import Link from 'next/link';
 import { getAuditLogs } from '@/data/domains/(admin)/audit/queries';

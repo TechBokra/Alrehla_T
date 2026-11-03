@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { uploadImage } from '@/lib/upload-client';
 import { useRouter } from 'next/navigation';
 import { Info, CheckCircle2, Sparkles } from 'lucide-react';

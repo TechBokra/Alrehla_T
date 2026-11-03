@@ -1,7 +1,6 @@
 'use client';
 
 import { TRACK_SHORT } from '@/lib/package-labels';
-import React from 'react';
 
 /**
  * اختيار الباقات اللي المدرب بيدرّبها.

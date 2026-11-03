@@ -1,7 +1,7 @@
 'use client';
 import { formatPrice } from '@/lib/utils';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useObjectUrl } from '@/lib/use-object-url';
 import { AddonProduct, ChildProfile, PersonalizedProduct } from '@/types';

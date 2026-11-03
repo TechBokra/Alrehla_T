@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Ban, RotateCcw, Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { setUserSuspension } from '@/actions/admin-users';

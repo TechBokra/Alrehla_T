@@ -1,14 +1,5 @@
 import Link from 'next/link';
-import {
-  Clock,
-  PenTool,
-  Calendar,
-  ShieldCheck,
-  ArrowLeft,
-  Users,
-  Package,
-  KeyRound,
-} from 'lucide-react';
+import { PenTool, Calendar, ShieldCheck, ArrowLeft, Users, Package, KeyRound } from 'lucide-react';
 import { getAccountOverviewData } from '@/data/domains/(client)/account/overview';
 import { FormError } from '@/components/ui/FormError';
 import { formatDate } from '@/lib/utils';

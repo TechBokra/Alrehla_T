@@ -13,7 +13,7 @@ import { sessionStatusView } from '@/lib/session-status';
 import { StatusBadge } from '@/components/StatusBadge';
 import { notFound } from 'next/navigation';
 import { SessionSettings } from './SessionSettings';
-import { FileText, Download, Upload } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { PLATFORM_TIMEZONE, formatCairo } from '@/lib/timezone';
 
 export const dynamic = 'force-dynamic';

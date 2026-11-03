@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser, getAllUsers } from '@/data/domains/(shared)/auth/queries';
 import { createClient } from '@/lib/supabase/server';

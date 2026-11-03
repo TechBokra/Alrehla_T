@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarClock } from 'lucide-react';
 import { requestSessionChange } from '@/actions/session-change-requests';

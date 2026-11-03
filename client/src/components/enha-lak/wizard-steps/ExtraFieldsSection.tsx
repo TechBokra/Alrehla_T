@@ -1,6 +1,4 @@
 'use client';
-
-import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { ANSWER_MAX, answerKey, type CustomizationField } from '@/lib/customization-fields';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, CheckCircle2 } from 'lucide-react';
 import { submitBookingReview, submitServiceReview } from '@/actions/reviews';

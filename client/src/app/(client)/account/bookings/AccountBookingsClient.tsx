@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, Calendar, CheckCircle2, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { Search, Calendar, CheckCircle2, Clock, Layers } from 'lucide-react';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { Pagination } from '@/components/dashboard/Pagination';
 
