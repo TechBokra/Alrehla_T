@@ -5,6 +5,7 @@ import {
   createResourceSwitchColumn,
   ResourceRowActions,
 } from "@/components/resources";
+import { Badge } from "@/components/ui/badge";
 import {
   scopeLabel,
   type CustomizationField,
@@ -60,19 +61,47 @@ export function customizationFieldColumns(): ColumnDef<
   unknown
 >[] {
   return [
-    labelColumn(),
     {
-      accessorKey: "placeholder",
-      header: "مثال داخل الخانة",
-      enableSorting: false,
-      cell: ({ row }) => <bdi>{row.original.placeholder || "—"}</bdi>,
+      accessorKey: "label",
+      meta: { label: "خانة التخصيص", variant: "text" },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="خانة التخصيص" />
+      ),
+      size: 380,
+      cell: ({ row }) => {
+        const field = row.original;
+        const products = field.applies_to?.filter((target) => target !== "box").length ?? 0;
+        const includesBox = field.applies_to?.includes("box") ?? false;
+        const scope = !field.applies_to?.length
+          ? "كل المنتجات وصندوق الرحلة"
+          : [
+              products === 1
+                ? "منتج واحد"
+                : products > 1
+                  ? `${new Intl.NumberFormat("ar-EG").format(products)} من المنتجات`
+                  : "",
+              includesBox ? "صندوق الرحلة" : "",
+            ]
+              .filter(Boolean)
+              .join("، ");
+
+        return (
+          <div className="flex min-w-64 flex-col items-start gap-1.5 py-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <bdi className="font-medium">{field.label}</bdi>
+              {field.is_required ? <Badge variant="secondary">إلزامية</Badge> : null}
+            </div>
+            {field.placeholder ? (
+              <p className="text-sm text-muted-foreground">
+                <span>مثال: </span>
+                <bdi>{field.placeholder}</bdi>
+              </p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">يظهر في: {scope}</p>
+          </div>
+        );
+      },
     },
-    {
-      accessorKey: "is_required",
-      header: "إلزامية",
-      cell: ({ row }) => (row.original.is_required ? "نعم" : "لا"),
-    },
-    scopeColumn(),
     activeColumn(),
     actionsColumn(),
   ];

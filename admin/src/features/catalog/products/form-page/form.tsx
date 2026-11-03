@@ -26,12 +26,20 @@ import {
   ResourceFormDirtyGuard,
   ResourceFormFooter,
 } from "@/components/resources/forms/page";
-import { BaseFormField } from "@/components/forms/components/base-form-field";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { BaseFormField } from "@/components/forms/components/base-form-field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ProductImageLibraryPicker } from "./images-field";
+import { ProductPersonalizationSection } from "./personalization-section";
 import { useResourceAuthorization } from "@/hooks/resources";
 import { assertResourceAccess } from "@/providers/refine/access-control-provider";
 
@@ -134,22 +142,35 @@ function ProductFormContent() {
             event.stopPropagation();
             if (!formDisabled && !saveDisabled) void form.handleSubmit();
           }}
-          className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2"
+          className="flex flex-col gap-6"
         >
           <productForm.Fields />
           <productForm.Footer
             disabled={saveDisabled}
             onCancel={page.mode === "edit" ? cancel : undefined}
-            className="col-span-full"
+            className="sticky bottom-0 z-10 -mx-1 rounded-xl border bg-background px-3 py-3 shadow-sm"
           />
         </form>
       </form.AppForm>
 
+      <ProductPersonalizationSection
+        productId={page.record?.id}
+        disabled={page.disabled || submitting || formDirty}
+      />
+
       {page.mode === "edit" && page.record ? (
-        <PreparationDaysSection
-          record={page.record}
-          disabled={page.disabled || submitting || formDirty}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>مدة التجهيز</CardTitle>
+            <CardDescription>حدد الوقت المتوقع لتجهيز كل نسخة.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PreparationDaysSection
+              record={page.record}
+              disabled={page.disabled || submitting || formDirty}
+            />
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );
@@ -163,191 +184,259 @@ function ProductFormFields() {
   const formDisabled = page.disabled || submitting;
 
   return (
-    <>
-      <div className="min-w-0">
-        <form.AppField name="name">
-          {(Fields) => (
-            <Fields.InputField
-              label="اسم المنتج"
-              required
-              props={{ disabled: formDisabled }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="min-w-0">
-        <form.AppField name="category">
-          {(Fields) => (
-            <Fields.SelectField
-              label="التصنيف"
-              required
-              options={{ "منتج المكتبة": "library", "قصة مخصصة": "custom" }}
-              props={{ disabled: formDisabled }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="min-w-0">
-        <Field>
-          <FieldLabel>مالك المنتج</FieldLabel>
-          <Badge variant="secondary" className="w-fit">
-            المنصة
-          </Badge>
-        </Field>
-      </div>
-      <div className="col-span-full min-w-0">
-        <form.AppField name="description">
-          {(Fields) => (
-            <Fields.TextareaField
-              label="الوصف المختصر"
-              props={{ disabled: formDisabled, maxLength: 600, rows: 3 }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="min-w-0">
-        <form.AppField name="price">
-          {(Fields) => (
-            <Fields.InputField
-              label="السعر الورقي (ج.م)"
-              required
-              props={{ disabled: formDisabled, inputMode: "decimal" }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      {category === "custom" ? (
-        <div className="min-w-0">
-          <form.AppField name="electronicPrice">
-            {(Fields) => (
-              <Fields.InputField
-                label="السعر الإلكتروني (ج.م)"
-                props={{ disabled: formDisabled, inputMode: "decimal" }}
-              />
-            )}
-          </form.AppField>
-        </div>
-      ) : null}
-      {category === "custom" ? (
-        <div className="col-span-full min-w-0">
-          <form.AppField name="writingStyles">
-            {(field) => (
-              <BaseFormField label="أساليب الكتابة" required variant="fieldset">
-                <div
-                  role="group"
-                  aria-label="أساليب الكتابة"
-                  className="flex flex-wrap gap-2"
-                >
-                  {writingStyleOptions.map((option) => {
-                    const selected = field.state.value.includes(option.value);
-                    return (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        variant={selected ? "secondary" : "outline"}
-                        aria-pressed={selected}
-                        disabled={formDisabled}
-                        onClick={() =>
-                          field.handleChange(
-                            selected
-                              ? field.state.value.filter(
-                                  (value) => value !== option.value,
-                                )
-                              : [...field.state.value, option.value],
-                          )
-                        }
-                      >
-                        {option.label}
-                      </Button>
-                    );
-                  })}
+    <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.38fr)]">
+      <div className="flex min-w-0 flex-col gap-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>بيانات المنتج</CardTitle>
+            <CardDescription>الاسم والتصنيف الأساسيان للمنتج.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup className="grid gap-5 sm:grid-cols-2">
+              <div className="min-w-0">
+                <form.AppField name="name">
+                  {(Fields) => (
+                    <Fields.InputField
+                      label="اسم المنتج"
+                      required
+                      props={{ disabled: formDisabled }}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+              <div className="min-w-0">
+                <form.AppField name="category">
+                  {(Fields) => (
+                    <Fields.SelectField
+                      label="التصنيف"
+                      required
+                      options={{
+                        "منتج المكتبة": "library",
+                        "قصة مخصصة": "custom",
+                      }}
+                      props={{ disabled: formDisabled }}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+              <Field className="sm:col-span-2">
+                <FieldLabel>مالك المنتج</FieldLabel>
+                <Badge variant="secondary" className="w-fit">
+                  المنصة
+                </Badge>
+              </Field>
+            </FieldGroup>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>محتوى القصة</CardTitle>
+            <CardDescription>
+              اكتب وصفاً موجزاً ثم أضف التفاصيل والمميزات.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <form.AppField name="description">
+                {(Fields) => (
+                  <Fields.TextareaField
+                    label="الوصف المختصر"
+                    props={{ disabled: formDisabled, maxLength: 600, rows: 3 }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="longDescription">
+                {(Fields) => (
+                  <Fields.TextareaField
+                    label="الوصف الكامل"
+                    description="اختياري — بيظهر في صفحة المنتج. يدعم ## عنوان و- نقطة و**عريض**."
+                    props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="featuresText">
+                {(Fields) => (
+                  <Fields.TextareaField
+                    label="مميزات المنتج"
+                    props={{ disabled: formDisabled, rows: 6, maxLength: 5000 }}
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>السعر والتخصيص</CardTitle>
+            <CardDescription>
+              الأسعار المتاحة وأنماط كتابة القصة المخصصة.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup className="grid gap-5 sm:grid-cols-2">
+              <div className="min-w-0">
+                <form.AppField name="price">
+                  {(Fields) => (
+                    <Fields.InputField
+                      label="السعر الورقي (ج.م)"
+                      required
+                      props={{ disabled: formDisabled, inputMode: "decimal" }}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+              {category === "custom" ? (
+                <div className="min-w-0">
+                  <form.AppField name="electronicPrice">
+                    {(Fields) => (
+                      <Fields.InputField
+                        label="السعر الإلكتروني (ج.م)"
+                        props={{ disabled: formDisabled, inputMode: "decimal" }}
+                      />
+                    )}
+                  </form.AppField>
                 </div>
-              </BaseFormField>
-            )}
-          </form.AppField>
-        </div>
-      ) : null}
-      <div className="min-w-0">
-        <form.AppField name="minAge">
-          {(Fields) => (
-            <Fields.InputField
-              label="العمر من"
-              props={{
-                type: "number",
-                min: 0,
-                max: 20,
-                disabled: formDisabled,
-              }}
-            />
-          )}
-        </form.AppField>
+              ) : null}
+              {category === "custom" ? (
+                <form.AppField name="writingStyles">
+                  {(field) => {
+                    return (
+                      <BaseFormField
+                        label="أساليب الكتابة"
+                        required
+                        disabled={formDisabled}
+                        variant="fieldset"
+                        fieldProps={{ className: "min-w-0 sm:col-span-2" }}
+                      >
+                        {({
+                          id,
+                          disabled,
+                          "aria-invalid": ariaInvalid,
+                          "aria-describedby": describedBy,
+                        }) => (
+                          <ToggleGroup
+                            id={id}
+                            type="multiple"
+                            value={field.state.value}
+                            onValueChange={(value) =>
+                              field.handleChange(
+                                value as typeof field.state.value,
+                              )
+                            }
+                            onBlur={field.handleBlur}
+                            disabled={disabled}
+                            aria-label="أساليب الكتابة"
+                            aria-invalid={ariaInvalid}
+                            aria-describedby={describedBy}
+                            className="flex-wrap"
+                          >
+                            {writingStyleOptions.map((option) => (
+                              <ToggleGroupItem
+                                key={option.value}
+                                value={option.value}
+                                variant="outline"
+                              >
+                                {option.label}
+                              </ToggleGroupItem>
+                            ))}
+                          </ToggleGroup>
+                        )}
+                      </BaseFormField>
+                    );
+                  }}
+                </form.AppField>
+              ) : null}
+            </FieldGroup>
+          </CardContent>
+        </Card>
       </div>
-      <div className="min-w-0">
-        <form.AppField name="maxAge">
-          {(Fields) => (
-            <Fields.InputField
-              label="العمر إلى"
-              props={{
-                type: "number",
-                min: 0,
-                max: 20,
-                disabled: formDisabled,
-              }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="min-w-0">
-        <form.AppField name="longDescription">
-          {(Fields) => (
-            <Fields.TextareaField
-              label="الوصف الكامل"
-              description="اختياري — بيظهر في صفحة المنتج. يدعم ## عنوان و- نقطة و**عريض**."
-              props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="min-w-0">
-        <form.AppField name="featuresText">
-          {(Fields) => (
-            <Fields.TextareaField
-              label="مميزات المنتج"
-              props={{ disabled: formDisabled, rows: 8, maxLength: 5000 }}
-            />
-          )}
-        </form.AppField>
-      </div>
-      <div className="col-span-full min-w-0">
-        <form.AppField name="images">
-          {(Fields) => (
-            <Fields.ImageUploadField
-              label="غلاف الكتاب — يفضّل طولي (3:4)"
-              uploadKey="cover"
-              disabled={formDisabled}
-              renderSourcePicker={({ disabled, onPick }) => (
-                <ProductImageLibraryPicker
-                  disabled={disabled}
-                  onPick={(asset) => onPick(asset.url)}
+
+      <aside className="flex min-w-0 flex-col gap-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>غلاف المنتج</CardTitle>
+            <CardDescription>اختر صورة طولية واضحة للغلاف.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form.AppField name="images">
+              {(Fields) => (
+                <Fields.ImageUploadField
+                  label="غلاف الكتاب — يفضّل طولي (3:4)"
+                  uploadKey="cover"
+                  disabled={formDisabled}
+                  renderSourcePicker={({ disabled, onPick }) => (
+                    <ProductImageLibraryPicker
+                      disabled={disabled}
+                      onPick={(asset) => onPick(asset.url)}
+                    />
+                  )}
                 />
               )}
-            />
-          )}
-        </form.AppField>
-      </div>
-      {page.mode === "edit" ? (
-        <div className="col-span-full min-w-0">
-          <form.AppField name="isActive">
-            {(Fields) => (
-              <Fields.CheckboxField
-                label="المنتج نشط"
-                props={{ disabled: formDisabled }}
-              />
-            )}
-          </form.AppField>
-        </div>
-      ) : null}
-    </>
+            </form.AppField>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>الفئة العمرية</CardTitle>
+            <CardDescription>
+              ساعد العملاء على معرفة العمر المناسب.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+              <form.AppField name="minAge">
+                {(Fields) => (
+                  <Fields.InputField
+                    label="العمر من"
+                    props={{
+                      type: "number",
+                      min: 0,
+                      max: 20,
+                      disabled: formDisabled,
+                    }}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="maxAge">
+                {(Fields) => (
+                  <Fields.InputField
+                    label="العمر إلى"
+                    props={{
+                      type: "number",
+                      min: 0,
+                      max: 20,
+                      disabled: formDisabled,
+                    }}
+                  />
+                )}
+              </form.AppField>
+            </FieldGroup>
+          </CardContent>
+        </Card>
+
+        {page.mode === "edit" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>حالة المنتج</CardTitle>
+              <CardDescription>تحكم في ظهور المنتج في المنصة.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form.AppField name="isActive">
+                {(Fields) => (
+                  <Fields.CheckboxField
+                    label="المنتج نشط"
+                    props={{ disabled: formDisabled }}
+                  />
+                )}
+              </form.AppField>
+            </CardContent>
+          </Card>
+        ) : null}
+      </aside>
+    </div>
   );
 }
 

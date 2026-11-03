@@ -17,6 +17,7 @@ export function useResourceController<TRecord extends ResourceRecord>(
     mode,
     canEdit,
     enableRowReordering = false,
+    canReorderRow,
     orderField,
     onReorder,
     refineCoreProps,
@@ -26,7 +27,7 @@ export function useResourceController<TRecord extends ResourceRecord>(
   const deleteAccess = useResourceAuthorization(resource, "delete");
   const sortAccess = useResourceAuthorization(resource, "sort");
   const reorderAllowed = (enableRowReordering || Boolean(orderField)) && sortAccess.allowed;
-  const canCreateResource = createAccess.allowed;
+  const canCreateResource = createAccess.allowed && props.canCreate !== false;
   const editRecordRule = canEdit ?? (mode === "page" ? props.form.page?.canEdit : props.form.dialog?.canEdit);
   const canEditRecord = useCallback((record: TRecord) =>
     editAccess.allowed && (editRecordRule?.(record) ?? true), [editAccess.allowed, editRecordRule]);
@@ -40,6 +41,7 @@ export function useResourceController<TRecord extends ResourceRecord>(
     searchDebounceMs: props.searchDebounceMs,
     initialState: props.initialState,
     enableRowReordering: reorderAllowed,
+    canReorderRow,
     orderField,
     onReorder,
     refineCoreProps,

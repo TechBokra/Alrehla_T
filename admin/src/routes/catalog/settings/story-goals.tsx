@@ -1,5 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StoryGoalsPage } from "@/features/catalog/settings/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/catalog/settings/story-goals")({
-  component: StoryGoalsPage,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/settings",
+      search: { tab: "story-goals" },
+      replace: true,
+    });
+  },
 });

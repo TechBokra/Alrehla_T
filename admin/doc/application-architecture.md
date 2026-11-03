@@ -21,10 +21,11 @@ Refine authorization policy.
 
 | Resource/data | Refine provider | Reads and writes |
 |---|---|---|
-| Catalog and shared settings | `default` / `siteSettings` | Existing Supabase data provider |
+| Catalog lists and shared reads | `default` / `siteSettings` | Existing Supabase data provider |
+| Site identity/contact | `siteSettings` | `site-settings-data-provider.ts`; guarded partial merge to `site_settings.general` |
 | Own account | `account` | `account-data-provider.ts` |
 | Notifications | `notifications` | `notifications-data-provider.ts` and allowlisted commands |
-| Media library | `mediaLibrary` | `media-library-data-provider.ts` and the existing Supabase Edge Function |
+| Product image assets | Internal feature API | Product picker reads and signed uploads use the existing Supabase Edge Function |
 | Users | `users` | `users-data-provider.ts` and the existing `admin-users` Edge Function |
 | Store orders | `orders` | `orders-data-provider.ts`; list/detail enrichment and allowlisted custom commands |
 | Customization fields, goals and dialects | `catalogSettings` | Existing tables through the validated catalog adapter; dialect code-to-ID mapping |
@@ -36,11 +37,23 @@ requests into existing Supabase reads/writes and return `{ data, total }` or
 provider uses the shared authenticated Supabase client, existing RLS/tables,
 triggers and already deployed RPCs.
 
-Catalog settings are registered under `/catalog/settings/` with create/edit
-Dialogs and a permission-aware collapsible `NavMain` sidebar group. Fields
-and goals reuse saved numeric row ordering. See
+Catalog settings use create/edit Dialogs, the `/settings` page with URL-selected
+sections, and saved numeric row ordering for fields/goals. Platform settings
+share the route shell but have domain folders under `features/settings/`;
+identity/contact is active, while remaining platform groups are disabled until
+implemented. Old `/catalog/settings/*` routes remain redirect aliases. See
 [Catalog personalization settings](./catalog-settings.md) for the full flow,
 component map, provider boundaries and verification.
+
+See [Platform settings](./platform-settings.md) for the identity/contact query,
+mutation, access rules, domain folder map and deferred sections.
+
+Publisher editions have a separate `/catalog/publisher-products` list over the
+same `personalized_products` resource as platform products. The page scopes its
+query to publisher ownership, reads publisher names for the column/filter,
+exposes only the shared active-state switch and disables creation/reordering.
+See [Publisher products](./publisher-products.md) for the route, query, access
+and component flow.
 
 ## Resource list architecture
 
@@ -95,8 +108,8 @@ Feature `useAppForm` owns values, validation, dirty/touched state and
 `isSubmitting`; the shared page upload resolver checks permission, starts the
 selected files, waits for all of them and returns their Cloudinary URLs. The
 feature maps those URLs into its allowlisted payload.
-After a successful direct upload, the slot invalidates `uploads` list/many
-queries through the named `mediaLibrary` provider. Page forms call the shared
+After a successful direct upload, the slot invalidates the product media
+picker's `media-assets` query. Page forms call the shared
 `context.submit({ prepare, reset })`. `useResourceFormSubmission` owns error
 toasts, the whole-submission guard, one awaited Refine list/many/detail
 invalidation, authoritative edit refresh, upload cleanup, baseline reset and
@@ -181,3 +194,12 @@ resource context/provider identity. The shared per-cell hook owns Refine updates
 pending/errors, authorization and cache refresh. See
 [Inline resource fields](./resource-inline-fields.md) for the full flow,
 column/custom-action examples and component/hook responsibility map.
+
+Product-scoped personalization choices use the existing settings definitions
+and `applies_to` scope. See [Product personalization](./product-personalization.md)
+for inherited/global behavior, conditional scope writes, dirty protection,
+partial-save recovery, and module responsibilities.
+
+See [Catalog offers and settings](./catalog-offers-and-settings.md) for the
+promotions resource, guarded price validation, add-on table composition and
+catalog settings access through the user menu.

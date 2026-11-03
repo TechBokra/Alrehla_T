@@ -171,8 +171,8 @@ submitting through upload and save.
 Queued covers do not show upload progress before Save. The shared upload slot
 marks only IDs being resolved by the current save operation as active, and
 disables queue controls until those uploads finish. After a direct Cloudinary
-upload succeeds, it invalidates the `uploads` list/many queries under the
-`mediaLibrary` provider so the asset appears in the picker. The shared page
+upload succeeds, it invalidates the internal `media-assets` query so the asset
+appears in the product image picker. The shared page
 composer disables automatic mutation invalidation; `useResourceFormSubmission`
 then awaits one Refine invalidation for the resource's list/many/detail targets.
 On edit it refreshes the existing detail query and invokes the feature's reset
@@ -333,8 +333,8 @@ Refine invalidation for list/many/detail after saving. The page composer disable
 automatic mutation targets once to prevent duplicate invalidation. On edit the
 shared hook also refreshes the existing detail query and passes that server row
 to the feature reset adapter. Direct
-Cloudinary uploads invalidate the `mediaLibrary` uploads list/many queries
-because they bypass Refine mutations. Details commands explicitly invalidate
+Cloudinary uploads invalidate the internal `media-assets` query because they
+bypass Refine mutations. Details commands explicitly invalidate
 their declared Refine targets. The `orders` provider name is supplied on reads
 and writes to keep cache/provider identity aligned. `ResourceContext` and
 `ResourcePageContext` contain UI state only and are not data caches.

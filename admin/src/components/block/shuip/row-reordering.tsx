@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 export interface RowReordering<TData> {
   disabled?: boolean;
+  canReorderRow?: (row: TData) => boolean;
   getRowLabel: (row: TData) => string;
   onReorder: (orderedIds: string[]) => void;
 }
@@ -52,6 +53,7 @@ export function RowReorderingBoundary<TData>({
     const row = rows.find((row) => row.id === String(id));
     return row ? config.getRowLabel(row.original) : String(id);
   };
+  const reorderableRows = rows.filter((row) => config.canReorderRow?.(row.original) ?? true);
   return (
     <DndContext
       sensors={sensors}
@@ -63,7 +65,7 @@ export function RowReorderingBoundary<TData>({
           onDragStart: ({ active }) => `بدأ نقل ${label(active.id)}.`,
           onDragOver: ({ over }) =>
             over
-              ? `الموضع ${rows.findIndex((row) => row.id === String(over.id)) + 1}.`
+              ? `الموضع ${reorderableRows.findIndex((row) => row.id === String(over.id)) + 1}.`
               : "خارج الجدول؛ لن يتغير الترتيب.",
           onDragEnd: ({ over }) =>
             over ? "اكتملت معاينة النقل." : "أُلغي النقل خارج الجدول.",
@@ -76,7 +78,7 @@ export function RowReorderingBoundary<TData>({
       }}
       onDragEnd={({ active, over }) => {
         if (disabled || !over || active.id === over.id) return;
-        const ids = rows.map((row) => row.id);
+        const ids = reorderableRows.map((row) => row.id);
         const from = ids.indexOf(String(active.id)),
           to = ids.indexOf(String(over.id));
         if (from < 0 || to < 0 || new Set(ids).size !== ids.length) return;

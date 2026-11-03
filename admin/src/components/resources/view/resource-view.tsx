@@ -40,6 +40,7 @@ function AuthorizedResourceView<TRecord extends ResourceRecord>(
         rowReordering={
           canSort ? {
             disabled: reorderSaving,
+            canReorderRow: props.canReorderRow,
             getRowLabel: props.getRowLabel ?? ((row) => String(row.name ?? row.id)),
             onReorder: reorder,
           } : undefined

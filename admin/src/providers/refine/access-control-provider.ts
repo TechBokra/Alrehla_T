@@ -52,6 +52,19 @@ export function evaluateResourceAccess(
     if (action === "edit" && record && (record.archived_at || record.is_child_account)) return deny("لا يمكن تعديل هذا الحساب هنا.");
     return ["list", "show", "create", "edit", "activity"].includes(action) ? { can: true } : deny();
   }
+  if (resource === "site_settings") {
+    if (!["list", "show", "edit"].includes(action))
+      return deny("إعدادات الموقع لا تدعم هذا الإجراء.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageContent")
+      ? { can: true }
+      : deny("لا تملك صلاحية تعديل إعدادات الموقع.");
+  }
+  if (resource === "price_promotions") {
+    if (!["list", "show", "create", "edit"].includes(action))
+      return deny("أوقف العرض بدلًا من حذفه.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
+      ? { can: true } : deny("لا تملك صلاحية إدارة العروض.");
+  }
   if (["catalog_settings", "customization_fields", "story_goals", "writing_dialects"].includes(resource ?? "")) {
     const allowed = resource === "catalog_settings"
       ? action === "list"
@@ -62,14 +75,19 @@ export function evaluateResourceAccess(
     return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
       ? { can: true } : deny("لا تملك صلاحية إدارة الكتالوج.");
   }
-  const permission = resource === "personalized_products" || resource === "addon_products"
-    ? "canManageCatalog"
-    : resource === "uploads" ? "canManageContent" : undefined;
+  const permissions = resource === "personalized_products"
+    ? action === "sort"
+      ? ["canManageCatalog"]
+      : ["canManageCatalog", "canManagePublishers"]
+    : resource === "addon_products"
+      ? ["canManageCatalog"]
+      : resource === "uploads" ? ["canManageContent"] : undefined;
   const knownAction = crudActions.has(action) ||
     ((resource === "personalized_products" || resource === "addon_products") && action === "sort") ||
     (resource === "uploads" && action === "upload");
-  if (!permission || !knownAction) return deny("لا توجد سياسة وصول لهذا المورد أو الإجراء.");
-  return actor.role === "super_admin" || actor.permissions.includes(permission)
+  if (!permissions || !knownAction) return deny("لا توجد سياسة وصول لهذا المورد أو الإجراء.");
+  return actor.role === "super_admin" ||
+    permissions.some((permission) => actor.permissions.includes(permission))
     ? { can: true } : deny("لا تملك صلاحية الوصول إلى هذا القسم.");
 }
 

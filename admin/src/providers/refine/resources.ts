@@ -1,16 +1,30 @@
 import type { ResourceProps } from "@refinedev/core";
-import { Blocks, Images, Settings2, ShoppingBag, Table2, Users } from "lucide-react";
+import {
+  Blocks,
+  BookOpen,
+  Tags,
+  ShoppingBag,
+  Table2,
+  Users,
+} from "lucide-react";
 
 export const catalogSettingsItems = [
-  { resource: "customization_fields", to: "/catalog/settings/customization-fields", label: "خانات التخصيص" },
-  { resource: "story_goals", to: "/catalog/settings/story-goals", label: "أهداف التخصيص" },
-  { resource: "writing_dialects", to: "/catalog/settings/writing-dialects", label: "لهجات الكتابة" },
+  {
+    resource: "customization_fields",
+    to: "/catalog/settings/customization-fields",
+    label: "خانات التخصيص",
+  },
+  {
+    resource: "story_goals",
+    to: "/catalog/settings/story-goals",
+    label: "أهداف التخصيص",
+  },
+  {
+    resource: "writing_dialects",
+    to: "/catalog/settings/writing-dialects",
+    label: "لهجات الكتابة",
+  },
 ] as const;
-
-export const catalogSettingsNavMain = [{
-  title: "إعدادات الكتالوج", resource: "catalog_settings", icon: Settings2,
-  items: catalogSettingsItems.map((item) => ({ title: item.label, url: item.to })),
-}];
 
 const navigationItems = {
   users: {
@@ -19,12 +33,6 @@ const navigationItems = {
     mode: "dialog",
     label: "المستخدمون",
     icon: Users,
-  },
-  uploads: {
-    resource: "uploads",
-    to: "/uploads",
-    label: "المرفوعات",
-    icon: Images,
   },
   products: {
     resource: "personalized_products",
@@ -47,32 +55,58 @@ const navigationItems = {
     label: "الإضافات",
     icon: Blocks,
   },
+  promotions: {
+    resource: "price_promotions",
+    to: "/catalog/promotions",
+    mode: "dialog",
+    label: "العروض والخصومات",
+    icon: Tags,
+  },
+} as const;
+
+const publisherProductsNavigationItem = {
+  resource: "personalized_products",
+  to: "/catalog/publisher-products",
+  label: "منتجات الناشرين",
+  icon: BookOpen,
 } as const;
 
 export type AdminNavigationItem =
-  (typeof navigationItems)[keyof typeof navigationItems];
+  | (typeof navigationItems)[keyof typeof navigationItems]
+  | typeof publisherProductsNavigationItem;
 export const adminNavigationGroups = [
   { label: "إدارة الحسابات", items: [navigationItems.users] },
   { label: "إدارة الطلبات", items: [navigationItems.orders] },
   {
     label: "إنها لك",
     items: [
-      navigationItems.uploads,
       navigationItems.products,
+      publisherProductsNavigationItem,
       navigationItems.addons,
+      navigationItems.promotions,
     ],
   },
 ] as const;
 
 export const resources: ResourceProps[] = [
   {
+    name: "site_settings",
+    list: "/settings",
+    meta: { label: "إعدادات الهوية والتواصل", dataProviderName: "siteSettings" },
+  },
+  {
     name: "profile",
     list: "/profile",
     meta: { label: "الملف الشخصي", dataProviderName: "account" },
   },
   ...catalogSettingsItems.map((item) => ({
-    name: item.resource, list: item.to,
-    meta: { label: item.label, formMode: "dialog", dataProviderName: "catalogSettings" },
+    name: item.resource,
+    list: item.to,
+    meta: {
+      label: item.label,
+      formMode: "dialog",
+      dataProviderName: "catalogSettings",
+    },
   })),
   ...Object.values(navigationItems).map((item) => {
     const pageFormRoutes =
@@ -93,7 +127,9 @@ export const resources: ResourceProps[] = [
         ...("mode" in item ? { formMode: item.mode } : {}),
         ...(item.resource === "users" ? { dataProviderName: "users" } : {}),
         ...(item.resource === "orders" ? { dataProviderName: "orders" } : {}),
-        ...(item.resource === "uploads" ? { dataProviderName: "mediaLibrary" } : {}),
+        ...(item.resource === "price_promotions"
+          ? { dataProviderName: "promotions" }
+          : {}),
       },
     };
   }),

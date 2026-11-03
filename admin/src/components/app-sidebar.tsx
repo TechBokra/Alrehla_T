@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
-import { adminNavigationGroups, catalogSettingsNavMain } from "@/providers/refine/resources";
+import { adminNavigationGroups } from "@/providers/refine/resources";
 import { AuthorizedSidebarItem } from "./authorized-sidebar-item";
 import {
   Sidebar,
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { SiteBranding } from "./site-branding";
-import { NavMain } from "./nav-main";
 
 type AppSidebarProps = ComponentProps<typeof Sidebar> & {
   user: {
@@ -64,13 +63,12 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <AuthorizedSidebarItem key={item.resource} item={item} />
+                  <AuthorizedSidebarItem key={item.to} item={item} />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-        <NavMain items={catalogSettingsNavMain} />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">

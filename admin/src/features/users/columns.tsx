@@ -48,6 +48,7 @@ export const usersColumn: ColumnDef<UserRecord, unknown>[] = [
     meta: {
       label: "الدور",
       variant: "select",
+      filterOperators: ["is"],
       options: Object.entries(userRoleLabels).map(([value, label]) => ({
         value,
         label,

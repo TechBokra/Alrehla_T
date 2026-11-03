@@ -8,7 +8,7 @@ import { createDropDebouncer, persistResourceReorder, readResourceOrder } from "
 type ResourceRecord = BaseRecord & { id: string | number };
 
 export function useResourceReorder<TRecord extends ResourceRecord>({
-  resource, field, source, scopeKey, dataProviderName, filters, meta, onSettled,
+  resource, field, source, scopeKey, dataProviderName, filters, meta, canReorderRow, onSettled,
 }: {
   resource: string;
   field?: string;
@@ -17,6 +17,7 @@ export function useResourceReorder<TRecord extends ResourceRecord>({
   dataProviderName?: string;
   filters?: CrudFilters;
   meta?: MetaQuery;
+  canReorderRow?: (record: TRecord) => boolean;
   onSettled: () => void;
 }) {
   const providers = useDataProvider();
@@ -52,6 +53,7 @@ export function useResourceReorder<TRecord extends ResourceRecord>({
           await mutation.mutateAsync({ resource, dataProviderName: providerName, id: record.id, values: { [field!]: position }, meta, invalidates: [] });
         },
         invalidate: async () => { await invalidate({ resource, dataProviderName: providerName, invalidates: ["resourceAll"] }); },
+        canReorderRow,
       }).then(({ updated, refreshFailed }) => {
         if (refreshFailed) toast.error("تم حفظ الترتيب، لكن تعذّر تحديث الجدول. أعد تحميل الصفحة.", { id: message });
         else if (updated) toast.success("تم حفظ الترتيب.", { id: message });

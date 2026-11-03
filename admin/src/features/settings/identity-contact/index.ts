@@ -1,0 +1,1 @@
+export { IdentityContactPage } from "./page";

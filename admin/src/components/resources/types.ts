@@ -41,6 +41,8 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   columns: ColumnDef<TRecord, unknown>[] | (() => ColumnDef<TRecord, unknown>[]);
   /** Additional record-level rule; authorization still comes from Refine. */
   canEdit?: (record: TRecord) => boolean;
+  /** Hides creation and prevents create actions for read-only resource views. */
+  canCreate?: boolean;
   searchField?: string;
   searchFields?: string[];
   /** Defaults to DEFAULT_SEARCH_DEBOUNCE_MS (300 ms). */
@@ -57,6 +59,8 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   rowActions?: ResourceRowAction[];
   storageKey?: string;
   enableRowReordering?: boolean;
+  /** Restricts dragging and dropping to rows that pass this record rule. */
+  canReorderRow?: (record: TRecord) => boolean;
   /** Numeric position column; enables debounced drop persistence. */
   orderField?: Extract<keyof TRecord, string>;
   getRowLabel?: (row: TRecord) => string;

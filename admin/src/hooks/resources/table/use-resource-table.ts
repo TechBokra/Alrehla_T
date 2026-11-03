@@ -25,6 +25,7 @@ export interface UseResourceTableOptions<TRecord extends ResourceRecord> {
     "resource"
   >;
   enableRowReordering?: boolean;
+  canReorderRow?: (record: TRecord) => boolean;
   orderField?: Extract<keyof TRecord, string>;
   onReorder?: (orderedIds: string[], orderedRows: TRecord[]) => void;
 }
@@ -39,6 +40,7 @@ export function useResourceTable<TRecord extends ResourceRecord>({
   initialState,
   refineCoreProps,
   orderField,
+  canReorderRow,
   enableRowReordering = Boolean(orderField),
   onReorder,
 }: UseResourceTableOptions<TRecord>): {
@@ -89,32 +91,37 @@ export function useResourceTable<TRecord extends ResourceRecord>({
     dataProviderName: refineCoreProps?.dataProviderName,
     filters: refineCoreProps?.filters?.permanent,
     meta: refineCoreProps?.meta,
+    canReorderRow,
     onSettled: clearDraft,
   });
 
   const reorder = (ids: string[]) => {
     const source = table.refineCore.tableQuery.data?.data;
-    if (
-      !enableRowReordering ||
-      persistence.saving ||
-      !source ||
-      ids.length !== source.length ||
-      new Set(ids).size !== source.length
-    )
-      return;
+    if (!enableRowReordering || persistence.saving || !source) return;
+    const reorderableRows = source.filter((row) => canReorderRow?.(row) ?? true);
+    if (ids.length !== reorderableRows.length || new Set(ids).size !== reorderableRows.length) return;
     const byId = new Map(source.map((row) => [String(row.id), row]));
-    if (ids.some((id) => !byId.has(id))) return;
+    const reorderableIds = new Set(reorderableRows.map((row) => String(row.id)));
+    if (ids.some((id) => !reorderableIds.has(id))) return;
     if (orderField && (table.refineCore.sorters[0]?.field !== orderField || table.refineCore.sorters[0]?.order !== "asc")) return;
-    if (ids.every((id, index) => id === String(source[index].id))) {
+    const currentReorderableIds = reorderableRows.map((row) => String(row.id));
+    if (ids.every((id, index) => id === currentReorderableIds[index])) {
       persistence.cancel();
       setDraft(null);
       return;
     }
-    setDraft({ source, ids: [...ids] });
-    persistence.schedule(source, [...ids]);
+    let reorderableIndex = 0;
+    const orderedRows = source.map((row) =>
+      (canReorderRow?.(row) ?? true)
+        ? byId.get(ids[reorderableIndex++])!
+        : row,
+    );
+    const orderedVisibleIds = orderedRows.map((row) => String(row.id));
+    setDraft({ source, ids: orderedVisibleIds });
+    persistence.schedule(reorderableRows, [...ids]);
     onReorder?.(
-      [...ids],
-      ids.map((id) => byId.get(id)!),
+      orderedVisibleIds,
+      orderedRows,
     );
   };
 

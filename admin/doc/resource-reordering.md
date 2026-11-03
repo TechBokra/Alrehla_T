@@ -15,11 +15,20 @@ The user can sort normally by other columns; persisted dragging is available
 only while the primary sort is the position field ascending. Existing
 `enableRowReordering` without `orderField` remains local-only.
 
+`canReorderRow(record)` can restrict which rows are draggable and valid drop
+targets. The table keeps excluded rows in their current positions while
+reordering only eligible rows among their existing slots. For example, platform
+products use this rule to keep `category="library"` rows fixed while custom
+products remain sortable. If the complete order contains duplicate or missing
+ranks and fixed rows, the operation stops before writing; normalizing those
+ranks would otherwise change the fixed rows too.
+
 ## Flow
 
-1. The existing Shuip `RowReorderingBoundary` emits reordered IDs only on a
-   completed drop. Drag start, hover, cancelled drops and render mount do not
-   schedule writes.
+1. The existing Shuip `RowReorderingBoundary` includes only rows that pass
+   `canReorderRow` as draggable items and drop targets. It emits their reordered
+   IDs only on a completed drop. Drag start, hover, cancelled drops and render
+   mount do not schedule writes.
 2. `useResourceTable` validates the visible IDs and shows the dropped order
    immediately. The shared scheduler waits `DEFAULT_DEBOUNCE_MS` (300 ms).
    Another drop restarts the timer with the latest sequence. Returning to the
@@ -36,9 +45,10 @@ only while the primary sort is the position field ascending. Existing
 5. Selected visible rows exchange their slots in the full sequence. Search and
    other active filters may hide rows; those rows retain their relative slots.
    Existing unique numeric ranks are reused. Duplicate/null ranks require
-   normalizing the complete scoped order to 0-based integer positions, so that
-   first repair may also update hidden rows' position values. Missing IDs or
-   changed visible ranks reject a stale drop.
+   normalizing the complete scoped order to 0-based integer positions when all
+   rows are eligible. With fixed rows, that case is rejected before writes so
+   their position values stay unchanged. Missing IDs or changed visible ranks
+   reject a stale drop.
 6. Fresh per-record sort checks precede sequential Refine `useUpdate` calls for
    changed positions only. Each payload contains only `{ [orderField]: value }`.
    Mutations use pessimistic mode, retries disabled, silent per-row feedback,
@@ -53,8 +63,8 @@ only while the primary sort is the position field ascending. Existing
 | Module | Responsibility |
 | --- | --- |
 | `lib/const.ts` | Shared 300 ms debounce; search retains its existing alias. |
-| `components/resources/types.ts` | Optional numeric `orderField` contract; existing local flag and notification callback remain available. |
-| `hooks/resources/table/reorder.ts` | Drop debounce/cancellation, complete paginated snapshot, slot planning, stale/invalid-input checks and sequential execution/partial-failure policy. |
+| `components/resources/types.ts` | Optional numeric `orderField` and per-row `canReorderRow` contracts; existing local flag and notification callback remain available. |
+| `hooks/resources/table/reorder.ts` | Drop debounce/cancellation, complete paginated snapshot, eligible-row slot planning, stale/invalid-input checks and sequential execution/partial-failure policy. |
 | `hooks/resources/table/use-resource-reorder.ts` | Connects the sequence to fresh authorization, `useDataProvider`, `useUpdate`, Refine invalidation, Arabic toasts and the batch lock. |
 | `hooks/resources/table/use-resource-table.ts` | Refine table state, default position sorting, local preview and drop scheduling; clears the preview after persistence. |
 | `hooks/resources/controller/use-resource-controller.ts` | Combines sort permission, configured field, canonical sorting and saving state for presentation. |

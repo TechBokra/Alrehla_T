@@ -38,7 +38,7 @@ Paths below are relative to `/dashboard/admin`. Multiple pages can share one res
 
 Auth and current platform products/add-ons already import the shared layer.
 Catalog personalization settings now compose the field/goal/dialect contracts
-in `features/catalog/settings/` with dialog forms, scope inputs and the
+in `features/settings/` with dialog forms, scope inputs and the
 named `catalogSettings` provider. The remaining contracts are prepared for
 upcoming feature forms. No legacy client code was changed. Each additional
 page still needs defaults, fields, queries, payload mapping and authorization

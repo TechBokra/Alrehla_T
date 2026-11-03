@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useList } from "@refinedev/core";
+import { useQuery } from "@tanstack/react-query";
 import { Images } from "lucide-react";
 import { useResourceAuthorization } from "@/hooks/resources";
 import { useAdminIdentity } from "@/hooks/auth/use-admin-access";
-import { MEDIA_PROVIDER, MEDIA_RESOURCE, type MediaAsset, type MediaPage } from "@/features/uploads/model";
+import { listProductMediaAssets } from "@/features/uploads/api";
+import type { MediaAsset } from "@/features/uploads/model";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,24 +30,14 @@ export function ProductImageLibraryPicker({
   const [cursor, setCursor] = useState("");
   const identity = useAdminIdentity();
   const access = useResourceAuthorization("uploads", "list");
-  const { query } = useList<MediaAsset>({
-    resource: MEDIA_RESOURCE,
-    dataProviderName: MEDIA_PROVIDER,
-    pagination: { mode: "off" },
-    sorters: [{ field: "createdAt", order: "desc" }],
-    meta: {
-      folder: "alrehla/products",
-      search,
-      cursor,
-      identity: identity.data?.id,
-    },
-    queryOptions: {
-      enabled: open && access.allowed && Boolean(identity.data?.id),
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
+  const query = useQuery({
+    queryKey: ["media-assets", "product-picker", identity.data?.id, search, cursor],
+    queryFn: () => listProductMediaAssets({ search, cursor }),
+    enabled: open && access.allowed && Boolean(identity.data?.id),
+    retry: false,
+    refetchOnWindowFocus: false,
   });
-  const page = query.data as MediaPage | undefined;
+  const page = query.data;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

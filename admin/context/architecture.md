@@ -55,8 +55,9 @@ Do not add or modify Supabase functions, migrations, schema, policies, Next.js A
 #### Saved row ordering
 
 - `ResourceView` accepts `orderField="sort_order"` (or another numeric position column). This enables drag handles and default field/ID ascending sorting without feature mutation callbacks. Without an order field, the existing `enableRowReordering` mode remains a local preview.
+- `ResourceView.canReorderRow(record)` can restrict dragging and dropping by row. Excluded rows stay fixed while eligible visible rows exchange only their existing slots in the complete scope. If rank values need normalization and the scope contains fixed rows, the reorder is rejected before writes so those fixed records are not changed.
 - Only `onDragEnd` schedules persistence. The shared drop scheduler waits for `DEFAULT_DEBOUNCE_MS` (300 ms); later drops replace the pending sequence. Navigation, filter/sort/source changes and unmount cancel pending work. Dragging is disabled while the active batch saves.
-- Fresh sort authorization precedes a complete paginated read through the existing named Refine data provider. The read uses permanent scope filters, including platform ownership, and is an operation snapshot, not a parallel cache. Selected visible IDs exchange their existing global slots, preserving unselected sequence positions. Unique numeric ranks are retained; duplicate/null ranks normalize the complete scoped sequence to zero-based positions.
+- Fresh sort authorization precedes a complete paginated read through the existing named Refine data provider. The read uses permanent scope filters, including platform ownership, and is an operation snapshot, not a parallel cache. Selected visible IDs exchange their existing global slots, preserving unselected sequence positions. Unique numeric ranks are retained; duplicate/null ranks normalize the complete scoped sequence to zero-based positions when all rows are eligible for reordering.
 - Shared persistence calls Refine `useUpdate` only for changed rows and only the configured field. Mutations are pessimistic with retries and per-row invalidation disabled. One final `useInvalidate` refreshes all resource queries under the same provider. A partial failure also invalidates, restores the server view and reports partial completion without replaying writes.
 - These explicitly requested per-row updates are not transactional and do not guarantee atomic concurrent reordering. No new RPC, migration, schema, policy or deployment is included. Store-order business transitions remain commands and do not use this row-position mechanism.
 
@@ -66,9 +67,41 @@ Catalog personalization settings use three registered resources under
 `/catalog/settings/`, each in dialog create/edit mode. A named `catalogSettings`
 adapter wraps existing Supabase CRUD, validates write allowlists and maps the
 existing dialect `code` primary key to Refine `id`. Fields/goals opt into shared
-saved ordering. Settings navigation uses the authorized `NavMain` group.
+saved ordering. `/settings`, reached through the user menu, contains sidebar
+navigation adapted from the CLI-installed shadcn `sidebar-13` block. Catalog
+tabs use catalog access; identity/contact uses content access. Future platform
+sections are visible as disabled navigation entries.
+The active tab is stored in the URL; legacy definition routes redirect to it.
+Settings has no account panel or internal breadcrumb and no main-sidebar settings
+group. The standard admin-header breadcrumb is retained. `features/settings/`
+contains domain folders for catalog definitions, identity/contact, appearance
+and announcements, privacy and retention, orders and trainers, and payments.
+Only identity/contact and the three catalog panels are active. The page route
+lives in `routes/settings/route.tsx`; existing catalog URLs remain as redirect
+aliases.
 Existing `applies_to` product IDs/box scope is preserved. No backend/schema
 change is included; see [the feature guide](../doc/catalog-settings.md).
+
+The product editor composes a separate TanStack Form for field/goal membership
+after the product has an ID. Refine reads definitions and executes the named
+`catalogSettings` personalization command. Its provider rechecks product and
+definition access, validates the complete plan and conditions each scope update
+on its prior timestamp and target set. Global inheritance and other products/box
+remain intact. Partial writes reconcile through the same Refine cache; see
+[product personalization](../doc/product-personalization.md).
+
+Publisher-owned editions also have a separate `/catalog/publisher-products`
+list, scoped to `owner_type = 'publisher'`. It uses Refine's existing
+`personalized_products` resource, maps `publisher_id` to names from a separate
+read-only publisher list, and exposes the shared `is_active` switch. It does not
+expose product forms or reorder rows from that list. See
+[publisher products](../doc/publisher-products.md).
+
+Time-limited price promotions use the named `promotions` provider and existing
+`price_promotions` table. It allowlists the four legacy target types, validates
+current target prices before writes, and supports create/edit/activation with
+deletion blocked. Refine owns paginated lists, target search and mutation cache.
+See [catalog offers and settings](../doc/catalog-offers-and-settings.md).
 
 This is the standard for resource commands and page forms. CRUD uses Refine `useForm`; feature field state remains in `useAppForm`. Notification mark-all-read continues through its existing `useCustomMutation` adapter. No parallel TanStack Query cache or separate CRUD lifecycle is introduced.
 
@@ -90,9 +123,10 @@ This is the standard for resource commands and page forms. CRUD uses Refine `use
   `providers/refine/`. The named data-provider registry and all of its adapters
   live together in `providers/refine/data-provider/`; feature screens import a
   feature action from that folder only when their UI flow needs it.
-- The named adapter map uses `default` and `siteSettings` for the shared RLS
-  Supabase adapter in `data-provider/supabase-data-provider.ts`, plus
-  `notifications`, `mediaLibrary`, `account`, `users` and `orders` for their scoped
+- The named adapter map uses `default` for shared RLS Supabase CRUD and
+  `siteSettings` for singleton reads plus a guarded identity/contact merge-write
+  over the existing Supabase client, plus
+  `notifications`, `account`, `users` and `orders` for their scoped
   adapters. The users adapter invokes the protected
   `admin-users` Edge Function; list filters, sorting and pagination are sent to
   the server through `data-provider/users-query.ts`.
@@ -117,6 +151,7 @@ The route-to-provider flow and current module layout are documented in
 ### Site branding and home navigation
 
 - `AdminAccessProvider` calls `hooks/auth/use-admin-branding.ts` once. After an active admin session is verified, branding and permissions start together. Refine `useOne` reads only site name/logo/favicon from `site_settings` / `general` through the named `siteSettings` adapter. Its metadata includes the session version and profile ID, so another account cannot reuse an old result.
+- The same `siteSettings` provider serves `/settings?tab=identity-contact`. It merges only allowlisted identity/contact values into `site_settings.general`, preserving unrelated JSON keys, and blocks unsupported CRUD operations. This browser write invalidates Admin Refine data but does not call the legacy Next.js public-page revalidation action; see `doc/platform-settings.md`.
 - The shared loader waits for the initial branding request to settle alongside permissions. Failed/empty branding uses the existing site-name fallback; authentication, identity or permission failures still block access. Sign-in, OAuth/link and reset routes disable branding reads. No second branding/identity provider mounts after the access gate.
 - Branding uses five-minute freshness, no polling/focus refetch and immediate garbage collection of unused session keys. No localStorage or configuration writes. The branding hook synchronizes/removes its own favicon link and accepts only HTTP/HTTPS image URLs.
 - `SiteBranding` reads the shared access context: expanded/mobile sidebar uses the logo and collapsed sidebar uses the favicon. Existing image-level Skeleton/fallback behavior covers image bytes loading after metadata is ready.
@@ -260,25 +295,53 @@ When changing a field, verify label/control association, description access by k
 
 ### UploadCN and Cloudinary media uploads
 
-The Vite admin owns `/uploads`. Its named Refine `mediaLibrary` data provider calls the existing Supabase backend through the `media-library` Edge Function. Next.js is not required. Cloudinary stores the files; no new database table or migration is introduced.
+The `/uploads` management page, its routes, grid/metadata actions and named Refine
+provider have been removed. Product forms retain a focused image picker, while
+product covers and profile images retain their existing direct-upload flows.
+These internal workflows call `features/uploads/api.ts` and the existing
+Supabase `media-library` Edge Function; Cloudinary stores the files. No new
+database table or migration is introduced.
 
-- `features/uploads/page.tsx` presents a searchable image grid, folder filters, oldest/newest sorting and cursor pagination. Refine owns reads, metadata updates, deletion state and cache invalidation.
-- The upload dialog composes the installed `ImageUpload`, `AvatarUpload`, `LogoUpload` and `ProductMediaUpload` blocks from `components/upload`. They share the signed Cloudinary adapter, supported image formats and 5 MiB preflight limit. Pending uploads prevent closing the dialog or changing folder/type. Product cover/reordering is a local preview, not a persisted product association.
-- `components/ui/upload.tsx` owns reusable queue/progress/actions and pending-state reporting. Crop preparation remains in the installed image cropper and crop queue. `FileUpload` remains available for other integrations.
-- `hooks/uploads/use-library-upload-adapter.ts` requests the existing server-authorized signature through the media-library provider, then UploadCN sends file bytes directly from the browser to Cloudinary. No Cloudinary SDK or Next route is needed.
-- `client/supabase/functions/media-library/index.ts` implements list, get, sign, update and delete. It validates the Supabase JWT with `auth.getUser`, current profile/archive state and content-management permission. Only active super admins and authorized general supervisors are accepted. Its gateway JWT check is disabled because the function performs this validation itself.
-- Search and mutations are scoped to public `alrehla/` images, excluding `alrehla/private/`. Signing accepts exact allowlisted parameters and folders, a fresh timestamp, overwrite disabled and the signed `alrehla_media_library` preset. CORS permits configured origins only.
-- Metadata updates preserve the asset URL and public ID. Deletion rechecks existing resource references and fails closed if scanning cannot complete. Service-role access is limited to that authorized reference scan; Cloudinary credentials and the service key stay in Supabase secrets.
+- Product image selection reads the product folder with a TanStack Query and
+  `features/uploads/model.ts` validates the asset response. Direct upload success
+  invalidates the `media-assets` query so the picker can show new assets.
+- The shared upload controls compose the installed `ImageUpload`, `AvatarUpload`,
+  `LogoUpload` and `ProductMediaUpload` blocks from `components/upload`. They
+  share the signed Cloudinary adapter, supported image formats and 5 MiB
+  preflight limit. `FileUpload` remains available for other integrations.
+- `components/ui/upload.tsx` owns reusable queue/progress/actions and pending-state
+  reporting. Crop preparation remains in the installed image cropper and crop
+  queue. Product cover/reordering is a local preview, not a persisted product
+  association.
+- `hooks/uploads/use-library-upload-adapter.ts` requests the server-authorized
+  signature through the internal media API, then UploadCN sends file bytes
+  directly from the browser to Cloudinary. No Cloudinary SDK or Next route is
+  needed.
+- `client/supabase/functions/media-library/index.ts` validates the Supabase JWT
+  with `auth.getUser`, current profile/archive state and content-management
+  permission. It provides the list and sign actions used by the product picker
+  and upload adapter. Its gateway JWT check is disabled because the function
+  performs this validation itself.
+- Listing is scoped to public `alrehla/` images, excluding
+  `alrehla/private/`. Signing accepts exact allowlisted parameters and folders,
+  a fresh timestamp, overwrite disabled and the signed `alrehla_media_library`
+  preset. CORS permits configured origins only.
 
-The browser uses `VITE_SUPABASE_URL`, its publishable key and `VITE_CLOUDINARY_CLOUD_NAME`. Backend secrets are `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` and `MEDIA_ALLOWED_ORIGINS`. The function is deployed to the current development Supabase project; deployment of the Vite frontend is separate.
+The browser uses `VITE_SUPABASE_URL`, its publishable key and
+`VITE_CLOUDINARY_CLOUD_NAME`. Backend secrets are `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` and `MEDIA_ALLOWED_ORIGINS`.
 
-Cloudinary has account-level size ceilings, not per-preset byte limits. The 5 MiB client/declared-metadata checks are preflight checks, not server inspection of direct-upload bytes. Private documents need an explicit protected-delivery design. Removing a queue item only clears local state and does not delete the remote asset.
+Cloudinary has account-level size ceilings, not per-preset byte limits. The 5 MiB
+client/declared-metadata checks are preflight checks, not server inspection of
+direct-upload bytes. Private documents need an explicit protected-delivery
+design. Removing a queue item only clears local state and does not delete the
+remote asset.
 
 Forms use the shared `useAppForm` factory. Resource page definitions declare named upload slots (folder, accepted formats, size and file limits); `ResourceUploadSlots` and `useResourceUploadSlot` create the signed adapter and non-auto-starting UploadCN queue. The registered `ImageUploadField` reads its slot, composes `BaseFormField`, preserves queue/progress/preview/removal UI, and stores saved URLs or queued file IDs. A feature may compose its own media picker into the field. Before product CRUD save, the feature asks the shared page resolver for the selected image URLs; it rechecks upload permission and awaits every selected upload. A failed/rejected/cancelled upload or invalid result rejects preparation and therefore never reaches Refine's create/update mutation. The field keeps queue state locally; only URLs/public IDs supported by the owning resource schema enter the payload, never Files or upload engine state. Upload success and saving a resource association remain separate operations.
 
-The shared slot shows upload progress only for IDs being resolved by the active Save submission; queued files remain quiet and removable beforehand. Successful browser-direct Cloudinary uploads invalidate `uploads` list/many queries through the named `mediaLibrary` provider so the picker sees new assets. The shared page composer disables Refine's automatic mutation invalidation once. `useResourceFormSubmission` owns one awaited Refine list/many/detail invalidation, edit detail refresh, upload cleanup, reset and create redirect; feature forms call `context.submit({ prepare, reset })` and contain no CRUD cache or toast orchestration. The reset callback receives the authoritative detail row, including when a cover URL is removed or replaced. Removing the association does not delete the Cloudinary asset.
+The shared slot shows upload progress only for IDs being resolved by the active Save submission; queued files remain quiet and removable beforehand. Successful browser-direct Cloudinary uploads invalidate the internal `media-assets` query so the picker sees new assets. The shared page composer disables Refine's automatic mutation invalidation once. `useResourceFormSubmission` owns one awaited Refine list/many/detail invalidation, edit detail refresh, upload cleanup, reset and create redirect; feature forms call `context.submit({ prepare, reset })` and contain no CRUD cache or toast orchestration. The reset callback receives the authoritative detail row, including when a cover URL is removed or replaced. Removing the association does not delete the Cloudinary asset.
 
-The previous `/api/upload/sign` implementation was removed. Supabase now supplies the existing backend connection for the Vite uploads page. See `components/upload/README.md` for integration and deployment details.
+The previous `/api/upload/sign` implementation was removed. Supabase supplies the existing backend connection for the Vite admin's product and profile upload flows. See `components/upload/README.md` for integration and deployment details.
 
 ### Resource pages and business commands (implemented)
 
@@ -336,7 +399,7 @@ unregistered actions and empty menus are hidden.
 The sidebar uses `adminNavigationGroups` beside the Refine resource registry and
 `AuthorizedSidebarItem`, sharing the same list checks as pages. Empty groups are
 hidden, pending checks use skeletons, and errors offer Arabic retry actions.
-Standalone profile/uploads/notifications routes use `ResourceAccessGate` inside
+Standalone profile/notifications routes use `ResourceAccessGate` inside
 the existing root AdminLayout. Sign-in redirects through `/`, selecting products,
 users, then profile in permission order.
 

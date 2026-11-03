@@ -129,6 +129,7 @@ declare module "@tanstack/react-table" {
     label?: string;
     placeholder?: string;
     filterOperator?: string;
+    filterOperators?: FilterOperator[];
     variant?: "text" | "number" | "date" | "select" | "multiSelect";
     options?: DataTableFilterOption[];
     icon?: React.ComponentType<{ className?: string }>;
@@ -550,7 +551,7 @@ export function DataTable<TData>({
                     <TableCell className="w-12">
                       <DataTableDragHandle
                         label={rowReordering.getRowLabel(row.original)}
-                        disabled={disabled}
+                        disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
                       />
                     </TableCell>
                   )}
@@ -579,7 +580,7 @@ export function DataTable<TData>({
                 <SortableDataRow
                   key={row.id}
                   id={row.id}
-                  disabled={disabled}
+                  disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
                   selected={row.getIsSelected()}
                   onClick={onClick}
                   clickable={Boolean(onRowClick)}
@@ -1347,6 +1348,7 @@ type FilterField = {
   id: string;
   label: string;
   variant: FilterVariant;
+  operators: FilterOperator[];
   options?: DataTableFilterOption[];
 };
 type SortField = { id: string; label: string };
@@ -1359,6 +1361,10 @@ function getFilterableFields<TData>(table: Table<TData>): FilterField[] {
       id: column.id,
       label: column.columnDef.meta?.label ?? column.id,
       variant: column.columnDef.meta?.variant as FilterVariant,
+      operators:
+        column.columnDef.meta?.filterOperators?.length
+          ? column.columnDef.meta.filterOperators
+          : OPERATORS_BY_VARIANT[column.columnDef.meta?.variant as FilterVariant],
       options: column.columnDef.meta?.options,
     }));
 }
@@ -1373,12 +1379,12 @@ function getSortableFields<TData>(table: Table<TData>): SortField[] {
     }));
 }
 
-function defaultOperatorFor(variant: FilterVariant): FilterOperator {
-  return OPERATORS_BY_VARIANT[variant][0];
+function defaultOperatorFor(field: FilterField): FilterOperator {
+  return field.operators[0] ?? OPERATORS_BY_VARIANT[field.variant][0];
 }
 
-function defaultValueFor(variant: FilterVariant): unknown {
-  return MULTI_VALUE_OPERATORS.includes(defaultOperatorFor(variant)) ? [] : "";
+function defaultValueFor(field: FilterField): unknown {
+  return MULTI_VALUE_OPERATORS.includes(defaultOperatorFor(field)) ? [] : "";
 }
 
 function useReorderSensors() {
@@ -1462,11 +1468,11 @@ function FieldSelect({
 }
 
 function OperatorSelect({
-  variant,
+  operators,
   value,
   onChange,
 }: {
-  variant: FilterVariant;
+  operators: FilterOperator[];
   value: FilterOperator;
   onChange: (value: FilterOperator) => void;
 }) {
@@ -1482,7 +1488,7 @@ function OperatorSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          {OPERATORS_BY_VARIANT[variant].map((operator) => (
+          {operators.map((operator) => (
             <SelectItem key={operator} value={operator}>
               {OPERATOR_LABELS[operator]}
             </SelectItem>
@@ -1640,7 +1646,7 @@ function FilterBuilder<TData>({ table }: { table: Table<TData> }) {
       const condition = isFilterCondition(columnFilter.value)
         ? columnFilter.value
         : {
-            operator: defaultOperatorFor(field.variant),
+            operator: defaultOperatorFor(field),
             value: columnFilter.value,
           };
       return { field, condition };
@@ -1670,8 +1676,8 @@ function FilterBuilder<TData>({ table }: { table: Table<TData> }) {
       {
         id: newId,
         value: {
-          operator: defaultOperatorFor(field.variant),
-          value: defaultValueFor(field.variant),
+          operator: defaultOperatorFor(field),
+          value: defaultValueFor(field),
         },
       },
     ]);
@@ -1699,8 +1705,8 @@ function FilterBuilder<TData>({ table }: { table: Table<TData> }) {
     const next = fields.find((field) => !used.has(field.id));
     if (!next) return;
     setCondition(next.id, {
-      operator: defaultOperatorFor(next.variant),
-      value: defaultValueFor(next.variant),
+      operator: defaultOperatorFor(next),
+      value: defaultValueFor(next),
     });
   };
 
@@ -1750,7 +1756,7 @@ function FilterBuilder<TData>({ table }: { table: Table<TData> }) {
                     onChange={(value) => changeField(row.field.id, value)}
                   />
                   <OperatorSelect
-                    variant={row.field.variant}
+                    operators={row.field.operators}
                     value={row.condition.operator}
                     onChange={(operator) =>
                       changeOperator(row.field, row.condition, operator)
