@@ -1,5 +1,27 @@
 # Progress Tracker
 
+### Platform settings navigation and identity/contact — 2026-11-03
+
+- Reorganized settings by domain: catalog definitions, identity/contact,
+  appearance/announcements, privacy/retention, orders/trainers and payments each
+  have a clear feature boundary. The latter four platform groups are documented
+  placeholders only; their sidebar controls are disabled and have no route,
+  query or mutation.
+- Added the active الهوية والتواصل form in two grouped cards for platform name
+  and contact channels. The route selects content or catalog access by tab; the
+  existing catalog lists and product multi-selection stay in their catalog
+  domain.
+- Added a named `siteSettings` write adapter for the `general` singleton. It
+  validates only identity/contact fields, merges them into existing JSON,
+  preserves unrelated settings, records changed field names in the existing
+  audit table when possible, and blocks unsupported CRUD operations.
+- Added `doc/platform-settings.md` with feature ownership, Refine query/write
+  flow, permissions and the current boundary: Admin cache invalidation does not
+  invoke the legacy Next.js public-page revalidation action. No API, RPC, schema,
+  policy or Edge Function was added. `pnpm run typecheck`, `pnpm run build` and
+  `git diff --check` pass. The existing route-generator circular-dependency and
+  large-chunk warnings remain. No tests were run and no live settings changed.
+
 ### Remove uploads management page — 2026-11-03
 
 - Removed the `/uploads` route modules, management grid/actions, sidebar and

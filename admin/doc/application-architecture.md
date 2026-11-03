@@ -21,7 +21,8 @@ Refine authorization policy.
 
 | Resource/data | Refine provider | Reads and writes |
 |---|---|---|
-| Catalog and shared settings | `default` / `siteSettings` | Existing Supabase data provider |
+| Catalog lists and shared reads | `default` / `siteSettings` | Existing Supabase data provider |
+| Site identity/contact | `siteSettings` | `site-settings-data-provider.ts`; guarded partial merge to `site_settings.general` |
 | Own account | `account` | `account-data-provider.ts` |
 | Notifications | `notifications` | `notifications-data-provider.ts` and allowlisted commands |
 | Product image assets | Internal feature API | Product picker reads and signed uploads use the existing Supabase Edge Function |
@@ -36,12 +37,16 @@ requests into existing Supabase reads/writes and return `{ data, total }` or
 provider uses the shared authenticated Supabase client, existing RLS/tables,
 triggers and already deployed RPCs.
 
-Catalog settings use create/edit Dialogs, the `/settings` page with three
-URL-selected sections, and saved numeric row ordering for fields/goals. The
-feature modules live in `features/settings/`; old `/catalog/settings/*` routes
-remain redirect aliases. See
+Catalog settings use create/edit Dialogs, the `/settings` page with URL-selected
+sections, and saved numeric row ordering for fields/goals. Platform settings
+share the route shell but have domain folders under `features/settings/`;
+identity/contact is active, while remaining platform groups are disabled until
+implemented. Old `/catalog/settings/*` routes remain redirect aliases. See
 [Catalog personalization settings](./catalog-settings.md) for the full flow,
 component map, provider boundaries and verification.
+
+See [Platform settings](./platform-settings.md) for the identity/contact query,
+mutation, access rules, domain folder map and deferred sections.
 
 Publisher editions have a separate `/catalog/publisher-products` list over the
 same `personalized_products` resource as platform products. The page scopes its

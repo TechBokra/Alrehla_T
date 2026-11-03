@@ -2,8 +2,9 @@
 
 ## User flow and scope
 
-User menu → **الإعدادات** (`/settings`) exposes three sidebar tabs with their
-resource lists directly inside the page, using the shadcn `sidebar-13` block:
+User menu → **الإعدادات** (`/settings`) uses the shadcn `sidebar-13` block.
+It contains the active identity/contact form, four disabled future platform
+sections, and three active catalog resource lists:
 
 | Route | Resource | Columns | Create/edit fields |
 |---|---|---|---|
@@ -44,8 +45,15 @@ the catalog settings Dialogs.
 
 ```mermaid
 flowchart TD
-  Nav[User menu settings page and registered route] --> Gate[ResourceAccessGate: canManageCatalog]
-  Gate --> List[ResourceView and Refine useTable]
+  Nav[User menu settings page and registered route] --> Gate{Selected section}
+  Gate -->|identity/contact| ContentGate[ResourceAccessGate: canManageContent]
+  Gate -->|catalog definitions| CatalogGate[ResourceAccessGate: canManageCatalog]
+  ContentGate --> Identity[IdentityContactPage and Refine useOne]
+  Identity --> SiteProvider[siteSettings named data provider]
+  SiteProvider --> DB[Existing Supabase settings row and RLS]
+  Identity --> ContactForm[TanStack Form and Refine useUpdate]
+  ContactForm --> SiteProvider
+  CatalogGate --> List[ResourceView and Refine useTable]
   List --> Provider[catalogSettings named data provider]
   List --> Dialog[Shared resource create/edit Dialog]
   Dialog --> Form[TanStack Form: values and validation]
@@ -82,37 +90,41 @@ Paths below are relative to `admin/src/`.
 |---|---|
 | `routes/settings/route.tsx` | Main settings route and tab selection; catalog URLs remain redirect aliases |
 | `features/settings/page.tsx` | Settings shell and selected tab content |
-| `features/settings/catalog-pages.tsx` | Three resource lists, dialog mode, search and ordering configuration |
-| `features/settings/columns.tsx` | Labels, inline active switches, scope summaries, stored-order headers and shared row actions |
-| `features/settings/model.ts` | Existing database row types, form defaults and validation, scope semantics, allowlisted payload mapping and Arabic error formatting |
-| `features/settings/personalization-dialog.tsx` | Field/goal form factories and their TanStack Form fields |
-| `features/settings/dialect-dialog.tsx` | Dialect form factory; disabled immutable code on edit |
-| `features/settings/scope-targets-field.tsx` | Searchable multi-selection of existing products and box; saved selection hydration; accessible field/error composition |
-| `features/settings/tabs.ts` | Settings tab names and navigation metadata |
+| `features/settings/catalog/pages.tsx` | Three resource lists, dialog mode, search and ordering configuration |
+| `features/settings/catalog/columns.tsx` | Labels, inline active switches, scope summaries, stored-order headers and shared row actions |
+| `features/settings/catalog/model.ts` | Existing database row types, form defaults and validation, scope semantics, allowlisted payload mapping and Arabic error formatting |
+| `features/settings/catalog/personalization-dialog.tsx` | Field/goal form factories and their TanStack Form fields |
+| `features/settings/catalog/dialect-dialog.tsx` | Dialect form factory; disabled immutable code on edit |
+| `features/settings/catalog/scope-targets-field.tsx` | Searchable multi-selection of existing products and box; saved selection hydration; accessible field/error composition |
+| `features/settings/identity-contact/` | Identity/contact query projection, form schema, loading/error state, form and save interaction |
+| `features/settings/appearance-announcements/`, `privacy-retention/`, `orders-trainers/`, `payments/` | Reserved section boundaries with no panel or data operations until activated |
+| `features/settings/tabs.ts` | Platform/catalog groups, active tab names and navigation metadata |
 | `providers/refine/data-provider/catalog-settings-adapter.ts` | Testable provider factory, dialect identity adaptation, write allowlists and creation limits |
 | `providers/refine/data-provider/catalog-settings-data-provider.ts` | Binds the adapter to existing Supabase CRUD and fresh authorization |
 | `providers/refine/data-provider/index.ts` | Registers the named `catalogSettings` provider |
 | `providers/refine/resources.ts` | Resource labels, list URLs, dialog/provider metadata and settings links |
 | `providers/refine/access-control-provider.ts` | Catalog permission for lists/create/edit/delete, fields/goals sort and settings navigation |
-| `features/settings/page.tsx`, `sidebar.tsx`, `tabs.ts`, `routes/settings/route.tsx` | URL-controlled sidebar-13 sections, catalog access gate and existing resource panels; no account panel or internal breadcrumb |
+| `features/settings/page.tsx`, `sidebar.tsx`, `tabs.ts`, `routes/settings/route.tsx` | URL-controlled sidebar-13 sections, separate content/catalog access gates, active panels and disabled future sections; no account panel or internal breadcrumb |
+| `providers/refine/data-provider/site-settings-data-provider.ts` | Read-only singleton queries and guarded identity/contact merge-write with audit logging |
 | `components/nav-user.tsx`, `components/app-sidebar.tsx` | User-menu settings entry; catalog settings no longer appear in the main sidebar |
 | `components/admin-layout.tsx` | Arabic breadcrumb labels for settings routes |
 | `routeTree.gen.ts` | Generated route registration |
 
-No new feature mutation hooks or parallel query cache were introduced. Shared
-resource components/hooks remain the mutation, Dialog, table and reorder
-implementation. This frontend change adds no database schema, policy, RPC,
-Edge Function, Next.js endpoint or deployment. It does not invoke legacy
-Next.js `revalidatePath` or legacy server-action audit logging; storefront
-cache behavior and existing database triggers remain as currently deployed.
+No parallel query cache was introduced. Shared resource components/hooks remain
+the catalog mutation, Dialog, table and reorder implementation. Identity/contact
+uses the existing `audit_logs` table for a best-effort changed-field record.
+This frontend change adds no database schema, policy, RPC, Edge Function,
+Next.js endpoint or deployment. The Vite SPA does not invoke the legacy Next.js
+`revalidatePath` action; see [Platform settings](./platform-settings.md) for its
+public-cache effect.
 
 ## States and verification
 
-Permission-pending, denied, list-loading, empty/error/retry and Dialog record
-loading states reuse the shared resource components. The settings group uses
-the same catalog permission, hides when denied, and opens automatically on a
-settings route. Arabic text follows root RTL; immutable Latin codes and
-numeric inputs use LTR isolation.
+Permission-pending and denied states use the shared access gate. Catalog lists
+retain their empty/error/retry and Dialog record-loading states; identity
+settings expose loading skeleton and retry states. Each sidebar group is hidden
+when its permission is absent. Arabic text follows root RTL; immutable Latin
+codes and numeric inputs use LTR isolation.
 
 `tests/catalog-settings.test.mjs` uses the real provider adapter with controlled
 CRUD services to verify code identity for lists/detail/selected reads/updates,

@@ -52,6 +52,13 @@ export function evaluateResourceAccess(
     if (action === "edit" && record && (record.archived_at || record.is_child_account)) return deny("لا يمكن تعديل هذا الحساب هنا.");
     return ["list", "show", "create", "edit", "activity"].includes(action) ? { can: true } : deny();
   }
+  if (resource === "site_settings") {
+    if (!["list", "show", "edit"].includes(action))
+      return deny("إعدادات الموقع لا تدعم هذا الإجراء.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageContent")
+      ? { can: true }
+      : deny("لا تملك صلاحية تعديل إعدادات الموقع.");
+  }
   if (resource === "price_promotions") {
     if (!["list", "show", "create", "edit"].includes(action))
       return deny("أوقف العرض بدلًا من حذفه.");

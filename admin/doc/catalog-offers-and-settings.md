@@ -17,11 +17,12 @@
   column combines image, name and short description; image failures use a shared
   Avatar fallback. The numeric order column is removed. Dragging still persists
   `sort_order` through the existing shared controller; the Dialog is unchanged.
-- User menu → **الإعدادات** opens `/settings`. It contains only three sidebar
-  sections: customization fields, story goals and writing dialects. The active
-  table is displayed directly beside the `sidebar-13` navigation. There is no
-  account section or internal breadcrumb. The standard admin-header breadcrumb
-  and separate profile menu entry remain available.
+- User menu → **الإعدادات** opens `/settings`. The sidebar has platform and
+  catalog groups. **الهوية والتواصل** is the only active platform form;
+  appearance/announcements, privacy/retention, orders/trainers and payments are
+  disabled placeholders. The three catalog definition lists remain active. The
+  page has no account section or internal breadcrumb; the standard admin-header
+  breadcrumb and separate profile menu entry remain available.
 
 ## Request flow and ownership
 
@@ -57,9 +58,11 @@
 | `features/catalog/promotions/model.ts` | Types, form schema, payload mapping, Cairo conversion, display state and Arabic errors. |
 | `providers/refine/data-provider/promotions-data-provider.ts` | Resource allowlist, price checks, grouped target hydration and guarded CRUD. |
 | `features/settings/page.tsx` | Embedded sidebar-13 layout and the selected existing resource panel. |
-| `features/settings/sidebar.tsx` | CLI-installed sidebar-13 adaptation: Sidebar/Group/Menu with active router links; right-side desktop navigation and wrapped mobile links. |
-| `features/settings/tabs.ts` | Three section IDs, Arabic labels and icons for settings navigation. |
-| `features/settings/model.ts` | Catalog field/goal/dialect types, schemas, value conversion and allowlisted payload mapping. |
+| `features/settings/sidebar.tsx` | sidebar-13 adaptation with grouped platform/catalog navigation, active links and disabled future sections. |
+| `features/settings/tabs.ts` | Active and disabled section IDs, Arabic labels and icons for settings navigation. |
+| `features/settings/catalog/model.ts` | Catalog field/goal/dialect types, schemas, value conversion and allowlisted payload mapping. |
+| `features/settings/identity-contact/` | Identity/contact query, editable fields, validation and status UI. |
+| `providers/refine/data-provider/site-settings-data-provider.ts` | Guarded partial write to `site_settings.general`, preserving other JSON keys. |
 | `components/nav-user.tsx`, `app-sidebar.tsx` | Settings entry in the user menu; removal of catalog settings sidebar group. |
 | `providers/refine/resources.ts`, `access-control-provider.ts` | Offer registration/navigation and catalog permission policy. |
 | `features/catalog/addons/page.tsx`, `columns.tsx` | Requested explanatory copy and a wide image/name/full-description column; price, status and actions keep fixed widths, with no numeric rank column. |
@@ -67,14 +70,14 @@
 
 ### Settings tab navigation
 
-`routes/settings/route.tsx` validates the optional `tab` URL search parameter and gates
-the page on `catalog_settings` list access. `SettingsPage` receives the selected
-tab. `SettingsSidebar` renders real router links with `aria-current` using
+`routes/settings/route.tsx` validates the optional `tab` URL search parameter and
+uses a content permission for identity/contact or catalog permission for catalog
+tabs. `SettingsPage` receives the selected tab. `SettingsSidebar` renders real router links with `aria-current` using
 the Sidebar/Group/Menu composition from `npx shadcn@latest add sidebar-13`.
-Only the selected panel mounts its
-existing Refine resource controller and Dialog composition. Each panel retains
-its own permission gate and resource cache. There is no new query or mutation
-layer for settings. Invalid/missing tab values open customization fields.
+Only the selected panel mounts its existing Refine resource controller and
+Dialog composition. Missing tabs retain the existing catalog default for catalog
+managers; content-only actors open identity/contact. Future platform sections are
+disabled and have no route panel or data operation.
 
 Legacy `/catalog/settings/*` routes redirect with replacement to their matching
 `/settings?tab=...` location, keeping product-editor links and existing resource

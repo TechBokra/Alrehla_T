@@ -2,17 +2,27 @@ import {
   CustomizationFieldsPage,
   StoryGoalsPage,
   WritingDialectsPage,
-} from "./catalog-pages";
+} from "./catalog";
+import { IdentityContactPage } from "./identity-contact";
 import { SettingsSidebar } from "./sidebar";
-import type { SettingsTab } from "./tabs";
+import type { ActiveSettingsTab } from "./tabs";
 
 const panels = {
+  "identity-contact": IdentityContactPage,
   "customization-fields": CustomizationFieldsPage,
   "story-goals": StoryGoalsPage,
   "writing-dialects": WritingDialectsPage,
 };
 
-export function SettingsPage({ tab }: { tab: SettingsTab }) {
+export function SettingsPage({
+  tab,
+  canManageCatalog,
+  canManagePlatform,
+}: {
+  tab: ActiveSettingsTab;
+  canManageCatalog: boolean;
+  canManagePlatform: boolean;
+}) {
   const Content = panels[tab];
   return (
     <section
@@ -23,7 +33,11 @@ export function SettingsPage({ tab }: { tab: SettingsTab }) {
         الإعدادات
       </h1>
       <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border md:flex-row">
-        <SettingsSidebar tab={tab} />
+        <SettingsSidebar
+          tab={tab}
+          canManageCatalog={canManageCatalog}
+          canManagePlatform={canManagePlatform}
+        />
         <div className="min-w-0 w-full flex-1 p-4 lg:p-6">
           <Content />
         </div>

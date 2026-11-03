@@ -90,6 +90,11 @@ export const adminNavigationGroups = [
 
 export const resources: ResourceProps[] = [
   {
+    name: "site_settings",
+    list: "/settings",
+    meta: { label: "إعدادات الهوية والتواصل", dataProviderName: "siteSettings" },
+  },
+  {
     name: "profile",
     list: "/profile",
     meta: { label: "الملف الشخصي", dataProviderName: "account" },

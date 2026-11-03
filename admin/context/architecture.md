@@ -68,14 +68,17 @@ Catalog personalization settings use three registered resources under
 adapter wraps existing Supabase CRUD, validates write allowlists and maps the
 existing dialect `code` primary key to Refine `id`. Fields/goals opt into shared
 saved ordering. `/settings`, reached through the user menu, contains sidebar
-navigation adapted from the CLI-installed shadcn `sidebar-13` block for fields,
-goals and dialects, gated by catalog access.
+navigation adapted from the CLI-installed shadcn `sidebar-13` block. Catalog
+tabs use catalog access; identity/contact uses content access. Future platform
+sections are visible as disabled navigation entries.
 The active tab is stored in the URL; legacy definition routes redirect to it.
 Settings has no account panel or internal breadcrumb and no main-sidebar settings
-group. The standard admin-header breadcrumb is retained.
-Settings UI and catalog-definition modules live together in `features/settings/`,
-and the page route lives in `routes/settings/route.tsx`. Existing catalog URLs
-remain as redirect aliases.
+group. The standard admin-header breadcrumb is retained. `features/settings/`
+contains domain folders for catalog definitions, identity/contact, appearance
+and announcements, privacy and retention, orders and trainers, and payments.
+Only identity/contact and the three catalog panels are active. The page route
+lives in `routes/settings/route.tsx`; existing catalog URLs remain as redirect
+aliases.
 Existing `applies_to` product IDs/box scope is preserved. No backend/schema
 change is included; see [the feature guide](../doc/catalog-settings.md).
 
@@ -120,8 +123,9 @@ This is the standard for resource commands and page forms. CRUD uses Refine `use
   `providers/refine/`. The named data-provider registry and all of its adapters
   live together in `providers/refine/data-provider/`; feature screens import a
   feature action from that folder only when their UI flow needs it.
-- The named adapter map uses `default` and `siteSettings` for the shared RLS
-  Supabase adapter in `data-provider/supabase-data-provider.ts`, plus
+- The named adapter map uses `default` for shared RLS Supabase CRUD and
+  `siteSettings` for singleton reads plus a guarded identity/contact merge-write
+  over the existing Supabase client, plus
   `notifications`, `account`, `users` and `orders` for their scoped
   adapters. The users adapter invokes the protected
   `admin-users` Edge Function; list filters, sorting and pagination are sent to
@@ -147,6 +151,7 @@ The route-to-provider flow and current module layout are documented in
 ### Site branding and home navigation
 
 - `AdminAccessProvider` calls `hooks/auth/use-admin-branding.ts` once. After an active admin session is verified, branding and permissions start together. Refine `useOne` reads only site name/logo/favicon from `site_settings` / `general` through the named `siteSettings` adapter. Its metadata includes the session version and profile ID, so another account cannot reuse an old result.
+- The same `siteSettings` provider serves `/settings?tab=identity-contact`. It merges only allowlisted identity/contact values into `site_settings.general`, preserving unrelated JSON keys, and blocks unsupported CRUD operations. This browser write invalidates Admin Refine data but does not call the legacy Next.js public-page revalidation action; see `doc/platform-settings.md`.
 - The shared loader waits for the initial branding request to settle alongside permissions. Failed/empty branding uses the existing site-name fallback; authentication, identity or permission failures still block access. Sign-in, OAuth/link and reset routes disable branding reads. No second branding/identity provider mounts after the access gate.
 - Branding uses five-minute freshness, no polling/focus refetch and immediate garbage collection of unused session keys. No localStorage or configuration writes. The branding hook synchronizes/removes its own favicon link and accepts only HTTP/HTTPS image URLs.
 - `SiteBranding` reads the shared access context: expanded/mobile sidebar uses the logo and collapsed sidebar uses the favicon. Existing image-level Skeleton/fallback behavior covers image bytes loading after metadata is ready.
