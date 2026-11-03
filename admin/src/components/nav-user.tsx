@@ -25,7 +25,7 @@ import {
   Sun,
   UserRound,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useId } from "react";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
 
@@ -41,12 +41,9 @@ type NavUserProps = {
   isLoggingOut?: boolean;
 };
 
-type ActiveDialog = "profile" | "settings" | null;
-
 export function NavUser({ user, signOut, isLoggingOut }: NavUserProps) {
   const { isMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
-  const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
   const themeSwitchId = useId();
   const darkModeEnabled =
     theme === "system"
@@ -112,9 +109,11 @@ export function NavUser({ user, signOut, isLoggingOut }: NavUserProps) {
                   الملف الشخصي
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveDialog("settings")}>
-                <Settings2 />
-                الإعدادات
+              <DropdownMenuItem asChild>
+                <Link to="/settings">
+                  <Settings2 />
+                  الإعدادات
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuGroup className="flex min-h-9 items-center gap-2 px-2">

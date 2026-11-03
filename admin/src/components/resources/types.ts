@@ -57,6 +57,8 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   rowActions?: ResourceRowAction[];
   storageKey?: string;
   enableRowReordering?: boolean;
+  /** Restricts dragging and dropping to rows that pass this record rule. */
+  canReorderRow?: (record: TRecord) => boolean;
   /** Numeric position column; enables debounced drop persistence. */
   orderField?: Extract<keyof TRecord, string>;
   getRowLabel?: (row: TRecord) => string;

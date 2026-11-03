@@ -6,6 +6,7 @@ import { mediaDataProvider } from "./media-library-data-provider";
 import { usersDataProvider } from "./users-data-provider";
 import { ordersDataProvider } from "./orders-data-provider";
 import { catalogSettingsDataProvider } from "./catalog-settings-data-provider";
+import { promotionsDataProvider } from "./promotions-data-provider";
 
 export const refineDataProviders = {
   default: adminDataProvider,
@@ -16,4 +17,5 @@ export const refineDataProviders = {
   users: usersDataProvider,
   orders: ordersDataProvider,
   catalogSettings: catalogSettingsDataProvider,
+  promotions: promotionsDataProvider,
 } satisfies DataProviders;

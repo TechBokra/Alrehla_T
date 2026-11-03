@@ -8,12 +8,11 @@ export function AddonsPage() {
     <ResourceView<Addon>
       resource="addon_products"
       title="الإضافات"
-      description="إدارة الإضافات وأسعارها الشاملة للتخصيص. الإضافات الجديدة تُحفظ غير نشطة."
+      description="دي اللمسات الاختيارية اللي العميل يقدر يضيفها لطلبه في خطوة التخصيص. السعر اللي هنا هو اللي بيتحسب عليه — الواجهة ما بتبعتش أسعار."
       columns={addonColumns}
       searchField="name"
       mode="dialog"
       form={addonForm}
-      orderField="sort_order"
     />
   );
 }

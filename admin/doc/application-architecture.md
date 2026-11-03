@@ -36,9 +36,10 @@ requests into existing Supabase reads/writes and return `{ data, total }` or
 provider uses the shared authenticated Supabase client, existing RLS/tables,
 triggers and already deployed RPCs.
 
-Catalog settings are registered under `/catalog/settings/` with create/edit
-Dialogs and a permission-aware collapsible `NavMain` sidebar group. Fields
-and goals reuse saved numeric row ordering. See
+Catalog settings use create/edit Dialogs, the `/settings` page with three
+URL-selected sections, and saved numeric row ordering for fields/goals. The
+feature modules live in `features/settings/`; old `/catalog/settings/*` routes
+remain redirect aliases. See
 [Catalog personalization settings](./catalog-settings.md) for the full flow,
 component map, provider boundaries and verification.
 
@@ -186,3 +187,7 @@ Product-scoped personalization choices use the existing settings definitions
 and `applies_to` scope. See [Product personalization](./product-personalization.md)
 for inherited/global behavior, conditional scope writes, dirty protection,
 partial-save recovery, and module responsibilities.
+
+See [Catalog offers and settings](./catalog-offers-and-settings.md) for the
+promotions resource, guarded price validation, add-on table composition and
+catalog settings access through the user menu.

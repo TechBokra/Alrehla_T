@@ -1,5 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { WritingDialectsPage } from "@/features/catalog/settings/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/catalog/settings/writing-dialects")({
-  component: WritingDialectsPage,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/settings",
+      search: { tab: "writing-dialects" },
+      replace: true,
+    });
+  },
 });

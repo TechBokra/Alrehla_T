@@ -22,11 +22,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Home } from "lucide-react";
 
-export function AdminLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname.replace(/\/+$/, "") || "/",
   });
@@ -76,12 +72,14 @@ export function AdminLayout({
                             to={resourceAction.resource.list}
                             className="max-w-32 truncate sm:max-w-48"
                           >
-                            {resourceAction.resource.meta?.label ?? resourceAction.resource.name}
+                            {resourceAction.resource.meta?.label ??
+                              resourceAction.resource.name}
                           </Link>
                         </BreadcrumbLink>
                       ) : (
                         <span className="max-w-32 truncate sm:max-w-48">
-                          {resourceAction.resource.meta?.label ?? resourceAction.resource.name}
+                          {resourceAction.resource.meta?.label ??
+                            resourceAction.resource.name}
                         </span>
                       )}
                     </BreadcrumbItem>
@@ -142,14 +140,21 @@ function matchesResourcePath(route: string, pathname: string) {
   const pathParts = pathname.replace(/\/+$/, "").split("/");
   return (
     routeParts.length === pathParts.length &&
-    routeParts.every((part, index) => part.startsWith(":") || part === pathParts[index])
+    routeParts.every(
+      (part, index) => part.startsWith(":") || part === pathParts[index],
+    )
   );
 }
 
 function getPageLabel(pathname: string) {
-  if (pathname.startsWith("/catalog/settings/customization-fields")) return "خانات التخصيص";
-  if (pathname.startsWith("/catalog/settings/story-goals")) return "أهداف التخصيص";
-  if (pathname.startsWith("/catalog/settings/writing-dialects")) return "لهجات الكتابة";
+  if (pathname === "/settings") return "الإعدادات";
+  if (pathname.startsWith("/catalog/promotions")) return "العروض والخصومات";
+  if (pathname.startsWith("/catalog/settings/customization-fields"))
+    return "خانات التخصيص";
+  if (pathname.startsWith("/catalog/settings/story-goals"))
+    return "أهداف التخصيص";
+  if (pathname.startsWith("/catalog/settings/writing-dialects"))
+    return "لهجات الكتابة";
   if (pathname.startsWith("/catalog/addons")) return "الإضافات";
   if (pathname.startsWith("/catalog/products")) return "منتجات المنصة";
   if (pathname.startsWith("/orders")) return "الطلبات";

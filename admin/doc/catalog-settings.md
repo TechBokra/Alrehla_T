@@ -2,7 +2,8 @@
 
 ## User flow and scope
 
-The permission-aware `NavMain` group **إعدادات الكتالوج** links to three lists:
+User menu → **الإعدادات** (`/settings`) exposes three sidebar tabs with their
+resource lists directly inside the page, using the shadcn `sidebar-13` block:
 
 | Route | Resource | Columns | Create/edit fields |
 |---|---|---|---|
@@ -43,7 +44,7 @@ the catalog settings Dialogs.
 
 ```mermaid
 flowchart TD
-  Nav[NavMain and registered route] --> Gate[ResourceAccessGate: canManageCatalog]
+  Nav[User menu settings page and registered route] --> Gate[ResourceAccessGate: canManageCatalog]
   Gate --> List[ResourceView and Refine useTable]
   List --> Provider[catalogSettings named data provider]
   List --> Dialog[Shared resource create/edit Dialog]
@@ -79,20 +80,22 @@ Paths below are relative to `admin/src/`.
 
 | File | Responsibility |
 |---|---|
-| `routes/catalog/settings/*.tsx` | Three thin route wrappers; no form state |
-| `features/catalog/settings/page.tsx` | Three resource lists, dialog mode, search and ordering configuration |
-| `features/catalog/settings/columns.tsx` | Labels, inline active switches, scope summaries, stored-order headers and shared row actions |
-| `features/catalog/settings/model.ts` | Existing database row types, form defaults and validation, scope semantics, allowlisted payload mapping and Arabic error formatting |
-| `features/catalog/settings/personalization-dialog.tsx` | Field/goal form factories and their TanStack Form fields |
-| `features/catalog/settings/dialect-dialog.tsx` | Dialect form factory; disabled immutable code on edit |
-| `features/catalog/settings/scope-targets-field.tsx` | Searchable multi-selection of existing products and box; saved selection hydration; accessible field/error composition |
+| `routes/settings/route.tsx` | Main settings route and tab selection; catalog URLs remain redirect aliases |
+| `features/settings/page.tsx` | Settings shell and selected tab content |
+| `features/settings/catalog-pages.tsx` | Three resource lists, dialog mode, search and ordering configuration |
+| `features/settings/columns.tsx` | Labels, inline active switches, scope summaries, stored-order headers and shared row actions |
+| `features/settings/model.ts` | Existing database row types, form defaults and validation, scope semantics, allowlisted payload mapping and Arabic error formatting |
+| `features/settings/personalization-dialog.tsx` | Field/goal form factories and their TanStack Form fields |
+| `features/settings/dialect-dialog.tsx` | Dialect form factory; disabled immutable code on edit |
+| `features/settings/scope-targets-field.tsx` | Searchable multi-selection of existing products and box; saved selection hydration; accessible field/error composition |
+| `features/settings/tabs.ts` | Settings tab names and navigation metadata |
 | `providers/refine/data-provider/catalog-settings-adapter.ts` | Testable provider factory, dialect identity adaptation, write allowlists and creation limits |
 | `providers/refine/data-provider/catalog-settings-data-provider.ts` | Binds the adapter to existing Supabase CRUD and fresh authorization |
 | `providers/refine/data-provider/index.ts` | Registers the named `catalogSettings` provider |
-| `providers/refine/resources.ts` | Resource labels, list URLs, dialog/provider metadata and NavMain items |
+| `providers/refine/resources.ts` | Resource labels, list URLs, dialog/provider metadata and settings links |
 | `providers/refine/access-control-provider.ts` | Catalog permission for lists/create/edit/delete, fields/goals sort and settings navigation |
-| `components/nav-main.tsx` | Authorized collapsible settings navigation, router links, active/open state, collapsed-sidebar destination, loading/error/retry states |
-| `components/app-sidebar.tsx` | Composes NavMain after the existing navigation groups |
+| `features/settings/page.tsx`, `sidebar.tsx`, `tabs.ts`, `routes/settings/route.tsx` | URL-controlled sidebar-13 sections, catalog access gate and existing resource panels; no account panel or internal breadcrumb |
+| `components/nav-user.tsx`, `components/app-sidebar.tsx` | User-menu settings entry; catalog settings no longer appear in the main sidebar |
 | `components/admin-layout.tsx` | Arabic breadcrumb labels for settings routes |
 | `routeTree.gen.ts` | Generated route registration |
 

@@ -41,6 +41,7 @@ export function planResourceReorder<TRecord extends OrderedRecord>(
   source: TRecord[],
   orderedIds: string[],
   field: string,
+  canReorderRow: (row: TRecord) => boolean = () => true,
 ) {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(field) || ["id", "__proto__", "constructor", "prototype"].includes(field))
     throw new Error("حقل الترتيب غير صالح.");
@@ -48,7 +49,8 @@ export function planResourceReorder<TRecord extends OrderedRecord>(
   const sourceIds = new Set(source.map((row) => String(row.id)));
   if (byId.size !== rows.length || sourceIds.size !== source.length ||
     orderedIds.length !== source.length || new Set(orderedIds).size !== source.length ||
-    orderedIds.some((id) => !sourceIds.has(id))) throw new Error("قائمة الصفوف غير صالحة للترتيب.");
+    orderedIds.some((id) => !sourceIds.has(id)) || source.some((row) => !canReorderRow(row)))
+    throw new Error("قائمة الصفوف غير صالحة للترتيب.");
   for (const row of source) {
     const fresh = byId.get(String(row.id));
     if (!fresh || fresh[field] !== row[field]) throw new Error("تغيّر ترتيب البيانات. حدّث الجدول ثم حاول مرة أخرى.");
@@ -59,6 +61,8 @@ export function planResourceReorder<TRecord extends OrderedRecord>(
     throw new Error("حقل الترتيب يجب أن يحتوي على أرقام صحيحة.");
   const uniqueSlots = positions.every((value, index) => typeof value === "number" &&
     (index === 0 || (positions[index - 1] as number) < value));
+  if (!uniqueSlots && rows.some((row) => !canReorderRow(row)))
+    throw new Error("تعذّر حفظ الترتيب لأن بعض الصفوف الثابتة لها مواقع مكررة أو غير محددة. حدّث البيانات وحاول مرة أخرى.");
   let selectedIndex = 0;
   const ordered = rows.map((row) => sourceIds.has(String(row.id)) ? byId.get(orderedIds[selectedIndex++])! : row);
   return ordered.flatMap((row, index) => {
@@ -72,6 +76,7 @@ interface ReorderServices<TRecord extends OrderedRecord> {
   read: () => Promise<TRecord[]>;
   update: (record: TRecord, position: number) => Promise<void>;
   invalidate: () => Promise<void>;
+  canReorderRow?: (row: TRecord) => boolean;
 }
 
 /** Per-row useUpdate writes are not transactional; never retry a partial batch. */
@@ -79,7 +84,7 @@ export async function persistResourceReorder<TRecord extends OrderedRecord>(
   source: TRecord[], ids: string[], field: string, services: ReorderServices<TRecord>,
 ) {
   await services.authorize();
-  const changes = planResourceReorder(await services.read(), source, ids, field);
+  const changes = planResourceReorder(await services.read(), source, ids, field, services.canReorderRow);
   let attempted = false;
   let updated = 0;
   try {

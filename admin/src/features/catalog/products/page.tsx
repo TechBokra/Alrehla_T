@@ -15,6 +15,7 @@ export function ProductsPage() {
       form={productForm}
       deleteConsequence="ستُحذف أيضًا روابط توزيعه المرتبطة به."
       orderField="sort_order"
+      canReorderRow={(product) => product.category !== "library"}
       refineCoreProps={{
         filters: {
           permanent: [

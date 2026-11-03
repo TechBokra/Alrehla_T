@@ -1,5 +1,88 @@
 # Progress Tracker
 
+### Show full add-on descriptions — 2026-11-03
+
+- Widened the add-on name column and removed the two-line description clamp;
+  descriptions now wrap across the full cell, preserving line breaks.
+- Set fixed widths for price and actions; the shared status column already has
+  a fixed width. TypeScript, production build and whitespace checks pass; the
+  existing large-bundle warning remains. No tests or live changes performed.
+
+### Promotion summary column — 2026-11-03
+
+- Combined target name/type, discount or sale price, optional label and Cairo
+  date range into one readable promotion column. Dates use the requested
+  Arabic numeric day/month/year and Cairo time format.
+- Kept the period-state badge and changed the shared
+  `createResourceSwitchColumn` label to «الحالة».
+- TypeScript, production build and whitespace checks pass. The existing
+  large-chunk warning remains; no tests or live changes performed.
+
+### Move catalog settings into the settings feature — 2026-11-03
+
+- Moved catalog settings tables, columns, forms, scope picker and data model
+  from `features/catalog/settings/` into `features/settings/`; renamed the tab
+  model to `tabs.ts` and the resource-list module to `catalog-pages.tsx`.
+- Moved the `/settings` route module into `routes/settings/route.tsx`. Kept the
+  three `/catalog/settings/*` redirect aliases so existing URLs continue to open
+  the matching settings tab.
+- Updated product-form imports and settings architecture/module documentation.
+  TypeScript/build validation pending; no backend or route URL behavior changed.
+
+### Lock library products during drag sorting — 2026-11-03
+
+- Added the shared `ResourceView.canReorderRow` rule to filter both sortable
+  items and valid drop targets. The products table excludes
+  `category="library"`; its drag handle is disabled, while other product types
+  retain drag sorting.
+- Reordering merges eligible rows back into their original visible slots and
+  persists only eligible IDs. If duplicate or missing ranks would force a
+  normalization that touches fixed rows, the batch stops before writes.
+- Updated the resource ordering and architecture guides. TypeScript, production
+  build and whitespace checks pass; existing route-generator and bundle-size
+  warnings remain. No tests or live row changes performed.
+
+### Settings sidebar-13 block — 2026-11-03
+
+- Ran `npx shadcn@latest add sidebar-13`, retained the ten existing shared files,
+  and adapted its generated settings Dialog into `features/settings/sidebar.tsx`.
+  The page uses the block's Sidebar/Group/Menu composition with the three catalog
+  sections and real router links; mobile wraps these links above the content.
+- Reuses the existing admin SidebarProvider with `collapsible="none"` to avoid
+  a second global shortcut/cookie controller. Only the active resource panel mounts.
+  URL selection and legacy redirects are retained; no account section is added.
+- Restored the standard admin-header breadcrumb by removing the settings-specific
+  exception. No internal settings breadcrumb or demo Dialog remains.
+  TypeScript, production build and whitespace checks pass. Existing route-generator
+  and bundle-size warnings remain; no tests or live mutations performed.
+
+### Settings sidebar tabs — 2026-11-03
+
+- Replaced settings link/account cards with three in-page tabs: customization
+  fields, story goals and writing dialects. Desktop uses a right-side vertical
+  list; mobile uses a horizontal scrollable tab list with matching keyboard
+  orientation. Only the active resource panel mounts.
+- The validated `tab` search parameter owns selection, preserving refresh/back
+  navigation. Legacy definition routes redirect to their matching tab. Existing
+  resource tables, dialog forms, permissions and queries remain in use.
+- Removed the account section and settings breadcrumb. The route now requires
+  catalog-settings access. TypeScript, production build and whitespace checks
+  pass. Existing route-generator and bundle-size warnings remain; no tests run.
+
+### Catalog offers, add-on rows and settings entry — 2026-11-03
+
+- Added the price promotions resource with dialog create/edit, four legacy target
+  types, server-side target search, Cairo dates, period state and inline activation.
+  A named provider validates fresh prices/permissions and blocks deletion/bulk
+  writes. Existing checkout pricing and database policies remain authoritative.
+- Updated add-on copy, combined image/name/description in one column and removed
+  the numeric order column; existing persistent drag sorting remains available.
+- Moved catalog settings access from the sidebar into `/settings`, reached from
+  the user menu. Existing settings URLs and resource access checks are retained.
+- Saved flow and component responsibilities in `doc/catalog-offers-and-settings.md`.
+  TypeScript, production build and whitespace checks pass. Existing route-generator
+  and bundle-size warnings remain. No tests or live mutations performed.
+
 ### Product personalization review follow-up — 2026-11-03
 
 - OpenCode completed the free-model review with no P1 findings. Fixed its P2

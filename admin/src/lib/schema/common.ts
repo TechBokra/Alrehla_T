@@ -64,7 +64,7 @@ export const dateOnlySchema = z
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "أدخل تاريخًا صحيحًا")
   .refine(validCalendarDate, "التاريخ غير صالح");
-/** Wall-clock Cairo input: validate only; the server owns timezone conversion. */
+/** Wall-clock Cairo input; consumers validate timezone conversion before persistence. */
 export const cairoDateTimeSchema = z
   .string()
   .trim()

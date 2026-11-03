@@ -55,8 +55,9 @@ Do not add or modify Supabase functions, migrations, schema, policies, Next.js A
 #### Saved row ordering
 
 - `ResourceView` accepts `orderField="sort_order"` (or another numeric position column). This enables drag handles and default field/ID ascending sorting without feature mutation callbacks. Without an order field, the existing `enableRowReordering` mode remains a local preview.
+- `ResourceView.canReorderRow(record)` can restrict dragging and dropping by row. Excluded rows stay fixed while eligible visible rows exchange only their existing slots in the complete scope. If rank values need normalization and the scope contains fixed rows, the reorder is rejected before writes so those fixed records are not changed.
 - Only `onDragEnd` schedules persistence. The shared drop scheduler waits for `DEFAULT_DEBOUNCE_MS` (300 ms); later drops replace the pending sequence. Navigation, filter/sort/source changes and unmount cancel pending work. Dragging is disabled while the active batch saves.
-- Fresh sort authorization precedes a complete paginated read through the existing named Refine data provider. The read uses permanent scope filters, including platform ownership, and is an operation snapshot, not a parallel cache. Selected visible IDs exchange their existing global slots, preserving unselected sequence positions. Unique numeric ranks are retained; duplicate/null ranks normalize the complete scoped sequence to zero-based positions.
+- Fresh sort authorization precedes a complete paginated read through the existing named Refine data provider. The read uses permanent scope filters, including platform ownership, and is an operation snapshot, not a parallel cache. Selected visible IDs exchange their existing global slots, preserving unselected sequence positions. Unique numeric ranks are retained; duplicate/null ranks normalize the complete scoped sequence to zero-based positions when all rows are eligible for reordering.
 - Shared persistence calls Refine `useUpdate` only for changed rows and only the configured field. Mutations are pessimistic with retries and per-row invalidation disabled. One final `useInvalidate` refreshes all resource queries under the same provider. A partial failure also invalidates, restores the server view and reports partial completion without replaying writes.
 - These explicitly requested per-row updates are not transactional and do not guarantee atomic concurrent reordering. No new RPC, migration, schema, policy or deployment is included. Store-order business transitions remain commands and do not use this row-position mechanism.
 
@@ -66,7 +67,15 @@ Catalog personalization settings use three registered resources under
 `/catalog/settings/`, each in dialog create/edit mode. A named `catalogSettings`
 adapter wraps existing Supabase CRUD, validates write allowlists and maps the
 existing dialect `code` primary key to Refine `id`. Fields/goals opt into shared
-saved ordering. Settings navigation uses the authorized `NavMain` group.
+saved ordering. `/settings`, reached through the user menu, contains sidebar
+navigation adapted from the CLI-installed shadcn `sidebar-13` block for fields,
+goals and dialects, gated by catalog access.
+The active tab is stored in the URL; legacy definition routes redirect to it.
+Settings has no account panel or internal breadcrumb and no main-sidebar settings
+group. The standard admin-header breadcrumb is retained.
+Settings UI and catalog-definition modules live together in `features/settings/`,
+and the page route lives in `routes/settings/route.tsx`. Existing catalog URLs
+remain as redirect aliases.
 Existing `applies_to` product IDs/box scope is preserved. No backend/schema
 change is included; see [the feature guide](../doc/catalog-settings.md).
 
@@ -77,6 +86,12 @@ definition access, validates the complete plan and conditions each scope update
 on its prior timestamp and target set. Global inheritance and other products/box
 remain intact. Partial writes reconcile through the same Refine cache; see
 [product personalization](../doc/product-personalization.md).
+
+Time-limited price promotions use the named `promotions` provider and existing
+`price_promotions` table. It allowlists the four legacy target types, validates
+current target prices before writes, and supports create/edit/activation with
+deletion blocked. Refine owns paginated lists, target search and mutation cache.
+See [catalog offers and settings](../doc/catalog-offers-and-settings.md).
 
 This is the standard for resource commands and page forms. CRUD uses Refine `useForm`; feature field state remains in `useAppForm`. Notification mark-all-read continues through its existing `useCustomMutation` adapter. No parallel TanStack Query cache or separate CRUD lifecycle is introduced.
 

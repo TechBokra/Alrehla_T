@@ -22,7 +22,7 @@ import {
   CATALOG_SETTINGS_PROVIDER,
   type CustomizationField,
   type StoryGoal,
-} from "@/features/catalog/settings/model";
+} from "@/features/settings/model";
 import {
   mergeSelectionIntent,
   planProductScopeChanges,

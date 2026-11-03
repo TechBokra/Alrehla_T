@@ -1,5 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CustomizationFieldsPage } from "@/features/catalog/settings/page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/catalog/settings/customization-fields")({
-  component: CustomizationFieldsPage,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/settings",
+      search: { tab: "customization-fields" },
+      replace: true,
+    });
+  },
 });

@@ -52,6 +52,12 @@ export function evaluateResourceAccess(
     if (action === "edit" && record && (record.archived_at || record.is_child_account)) return deny("لا يمكن تعديل هذا الحساب هنا.");
     return ["list", "show", "create", "edit", "activity"].includes(action) ? { can: true } : deny();
   }
+  if (resource === "price_promotions") {
+    if (!["list", "show", "create", "edit"].includes(action))
+      return deny("أوقف العرض بدلًا من حذفه.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
+      ? { can: true } : deny("لا تملك صلاحية إدارة العروض.");
+  }
   if (["catalog_settings", "customization_fields", "story_goals", "writing_dialects"].includes(resource ?? "")) {
     const allowed = resource === "catalog_settings"
       ? action === "list"

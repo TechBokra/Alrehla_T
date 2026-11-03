@@ -551,7 +551,7 @@ export function DataTable<TData>({
                     <TableCell className="w-12">
                       <DataTableDragHandle
                         label={rowReordering.getRowLabel(row.original)}
-                        disabled={disabled}
+                        disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
                       />
                     </TableCell>
                   )}
@@ -580,7 +580,7 @@ export function DataTable<TData>({
                 <SortableDataRow
                   key={row.id}
                   id={row.id}
-                  disabled={disabled}
+                  disabled={disabled || !(rowReordering.canReorderRow?.(row.original) ?? true)}
                   selected={row.getIsSelected()}
                   onClick={onClick}
                   clickable={Boolean(onRowClick)}
