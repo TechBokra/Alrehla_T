@@ -133,5 +133,3 @@ export const NOTIFICATION_EVENTS: {
   },
 ];
 
-export const NOTIFICATION_EVENT_LABELS: Record<string, string> =
-  Object.fromEntries(NOTIFICATION_EVENTS.map((e) => [e.key, e.label]));

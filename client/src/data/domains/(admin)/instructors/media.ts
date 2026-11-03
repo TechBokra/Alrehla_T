@@ -29,43 +29,6 @@ export async function getOwnInstructorMedia(
 }
 
 /**
- * المعلَّق كله — لشاشة المراجعة في الإدارة.
- *
- * ⚠️ بيرجّع اسم المدرب معاه: شاشة مراجعة بتعرض صورًا بلا أسماء
- *    بتخلّي الإداري يفتح تبويبًا تاني لكل صورة عشان يعرف بتاعة
- *    مين.
- */
-export async function getPendingInstructorMedia(): Promise<
-  (InstructorMedia & { instructorName: string })[]
-> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('instructor_media')
-    .select(COLUMNS)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    console.error('تعذّر قراءة الصور المعلَّقة', error);
-    return [];
-  }
-
-  const rows = (data ?? []).map(toMedia);
-  if (rows.length === 0) return [];
-
-  const { data: names } = await supabase
-    .from('instructors')
-    .select('id, display_name')
-    .in('id', [...new Set(rows.map((r) => r.instructorId))]);
-
-  const byId = new Map((names ?? []).map((n) => [n.id, n.display_name]));
-  return rows.map((r) => ({
-    ...r,
-    instructorName: byId.get(r.instructorId) ?? 'مدرب غير معروف',
-  }));
-}
-
-/**
  * الصور اللي اتبتّ فيها (معتمدة ومرفوضة) — للإدارة.
  *
  * ⚠️ **ده اللي كان ناقص في شاشة «صور المدربين».** الشاشة كانت بتعرض

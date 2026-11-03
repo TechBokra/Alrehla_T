@@ -106,13 +106,6 @@ export function isOpenQuestion(q: { type?: string } | null | undefined): boolean
 /** إجابة السؤال المفتوح: نص لكل خانة (+ `dialogueAge` لو موجود). */
 export type OpenAnswer = Record<string, string>;
 
-/** نقطة الإتمام — نفس `openCompletion` في الملف: أي خانة فيها كتابة. */
-export function openCompleted(answer: OpenAnswer | null | undefined, q: { fields?: OpenField[] }): boolean {
-  if (!answer) return false;
-  const ids = (q.fields ?? []).map((f) => f.id);
-  return ids.some((id) => String(answer[id] ?? '').trim().length > 0);
-}
-
 export type TrainingModule = {
   title: string;
   subtitle: string;

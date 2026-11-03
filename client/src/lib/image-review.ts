@@ -51,8 +51,6 @@ export function changesUsed(rows: Pick<ImageReviewRow, 'orderItemId' | 'status'>
 }
 export const IMAGE_NOTE_MAX = 500;
 
-export type ImageReviewStatus = 'pending' | 'approved' | 'changes_requested';
-
 export type ImageReviewRow = {
   projectId: string;
   orderItemId: string;

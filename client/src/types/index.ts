@@ -197,7 +197,6 @@ export interface Review {
   createdAt: string;
 }
 
-
 // خدمة إبداعية مستقلة
 export type CreativeService = {
   id: string;
@@ -323,14 +322,6 @@ export type SessionStatus =
   | 'confirmed'
   | 'completed'
   | 'cancelled';
-
-// عملية الحجز لباقة معينة
-export type Booking = {
-  id: string;
-  sessionId: string;
-  status: BookingStatus;
-  bookedAt: string;
-};
 
 // فئة المنتج المخصص
 export type ProductCategory = 'library' | 'custom' | 'subscription';
@@ -600,14 +591,6 @@ export type SubscriptionTier = {
   saleLabel?: string;
 };
 
-// أفراد العائلة المرتبطين بحساب
-export interface FamilyMember {
-  id: string;
-  fullName: string;
-  birthDate: string | null;
-  avatarUrl?: string | null;
-}
-
 // الإشعارات
 export interface NotificationItem {
   id: string;
@@ -648,7 +631,6 @@ export type Publisher = {
   isSample: boolean;
   status: 'pending' | 'active' | 'suspended';
 };
-
 
 // حالة الدفع
 export type PayoutStatus = 'pending' | 'paid';
@@ -743,7 +725,6 @@ export interface InstructorStudent {
   totalSessions: number;
 }
 
-
 export type AdminPermission = 
   | 'canManageUsers'
   | 'canManageInstructors'
@@ -774,7 +755,6 @@ export type AdminPermission =
   | 'canManageStudio'
   /** استوديو القصص — العمل في المشاريع اللي الشخص مسؤول عنها (محرر / مشرف فني). */
   | 'canWorkStudio';
-
 
 export type BoxSubscription = {
   id: string;
@@ -890,7 +870,6 @@ export interface CourseSubscription {
   createdAt: string;
 }
 
-
 export type DocumentStatus = 'draft' | 'submitted' | 'reviewed';
 
 export interface PortfolioDocument {
@@ -903,13 +882,7 @@ export interface PortfolioDocument {
   updatedAt: string;
 }
 
-
-
-
 export type PaymentMethod = 'credit_card' | 'fawry' | 'wallet';
-
-
-
 
 export interface InstructorPricingOption {
   id: string;
@@ -928,20 +901,6 @@ export interface PricingFormulaSettings {
 export type BillingModel = 'monthly' | 'per_session';
 export type CompensationApprovalStatus = 'proposed' | 'under_discussion' | 'approved' | 'rejected';
 
-export interface InstructorCompensationProfile {
-  id: string;
-  instructorId: string;
-  billingModel: BillingModel;
-  selectedPricingOptionId: string;
-  monthlyMinimumHours: number; // افتراضي 60، يُستخدم فقط عند billingModel = 'monthly'
-  overtimeRatePerHour?: number;
-  approvalStatus: CompensationApprovalStatus;
-  adminNotes?: string;
-  reviewedByProfileId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface InstructorCertification {
   id: string;
   instructorId: string;
@@ -951,7 +910,6 @@ export interface InstructorCertification {
   examScore?: number;
   certifiedAt?: string;
 }
-
 
 export interface PublisherOrder {
   id: string;
@@ -963,8 +921,6 @@ export interface PublisherOrder {
   status: string;
   createdAt: string;
 }
-
-
 
 export interface WithdrawalRequest {
   id: string;

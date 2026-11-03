@@ -250,25 +250,12 @@ function isPrivateFileId(publicId: string): boolean {
   return PRIVATE_FILE_PREFIXES.some((p) => publicId.startsWith(p)) && !publicId.includes('..');
 }
 
-function encodePublicId(publicId: string): string {
-  return publicId.split('/').map(encodeURIComponent).join('/');
-}
-
 export type PrivateAsset = {
   public_id: string;
   resource_type: 'image' | 'raw';
   format?: string;
   bytes: number;
 };
-
-/** بيانات ملف خاص زي ما Cloudinary شايفه — الحجم والنوع الحقيقيين. */
-export async function getPrivateAsset(
-  resourceType: 'image' | 'raw',
-  publicId: string,
-): Promise<CloudinaryResult<PrivateAsset>> {
-  if (!isPrivateFileId(publicId)) return { ok: false, error: 'رقم ملف غير صالح' };
-  return call<PrivateAsset>(`/resources/${resourceType}/authenticated/${encodePublicId(publicId)}`);
-}
 
 /** مسح ملفات خاصة بأرقامها (نوع واحد في المرة). */
 export async function deletePrivateAssets(

@@ -21,10 +21,6 @@ export type EmailResult = { sent: true; count: number } | { sent: false; reason:
 
 const DEFAULT_FROM = 'الرحلة <alerts@alrehla.org>';
 
-export function isEmailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
-
 /** إيميلات الإدارة اللي بتستلم التنبيه العاجل. */
 export async function adminAlertEmails(): Promise<string[]> {
   const fromEnv = (process.env.ALERT_EMAILS ?? '')

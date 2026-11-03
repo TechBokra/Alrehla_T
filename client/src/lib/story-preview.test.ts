@@ -172,11 +172,13 @@ describe('السلسلة موصّلة من أول اللوحة لآخر قرار
     expect(src).not.toMatch(/from\(\s*'story_versions'\s*\)/);
   });
 
+  // ⚠️ (٣ نوفمبر) قرار ولي الأمر على **النص** اتشال من الكود (ماكانش حد بيناديه
+  //    من ٢٥ أكتوبر). قراره دلوقتي على **صورة البطل** — بنفس الشروط.
   it('الأكشن بينادي دالة القاعدة، والملاحظة بتتفحص قبلها', () => {
-    const src = read('../actions/story-preview.ts');
-    expect(src).toMatch(/rpc\(\s*'story_preview_decide'/);
-    expect(src).toMatch(/noteProblem\s*\(/);
-    expect(src).toMatch(/rpc\(\s*'story_version_send_to_client'/);
+    expect(read('../actions/story-preview.ts')).toMatch(/rpc\(\s*'story_version_send_to_client'/);
+    const image = read('../actions/image-review.ts');
+    expect(image).toMatch(/rpc\(\s*'story_image_decide'/);
+    expect(image).toMatch(/imageNoteProblem\s*\(/);
   });
 
   it('ملف الترحيل بيضيف فرع المشتري وما بيمسحش حاجة', () => {

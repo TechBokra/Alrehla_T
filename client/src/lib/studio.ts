@@ -47,8 +47,6 @@ export const FACE_MODE_LABELS = {
   real: 'وجه حقيقي (يحتاج موافقة ولي الأمر)',
 } as const;
 
-export type FaceMode = keyof typeof FACE_MODE_LABELS;
-
 export const PAGE_STATUS_LABELS = {
   pending: 'منتظرة',
   drafted: 'مجهّزة',

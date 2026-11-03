@@ -242,11 +242,6 @@ export function flowPipeline(flow: StudioFlow): FlowStep[] {
   return flow.steps.filter((s) => s.active && (s.kind === 'start' || s.kind === 'stage' || s.kind === 'done'));
 }
 
-/** المراحل اللي ينفع المشروع يقف فيها وهو شغّال (من غير التسليم). */
-export function flowWorkStages(flow: StudioFlow): FlowStep[] {
-  return flow.steps.filter((s) => s.kind === 'start' || s.kind === 'stage');
-}
-
 /** «التالي» للأمام: أقرب مرحلة فعّالة بعدها (مرآة `task_next_step`). */
 export function flowNext(flow: StudioFlow, key: string): string | null {
   const cur = flowStep(flow, key);

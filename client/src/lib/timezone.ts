@@ -114,12 +114,6 @@ export function addCairoDays(w: CairoParts, days: number): CairoParts {
   };
 }
 
-/** الساعة على ساعة الحيطة، بصيغة "HH:mm". */
-export function cairoTimeLabel(date: Date): string {
-  const p = cairoParts(date);
-  return `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
-}
-
 /** تنسيق موحّد لعرض التواريخ للمستخدم — بتوقيت القاهرة دايمًا. */
 export function formatCairo(
   date: Date | string,

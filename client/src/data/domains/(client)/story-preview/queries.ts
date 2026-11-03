@@ -47,26 +47,6 @@ export async function getMyStoryPreviews(orderId: string): Promise<PreviewRow[]>
 }
 
 /**
- * فيه معاينة مستنية قراره على الطلب ده؟ — لقايمة الطلبات.
- *
- * ⚠️ بترجّع صفر عند الفشل عن قصد، على خلاف اللي فوق: دي بتحطّ
- *    سطرًا إضافيًا في القايمة، وفشلها مايستاهلش يكسّر صفحة
- *    الطلبات كلها. والصفحة نفسها بترمي لو فشلت.
- */
-export async function countAwaitingPreviews(orderId: string): Promise<number> {
-  try {
-    const rows = await getMyStoryPreviews(orderId);
-    const latest = new Map<string, string>();
-    for (const r of rows) {
-      if (!latest.has(r.orderItemId)) latest.set(r.orderItemId, r.versionStatus);
-    }
-    return [...latest.values()].filter((s) => s === 'editor_approved').length;
-  } catch {
-    return 0;
-  }
-}
-
-/**
  * صور البطل اللي اتبعتت لولي الأمر على طلب واحد — المراجعة بقت
  * للصورة بس (قرار تامر، ٢٥ أكتوبر).
  *
@@ -98,7 +78,6 @@ export async function getMyImageReviews(orderId: string): Promise<ImageReviewRow
     characterApproved: r.character_approved === true,
   }));
 }
-
 
 /**
  * صور البطل لكل طلبات العميل الشغّالة — **نداء واحد** (خريطة البيانات،

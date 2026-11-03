@@ -17,7 +17,6 @@ export const PAID_SERVICE_STATUSES = [
   'delivered',
   'completed',
 ] as const;
-export const PAID_BOOKING_STATUSES = ['active', 'completed'] as const;
 
 export function isSuperAdminRole(role: string | null | undefined): boolean {
   return role === 'super_admin';
