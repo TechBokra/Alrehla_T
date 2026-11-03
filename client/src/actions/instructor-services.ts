@@ -345,6 +345,16 @@ export async function proposeServiceOffer(
 
   const supabase = await createClient();
 
+  // الخدمة مقفولة على المنصة أو المستقلين (٣ نوفمبر)؟
+  const { data: svc } = await supabase
+    .from('standalone_services')
+    .select('*')
+    .eq('id', serviceId)
+    .maybeSingle();
+  if (svc && (svc as { open_to_instructors?: boolean }).open_to_instructors === false) {
+    return { ok: false, error: 'الخدمة دي مش متاحة للمدربين دلوقتي.' };
+  }
+
   const provider = await resolveProviderId(supabase, instructorId);
   if (!provider.ok) return { ok: false, error: provider.error };
 

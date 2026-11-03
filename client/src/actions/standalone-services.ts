@@ -57,6 +57,9 @@ export interface ServiceInput extends ServiceDetailsInput {
   allowsFiles?: boolean;
   fileMaxMb?: number;
   fileKinds?: FileKind[];
+  /** مين يقدّم الخدمة غير المنصة (٣ نوفمبر). */
+  openToInstructors?: boolean;
+  openToIndividuals?: boolean;
 }
 
 function validate(input: ServiceInput) {
@@ -90,6 +93,10 @@ function validate(input: ServiceInput) {
       allows_files: input.allowsFiles === true,
       file_max_mb: normalizeMaxMb(input.fileMaxMb),
       file_kinds: normalizeKinds(input.fileKinds),
+      // ⚠️ في نفس مجموعة «الخانات الاختيارية»: قبل ترحيل 20261103090000
+      //    بتتشال والحفظ يكمّل (writeService).
+      open_to_instructors: input.openToInstructors !== false,
+      open_to_individuals: input.openToIndividuals !== false,
     },
   };
 }

@@ -29,7 +29,7 @@ function toPublicInstructor(row: PublicInstructorRow): PublicInstructor {
     status: row.status as InstructorStatus,
     weeklySchedule: (row.weekly_schedule as WeeklySlot[]) ?? [],
     avatarUrl: row.avatar_url ?? undefined,
-    // فاضية = كل الباقات (انظر `PublicInstructor.packageIds`).
+    // فاضية = ولا باقة (من ٣ نوفمبر — انظر `PublicInstructor.packageIds`).
     packageIds: row.package_ids ?? [],
   };
 }

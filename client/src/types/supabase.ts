@@ -3439,6 +3439,8 @@ export type Database = {
       standalone_services: {
         Row: {
           allows_files: boolean
+          open_to_instructors: boolean
+          open_to_individuals: boolean
           category: string | null
           cover_image_url: string | null
           deliverables: string[] | null
@@ -3458,6 +3460,8 @@ export type Database = {
         }
         Insert: {
           allows_files?: boolean
+          open_to_instructors?: boolean
+          open_to_individuals?: boolean
           category?: string | null
           cover_image_url?: string | null
           deliverables?: string[] | null
@@ -3477,6 +3481,8 @@ export type Database = {
         }
         Update: {
           allows_files?: boolean
+          open_to_instructors?: boolean
+          open_to_individuals?: boolean
           category?: string | null
           cover_image_url?: string | null
           deliverables?: string[] | null

@@ -53,6 +53,9 @@ export async function getStandaloneServices(options?: {
     allowsFiles: row.allows_files === true,
     fileMaxMb: normalizeMaxMb(row.file_max_mb),
     fileKinds: normalizeKinds(row.file_kinds),
+    // ٣ نوفمبر — قبل الترحيل الخانات مش موجودة = مفتوحة.
+    openToInstructors: row.open_to_instructors !== false,
+    openToIndividuals: row.open_to_individuals !== false,
   }));
 }
 

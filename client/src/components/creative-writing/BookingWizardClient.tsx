@@ -116,16 +116,12 @@ export function BookingWizardClient({
    *    الحكاية» ٤٨ جلسة لمراهق. ولي الأمر بيختار مدرب مش عارف إذا
    *    كان ده مجاله، والمدرب بيتحجزله في باقة ممكن مايكونش مستعد لها.
    *
-   * ⚠️ **والمصفوفة الفاضية معناها «كل الباقات»** (ملف SQL 102).
-   *    الشرط ده هو اللي بيخلّي المدربين الحاليين — وكلهم بلا اختيار
-   *    لحد دلوقتي — يفضلوا ظاهرين زي ما هم.
+   * ⚠️ **الفاضية معناها «ولا باقة»** (تعليقات الفريق، ٣ نوفمبر — كانت
+   *    «كل الباقات»). المدرب بيظهر في الباقات اللي اتخصّصت له بس، والقاعدة
+   *    بترفض الحجز معاه في غيرها (`guard_course_booking_rules`).
    */
   const activeInstructors = instructors.filter(
-    (i) =>
-      i.status === 'active' &&
-      (!i.packageIds ||
-        i.packageIds.length === 0 ||
-        i.packageIds.includes(selectedPackage))
+    (i) => i.status === 'active' && (i.packageIds ?? []).includes(selectedPackage)
   );
 
   /** الميعاد محجوز لحد امتى؟ فاضي = متاح. */

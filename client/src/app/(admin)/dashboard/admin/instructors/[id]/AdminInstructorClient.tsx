@@ -1234,7 +1234,7 @@ export function AdminInstructorClient({
           {pickedPackages.length === 0 ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 flex items-center justify-between gap-3">
               <div>
-                <strong>الوضع الحالي:</strong> المدرب يظهر في <strong>جميع الباقات المتاحة بالمنصة</strong> دون استثناء.
+                <strong>الوضع الحالي:</strong> المدرب <strong>مش ظاهر في أي باقة</strong> — حدّد الباقات اللي بيدرّبها.
               </div>
               <button
                 type="button"
@@ -1254,7 +1254,7 @@ export function AdminInstructorClient({
                 onClick={() => setPickedPackages([])}
                 className="text-xs font-bold text-rose-700 underline hover:text-rose-900 shrink-0"
               >
-                إلغاء التخصيص (الظهور في كل الباقات)
+                إلغاء التخصيص (إخفاؤه من كل الباقات)
               </button>
             </div>
           )}

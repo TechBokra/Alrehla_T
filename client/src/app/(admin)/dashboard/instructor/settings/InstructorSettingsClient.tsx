@@ -23,7 +23,7 @@ interface InstructorSettingsClientProps {
   priceAlert?: number;
   /** الباقات المفعّلة اللي المدرب يقدر يختار منها. */
   packages: PackageChoice[];
-  /** اللي هو مسجَّل عليها دلوقتي — فاضية = كل الباقات (ملف SQL 102). */
+  /** اللي هو مسجَّل عليها دلوقتي — فاضية = ولا باقة (من ٣ نوفمبر). */
   selectedPackageIds: string[];
 }
 
