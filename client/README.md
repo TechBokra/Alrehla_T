@@ -3,7 +3,7 @@
 منصة عربية للأطفال واليافعين، منشورة على **[www.alrehla.org](https://www.alrehla.org)**.
 
 > Arabic platform for children and young people: personalised books ("إنها لك") and
-> creative-writing training ("بداية الرحلة"). Next.js 15 · Supabase · Vercel.
+> creative-writing training ("بداية الرحلة"). Next.js 16 · Supabase · Vercel.
 
 ---
 
@@ -30,16 +30,19 @@
 | مقدّم الخدمة | `/dashboard/provider` |
 | الإدارة | `/dashboard/admin`، والصلاحيات فيها على حسب الدور الإداري |
 
-**الدفع تحويل بس** (إنستاباي / فودافون كاش): العميل بيرفع الإيصال، والإدارة بتأكّده.
+**الدفع:** بوابة XPay (بطاقة ومحافظ وفوري) وبيتأكد تلقائيًا، أو تحويل (إنستاباي / فودافون كاش)
+بإيصال والإدارة بتأكّده — الوضع من إعدادات الدفع في لوحة التحكم.
 الطلبات بتتوزّع تلقائيًا على المسؤولين في «مهامي».
 
 ---
 
 ## التقنيات
 
-Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS 4 ·
+Next.js 16 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS 4 ·
 Supabase (Auth + Postgres + RLS) · Cloudinary (الصور) · Daily (غرف الجلسات) ·
-Vercel (النشر والمهام اليومية) · **bun** (مدير الحزم) · Vitest (الاختبارات)
+XPay (الدفع) · Resend (الإيميل) · Vercel (النشر والمهام اليومية) · npm · Vitest (الاختبارات)
+
+> المستودع فيه تطبيقين: `client/` (ده — الموقع ولوحاته) و`admin/` (لوحة إدارة منفصلة).
 
 ---
 
@@ -58,7 +61,8 @@ supabase/
   seed.sql        بيانات البداية للتطوير المحلي
   manual/         إعدادات يدوية منفصلة عن migrations
   tools/          استعلامات فحص (قراءة بس)
-.github/workflows/ci.yml   فحص الأنواع + الاختبارات + lint مع كل رفعة
+.github/workflows/ci.yml   ⚠️ مابيشتغلش: GitHub بيقرا `.github` من جذر المستودع بس (من ساعة فصل
+                           client/admin). الحماية الفعلية: `npm run build` بيشغّل الفحوصات قبل النشر
 vercel.json                المهام اليومية (cron)
 AI-BRIEF.md                قواعد لأي أداة ذكاء اصطناعي بتشتغل على الكود
 ```
@@ -76,20 +80,19 @@ AI-BRIEF.md                قواعد لأي أداة ذكاء اصطناعي ب
 ## التشغيل محليًا
 
 ```bash
-bun install
+npm install
 cp .env.example .env.local   # واملا القيم (القايمة والشرح جوه الملف)
-bun run dev                   # http://localhost:3000
+npm run dev                   # http://localhost:3000
 ```
 
 قبل أي رفعة:
 
 ```bash
-bun run typecheck
-bun run test
-bun run lint
+npm run verify   # lint + typecheck + test
 ```
 
-`bun run build` بيشغّل الفحصين الأولين قبل البناء، وأي فشل بيوقف النشر على Vercel.
+`npm run build` بيشغّل `verify` قبل البناء، وأي فشل بيوقف النشر على Vercel.
+الـtypecheck فيه `noUnusedLocals`: import أو متغير مش مستخدم = فشل.
 
 ---
 
