@@ -45,8 +45,9 @@ alter table public.standalone_services
   add column if not exists open_to_individuals boolean not null default true;
 
 -- ── ٢ و٥) المنصة مقدّم تلقائي بسعر الكارت ─────────────────────
+-- ⚠️ المعرّفات في جداول الخدمات نوعها text مش uuid.
 create or replace function public.platform_provider_id()
-returns uuid
+returns text
 language sql
 stable
 security definer
@@ -93,7 +94,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_platform uuid := public.platform_provider_id();
+  v_platform text := public.platform_provider_id();
 begin
   if v_platform is not null then
     insert into provider_services (provider_id, service_id, approved_price, status, is_active, updated_at)
