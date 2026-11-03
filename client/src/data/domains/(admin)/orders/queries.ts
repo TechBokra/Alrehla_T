@@ -2,7 +2,7 @@ import type { QueryReadOptions } from '@/data/query-result';
 import { Order, OrderItem } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPages, fetchIn } from '@/lib/fetch-all';
-import { isItemFormat } from '@/lib/item-format';
+import { mapOrder, mapOrderItem } from '@/data/domains/(shared)/orders/map';
 
 /**
  * Every order — for the admin screens.
@@ -46,45 +46,9 @@ export async function getAllOrders(options: QueryReadOptions = {}): Promise<Orde
   const itemsByOrder = new Map<string, OrderItem[]>();
   for (const item of items) {
     const list = itemsByOrder.get(item.order_id) ?? [];
-    list.push({
-      productId: item.product_id,
-      quantity: item.quantity,
-      unitPrice: item.unit_price,
-      customizationData: (item.customization_data as OrderItem['customizationData']) || undefined,
-      format: isItemFormat(item.format) ? item.format : 'printed',
-    });
+    list.push(mapOrderItem(item));
     itemsByOrder.set(item.order_id, list);
   }
 
-  return data.map((order) => ({
-    id: order.id,
-    userId: order.user_id,
-    totalAmount: order.total_amount,
-    status: order.status,
-    transactionReference: order.transaction_reference || undefined,
-    paymentReference: order.payment_reference || undefined,
-    paymentMethod: (order.payment_method as 'instapay' | 'vodafone_cash' | null) || undefined,
-    paymentReceiptUrl: order.payment_receipt_url || undefined,
-    trackingReference: order.tracking_reference || undefined,
-    shippedAt: order.shipped_at || undefined,
-    deliveredAt: order.delivered_at || undefined,
-    adminNotes: order.admin_notes || undefined,
-    shippingFee: order.shipping_fee ?? undefined,
-    // ملف 13 — قبله العمود مش موجود فبيرجع undefined.
-    discountCode: order.discount_code || undefined,
-    discountAmount: order.discount_amount ? Number(order.discount_amount) : undefined,
-    recipientName: order.recipient_name || undefined,
-    recipientPhone: order.recipient_phone || undefined,
-    addressLine: order.address_line || undefined,
-    city: order.city || undefined,
-    governorate: order.governorate || undefined,
-    countryCode: order.country_code || undefined,
-    shippingNotes: order.shipping_notes || undefined,
-    deliveryEmail: order.delivery_email || undefined,
-    electronicSentAt: order.electronic_sent_at || undefined,
-    boxPlanId: order.box_plan_id || undefined,
-    boxDetails: (order.box_details as Record<string, unknown> | null) || undefined,
-    createdAt: order.created_at,
-    items: itemsByOrder.get(order.id) ?? [],
-  }));
+  return data.map((order) => mapOrder(order, itemsByOrder.get(order.id) ?? []));
 }
