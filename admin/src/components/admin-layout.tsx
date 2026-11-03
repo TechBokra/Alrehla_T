@@ -155,12 +155,13 @@ function getPageLabel(pathname: string) {
     return "أهداف التخصيص";
   if (pathname.startsWith("/catalog/settings/writing-dialects"))
     return "لهجات الكتابة";
+  if (pathname.startsWith("/catalog/publisher-products"))
+    return "منتجات الناشرين";
   if (pathname.startsWith("/catalog/addons")) return "الإضافات";
   if (pathname.startsWith("/catalog/products")) return "منتجات المنصة";
   if (pathname.startsWith("/orders")) return "الطلبات";
   if (pathname.startsWith("/notifications")) return "الإشعارات";
   if (pathname.startsWith("/users")) return "المستخدمون";
-  if (pathname.startsWith("/uploads")) return "المرفوعات";
   if (pathname.startsWith("/profile")) return "الملف الشخصي";
   return "لوحة الإدارة";
 }

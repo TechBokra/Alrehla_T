@@ -68,14 +68,19 @@ export function evaluateResourceAccess(
     return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
       ? { can: true } : deny("لا تملك صلاحية إدارة الكتالوج.");
   }
-  const permission = resource === "personalized_products" || resource === "addon_products"
-    ? "canManageCatalog"
-    : resource === "uploads" ? "canManageContent" : undefined;
+  const permissions = resource === "personalized_products"
+    ? action === "sort"
+      ? ["canManageCatalog"]
+      : ["canManageCatalog", "canManagePublishers"]
+    : resource === "addon_products"
+      ? ["canManageCatalog"]
+      : resource === "uploads" ? ["canManageContent"] : undefined;
   const knownAction = crudActions.has(action) ||
     ((resource === "personalized_products" || resource === "addon_products") && action === "sort") ||
     (resource === "uploads" && action === "upload");
-  if (!permission || !knownAction) return deny("لا توجد سياسة وصول لهذا المورد أو الإجراء.");
-  return actor.role === "super_admin" || actor.permissions.includes(permission)
+  if (!permissions || !knownAction) return deny("لا توجد سياسة وصول لهذا المورد أو الإجراء.");
+  return actor.role === "super_admin" ||
+    permissions.some((permission) => actor.permissions.includes(permission))
     ? { can: true } : deny("لا تملك صلاحية الوصول إلى هذا القسم.");
 }
 

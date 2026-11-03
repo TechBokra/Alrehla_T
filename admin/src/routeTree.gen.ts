@@ -14,14 +14,12 @@ import { Route as CatalogRouteRouteImport } from './routes/catalog/route'
 import { Route as NotificationsRouteRouteImport } from './routes/notifications/route'
 import { Route as ProfileRouteRouteImport } from './routes/profile/route'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
-import { Route as UploadsRouteRouteImport } from './routes/uploads/route'
 import { Route as UsersRouteRouteImport } from './routes/users/route'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as OrdersIndexRouteImport } from './routes/orders/index'
 import { Route as OrdersIdRouteImport } from './routes/orders/$id'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as SignInIndexRouteImport } from './routes/sign-in/index'
-import { Route as UploadsIndexRouteImport } from './routes/uploads/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as AuthCallbackIndexRouteImport } from './routes/auth/callback/index'
 import { Route as AuthLinkIndexRouteImport } from './routes/auth/link/index'
@@ -29,6 +27,7 @@ import { Route as CatalogAddonsIndexRouteImport } from './routes/catalog/addons/
 import { Route as CatalogProductsIndexRouteImport } from './routes/catalog/products/index'
 import { Route as CatalogProductsCreateRouteImport } from './routes/catalog/products/create'
 import { Route as CatalogPromotionsIndexRouteImport } from './routes/catalog/promotions/index'
+import { Route as CatalogPublisherProductsIndexRouteImport } from './routes/catalog/publisher-products/index'
 import { Route as CatalogSettingsCustomizationFieldsRouteImport } from './routes/catalog/settings/customization-fields'
 import { Route as CatalogSettingsStoryGoalsRouteImport } from './routes/catalog/settings/story-goals'
 import { Route as CatalogSettingsWritingDialectsRouteImport } from './routes/catalog/settings/writing-dialects'
@@ -57,11 +56,6 @@ const ProfileRouteRoute = ProfileRouteRouteImport.update({
 const SettingsRouteRoute = SettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UploadsRouteRoute = UploadsRouteRouteImport.update({
-  id: '/uploads',
-  path: '/uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRouteRoute = UsersRouteRouteImport.update({
@@ -93,11 +87,6 @@ const SignInIndexRoute = SignInIndexRouteImport.update({
   id: '/sign-in/',
   path: '/sign-in/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const UploadsIndexRoute = UploadsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => UploadsRouteRoute,
 } as any)
 const UsersIndexRoute = UsersIndexRouteImport.update({
   id: '/',
@@ -134,6 +123,12 @@ const CatalogPromotionsIndexRoute = CatalogPromotionsIndexRouteImport.update({
   path: '/promotions/',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
+const CatalogPublisherProductsIndexRoute =
+  CatalogPublisherProductsIndexRouteImport.update({
+    id: '/publisher-products/',
+    path: '/publisher-products/',
+    getParentRoute: () => CatalogRouteRoute,
+  } as any)
 const CatalogSettingsCustomizationFieldsRoute =
   CatalogSettingsCustomizationFieldsRouteImport.update({
     id: '/settings/customization-fields',
@@ -164,14 +159,12 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/profile': typeof ProfileRouteRouteWithChildren
   '/settings': typeof SettingsRouteRoute
-  '/uploads': typeof UploadsRouteRouteWithChildren
   '/users': typeof UsersRouteRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/sign-in/': typeof SignInIndexRoute
-  '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
@@ -182,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
+  '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -193,7 +187,6 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/sign-in': typeof SignInIndexRoute
-  '/uploads': typeof UploadsIndexRoute
   '/users': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
@@ -204,6 +197,7 @@ export interface FileRoutesByTo {
   '/catalog/addons': typeof CatalogAddonsIndexRoute
   '/catalog/products': typeof CatalogProductsIndexRoute
   '/catalog/promotions': typeof CatalogPromotionsIndexRoute
+  '/catalog/publisher-products': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRoutesById {
@@ -213,14 +207,12 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRouteRouteWithChildren
   '/profile': typeof ProfileRouteRouteWithChildren
   '/settings': typeof SettingsRouteRoute
-  '/uploads': typeof UploadsRouteRouteWithChildren
   '/users': typeof UsersRouteRouteWithChildren
   '/orders/$id': typeof OrdersIdRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/sign-in/': typeof SignInIndexRoute
-  '/uploads/': typeof UploadsIndexRoute
   '/users/': typeof UsersIndexRoute
   '/catalog/products/create': typeof CatalogProductsCreateRoute
   '/catalog/settings/customization-fields': typeof CatalogSettingsCustomizationFieldsRoute
@@ -231,6 +223,7 @@ export interface FileRoutesById {
   '/catalog/addons/': typeof CatalogAddonsIndexRoute
   '/catalog/products/': typeof CatalogProductsIndexRoute
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
+  '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
 }
 export interface FileRouteTypes {
@@ -241,14 +234,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/settings'
-    | '/uploads'
     | '/users'
     | '/orders/$id'
     | '/notifications/'
     | '/orders/'
     | '/profile/'
     | '/sign-in/'
-    | '/uploads/'
     | '/users/'
     | '/catalog/products/create'
     | '/catalog/settings/customization-fields'
@@ -259,6 +250,7 @@ export interface FileRouteTypes {
     | '/catalog/addons/'
     | '/catalog/products/'
     | '/catalog/promotions/'
+    | '/catalog/publisher-products/'
     | '/catalog/products/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -270,7 +262,6 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/sign-in'
-    | '/uploads'
     | '/users'
     | '/catalog/products/create'
     | '/catalog/settings/customization-fields'
@@ -281,6 +272,7 @@ export interface FileRouteTypes {
     | '/catalog/addons'
     | '/catalog/products'
     | '/catalog/promotions'
+    | '/catalog/publisher-products'
     | '/catalog/products/$id/edit'
   id:
     | '__root__'
@@ -289,14 +281,12 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/settings'
-    | '/uploads'
     | '/users'
     | '/orders/$id'
     | '/notifications/'
     | '/orders/'
     | '/profile/'
     | '/sign-in/'
-    | '/uploads/'
     | '/users/'
     | '/catalog/products/create'
     | '/catalog/settings/customization-fields'
@@ -307,6 +297,7 @@ export interface FileRouteTypes {
     | '/catalog/addons/'
     | '/catalog/products/'
     | '/catalog/promotions/'
+    | '/catalog/publisher-products/'
     | '/catalog/products/$id/edit'
   fileRoutesById: FileRoutesById
 }
@@ -316,7 +307,6 @@ export interface RootRouteChildren {
   NotificationsRouteRoute: typeof NotificationsRouteRouteWithChildren
   ProfileRouteRoute: typeof ProfileRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRoute
-  UploadsRouteRoute: typeof UploadsRouteRouteWithChildren
   UsersRouteRoute: typeof UsersRouteRouteWithChildren
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
@@ -362,13 +352,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/uploads': {
-      id: '/uploads'
-      path: '/uploads'
-      fullPath: '/uploads'
-      preLoaderRoute: typeof UploadsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -410,13 +393,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-in/'
       preLoaderRoute: typeof SignInIndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/uploads/': {
-      id: '/uploads/'
-      path: '/'
-      fullPath: '/uploads/'
-      preLoaderRoute: typeof UploadsIndexRouteImport
-      parentRoute: typeof UploadsRouteRoute
     }
     '/users/': {
       id: '/users/'
@@ -467,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogPromotionsIndexRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
+    '/catalog/publisher-products/': {
+      id: '/catalog/publisher-products/'
+      path: '/publisher-products'
+      fullPath: '/catalog/publisher-products/'
+      preLoaderRoute: typeof CatalogPublisherProductsIndexRouteImport
+      parentRoute: typeof CatalogRouteRoute
+    }
     '/catalog/settings/customization-fields': {
       id: '/catalog/settings/customization-fields'
       path: '/settings/customization-fields'
@@ -506,6 +489,7 @@ interface CatalogRouteRouteChildren {
   CatalogAddonsIndexRoute: typeof CatalogAddonsIndexRoute
   CatalogProductsIndexRoute: typeof CatalogProductsIndexRoute
   CatalogPromotionsIndexRoute: typeof CatalogPromotionsIndexRoute
+  CatalogPublisherProductsIndexRoute: typeof CatalogPublisherProductsIndexRoute
   CatalogProductsIdEditRoute: typeof CatalogProductsIdEditRoute
 }
 
@@ -518,6 +502,7 @@ const CatalogRouteRouteChildren: CatalogRouteRouteChildren = {
   CatalogAddonsIndexRoute: CatalogAddonsIndexRoute,
   CatalogProductsIndexRoute: CatalogProductsIndexRoute,
   CatalogPromotionsIndexRoute: CatalogPromotionsIndexRoute,
+  CatalogPublisherProductsIndexRoute: CatalogPublisherProductsIndexRoute,
   CatalogProductsIdEditRoute: CatalogProductsIdEditRoute,
 }
 
@@ -548,18 +533,6 @@ const ProfileRouteRouteWithChildren = ProfileRouteRoute._addFileChildren(
   ProfileRouteRouteChildren,
 )
 
-interface UploadsRouteRouteChildren {
-  UploadsIndexRoute: typeof UploadsIndexRoute
-}
-
-const UploadsRouteRouteChildren: UploadsRouteRouteChildren = {
-  UploadsIndexRoute: UploadsIndexRoute,
-}
-
-const UploadsRouteRouteWithChildren = UploadsRouteRoute._addFileChildren(
-  UploadsRouteRouteChildren,
-)
-
 interface UsersRouteRouteChildren {
   UsersIndexRoute: typeof UsersIndexRoute
 }
@@ -578,7 +551,6 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRouteRoute: NotificationsRouteRouteWithChildren,
   ProfileRouteRoute: ProfileRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRoute,
-  UploadsRouteRoute: UploadsRouteRouteWithChildren,
   UsersRouteRoute: UsersRouteRouteWithChildren,
   OrdersIdRoute: OrdersIdRoute,
   OrdersIndexRoute: OrdersIndexRoute,

@@ -41,6 +41,8 @@ interface ResourceViewBaseProps<TRecord extends ResourceRecord> {
   columns: ColumnDef<TRecord, unknown>[] | (() => ColumnDef<TRecord, unknown>[]);
   /** Additional record-level rule; authorization still comes from Refine. */
   canEdit?: (record: TRecord) => boolean;
+  /** Hides creation and prevents create actions for read-only resource views. */
+  canCreate?: boolean;
   searchField?: string;
   searchFields?: string[];
   /** Defaults to DEFAULT_SEARCH_DEBOUNCE_MS (300 ms). */

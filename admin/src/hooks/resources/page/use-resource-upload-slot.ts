@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useUploader, useUploadSelector } from "@uploadcn/react";
 import type { CloudinaryUploadResult, UploadAdapter } from "@uploadcn/core";
-import { useInvalidate } from "@refinedev/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLibraryUploadAdapter } from "@/hooks/uploads";
 import type { ResourceUploadDefinition, ResourceUploadHandle } from "@/hooks/uploads";
 import { useResourceAuthorization } from "@/hooks/resources/authorization";
@@ -21,7 +21,7 @@ const unavailableAdapter: UploadAdapter<CloudinaryUploadResult> = {
 export function useResourceUploadSlot(
   definition: ResourceUploadDefinition,
 ): ResourceUploadHandle {
-  const invalidate = useInvalidate();
+  const queryClient = useQueryClient();
   const [uploadingIds, setUploadingIds] = useState<ReadonlySet<string>>(() => new Set());
   const adapter = useLibraryUploadAdapter(definition.folder);
   const access = useResourceAuthorization("uploads", "upload");
@@ -57,14 +57,10 @@ export function useResourceUploadSlot(
       }
       // UploadCN sends files directly to Cloudinary, outside Refine mutations.
       // Refresh the cached library so the new asset is immediately selectable.
-      await invalidate({
-        resource: "uploads",
-        dataProviderName: "mediaLibrary",
-        invalidates: ["list", "many"],
-      });
+      await queryClient.invalidateQueries({ queryKey: ["media-assets"] });
       return result;
     },
-    [adapter, uploader, invalidate],
+    [adapter, uploader, queryClient],
   );
 
   return useMemo(

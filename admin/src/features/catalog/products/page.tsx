@@ -8,7 +8,7 @@ export function ProductsPage() {
     <ResourceView<Product>
       resource="personalized_products"
       title="منتجات المنصة"
-      description="اللي المنصة بتقدّمه بنفسها: «أنت البطل هنا» وتخصيص غلاف المكتبة والإضافات. منتجات دور النشر في قسم «الناشرون»."
+      description="اللي المنصة بتقدّمه بنفسها: «أنت البطل هنا» وتخصيص غلاف المكتبة والإضافات. منتجات دور النشر في قسم «منتجات الناشرين»."
       columns={productColumns}
       searchField="name"
       mode="page"

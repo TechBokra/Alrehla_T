@@ -24,7 +24,7 @@ Refine authorization policy.
 | Catalog and shared settings | `default` / `siteSettings` | Existing Supabase data provider |
 | Own account | `account` | `account-data-provider.ts` |
 | Notifications | `notifications` | `notifications-data-provider.ts` and allowlisted commands |
-| Media library | `mediaLibrary` | `media-library-data-provider.ts` and the existing Supabase Edge Function |
+| Product image assets | Internal feature API | Product picker reads and signed uploads use the existing Supabase Edge Function |
 | Users | `users` | `users-data-provider.ts` and the existing `admin-users` Edge Function |
 | Store orders | `orders` | `orders-data-provider.ts`; list/detail enrichment and allowlisted custom commands |
 | Customization fields, goals and dialects | `catalogSettings` | Existing tables through the validated catalog adapter; dialect code-to-ID mapping |
@@ -42,6 +42,13 @@ feature modules live in `features/settings/`; old `/catalog/settings/*` routes
 remain redirect aliases. See
 [Catalog personalization settings](./catalog-settings.md) for the full flow,
 component map, provider boundaries and verification.
+
+Publisher editions have a separate `/catalog/publisher-products` list over the
+same `personalized_products` resource as platform products. The page scopes its
+query to publisher ownership, reads publisher names for the column/filter,
+exposes only the shared active-state switch and disables creation/reordering.
+See [Publisher products](./publisher-products.md) for the route, query, access
+and component flow.
 
 ## Resource list architecture
 
@@ -96,8 +103,8 @@ Feature `useAppForm` owns values, validation, dirty/touched state and
 `isSubmitting`; the shared page upload resolver checks permission, starts the
 selected files, waits for all of them and returns their Cloudinary URLs. The
 feature maps those URLs into its allowlisted payload.
-After a successful direct upload, the slot invalidates `uploads` list/many
-queries through the named `mediaLibrary` provider. Page forms call the shared
+After a successful direct upload, the slot invalidates the product media
+picker's `media-assets` query. Page forms call the shared
 `context.submit({ prepare, reset })`. `useResourceFormSubmission` owns error
 toasts, the whole-submission guard, one awaited Refine list/many/detail
 invalidation, authoritative edit refresh, upload cleanup, baseline reset and

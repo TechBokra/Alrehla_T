@@ -1,10 +1,10 @@
 # Upload components
 
-`/uploads` uses the installed UploadCN blocks: ImageUpload, AvatarUpload (crop), LogoUpload and ProductMediaUpload. FileUpload is also reusable. Shared primitives live in `components/ui/upload.tsx`; blocks accept an explicit adapter. `onPendingChange` protects the page dialog from interrupting queued, processing or paused uploads.
+Upload forms use the installed UploadCN blocks: ImageUpload, AvatarUpload (crop), LogoUpload and ProductMediaUpload. FileUpload is also reusable. Shared primitives live in `components/ui/upload.tsx`; blocks accept an explicit adapter. `onPendingChange` protects dialogs from interrupting queued, processing or paused uploads.
 
 ## Real Cloudinary integration
 
-`hooks/uploads/use-library-upload-adapter.ts` builds the shared signed adapter. Supabase's existing `media-library` Edge Function authenticates the current admin, checks content permissions and signs restricted image parameters. The browser uploads bytes directly to Cloudinary. Successful media-library uploads invalidate the Refine media list.
+`hooks/uploads/use-library-upload-adapter.ts` builds the shared signed adapter. The internal `features/uploads/api.ts` calls Supabase's existing `media-library` Edge Function, which authenticates the current admin, checks content permissions and signs restricted image parameters. The browser uploads bytes directly to Cloudinary. Successful uploads invalidate the product picker's `media-assets` query.
 
 Resource form pages declare upload slots in their page definition. The shared
 resource upload layer creates a non-auto-starting UploadCN queue for each slot;
@@ -12,7 +12,7 @@ the registered `ImageUploadField` selects files and shows queue state. Product
 submission waits for the selected cover upload to complete before calling the
 Refine CRUD mutation, and aborts that mutation when upload preparation fails.
 
-The `/uploads` grid supports folder/search filters, date sorting, cursor pagination, previews, copying URLs, caption/alt/tags editing and deletion. Refine uses the named `mediaLibrary` provider. Product-media ordering in the upload dialog is a local preview; it does not save product associations. Removing queued items does not delete Cloudinary assets.
+The `/uploads` management page and its Refine provider have been removed. Product forms retain a product-folder image picker using the internal media API. Product-media ordering in the upload dialog is a local preview; it does not save product associations. Removing queued items does not delete Cloudinary assets.
 
 ## Backend setup
 

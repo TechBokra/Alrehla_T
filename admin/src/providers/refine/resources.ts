@@ -1,5 +1,12 @@
 import type { ResourceProps } from "@refinedev/core";
-import { Blocks, Images, Tags, ShoppingBag, Table2, Users } from "lucide-react";
+import {
+  Blocks,
+  BookOpen,
+  Tags,
+  ShoppingBag,
+  Table2,
+  Users,
+} from "lucide-react";
 
 export const catalogSettingsItems = [
   {
@@ -26,12 +33,6 @@ const navigationItems = {
     mode: "dialog",
     label: "المستخدمون",
     icon: Users,
-  },
-  uploads: {
-    resource: "uploads",
-    to: "/uploads",
-    label: "المرفوعات",
-    icon: Images,
   },
   products: {
     resource: "personalized_products",
@@ -63,16 +64,24 @@ const navigationItems = {
   },
 } as const;
 
+const publisherProductsNavigationItem = {
+  resource: "personalized_products",
+  to: "/catalog/publisher-products",
+  label: "منتجات الناشرين",
+  icon: BookOpen,
+} as const;
+
 export type AdminNavigationItem =
-  (typeof navigationItems)[keyof typeof navigationItems];
+  | (typeof navigationItems)[keyof typeof navigationItems]
+  | typeof publisherProductsNavigationItem;
 export const adminNavigationGroups = [
   { label: "إدارة الحسابات", items: [navigationItems.users] },
   { label: "إدارة الطلبات", items: [navigationItems.orders] },
   {
     label: "إنها لك",
     items: [
-      navigationItems.uploads,
       navigationItems.products,
+      publisherProductsNavigationItem,
       navigationItems.addons,
       navigationItems.promotions,
     ],
@@ -113,9 +122,6 @@ export const resources: ResourceProps[] = [
         ...("mode" in item ? { formMode: item.mode } : {}),
         ...(item.resource === "users" ? { dataProviderName: "users" } : {}),
         ...(item.resource === "orders" ? { dataProviderName: "orders" } : {}),
-        ...(item.resource === "uploads"
-          ? { dataProviderName: "mediaLibrary" }
-          : {}),
         ...(item.resource === "price_promotions"
           ? { dataProviderName: "promotions" }
           : {}),

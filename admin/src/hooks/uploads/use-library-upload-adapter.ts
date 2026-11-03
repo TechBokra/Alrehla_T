@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { z } from "zod";
 import { createCloudinaryUploadAdapter } from "@/components/upload/cloudinary";
-import { mediaRequest } from "@/providers/refine/data-provider/media-library-data-provider";
+import { requestMediaLibrary } from "@/features/uploads/api";
 
 const MEDIA_PRESET = "alrehla_media_library";
 const MEDIA_FORMATS = "jpg,jpeg,png,webp,avif";
@@ -30,7 +30,7 @@ export function useLibraryUploadAdapter(folder: string) {
             },
             sign: async (params, item) =>
               signatureSchema.parse(
-                await mediaRequest({
+                await requestMediaLibrary({
                   action: "sign",
                   params,
                   file: { name: item.name, size: item.size, type: item.type },

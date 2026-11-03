@@ -63,7 +63,7 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <AuthorizedSidebarItem key={item.resource} item={item} />
+                  <AuthorizedSidebarItem key={item.to} item={item} />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>

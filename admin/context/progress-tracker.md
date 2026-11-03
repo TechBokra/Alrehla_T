@@ -1,5 +1,38 @@
 # Progress Tracker
 
+### Remove uploads management page — 2026-11-03
+
+- Removed the `/uploads` route modules, management grid/actions, sidebar and
+  breadcrumb entries, Refine resource registration, and named `mediaLibrary`
+  data-provider adapter. Regenerated route metadata to remove the old route.
+- Kept the product image picker and shared Cloudinary upload flows. They now use
+  a small internal feature API and TanStack Query cache key instead of a
+  dashboard data provider. Supabase upload signing and upload authorization
+  remain in place.
+- Updated current architecture and upload docs to describe the removed page and
+  retained internal media workflows. TypeScript and production build pass; the
+  existing large-chunk and route-generator warnings remain. No tests or live
+  media operations were run.
+
+### Publisher products catalog route — 2026-11-03
+
+- Added `/catalog/publisher-products` with the requested title/description and
+  columns for product name, type, publisher, age, price and status. It scopes
+  rows to `owner_type = publisher`, searches by name, and offers publisher and
+  active-state filters.
+- Publisher names come from a small Refine `useList` read of `publishers`.
+  The shared `createResourceSwitchColumn` changes only `is_active`; create
+  actions, row actions, sort-order columns and drag/drop are absent.
+- Added the catalog sidebar link and admin breadcrumb, allowed product CRUD
+  access for either publisher-management or catalog-management permission, and
+  kept row sorting under catalog permission. Added a reusable
+  `ResourceView.canCreate` option for views that must hide creation.
+- Documented the route/data/access flow in
+  [`doc/publisher-products.md`](../doc/publisher-products.md) and linked it from
+  the application architecture guide. TypeScript, production build and final
+  whitespace validation pass; the existing large-chunk warning remains. No
+  tests were added or run, and no backend changes were made.
+
 ### Show full add-on descriptions — 2026-11-03
 
 - Widened the add-on name column and removed the two-line description clamp;
