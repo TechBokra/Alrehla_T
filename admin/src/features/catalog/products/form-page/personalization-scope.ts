@@ -72,6 +72,10 @@ export function planProductScopeChanges(
     const hasProduct = scope.includes(productId);
     const wantsProduct = desired.has(definition.id);
     if (hasProduct === wantsProduct) return [];
+    if (scope.length === 0)
+      throw new Error(
+        `نطاق «${definition.label}» فارغ وغير صالح. أصلحه من إعدادات الكتالوج قبل اختياره للمنتج.`,
+      );
     const appliesTo = wantsProduct
       ? [...scope, productId]
       : scope.filter((id) => id !== productId);

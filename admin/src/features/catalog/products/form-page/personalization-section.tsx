@@ -133,6 +133,23 @@ export function ProductPersonalizationSection({
         </AlertDescription>
       </Alert>
     );
+  if (authorization.isError)
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>تعذّر التحقق من صلاحية التعديل</AlertTitle>
+        <AlertDescription className="flex flex-wrap items-center gap-2">
+          أعد المحاولة للتحقق من الصلاحية وتحميل خيارات التخصيص.
+          <Button
+            type="button"
+            variant="outline"
+            disabled={authorization.isFetching}
+            onClick={() => void authorization.refetch()}
+          >
+            إعادة المحاولة
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
   if (denied)
     return (
       <Alert variant="destructive">
@@ -261,6 +278,34 @@ function PersonalizationEditor({
   const submitting = useStore(form.store, (state) => state.isSubmitting);
   const pending = submitting || mutation.mutation.isPending || refreshing;
   const canSave = dirty && !disabled && readReady && !pending && !refreshNeeded;
+
+  useEffect(() => {
+    if (
+      dirty ||
+      pending ||
+      !readReady ||
+      refreshNeeded ||
+      (scopeSnapshot.fields === fields && scopeSnapshot.goals === goals)
+    )
+      return;
+    // Adopt background reads only while clean; dirty forms reconcile explicit intent.
+    setScopeSnapshot({ fields, goals });
+    baseline.reset(form, {
+      fields: selectedProductIds(fields, productId),
+      goals: selectedProductIds(goals, productId),
+    });
+  }, [
+    fields,
+    goals,
+    productId,
+    dirty,
+    pending,
+    readReady,
+    refreshNeeded,
+    scopeSnapshot,
+    baseline,
+    form,
+  ]);
 
   async function refreshAndReconcile() {
     if (
@@ -468,6 +513,8 @@ function PersonalizationEditor({
 
   const inheritedFields = fields.filter((item) => item.applies_to === null);
   const inheritedGoals = goals.filter((item) => item.applies_to === null);
+  const fieldOptions = definitionOptions(fields);
+  const goalOptions = definitionOptions(goals);
   return (
     <form.AppForm>
       <form
@@ -574,7 +621,7 @@ function PersonalizationEditor({
                 {(field) => (
                   <TagsSelect
                     id="personalization-fields"
-                    options={definitionOptions(fields)}
+                    options={fieldOptions}
                     value={field.state.value}
                     disabled={disabled || !readReady || pending}
                     onValueChange={field.handleChange}
@@ -585,9 +632,11 @@ function PersonalizationEditor({
                   />
                 )}
               </form.AppField>
-              {fields.length === 0 ? (
+              {fieldOptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  لا توجد خانات تخصيص بعد.{" "}
+                  {fields.length
+                    ? "كل خانات التخصيص موروثة من النطاق العام؛ لا توجد خانات بنطاق مخصص للاختيار."
+                    : "لا توجد خانات تخصيص بعد."}{" "}
                   <Link
                     to="/catalog/settings/customization-fields"
                     className="text-primary underline"
@@ -608,7 +657,7 @@ function PersonalizationEditor({
                 {(field) => (
                   <TagsSelect
                     id="personalization-goals"
-                    options={definitionOptions(goals)}
+                    options={goalOptions}
                     value={field.state.value}
                     disabled={disabled || !readReady || pending}
                     onValueChange={field.handleChange}
@@ -619,9 +668,11 @@ function PersonalizationEditor({
                   />
                 )}
               </form.AppField>
-              {goals.length === 0 ? (
+              {goalOptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  لا توجد أهداف قصة بعد.{" "}
+                  {goals.length
+                    ? "كل أهداف القصة موروثة من النطاق العام؛ لا توجد أهداف بنطاق مخصص للاختيار."
+                    : "لا توجد أهداف قصة بعد."}{" "}
                   <Link
                     to="/catalog/settings/story-goals"
                     className="text-primary underline"

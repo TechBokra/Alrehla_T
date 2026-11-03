@@ -75,6 +75,14 @@ test("stale timestamps are carried into the conditional write plan", () => {
   assert.deepEqual(change.appliesTo, ["other", "p1"]);
 });
 
+test("legacy empty scopes require an explicit repair in catalog settings", () => {
+  assert.throws(
+    () => planProductScopeChanges([row("broken", [])], "p1", ["broken"]),
+    /أصلحه من إعدادات الكتالوج/,
+  );
+  assert.deepEqual(planProductScopeChanges([row("broken", [])], "p1", []), []);
+});
+
 test("retry planning from reconciled server rows writes only the remaining selection", () => {
   const requested = ["a", "b"];
   const afterPartialSave = [

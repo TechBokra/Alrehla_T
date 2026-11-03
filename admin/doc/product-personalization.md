@@ -29,6 +29,8 @@ An array is a restricted scope; it may contain product IDs and the reserved
 every other target. An empty array is invalid. Removing the last target is
 blocked with directions to change the definition in catalog settings. The
 existing schema permits at most 100 scope targets.
+Malformed legacy empty scopes must be repaired in settings before selection;
+the planner reports this before issuing a save command.
 
 Inactive definitions remain selectable and selected. Their labels explain that
 the choice is stored but hidden from customers while inactive. Definitions are
@@ -80,7 +82,11 @@ flowchart TD
 ```
 
 Initial loading, read failure/retry, empty definitions and denied access are
-visible. A background read failure keeps an initialized editor mounted with its
+visible. Permission-query failures have a separate retry state; all-global
+definitions explain that every available definition is inherited. A complete
+background read updates the selections and scope baseline while the form is clean
+and idle. Dirty forms preserve their explicit selection intent instead.
+A background read failure keeps an initialized editor mounted with its
 dirty choices and navigation guard, but blocks further saving. Reconciliation
 also blocks controls while it reloads. Saving main product changes must finish
 before editing scope membership. Failure after a confirmed mutation is reported
@@ -115,10 +121,15 @@ as saved changes with an incomplete refresh, rather than replaying writes.
 
 ## Verification
 
-All 64 tests pass, including the existing upload and form-baseline regression
+All 65 tests pass, including the existing upload and form-baseline regression
 checks. TypeScript and the production build pass, with existing route-generator
 and bundle-size warnings. The authenticated localhost create view was inspected visually;
 switching to custom exposed electronic pricing and writing styles, and an
 empty submit showed Arabic validation without creating a record. Final build
 and review outcomes are recorded in `context/progress-tracker.md`. No live
 product/settings changes were used for verification.
+
+OpenCode's free-model review completed with one P2 and three P3 findings.
+The follow-up fixes clean background selection updates, authorization retry,
+inherited-only empty states and legacy empty-scope validation. The final
+TypeScript, test suite and production build were rerun after these fixes.

@@ -1,5 +1,18 @@
 # Progress Tracker
 
+### Product personalization review follow-up — 2026-11-03
+
+- OpenCode completed the free-model review with no P1 findings. Fixed its P2
+  stale-clean-selection report by adopting complete background definition reads
+  only when the personalization form is clean and idle. Dirty selections retain
+  the existing explicit-intent reconciliation flow.
+- Fixed the three P3 reports: permission-query errors now offer retry, all-global
+  definitions show an inherited-only empty state, and malformed legacy empty
+  scopes show a catalog-settings repair message before a mutation is attempted.
+  Added the empty-scope regression test. TypeScript, all 65 tests, production
+  build and whitespace checks pass. Existing route-generator and bundle-size
+  warnings remain. No live rows were changed for verification.
+
 ### Product personalization scope selection — 2026-11-02
 
 - Redesigned the product editor into responsive cards for basics, story content,
@@ -26,7 +39,8 @@
   Browser preview confirmed the Arabic form layout, category conditionals and
   invalid-submit feedback without a real save. TypeScript and the production
   build pass; existing route-generator and bundle-size warnings remain.
-  OpenCode's final review is pending. No live settings or product rows changed.
+  OpenCode's completed review and follow-up are recorded above. No live settings
+  or product rows changed.
 
 ### Catalog settings status switches and delete actions — 2026-11-02
 
