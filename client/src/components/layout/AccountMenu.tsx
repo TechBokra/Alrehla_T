@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { User, LogOut, LayoutDashboard, Loader2, ChevronDown } from 'lucide-react';
 import { logout } from '@/lib/logout';

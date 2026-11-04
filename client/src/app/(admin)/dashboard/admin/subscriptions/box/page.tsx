@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getBoxSubscriptions } from '@/data/domains/(admin)/subscriptions/box';

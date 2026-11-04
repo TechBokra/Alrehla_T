@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { Loader2, Ticket, X } from 'lucide-react';
 import { checkDiscountCode } from '@/actions/discount-codes';
 import type { DiscountLine } from '@/lib/discount-codes';

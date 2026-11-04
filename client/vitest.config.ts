@@ -1,5 +1,29 @@
 import { defineConfig } from 'vitest/config';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
+
+/**
+ * مسار النسخة الفاضية من `server-only`.
+ *
+ * ⚠️ **كان مكتوب `node_modules/server-only/empty.js` بالإيد** — ولما
+ *    الريبو اتجمّع (`client/` و`admin/` في مستودع واحد، أكتوبر ٢٣)،
+ *    الحزم اتركّبت في جذر المستودع مش جوّه `client/`. فالمسار بقى
+ *    مش موجود، و**١٠ ملفات اختبار بقت تفشل قبل ما تبدأ** برسالة
+ *    «Cannot find module 'server-only'» — كل اللي بيستورد
+ *    `lib/auth-guard` أو أي ملف خادم.
+ *
+ *    وده مش عطل في الكود: الاختبارات نفسها سليمة. بس `npm run verify`
+ *    بقى أحمر، واللي بيشوفه بيفتكر إن فيه حاجة باظت.
+ *
+ *    القايمة دي بتمشي على الاتنين — الحزم جوّه `client/` (لو اتفصل
+ *    تاني) أو في الجذر (الوضع الحالي).
+ */
+const SERVER_ONLY_EMPTY =
+  [
+    path.resolve(__dirname, 'node_modules/server-only/empty.js'),
+    path.resolve(__dirname, '../node_modules/server-only/empty.js'),
+  ].find((candidate) => existsSync(candidate)) ??
+  path.resolve(__dirname, 'node_modules/server-only/empty.js');
 
 /**
  * إعداد الاختبارات.
@@ -29,7 +53,7 @@ export default defineConfig({
       //
       // من غير السطر ده، أي اختبار على `lib/auth-guard.ts` (وهي أول
       // سطر فيها `import 'server-only'`) بيفشل قبل ما يبدأ.
-      'server-only': path.resolve(__dirname, 'node_modules/server-only/empty.js'),
+      'server-only': SERVER_ONLY_EMPTY,
     },
   },
   test: {

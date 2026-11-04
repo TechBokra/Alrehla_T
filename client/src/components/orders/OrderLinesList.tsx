@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatPrice } from '@/lib/utils';
 import type { OrderLine } from '@/lib/order-lines';
 

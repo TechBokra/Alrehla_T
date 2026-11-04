@@ -4,7 +4,8 @@ import { runMediaCleanup } from '@/data/domains/(admin)/media/cleanup';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 // فحص ٢٣ جدول + قايمة Cloudinary — ممكن ياخد أكتر من الافتراضي.
-export const maxDuration = 60;
+// ⚠️ 300 (كانت 60): القايمة بقت لحد 10 آلاف صورة على صفحات (٢٧ أكتوبر).
+export const maxDuration = 300;
 
 /**
  * المهمة اليومية: مسح الصور المتسابة (`lib/media-cleanup`).

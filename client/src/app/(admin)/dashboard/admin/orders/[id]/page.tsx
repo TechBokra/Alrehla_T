@@ -12,6 +12,7 @@ import { OrderTotals } from '@/components/orders/OrderTotals';
 import { orderLines, orderSubtotal } from '@/lib/order-lines';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { FulfilmentPanel } from './FulfilmentPanel';
+import { isSuperAdminRole } from '@/lib/super-cancel';
 import { OrderItemCustomization } from './OrderItemCustomization';
 import { ElectronicDeliveryPanel } from './ElectronicDeliveryPanel';
 import { BoxOrderPanel } from './BoxOrderPanel';
@@ -83,6 +84,10 @@ export default async function Page({
         amount={target.totalAmount}
         method={target.paymentMethod}
         receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
+        status={target.status}
+        provider={target.paymentProvider}
+        paidAt={target.paidAt}
+        gatewayId={target.paymentIntentId}
         legacyReference={target.transactionReference}
       />
 
@@ -114,11 +119,13 @@ export default async function Page({
               <ConfirmPaymentButton kind="order" targetId={target.id} />
             )}
             {/* الاشتراك بيتشحن شهر شهر من صفحته — مش من هنا. */}
-            {!target.boxPlanId && (
+            {(!target.boxPlanId || isSuperAdminRole(user.role)) && (
               <FulfilmentPanel
                 orderId={target.id}
                 status={target.status}
                 trackingReference={target.trackingReference ?? ''}
+                superAdmin={isSuperAdminRole(user.role)}
+                cancelOnly={!!target.boxPlanId}
               />
             )}
           </div>

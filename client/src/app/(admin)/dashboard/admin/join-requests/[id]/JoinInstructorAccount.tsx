@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, UserPlus } from 'lucide-react';
 import { createInstructorFromJoinRequest } from '@/actions/admin-instructors';

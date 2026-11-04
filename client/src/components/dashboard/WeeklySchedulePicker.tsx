@@ -1,22 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { dateKey } from '@/lib/time-values';
 import { DayOfWeek, WeeklySlot } from '@/types';
-import {
-  Calendar,
-  Clock,
-  Plus,
-  Trash2,
-  Copy,
-  Check,
-  AlertCircle,
-  LayoutGrid,
-  CalendarDays,
-  Sparkles,
-  Info,
-} from 'lucide-react';
+import { Calendar, Clock, Plus, Trash2, Copy, Check, AlertCircle, LayoutGrid, CalendarDays, Info } from 'lucide-react';
 
 export const DAYS: { key: DayOfWeek; label: string; short: string }[] = [
   { key: 'saturday', label: 'السبت', short: 'سبت' },

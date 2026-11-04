@@ -2,64 +2,30 @@
 
 import { SITE_URL } from '@/lib/site-url';
 import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Instructor,
-  ProfileUpdateRequest,
-  InstructorCertification,
-  CreativeService,
-  InstructorServiceOffer,
-  PricingFormulaSettings,
-  WeeklySlot,
-} from '@/types';
-import {
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  Calendar,
-  MessageSquare,
-  Save,
-  Layers,
-  Sparkles,
-  FileText,
-  Clock,
-  User,
-  LayoutDashboard,
-  ShieldCheck,
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Check,
-  CalendarDays,
-  ArrowRight,
-  Briefcase,
-  KeyRound,
-  Copy,
-  Lock,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Instructor, ProfileUpdateRequest, InstructorCertification, CreativeService, InstructorServiceOffer, PricingFormulaSettings } from '@/types';
+import { CheckCircle2, AlertCircle, Calendar, MessageSquare, Layers, Sparkles, FileText, Clock, User, LayoutDashboard, ShieldCheck, ChevronLeft, ChevronRight, Check, Briefcase, KeyRound, Copy, Trash2, X } from 'lucide-react';
 import {
   updateInstructorCertification,
   setInstructorTraining,
   setInstructorStatus,
-  setInstructorPackages,
 } from '@/actions/instructors';
 import { deleteInstructor, resetInstructorPassword } from '@/actions/admin-instructors';
 import { type PackageChoice } from '@/components/dashboard/PackagePicker';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { getInstructorChangeItems } from '@/lib/request-summary';
 import { useAction } from '@/lib/use-action';
-import { FormError, FormSuccess, FormNotice } from '@/components/ui/FormError';
+import { FormError, FormSuccess } from '@/components/ui/FormError';
 import { Field, TextInput, Checkbox, BusyButton, fieldClass } from '@/components/forms/Form';
 import { isoToCairoLocal } from '@/lib/promotions';
 import { InstructorProfileEditor } from './InstructorProfileEditor';
 import { InstructorServicesSection } from './InstructorServicesSection';
 import { TransferWorkPanel } from './TransferWorkPanel';
+import { InstructorScheduleTab } from './InstructorScheduleTab';
+import { InstructorPackagesTab } from './InstructorPackagesTab';
+import { ARABIC_DAYS } from './schedule-days';
 
 interface AdminInstructorClientProps {
   instructor: Instructor;
@@ -74,24 +40,6 @@ interface AdminInstructorClientProps {
   /** المدربون النشطون اللي ينفع ينتقل لهم الشغل. */
   transferTargets: { id: string; name: string }[];
 }
-
-const ARABIC_DAYS: Record<string, string> = {
-  saturday: 'السبت',
-  sunday: 'الأحد',
-  monday: 'الإثنين',
-  tuesday: 'الثلاثاء',
-  wednesday: 'الأربعاء',
-  thursday: 'الخميس',
-  friday: 'الجمعة',
-};
-
-const DAY_KEYS = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-
-const TRACK_LABELS: Record<string, string> = {
-  foundation: 'تأسيس',
-  youth: 'يافعين',
-  specialization: 'تخصص',
-};
 
 type ActiveTab = 'overview' | 'requests' | 'packages' | 'schedule' | 'profile' | 'services';
 
@@ -204,31 +152,13 @@ export function AdminInstructorClient({
 
   // Packages state & filters
   const [pickedPackages, setPickedPackages] = useState<string[]>(selectedPackageIds);
-  const [packagesDone, setPackagesDone] = useState('');
-  const [packageSearch, setPackageSearch] = useState('');
-  const [packageTrackFilter, setPackageTrackFilter] = useState<string>('all');
 
   // Schedule view state: default is "single day" as requested!
-  const [scheduleViewMode, setScheduleViewMode] = useState<'single_day' | 'week_grid'>('single_day');
-  const [selectedDay, setSelectedDay] = useState<string>('saturday');
 
   // Past requests filters & pagination (handling dense content!)
   const [pastFilterStatus, setPastFilterStatus] = useState<'all' | 'approved' | 'rejected'>('all');
   const [pastPage, setPastPage] = useState(1);
   const PAST_PAGE_SIZE = 4;
-
-  const savePackages = useAction(setInstructorPackages, {
-    onSuccess: (result) => {
-      if (result.ok) {
-        setPackagesDone(
-          result.count === 0
-            ? 'تم الحفظ. المدرب سيظهر في جميع الباقات المتاحة بالمنصة.'
-            : `تم الحفظ بنجاح. المدرب سيظهر في ${result.count} باقة معتمدة.`
-        );
-      }
-    },
-    fallbackError: 'تعذّر حفظ باقات المدرب.',
-  });
 
   const changeStatus = useAction(setInstructorStatus, {
     onSuccess: (result) => {
@@ -285,21 +215,6 @@ export function AdminInstructorClient({
 
   const actionError = certify.error || training.error;
 
-  // Filtered packages
-  const filteredPackages = useMemo(() => {
-    return packages.filter((pkg) => {
-      if (packageTrackFilter !== 'all' && pkg.track !== packageTrackFilter) return false;
-      if (
-        packageSearch.trim() &&
-        !pkg.name.toLowerCase().includes(packageSearch.toLowerCase()) &&
-        !pkg.ageGroup.toLowerCase().includes(packageSearch.toLowerCase())
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [packages, packageSearch, packageTrackFilter]);
-
   // Filtered & paginated past requests
   const filteredPastRequests = useMemo(() => {
     return pastRequests.filter((r) => {
@@ -316,8 +231,6 @@ export function AdminInstructorClient({
 
   // Weekly schedule stats
   const weeklySlots = instructor.weeklySchedule || [];
-  const bookedSlotsCount = weeklySlots.filter((s) => s.isBooked).length;
-  const tempSlotsCount = weeklySlots.filter((s) => s.commitmentType === 'fixed_term').length;
 
   return (
     <div className="space-y-6">
@@ -385,7 +298,7 @@ export function AdminInstructorClient({
                 <div>
                   <span className="font-bold text-slate-700">الباقات: </span>
                   <span className="font-medium text-slate-800">
-                    {pickedPackages.length === 0 ? 'جميع الباقات' : `${pickedPackages.length} باقة معتمدة`}
+                    {pickedPackages.length === 0 ? 'ولا باقة' : `${pickedPackages.length} باقة معتمدة`}
                   </span>
                 </div>
                 <span className="text-slate-300 hidden sm:inline">•</span>
@@ -800,7 +713,7 @@ export function AdminInstructorClient({
                 >
                   <span className="font-bold text-slate-700">الباقات المعتمدة:</span>
                   <span className="font-black text-slate-800">
-                    {pickedPackages.length === 0 ? 'جميع الباقات (افتراضي)' : `${pickedPackages.length} باقة`}
+                    {pickedPackages.length === 0 ? 'ولا باقة' : `${pickedPackages.length} باقة`}
                   </span>
                 </button>
 
@@ -893,7 +806,7 @@ export function AdminInstructorClient({
                 {pendingRequests.map((req) => {
                   const changeItems = getInstructorChangeItems(req.requestedChanges, packages);
                   const isPackagesRequest =
-                    (req.requestedChanges as any)._requestType === 'packages' ||
+                    req.requestedChanges._requestType === 'packages' ||
                     (req.requestedChanges.packageIds !== undefined &&
                       req.requestedChanges.weeklySchedule === undefined &&
                       req.requestedChanges.workModel === undefined &&
@@ -973,7 +886,7 @@ export function AdminInstructorClient({
                           </h5>
                           {req.requestedChanges.packageIds.length === 0 ? (
                             <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-600">
-                              طلب التدريب في <strong>جميع الباقات المتاحة بالمنصة</strong>.
+                              طلب <strong>إلغاء كل باقاته</strong> — مش هيظهر في أي باقة.
                             </div>
                           ) : (
                             <div className="grid gap-2 sm:grid-cols-2">
@@ -1111,7 +1024,7 @@ export function AdminInstructorClient({
                 {paginatedPastRequests.map((req) => {
                   const pastChangeItems = getInstructorChangeItems(req.requestedChanges, packages);
                   const isPackages =
-                    (req.requestedChanges as any)._requestType === 'packages' ||
+                    req.requestedChanges._requestType === 'packages' ||
                     (req.requestedChanges.packageIds !== undefined &&
                       req.requestedChanges.weeklySchedule === undefined &&
                       req.requestedChanges.workModel === undefined);
@@ -1202,331 +1115,16 @@ export function AdminInstructorClient({
 
       {/* ─── TAB 3: باقات التدريب المعتمدة (مع شريط بحث وفلترة للمحتوى الكثيف) ─── */}
       {activeTab === 'packages' && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
-                <Layers className="h-4 w-4 text-indigo-600" />
-                <span>إدارة باقات التدريب المعتمدة للمدرب</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                تحديد الباقات التي يظهر فيها المدرب لأولياء الأمور أثناء حجز الجلسات.
-              </p>
-            </div>
-
-            {/* زر الحفظ */}
-            <BusyButton
-              busy={savePackages.pending}
-              pendingLabel="جارٍ الحفظ..."
-              onClick={() => {
-                setPackagesDone('');
-                savePackages.run(instructor.id, pickedPackages);
-              }}
-              className="shrink-0 text-sm"
-            >
-              <Save className="h-4 w-4" />
-              <span>حفظ الباقات المعتمدة</span>
-            </BusyButton>
-          </div>
-
-          <FormSuccess message={packagesDone} />
-          <FormError message={savePackages.error} />
-
-          {/* حالة الباقات المعتمدة وتنبيه الظهور */}
-          {pickedPackages.length === 0 ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 flex items-center justify-between gap-3">
-              <div>
-                <strong>الوضع الحالي:</strong> المدرب يظهر في <strong>جميع الباقات المتاحة بالمنصة</strong> دون استثناء.
-              </div>
-              <button
-                type="button"
-                onClick={() => setPickedPackages(packages.map((p) => p.id))}
-                className="text-xs font-bold text-amber-950 underline hover:text-amber-800 shrink-0"
-              >
-                تحديد باقات مخصصة
-              </button>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-900 flex items-center justify-between gap-3">
-              <div>
-                <strong>الوضع الحالي:</strong> المدرب يظهر في <strong>{pickedPackages.length}</strong> باقة معتمدة من أصل {packages.length}.
-              </div>
-              <button
-                type="button"
-                onClick={() => setPickedPackages([])}
-                className="text-xs font-bold text-rose-700 underline hover:text-rose-900 shrink-0"
-              >
-                إلغاء التخصيص (الظهور في كل الباقات)
-              </button>
-            </div>
-          )}
-
-          {/* أدوات البحث والفلترة للمحتوى الكثيف */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between pt-1">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="search"
-                aria-label="ابحث عن باقة بالاسم أو الفئة"
-                value={packageSearch}
-                onChange={(e) => setPackageSearch(e.target.value)}
-                placeholder="ابحث عن باقة بالاسم أو الفئة..."
-                className={`${fieldClass} pr-9 text-sm`}
-              />
-            </div>
-
-            {/* فلتر المسار */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setPackageTrackFilter('all')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  packageTrackFilter === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-                }`}
-              >
-                كل المسارات
-              </button>
-              <button
-                type="button"
-                onClick={() => setPackageTrackFilter('foundation')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  packageTrackFilter === 'foundation' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-                }`}
-              >
-                تأسيس
-              </button>
-              <button
-                type="button"
-                onClick={() => setPackageTrackFilter('youth')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  packageTrackFilter === 'youth' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-                }`}
-              >
-                يافعين
-              </button>
-              <button
-                type="button"
-                onClick={() => setPackageTrackFilter('specialization')}
-                className={`px-3 py-1 rounded-lg transition-colors ${
-                  packageTrackFilter === 'specialization' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-                }`}
-              >
-                تخصص
-              </button>
-            </div>
-          </div>
-
-          {/* شبكة الباقات */}
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredPackages.map((pkg) => {
-              const checked = pickedPackages.includes(pkg.id);
-              return (
-                <label
-                  key={pkg.id}
-                  className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-3.5 transition-all ${
-                    checked
-                      ? 'border-indigo-500 bg-indigo-50/40 shadow-xs'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => {
-                      setPickedPackages((prev) =>
-                        prev.includes(pkg.id) ? prev.filter((id) => id !== pkg.id) : [...prev, pkg.id]
-                      );
-                      setPackagesDone('');
-                    }}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div className="min-w-0">
-                    <span className="block text-xs font-bold text-slate-900 truncate">{pkg.name}</span>
-                    <span className="block text-[11px] text-slate-500 mt-0.5">
-                      {TRACK_LABELS[pkg.track ?? ''] ?? pkg.track ?? 'مسار عام'}
-                      {' · '}
-                      {pkg.ageGroup === 'under_12' ? 'تحت ١٢ سنة' : '١٢ سنة فأكثر'}
-                      {pkg.sessionsCount ? ` · ${pkg.sessionsCount} جلسات` : ''}
-                    </span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          {filteredPackages.length === 0 && (
-            <p className="text-center py-6 text-xs text-slate-400">لا توجد باقات مطابقة للبحث.</p>
-          )}
-        </div>
+        <InstructorPackagesTab
+          instructorId={instructor.id}
+          packages={packages}
+          pickedPackages={pickedPackages}
+          setPickedPackages={setPickedPackages}
+        />
       )}
 
       {/* ─── TAB 4: الجدول الأسبوعي والمواعيد (مع خيار اليوم المحدد كشكل افتراضي) ─── */}
-      {activeTab === 'schedule' && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-            <div>
-              <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-emerald-600" />
-                <span>الجدول الأسبوعي المعتمد حالياً ({weeklySlots.length} موعد)</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                استعراض المواعيد المتاحة والمحجوزة والمؤقتة للمدرب.
-              </p>
-            </div>
-
-            {/* محوّل العرض: يوم محدد (افتراضي) أو الأسبوع كاملاً */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
-              <button
-                type="button"
-                onClick={() => setScheduleViewMode('single_day')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                  scheduleViewMode === 'single_day'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <CalendarDays className="h-3.5 w-3.5" />
-                <span>يوم محدد (افتراضي)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setScheduleViewMode('week_grid')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
-                  scheduleViewMode === 'week_grid'
-                    ? 'bg-white text-slate-900 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <LayoutDashboard className="h-3.5 w-3.5" />
-                <span>الأسبوع كاملاً</span>
-              </button>
-            </div>
-          </div>
-
-          {/* شريط الإحصاءات السريعة للجدول */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-2xl bg-slate-50 p-3 border border-slate-100 text-center">
-              <span className="text-[11px] font-bold text-slate-400 block">إجمالي المواعيد</span>
-              <span className="text-lg font-black text-slate-800">{weeklySlots.length}</span>
-            </div>
-            <div className="rounded-2xl bg-emerald-50 p-3 border border-emerald-100 text-center">
-              <span className="text-[11px] font-bold text-emerald-700 block">المواعيد المحجوزة</span>
-              <span className="text-lg font-black text-emerald-900">{bookedSlotsCount}</span>
-            </div>
-            <div className="rounded-2xl bg-amber-50 p-3 border border-amber-100 text-center">
-              <span className="text-[11px] font-bold text-amber-700 block">المواعيد المؤقتة</span>
-              <span className="text-lg font-black text-amber-900">{tempSlotsCount}</span>
-            </div>
-          </div>
-
-          {weeklySlots.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">لا يوجد جدول أسبوعي معتمد للمدرب.</div>
-          ) : scheduleViewMode === 'single_day' ? (
-            /* نمط العرض الأول: يوم محدد (الشكل الافتراضي الرشيق) */
-            <div className="space-y-4">
-              {/* شريط أزرار الأيام */}
-              <div className="flex border-b border-slate-100 pb-2 overflow-x-auto gap-1.5">
-                {DAY_KEYS.map((dayKey) => {
-                  const daySlotsCount = weeklySlots.filter((s) => s.day === dayKey).length;
-                  const isSelected = selectedDay === dayKey;
-                  return (
-                    <button
-                      key={dayKey}
-                      type="button"
-                      onClick={() => setSelectedDay(dayKey)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-emerald-600 text-white shadow-2xs'
-                          : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{ARABIC_DAYS[dayKey]}</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                          isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {daySlotsCount}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* مواعيد اليوم المحدد */}
-              <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                <h4 className="font-bold text-slate-800 text-sm mb-3">
-                  مواعيد يوم {ARABIC_DAYS[selectedDay]}:
-                </h4>
-                {(() => {
-                  const daySlots = weeklySlots.filter((s) => s.day === selectedDay);
-                  if (daySlots.length === 0) {
-                    return (
-                      <p className="text-xs text-slate-400 py-4 text-center">
-                        لا توجد مواعيد معتمدة في هذا اليوم.
-                      </p>
-                    );
-                  }
-                  return (
-                    <div className="grid gap-2.5 sm:grid-cols-2 md:grid-cols-3">
-                      {daySlots.map((s) => (
-                        <div
-                          key={s.time}
-                          className="rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-2xs flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="font-black text-slate-900 text-sm font-mono">{s.time}</span>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {s.isBooked && (
-                              <span className="rounded bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.2 text-[10px] font-bold">
-                                محجوز
-                              </span>
-                            )}
-                            {s.commitmentType === 'fixed_term' && (
-                              <span className="rounded bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 text-[10px] font-bold">
-                                مؤقت حتى: {s.commitmentEndsAt || 'تاريخ محدد'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          ) : (
-            /* نمط العرض الثاني: الأسبوع كاملاً */
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {DAY_KEYS.map((dayKey) => {
-                const daySlots = weeklySlots.filter((s) => s.day === dayKey);
-                if (daySlots.length === 0) return null;
-                return (
-                  <div key={dayKey} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 space-y-2">
-                    <div className="flex items-center justify-between font-bold text-slate-800 text-xs border-b border-slate-200/60 pb-1.5">
-                      <span>{ARABIC_DAYS[dayKey]}</span>
-                      <span className="text-slate-500 font-mono text-[11px]">{daySlots.length} موعد</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {daySlots.map((s) => (
-                        <div
-                          key={s.time}
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-2xs"
-                        >
-                          <span className="font-bold text-slate-800 font-mono">{s.time}</span>
-                          {s.isBooked && <span className="text-rose-600 font-bold mr-1 text-[10px]">(محجوز)</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === 'schedule' && <InstructorScheduleTab weeklySlots={weeklySlots} />}
 
       {/* ─── TAB 5: تعديل الملف الشخصي العام ─── */}
       {activeTab === 'profile' && (

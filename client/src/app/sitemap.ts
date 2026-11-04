@@ -50,8 +50,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const allProducts = await getPersonalizedProducts();
-  const platformProducts = allProducts.filter((p: any) => p.ownerType === 'platform');
-  const productRoutes = platformProducts.map((product: any) => ({
+  const platformProducts = allProducts.filter((p) => p.ownerType === 'platform');
+  const productRoutes = platformProducts.map((product) => ({
     url: `${baseUrl}/enha-lak/product/${product.slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly' as const,
@@ -67,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const publishers = await getPublishers();
-  const publisherRoutes = publishers.map((pub: any) => ({
+  const publisherRoutes = publishers.map((pub) => ({
     url: `${baseUrl}/enha-lak/publisher/${pub.slug}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,
@@ -76,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // خريطة الموقع بتتبعت لجوجل — المخفي والموقوف مالهمش مكان فيها.
   const instructors = await getVisibleInstructors();
-  const instructorRoutes = instructors.map((inst: any) => ({
+  const instructorRoutes = instructors.map((inst) => ({
     url: `${baseUrl}/creative-writing/instructors/${inst.id}`,
     lastModified: new Date(),
     changeFrequency: 'monthly' as const,

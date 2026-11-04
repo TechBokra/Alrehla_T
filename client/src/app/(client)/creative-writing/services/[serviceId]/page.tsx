@@ -369,7 +369,7 @@ export default async function ServicePage({ params }: { params: Promise<{ servic
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-xl items-center gap-3">
             <div className="shrink-0">
-              {startsFrom && <span className="block text-[11px] font-bold text-slate-500">يبدأ من</span>}
+              {startsFrom && <span className="block text-xs font-bold text-slate-500">يبدأ من</span>}
               <span className="text-lg font-black text-slate-900">{formatPrice(price)}</span>
             </div>
             {primaryAction('flex-1')}

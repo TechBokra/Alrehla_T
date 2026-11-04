@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { Save, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import type { CreativeService, InstructorServiceOffer } from '@/types';
 import {

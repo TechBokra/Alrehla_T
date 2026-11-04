@@ -1,7 +1,7 @@
 'use client';
 import { formatPrice } from '@/lib/utils';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useObjectUrl } from '@/lib/use-object-url';
 import { AddonProduct, ChildProfile, PersonalizedProduct } from '@/types';
@@ -130,7 +130,7 @@ export function OrderSummarySidebar({
             <div>
               <span className="font-bold text-slate-800 block">{childName}</span>
               {familyMemberId === 'self' && (
-                <span className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
                   طلب شخصي
                 </span>
               )}

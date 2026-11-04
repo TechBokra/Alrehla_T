@@ -1,5 +1,5 @@
 import type { QueryReadOptions } from '@/data/query-result';
-import { SessionWithDetails } from '@/types';
+import type { SessionStatus, SessionWithDetails } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 
 export const getSessions = async (options: QueryReadOptions = {}): Promise<SessionWithDetails[]> => {
@@ -22,21 +22,21 @@ export const getSessions = async (options: QueryReadOptions = {}): Promise<Sessi
     return [];
   }
 
-  return data.map((sess: any) => {
+  return data.map((sess) => {
     const sub = sess.course_subscriptions;
     return {
       id: sess.id,
       courseSubscriptionId: sess.course_subscription_id,
       sessionNumber: sess.session_number,
       instructorId: sess.instructor_id || undefined,
-      status: sess.status as any,
+      status: sess.status as SessionStatus,
       scheduledAt: sess.scheduled_at,
       createdAt: sess.created_at,
       updatedAt: sess.updated_at || sess.created_at,
       meetingUrl: sess.meeting_url || undefined,
       // joined details
       userId: sub?.user_id || 'unknown',
-      participantType: sub?.participant_type || 'self',
+      participantType: sub?.participant_type === 'child' ? 'child' : 'self',
       childId: sub?.child_id || undefined,
       packageId: sub?.package_id || 'unknown',
       packageName: sub?.creative_writing_packages?.name || undefined,

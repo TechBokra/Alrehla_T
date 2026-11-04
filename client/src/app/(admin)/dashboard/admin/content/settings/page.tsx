@@ -180,6 +180,33 @@ export default async function Page() {
           </Field>
         </Section>
 
+        {/* ---------- مدة التجهيز (قرار ٢٥ أكتوبر) ---------- */}
+        <Section
+          title="مدة تجهيز «إنها لك»"
+          hint="القيمة العامة لكل الكتب والقصص — وأي كتاب تقدر تغيّرله المدة من صفحة تعديله. العميل بيشوفها في صفحة المنتج، وأي تأخير في اعتماده لصورة البطل بيتضاف عليها."
+        >
+          <Field label="النسخة الإلكترونية (أيام)" name="deliveryDaysElectronic" hint="من ١ لـ ١٢٠ يوم من تأكيد الطلب.">
+            <TextInput
+              type="number"
+              min={1}
+              max={120}
+              dir="ltr"
+              className="text-left"
+              defaultValue={settings.deliveryDays.electronic}
+            />
+          </Field>
+          <Field label="النسخة المطبوعة (أيام)" name="deliveryDaysPrinted" hint="مدة التجهيز قبل الشحن — الشحن نفسه حسب المنطقة.">
+            <TextInput
+              type="number"
+              min={1}
+              max={120}
+              dir="ltr"
+              className="text-left"
+              defaultValue={settings.deliveryDays.printed}
+            />
+          </Field>
+        </Section>
+
         {/* ---------- شريط التنبيه ---------- */}
         <Section
           title="شريط التنبيه العلوي"

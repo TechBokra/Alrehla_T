@@ -1,24 +1,22 @@
 'use client';
 
+import type { DeliveryDays } from '@/lib/delivery-days';
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { addonsDisplayTotal, customizedAddonIdsFor } from '@/lib/item-format';
-import { formatPrice } from '@/lib/utils';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PersonalizedProduct, AddonProduct } from '@/types';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
-
-import { WizardStepper } from './wizard-steps/WizardStepper';
 import { Step1ChildInfo } from './wizard-steps/Step1ChildInfo';
 import { Step2CoverDetails } from './wizard-steps/Step2CoverDetails';
 import { Step3Addons } from './wizard-steps/Step3Addons';
+import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
 import { OrderSummarySidebar } from './wizard-steps/OrderSummarySidebar';
 import { Step3LibraryReview } from './wizard-steps/Step3LibraryReview';
-import Image from 'next/image';
 import { resolveWizardChild } from '@/app/actions/family';
 import {
   checkExtraAnswers,
@@ -85,7 +83,16 @@ export function LibraryCustomizationWizard({
   addons = [],
   addonDiscountPercent = 0,
   extraFields = [],
+  delivery,
+  photoRetentionDays,
+  deliveryDays,
 }: {
+  /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
+  photoRetentionDays?: number;
+  /** مدة التجهيز العامة (الكتاب نفسه ممكن يغيّرها) — قرار ٢٥ أكتوبر. */
+  deliveryDays?: DeliveryDays;
+  /** الدول والمناطق — «هنوصّل فين؟» قبل الدفع (قرار ٢٤ أكتوبر). */
+  delivery?: DeliveryCatalog;
   product: PersonalizedProduct;
   /** خانات التخصيص اللي الإدارة ضافتها (ملف 06) — بتظهر في الخطوة ٢. */
   extraFields?: CustomizationField[];
@@ -129,10 +136,10 @@ export function LibraryCustomizationWizard({
     const saved = sessionStorage.getItem(`library_wizard_${product.id}`);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(key => {
+        const parsed = JSON.parse(saved) as Partial<LibraryFormValues>;
+        (Object.keys(parsed) as (keyof LibraryFormValues)[]).forEach(key => {
           if (key !== 'coverPhotoFile') {
-            methods.setValue(key as any, parsed[key]);
+            methods.setValue(key, parsed[key]);
           }
         });
       } catch (e) {}
@@ -317,7 +324,9 @@ export function LibraryCustomizationWizard({
     });
 
     sessionStorage.removeItem(`library_wizard_${product.id}`);
-    router.push('/cart');
+    // على الدفع على طول (قرار ٢٤ أكتوبر) — زي المعالج المخصّص. البند
+    // في السلة برضه، فلو رجع مايضيعش.
+    router.push('/enha-lak/checkout');
   };
 
   if (!isClient) return null;
@@ -379,15 +388,23 @@ export function LibraryCustomizationWizard({
               )}
               <form onSubmit={methods.handleSubmit(onSubmit, onInvalid)}>
                 {currentStep === 1 && <Step1ChildInfo onNext={onNext} />}
-                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} extraFields={extraFields} />}
+                {currentStep === 2 && <Step2CoverDetails onNext={onNext} onPrev={onPrev} extraFields={extraFields} photoRetentionDays={photoRetentionDays} />}
                 {/* نفس مكوّن الإضافات بتاع المسار المخصّص — مش نسخة
                     تانية: النسخة التانية كانت هتفترق عنه أول ما حد
                     يعدّل في واحد منهم. */}
                 {currentStep === 3 && (
-                  <Step3Addons addons={addons} onNext={onNext} onPrev={onPrev} />
+                  <Step3Addons
+                    addons={addons}
+                    delivery={delivery}
+                    deliveryPaused={delivery?.pause.paused}
+                    pauseMessage={delivery?.pause.message}
+                    onNext={onNext}
+                    onPrev={onPrev}
+                  />
                 )}
                 {currentStep === 4 && (
                   <Step3LibraryReview
+                  deliveryDays={deliveryDays}
                     onPrev={onPrev}
                     product={product}
                     pending={methods.formState.isSubmitting}

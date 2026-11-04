@@ -1,8 +1,10 @@
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { ReportIncident } from '@/components/sessions/ReportIncident';
+import { sessionStatusView } from '@/lib/session-status';
 import { SessionJoinButton } from '@/components/sessions/SessionJoinButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, FileText, Video, ArrowLeft } from 'lucide-react';
+import { Calendar, FileText, ArrowLeft } from 'lucide-react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PersonAvatar } from '@/components/ui/PersonAvatar';
@@ -64,6 +66,10 @@ export default async function DependentFollowUpPage({
     age,
     reviewed,
   } = result.data;
+
+  const lastDone = [...mySessions]
+    .filter((x) => x.status === 'completed')
+    .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime())[0];
   // تقارير المدرب عن الجلسات اللي تمّت (ملاحظة الفريق، 10 أكتوبر).
   const reports = await getSessionReportsFor(
     mySessions.filter((s) => s.status === 'completed').map((s) => s.id),
@@ -123,7 +129,12 @@ export default async function DependentFollowUpPage({
             <SessionChangeRequest
               sessionId={nextSession.id}
               existing={nextChange}
+              scheduledAt={nextSession.scheduledAt}
             />
+          </div>
+          {/* بند ١١ (٢٤ أكتوبر): بلاغ للإدارة عن الجلسة. */}
+          <div className="mt-4">
+            <ReportIncident sessionId={nextSession.id} />
           </div>
         </section>
       )}
@@ -182,13 +193,8 @@ export default async function DependentFollowUpPage({
                     {s.instructorName && ` · ${s.instructorName}`}
                   </p>
                 </div>
-                {s.status === 'completed' ? (
-                  <StatusBadge type="success" label="تمّت" />
-                ) : s.status === 'cancelled' ? (
-                  <StatusBadge type="neutral" label="ملغاة" />
-                ) : (
-                  <StatusBadge type="warning" label="قادمة" />
-                )}
+                {/* بند ٢: نفس أسماء الحالات في كل الشاشات. */}
+                <StatusBadge type={sessionStatusView(s.status).badge} label={sessionStatusView(s.status).label} />
                 {reports.get(s.id) && (
                   <div className="w-full">
                     <SessionReportCard report={reports.get(s.id)!} compact />
@@ -196,6 +202,15 @@ export default async function DependentFollowUpPage({
                 )}
               </div>
             ))}
+          </div>
+        )}
+        {/* بند ١١: البلاغ غالبًا بييجي بعد الجلسة، مش قبلها. */}
+        {lastDone && lastDone.id !== nextSession?.id && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="mb-3 text-sm font-bold text-slate-700">
+              حصلت حاجة مقلقة في آخر جلسة (الجلسة {lastDone.sessionNumber})؟
+            </p>
+            <ReportIncident sessionId={lastDone.id} />
           </div>
         )}
       </section>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Video } from 'lucide-react';
 import { recordingNotice } from '@/lib/session-recording';
 

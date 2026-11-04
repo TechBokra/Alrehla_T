@@ -5,7 +5,7 @@ import { ChildProfile } from '@/types';
 import { createFamilyMember, updateFamilyMember, deleteFamilyMember } from '@/app/actions/family';
 import { Button } from '@/components/ui/Button';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
-import { Trash2, Edit2, Plus, X, FileText } from 'lucide-react';
+import { Trash2, Edit2, Plus, FileText } from 'lucide-react';
 import { ageAtTime } from '@/lib/time-values';
 import { useNow } from '@/components/providers/ClientTimeProvider';
 import { BirthDatePicker } from '@/components/ui/BirthDatePicker';
@@ -270,7 +270,7 @@ export function FamilyClient({
       <FormError message={listError} />
 
       {members.length > 0 ? (
-        <SimpleDataTable columns={columns} data={members as any} />
+        <SimpleDataTable columns={columns} data={members} />
       ) : (
         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-100 text-slate-500">
           لا يوجد أفراد عائلة مضافين بعد

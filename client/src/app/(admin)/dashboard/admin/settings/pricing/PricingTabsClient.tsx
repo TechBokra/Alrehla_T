@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { PricingFormulaSettings } from '@/types';
 import { updatePricingFormulaSettings } from '@/actions/instructors';
 import { updatePublisherPricingSettings, updateProviderPricingSettings } from '@/actions/finance';

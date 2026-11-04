@@ -517,7 +517,6 @@ export async function cancelGuardianRequest(formData: FormData): Promise<AqlamAc
 // ── الإدارة ──────────────────────────────────────────────────────────────────
 
 const POST_ACTIONS = ['approve', 'reject', 'hide', 'restore', 'remove', 'feature', 'unfeature'] as const;
-const COMMENT_ACTIONS = ['hide', 'restore', 'remove'] as const;
 
 export async function moderatePost(formData: FormData): Promise<AqlamActionResult> {
   const auth = await adminOnly('غير مصرح لك بمراجعة أقلام الرحلة');
@@ -552,39 +551,6 @@ export async function moderatePost(formData: FormData): Promise<AqlamActionResul
   refreshAqlam(postId);
   revalidatePath('/dashboard/admin/aqlam');
   revalidatePath('/dashboard/admin/aqlam/posts');
-  return { ok: true };
-}
-
-export async function moderateComment(formData: FormData): Promise<AqlamActionResult> {
-  const auth = await adminOnly('غير مصرح لك بمراجعة أقلام الرحلة');
-  if (!auth.ok) return auth;
-  const commentId = str(formData.get('commentId'));
-  const postId = str(formData.get('postId'));
-  const action = str(formData.get('decision'));
-  if (!commentId || !(COMMENT_ACTIONS as readonly string[]).includes(action)) {
-    return { ok: false, error: aqlamErrorMessage('invalid') };
-  }
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('aqlam_moderate_comment', {
-    p_comment: commentId,
-    p_action: action,
-  });
-  if (error) {
-    console.error('aqlam_moderate_comment failed', error);
-    return { ok: false, error: GENERIC };
-  }
-  const out = parseRpcResult(data);
-  if (!out.ok) return { ok: false, error: out.error };
-
-  await logAuditAction({
-    actorProfileId: auth.user.id,
-    actorName: auth.user.fullName,
-    action: `aqlam_comment_${action}`,
-    entityType: 'AqlamComment',
-    entityId: commentId,
-  });
-  refreshAqlam(postId || undefined);
-  revalidatePath('/dashboard/admin/aqlam');
   return { ok: true };
 }
 

@@ -124,12 +124,16 @@ export async function listFolderAssets(
   let cursor: string | undefined;
   let truncated = false;
 
-  for (let page = 0; page < 10; page++) {
+  // ⚠️ كانت 10 صفحات × 100 — يعني فوق 500/1000 صورة المسح الليلي كان
+  //    بيتخطّى كل ليلة في صمت (خريطة البيانات، ٢٧ أكتوبر). دلوقتي صفحات
+  //    بـ500 (حد Cloudinary) لحد `maxAssets`.
+  const pageSize = Math.min(500, Math.max(1, maxAssets));
+  for (let page = 0; page < Math.ceil(maxAssets / pageSize) + 1; page++) {
     const query = new URLSearchParams({
       type: 'upload',
       // ⚠️ القيد على المجلّد — مش فلترة بعد القراءة.
       prefix: `${FOLDER}/`,
-      max_results: '100',
+      max_results: String(pageSize),
     });
     if (cursor) query.set('next_cursor', cursor);
 
@@ -246,25 +250,12 @@ function isPrivateFileId(publicId: string): boolean {
   return PRIVATE_FILE_PREFIXES.some((p) => publicId.startsWith(p)) && !publicId.includes('..');
 }
 
-function encodePublicId(publicId: string): string {
-  return publicId.split('/').map(encodeURIComponent).join('/');
-}
-
 export type PrivateAsset = {
   public_id: string;
   resource_type: 'image' | 'raw';
   format?: string;
   bytes: number;
 };
-
-/** بيانات ملف خاص زي ما Cloudinary شايفه — الحجم والنوع الحقيقيين. */
-export async function getPrivateAsset(
-  resourceType: 'image' | 'raw',
-  publicId: string,
-): Promise<CloudinaryResult<PrivateAsset>> {
-  if (!isPrivateFileId(publicId)) return { ok: false, error: 'رقم ملف غير صالح' };
-  return call<PrivateAsset>(`/resources/${resourceType}/authenticated/${encodePublicId(publicId)}`);
-}
 
 /** مسح ملفات خاصة بأرقامها (نوع واحد في المرة). */
 export async function deletePrivateAssets(

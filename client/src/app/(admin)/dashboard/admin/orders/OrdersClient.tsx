@@ -1,6 +1,6 @@
 'use client';
 import { formatDate, formatPrice } from '@/lib/utils';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import type { Order } from '@/types';

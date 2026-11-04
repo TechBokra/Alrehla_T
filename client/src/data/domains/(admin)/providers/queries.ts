@@ -1,5 +1,6 @@
 import type { ServiceProviderAccount, ProviderKind } from '@/types';
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/types/supabase';
 
 export { getServiceOrdersByProvider } from '@/data/domains/(admin)/service-orders/queries';
 
@@ -32,7 +33,7 @@ export type ProviderWithOfferings = ServiceProviderAccount & {
   offerings: ProviderOffering[];
 };
 
-function mapProvider(row: any): ServiceProviderAccount {
+function mapProvider(row: Database['public']['Tables']['service_providers']['Row']): ServiceProviderAccount {
   return {
     id: row.id,
     kind: row.kind as ProviderKind,

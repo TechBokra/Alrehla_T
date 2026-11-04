@@ -15,6 +15,7 @@ import { ShelfHeader } from '@/components/enha-lak/ShelfHeader';
 import { getPersonalizedProducts } from '@/data/domains/(client)/products/queries';
 import { getPublishers } from '@/data/domains/(shared)/publishers/queries';
 import { LibraryClient } from './LibraryClient';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { AdSlot } from '@/components/ads/AdSlot';
 
@@ -22,7 +23,7 @@ import { AdSlot } from '@/components/ads/AdSlot';
 export default async function LibraryPage() {
   const allProducts = await getPersonalizedProducts();
   const libraryProducts = allProducts.filter((p) => p.category === 'library');
-  const [publishers, content] = await Promise.all([getPublishers(), getSiteContent()]);
+  const [publishers, content, pause] = await Promise.all([getPublishers(), getSiteContent(), getDeliveryPause()]);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -39,6 +40,7 @@ export default async function LibraryPage() {
 
       <LibraryClient
         initialProducts={libraryProducts}
+        pause={pause}
         publishers={publishers}
         texts={{
           action: content['library.action'],

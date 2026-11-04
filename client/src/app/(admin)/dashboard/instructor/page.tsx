@@ -1,4 +1,3 @@
-import React from 'react';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getInstructorSessions } from '@/data/domains/(admin)/sessions/queries';
 import { getWritingPackages } from '@/data/domains/(shared)/writing/packages';
@@ -9,24 +8,7 @@ import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
 import { getInstructorRatingSummary, getReviewsForInstructor } from '@/data/domains/(shared)/reviews/queries';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Users,
-  Calendar,
-  Video,
-  Clock,
-  Wallet,
-  User,
-  Settings,
-  Sparkles,
-  ArrowLeft,
-  CalendarCheck,
-  ChevronLeft,
-  Star,
-  Layers,
-  AlertCircle,
-  CheckCircle2,
-  BookOpen,
-} from 'lucide-react';
+import { Users, Calendar, Video, Clock, Wallet, User, Settings, Sparkles, ArrowLeft, CalendarCheck, ChevronLeft, Star, Layers, AlertCircle } from 'lucide-react';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { formatDate } from '@/lib/utils';
 import { onboardingState } from '@/lib/instructor-onboarding';
@@ -36,6 +18,7 @@ import {
   isAdminHold,
 } from '@/lib/instructor-approval';
 import { ApprovalJourney } from '@/components/dashboard/ApprovalJourney';
+import { getLearnerCourse } from '@/data/domains/(admin)/training/queries';
 import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
 import { getInstructorOverviewTiming } from '@/data/domains/(admin)/dashboard/timing';
 
@@ -97,6 +80,16 @@ export default async function InstructorDashboard() {
    *    `getInstructorById` (أعمدة محميّة بمحفّز في القاعدة)، لا من
    *    أي حاجة الشاشة بتحسبها.
    */
+  // التأهيل التأسيسي الذاتي — خطوة في الطريق لو الدورة متاحة.
+  const foundationLoad = instructor ? await getLearnerCourse() : null;
+  const foundation =
+    foundationLoad?.state === 'ok' && foundationLoad.data
+      ? {
+          started: !!foundationLoad.data.progress,
+          passed: !!foundationLoad.data.progress?.passedAt,
+          required: true,
+        }
+      : null;
   const steps = instructor
     ? approvalSteps({
         instructor: {
@@ -107,6 +100,7 @@ export default async function InstructorDashboard() {
         },
         certification,
         requests: updateRequests,
+        foundation,
       })
     : [];
   const headline = instructor ? approvalHeadline(instructor.status, steps) : null;
@@ -160,7 +154,9 @@ export default async function InstructorDashboard() {
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-slate-700">الباقات المعتمدة:</span>
                 <span className="font-medium text-slate-800">
-                  {approvedPackages.length > 0 ? `${approvedPackages.length} باقة` : 'جميع الباقات'}
+                  {approvedPackages.length > 0
+                    ? `${approvedPackages.length} باقة`
+                    : 'لسه مفيش'}
                 </span>
               </div>
               <span className="text-slate-300 hidden sm:inline">•</span>
@@ -211,7 +207,7 @@ export default async function InstructorDashboard() {
                 <span className="text-amber-800">
                   {pendingRequests.map((r, i) => (
                     <span key={r.id}>
-                      {(r.requestedChanges as any)._requestType === 'packages'
+                      {r.requestedChanges._requestType === 'packages'
                         ? 'طلب باقات تدريب'
                         : 'طلب تعديل الجدول والملف'}
                       {i < pendingRequests.length - 1 ? ' · ' : ''}
@@ -500,9 +496,30 @@ export default async function InstructorDashboard() {
               </Link>
             </div>
 
+            {/* ⚠️ **كان مكتوب «أنت معتمد في جميع الباقات»** (طلب
+                الفريق، ٢٣ أكتوبر: «تعديل ظهوره في كل الباقات في حالة
+                عدم اختياره»).
+
+                القايمة الفاضية معناها إن الإدارة **ماخصّصتلوش باقة
+                لسه** — مش إنها اعتمدته في كلها. والنص القديم كان
+                بيقلب الغياب لاعتماد شامل، فالمدرب يفتكر إنه جاهز
+                لأي باقة ويستنى حجوزات مش جاية.
+
+                ومش فرق في الصياغة: هو كان بيقرا «معتمد» وهو لسه
+                مستني قرار. */}
             {approvedPackages.length === 0 ? (
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
-                أنت معتمد حالياً للتدريب في <strong>جميع الباقات المتاحة بالمنصة</strong>. يمكنك تحديد باقات معينة من صفحة الإعدادات في أي وقت.
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-900">
+                <p className="font-black">لسه مش مشترك في باقة</p>
+                <p className="mt-1 leading-relaxed">
+                  الإدارة ماخصّصتلكش باقات لحد دلوقتي. تقدر تطلب الباقات اللي تحبّ
+                  تدرّب فيها من «الإعدادات»، والإدارة بتراجع الطلب.
+                </p>
+                <Link
+                  href="/dashboard/instructor/settings"
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded-xl bg-amber-700 px-4 font-bold text-white hover:bg-amber-800"
+                >
+                  اطلب باقاتك
+                </Link>
               </div>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">

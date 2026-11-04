@@ -1,5 +1,5 @@
 'use server';
-import { requireSuperAdmin as requireSuperAdminGuard, requireAdmin } from '@/lib/auth-guard';
+import { requireSuperAdmin as requireSuperAdminGuard } from '@/lib/auth-guard';
 
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
@@ -307,35 +307,23 @@ export async function submitWithdrawalRequest(
   return { ok: true, amount: Number(data.amount) || available };
 }
 
+type PricingSaveResult = { ok: true } | { ok: false; error: string; field?: 'multiplier' | 'fixedFee' };
+
 /**
- * معادلة تسعير الناشرين.
+ * حفظ معادلة تسعير واحدة (`pricing_formula_settings`) — مكان واحد
+ * لمعادلة الناشرين ومعادلة مقدّمي الخدمات، عشان الفحوص والـ`upsert`
+ * والسجلّ مايختلفوش بينهم تاني.
  *
- * ⚠️ **كانت `update` مجرّدة، ودي قاعدة «و» بالنص.**
- *
- *    `UPDATE` على صف **مش موجود** بينجح ويرجّع صفر صفوف. فلو صفّ
- *    `publisher-default` مكانش اتعمل يوم ما الجدول اتبنى، الإدارة
- *    كانت تكتب النسبة وتدوس «حفظ» وتشوف «تم» — **والقيمة ما
- *    اتخزّنتش**. والقارئ بيرجع ساعتها للافتراضي: معامل 1 ورسم 0،
- *    يعني **المنصة ما بتاخدش حاجة** من كل كتاب.
- *
- *    وشاشة المدربين كانت بتعمل `upsert` من الأول — يعني الفرق بين
- *    الشاشتين هو اللي خلّى ده يعدّي. `upsert` هنا بتوحّدهم.
- *
- * ⚠️ **والقيم بتتفحص هنا مش في الواجهة وبس** (قاعدة «ع»): معامل
- *    بالسالب أو رسم بالسالب معناه سعر عميل أقل من نصيب الناشر —
- *    يعني المنصة بتدفع من جيبها على كل عملية بيع.
+ * ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — Next بيمسح نصّ الاستثناء في الإنتاج،
+ *    فالإداري كان بيشوف «حدث خطأ» بدل «المعامل لازم يكون أكبر من صفر».
  */
-/**
- * معادلة تسعير **مقدّمي الخدمات** — منفصلة عن معادلة الجلسات.
- *
- * ⚠️ نفس فحوص معادلة الناشرين: معامل بالسالب أو رسم بالسالب معناه
- *    سعر عميل أقل من نصيب المقدّم — يعني المنصة بتدفع من جيبها على
- *    كل خدمة. والفحص هنا لا في الواجهة وبس.
- */
-export async function updateProviderPricingSettings(
+async function savePricingFormula(
+  id: 'publisher-default' | 'provider-default',
   multiplier: number,
   fixedFee: number,
-): Promise<{ ok: true } | { ok: false; error: string; field?: 'multiplier' | 'fixedFee' }> {
+  auditAction: string,
+  paths: string[],
+): Promise<PricingSaveResult> {
   let user;
   try {
     user = await requireSuperAdmin();
@@ -358,7 +346,7 @@ export async function updateProviderPricingSettings(
     .from('pricing_formula_settings')
     .upsert(
       {
-        id: 'provider-default',
+        id,
         platform_multiplier: multiplier,
         fixed_admin_fee: fixedFee,
         updated_at: new Date().toISOString(),
@@ -369,7 +357,7 @@ export async function updateProviderPricingSettings(
     .maybeSingle();
 
   if (error) {
-    console.error('Error updating provider pricing settings', error);
+    console.error(`Error updating pricing settings (${id})`, error);
     return { ok: false, error: 'تعذّر حفظ إعدادات التسعير' };
   }
   if (!data) {
@@ -379,72 +367,54 @@ export async function updateProviderPricingSettings(
   await logAuditAction({
     actorName: user.fullName,
     actorProfileId: user.id,
-    action: 'provider_pricing_settings_updated',
+    action: auditAction,
     entityType: 'settings',
-    entityId: 'provider-default',
+    entityId: id,
     metadata: { multiplier, fixedFee },
   });
 
   revalidatePath('/dashboard/admin/settings/pricing');
-  revalidatePath('/dashboard/admin/services');
+  for (const path of paths) revalidatePath(path);
   return { ok: true };
 }
 
+/**
+ * معادلة تسعير **مقدّمي الخدمات** — منفصلة عن معادلة الجلسات.
+ *
+ * ⚠️ نفس فحوص معادلة الناشرين: معامل بالسالب أو رسم بالسالب معناه
+ *    سعر عميل أقل من نصيب المقدّم — يعني المنصة بتدفع من جيبها على
+ *    كل خدمة. والفحص هنا لا في الواجهة وبس.
+ */
+export async function updateProviderPricingSettings(
+  multiplier: number,
+  fixedFee: number,
+): Promise<PricingSaveResult> {
+  return savePricingFormula('provider-default', multiplier, fixedFee,
+    'provider_pricing_settings_updated', ['/dashboard/admin/services']);
+}
+
+/**
+ * معادلة تسعير الناشرين.
+ *
+ * ⚠️ **كانت `update` مجرّدة، ودي قاعدة «و» بالنص.**
+ *
+ *    `UPDATE` على صف **مش موجود** بينجح ويرجّع صفر صفوف. فلو صفّ
+ *    `publisher-default` مكانش اتعمل يوم ما الجدول اتبنى، الإدارة
+ *    كانت تكتب النسبة وتدوس «حفظ» وتشوف «تم» — **والقيمة ما
+ *    اتخزّنتش**. والقارئ بيرجع ساعتها للافتراضي: معامل 1 ورسم 0،
+ *    يعني **المنصة ما بتاخدش حاجة** من كل كتاب.
+ *
+ *    وشاشة المدربين كانت بتعمل `upsert` من الأول — يعني الفرق بين
+ *    الشاشتين هو اللي خلّى ده يعدّي. `upsert` هنا بتوحّدهم.
+ *
+ * ⚠️ **والقيم بتتفحص هنا مش في الواجهة وبس** (قاعدة «ع»): معامل
+ *    بالسالب أو رسم بالسالب معناه سعر عميل أقل من نصيب الناشر —
+ *    يعني المنصة بتدفع من جيبها على كل عملية بيع.
+ */
 export async function updatePublisherPricingSettings(
   multiplier: number,
   fixedFee: number,
-): Promise<{ ok: true } | { ok: false; error: string; field?: 'multiplier' | 'fixedFee' }> {
-  // ⚠️ بترجّع ولا بترمي (قاعدة «هـ») — Next بيمسح نصّ الاستثناء في الإنتاج،
-  //    فالإداري كان بيشوف «حدث خطأ» بدل «المعامل لازم يكون أكبر من صفر».
-  let user;
-  try {
-    user = await requireSuperAdmin();
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'غير مصرح لك بإدارة المدفوعات' };
-  }
-
-  if (!Number.isFinite(multiplier) || multiplier <= 0) {
-    return { ok: false, error: 'المعامل لازم يكون رقمًا أكبر من صفر', field: 'multiplier' };
-  }
-  if (!Number.isFinite(fixedFee) || fixedFee < 0) {
-    return { ok: false, error: 'الرسم الثابت لازم يكون صفرًا أو أكتر', field: 'fixedFee' };
-  }
-
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('pricing_formula_settings')
-    .upsert(
-      {
-        id: 'publisher-default',
-        platform_multiplier: multiplier,
-        fixed_admin_fee: fixedFee,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    )
-    .select('id')
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error updating publisher pricing settings', error);
-    return { ok: false, error: 'تعذّر حفظ إعدادات التسعير' };
-  }
-
-  if (!data) {
-    return { ok: false, error: 'الحفظ ما وصلش للقاعدة — كلّم الإدارة التقنية' };
-  }
-
-  await logAuditAction({
-    actorName: user.fullName,
-    actorProfileId: user.id,
-    action: 'publisher_pricing_settings_updated',
-    entityType: 'settings',
-    entityId: 'publisher-default',
-    metadata: { multiplier, fixedFee },
-  });
-
-  revalidatePath('/dashboard/admin/settings/pricing');
-  revalidatePath('/dashboard/admin/products');
-  return { ok: true };
+): Promise<PricingSaveResult> {
+  return savePricingFormula('publisher-default', multiplier, fixedFee,
+    'publisher_pricing_settings_updated', ['/dashboard/admin/products']);
 }

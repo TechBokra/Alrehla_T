@@ -8,6 +8,7 @@ import { Unauthorized } from '@/components/admin/Unauthorized';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import {
+  getStudioImageReviews,
   getStudioProductRoutes,
   getStudioProject,
   getStudioStages,
@@ -88,13 +89,14 @@ export default async function StudioProjectPage({
   const canCosts = canManage || hasAdminPermission(user, 'canManageFinance');
   const canOrders = hasAdminPermission(user, 'canManageOrders');
 
-  const [result, staff, sp, stages, tasks, routes] = await Promise.all([
+  const [result, staff, sp, stages, tasks, routes, imageReviews] = await Promise.all([
     getStudioProject(id),
     canManage ? listStudioStaff() : Promise.resolve([]),
     searchParams,
     getStudioStages(),
     getStudioTasks(),
     getStudioProductRoutes(),
+    getStudioImageReviews(id),
   ]);
   const label = (v: string) => statusLabel(v, stages.labels);
   if (!result.success) {
@@ -321,7 +323,7 @@ export default async function StudioProjectPage({
         {tab === 'text' && (
           <TextPanel project={project} versions={versions} writing={writing} clientStage={clientStage} />
         )}
-        {tab === 'character' && <CharacterPanel project={project} />}
+        {tab === 'character' && <CharacterPanel project={project} reviews={imageReviews} />}
         {tab === 'pages' && <PagesPanel project={project} pages={pages} canManage={canManage} art={art} />}
         {tab === 'qa' && <QaPanel project={project} canManage={canManage} />}
         {tab === 'costs' && canCosts && <CostsPanel project={project} costs={costs} />}

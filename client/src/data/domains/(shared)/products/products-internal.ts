@@ -1,3 +1,5 @@
+import { readAppliesTo } from '@/lib/applies-to';
+import type { Database } from '@/types/supabase';
 import { PersonalizedProduct, AddonProduct } from '@/types';
 import { getWatermarkLayer } from '@/lib/watermark';
 import { watermarkedImageUrl } from '@/lib/cloudinary';
@@ -11,7 +13,20 @@ import { watermarkedImageUrl } from '@/lib/cloudinary';
  *    132) كان هيبقى الرابع: يتضاف في القايمة وينسى صفحة المنتج،
  *    فالكارت يقول «٦–٩» والصفحة ماتقولش حاجة.
  */
-export function mapProductRow(p: any): PersonalizedProduct {
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+/**
+ * الصف كما يرجع من القاعدة. `Partial` لأن بعض الاستعلامات بتختار أعمدة
+ * محدّدة، والأعمدة الأحدث ممكن تكون لسه مش موجودة قبل ترحيلها.
+ */
+type DbRow<T extends keyof Database['public']['Tables'], K extends keyof TableRow<T>> =
+  Pick<TableRow<T>, K> & Partial<TableRow<T>> & Record<string, unknown>;
+
+const REVIEW_STATUSES = ['pending', 'approved', 'rejected'] as const;
+type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+const isReviewStatus = (v: unknown): v is ReviewStatus =>
+  (REVIEW_STATUSES as readonly unknown[]).includes(v);
+
+export function mapProductRow(p: DbRow<'personalized_products', 'id' | 'slug' | 'name' | 'category' | 'price' | 'owner_type'>): PersonalizedProduct {
   return {
     id: p.id,
     slug: p.slug,
@@ -30,14 +45,15 @@ export function mapProductRow(p: any): PersonalizedProduct {
     // ⚠️ `??` لا `||`: السنّ صفر رقم حقيقي، و`||` كانت هتقراه «مفيش».
     minAge: p.min_age ?? undefined,
     maxAge: p.max_age ?? undefined,
+    // فاضي = القيمة العامة (ترحيل 20261025090000).
+    deliveryDaysElectronic: p.delivery_days_electronic ?? undefined,
+    deliveryDaysPrinted: p.delivery_days_printed ?? undefined,
     writingStyles: Array.isArray(p.writing_styles) && p.writing_styles.length > 0 ? p.writing_styles : undefined,
     // ⚠️ العمود في القاعدة `text` بـ`CHECK` (قرار ملف 130: الـenum
     //    صعب التعديل)، فالتحويل هنا بيضيّقه للنوع اللي الشاشات
     //    بتتعامل معاه. وأي قيمة غريبة بتتقري «في الانتظار» — الأأمن:
     //    المنتج يفضل مستخبي لحد ما حد يبصّ.
-    reviewStatus: (['pending', 'approved', 'rejected'] as const).includes(p.review_status)
-      ? p.review_status
-      : 'pending',
+    reviewStatus: isReviewStatus(p.review_status) ? p.review_status : 'pending',
     reviewNote: p.review_note || undefined,
     isActive: p.is_active ?? true,
     createdAt: p.created_at ?? undefined,
@@ -60,7 +76,7 @@ export function mapProductRow(p: any): PersonalizedProduct {
  * بأسعار مكتوبة في كود المتصفح مالهاش جدول. دلوقتي من `addon_products`.
  */
 /** صفّ الإضافة من القاعدة ← شكل الكود. مكان واحد للقايمة والإضافة الواحدة. */
-export function mapAddonRow(a: any): AddonProduct {
+export function mapAddonRow(a: DbRow<'addon_products', 'id' | 'slug' | 'name' | 'price' | 'is_active' | 'sort_order'>): AddonProduct {
   return {
     id: a.id,
     slug: a.slug,
@@ -71,6 +87,16 @@ export function mapAddonRow(a: any): AddonProduct {
     sortOrder: a.sort_order,
     supportsCustomization: a.supports_customization ?? false,
     customizationPrice: a.customization_price ?? 0,
+    // ⚠️ **الافتراضي «مطبوعة» عن قصد** — قبل ترحيل ٢٣ أكتوبر العمود
+    //    مش موجود، والإضافات كلها كانت بتتشحن. الافتراض الآمن هو
+    //    السلوك القديم: نطلب الشحن. العكس (نفترض إلكترونية) كان
+    //    هيخلّي طلبًا فيه بوستر يعدّي من غير عنوان.
+    deliveryFormat:
+      a.delivery_format === 'electronic' || a.delivery_format === 'both'
+        ? a.delivery_format
+        : 'printed',
+    // «بتظهر مع أنهي منتج» — قبل ترحيل ٢٤ أكتوبر العمود مش موجود = الكل.
+    appliesTo: readAppliesTo(a.applies_to),
     imageUrl: a.image_url || undefined,
     // ملف 19 — قبله الخانات دي مش موجودة فبتيجي `undefined`.
     galleryImageUrls: a.gallery_image_urls?.length ? a.gallery_image_urls : undefined,

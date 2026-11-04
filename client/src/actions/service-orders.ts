@@ -1,17 +1,20 @@
 'use server';
+
+import { PAID_SERVICE_STATUSES, SUPER_CANCEL_ONLY, isSuperAdminRole } from '@/lib/super-cancel';
 import { requireAdmin, getDependentGuardian } from '@/lib/auth-guard';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
-import { hasAdminPermission, calculateFinalSessionPrice } from '@/lib/utils';
+import { calculateFinalSessionPrice } from '@/lib/utils';
 import { notifyUser, notifyAdmins, getInstructorUserId, getProviderUserId } from '@/lib/notifications';
 import { SERVICE_DUE_DAYS } from '@/lib/service-delivery';
 import { PLATFORM_TIMEZONE } from '@/lib/timezone';
 import { briefMessage } from '@/lib/service-details';
 import { isValidReceiptRef } from '@/lib/receipt-ref';
 import { staffPurchaseBlock } from '@/lib/buying-roles';
+import { notifyServiceOrderPaid } from '@/lib/payments/after-gateway-payment';
 
 /**
  * Ordering a standalone creative service.
@@ -715,34 +718,12 @@ export async function confirmServiceOrderPayment(orderId: string): Promise<Servi
     return fail('الطلب مش موجود أو تم تأكيد دفعه مسبقاً — التغيير مروّحش للقاعدة.');
   }
 
-  const { data: order } = await supabase
-    .from('service_orders')
-    .select('buyer_profile_id, instructor_id, provider_id')
-    .eq('id', orderId)
-    .maybeSingle();
-
-  if (order) {
-    await notifyUser({
-      event: 'order_status',
-      recipientProfileId: order.buyer_profile_id,
-      title: 'تم تأكيد دفعك',
-      message: 'استلمنا المبلغ، والمدرب سيبدأ التنفيذ.',
-      link: `/account/orders/creative-writing/${orderId}`,
-    });
-    const providerUserId = order.provider_id
-      ? await getProviderUserId(order.provider_id)
-      : order.instructor_id
-        ? await getInstructorUserId(order.instructor_id)
-        : null;
-    if (providerUserId) {
-      await notifyUser({
-        event: 'service_order_new',
-        recipientProfileId: providerUserId,
-        title: 'طلب جاهز للتنفيذ',
-        message: `تم تأكيد الدفع — يمكنك بدء التنفيذ الآن. المهلة ${SERVICE_DUE_DAYS} يومًا.`,
-        link: `/dashboard/provider/orders/${orderId}`,
-      });
-    }
+  // نفس إشعارَي الدفع بالبوابة — مكان واحد للنص.
+  try {
+    await notifyServiceOrderPaid(supabase, orderId);
+  } catch (e) {
+    // الدفع اتأكّد فعلًا؛ فشل الإشعار مايرجّعش خطأ للإدارة (قاعدة «هـ»).
+    console.error('confirmServiceOrderPayment notify', orderId, e);
   }
 
   await logAuditAction({
@@ -820,8 +801,9 @@ export async function setServiceOrderStatusByAdmin(
     return fail('الطلب غير موجود');
   }
 
-  if (order.status === 'completed') {
-    return fail('لا يمكن إلغاء أو استرجاع طلب مكتمل');
+  // ⚠️ بعد الدفع (حتى «مكتمل») = المدير العام بس (طلب تامر، ١ نوفمبر).
+  if ((PAID_SERVICE_STATUSES as readonly string[]).includes(order.status) && !isSuperAdminRole(admin.role)) {
+    return fail(SUPER_CANCEL_ONLY);
   }
   if (order.status === 'cancelled') {
     return fail('الطلب ملغي بالفعل');
@@ -837,7 +819,7 @@ export async function setServiceOrderStatusByAdmin(
     .eq('status', order.status)
     .select('id');
 
-  if (error) return fail('تعذّر تحديث حالة الطلب');
+  if (error) return fail(error.code === '42501' ? SUPER_CANCEL_ONLY : 'تعذّر تحديث حالة الطلب');
   if (!statusRows || statusRows.length === 0) {
     return fail('الطلب مش موجود أو تغيّرت حالته — التغيير مروّحش للقاعدة.');
   }

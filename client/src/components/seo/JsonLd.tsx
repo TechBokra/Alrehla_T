@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * بيانات منظّمة (Structured Data).
  *

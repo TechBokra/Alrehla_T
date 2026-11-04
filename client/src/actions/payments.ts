@@ -267,6 +267,56 @@ async function requirePaymentsAdmin() {
   }
 }
 
+/**
+ * الطلب ده لسه مستني دفع؟ — لاستكمال طلب اتسجّل ومااتدفعش (قرار ٢٤
+ * أكتوبر). بجلسة العميل: صلاحيات `orders` بتوري طلباته هو بس.
+ *
+ * ⚠️ مابترميش. أي فشل = «مش متاح للاستكمال»، والعميل يعمل طلب جديد.
+ */
+export async function getResumableOrder(
+  orderId: string,
+): Promise<{ ok: true; reference: string; total: number } | { ok: false }> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('orders')
+      .select('id, status, total_amount, payment_reference')
+      .eq('id', orderId)
+      .maybeSingle();
+    if (!data || (data.status !== 'pending' && data.status !== 'failed')) return { ok: false };
+    return {
+      ok: true,
+      reference: data.payment_reference ?? data.id.slice(0, 8),
+      total: Number(data.total_amount),
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * الطلب ده العميل خلّصه ولا لأ؟ — لتفضية السلة بعد الدفع.
+ *
+ *   placed  اتدفع أو مستني مراجعة إيصال أو بعده → بنوده تتشال من السلة
+ *   unpaid  لسه مستني دفع → السلة زي ما هي (وينفع يكمّله)
+ *   closed  اتلغى أو اترجع → السلة زي ما هي، والطلب المحفوظ يتنسي
+ *   unknown مانعرفش (شبكة/مش طلبه) → مانعملش حاجة
+ */
+export async function getOrderPaymentState(
+  orderId: string,
+): Promise<'placed' | 'unpaid' | 'closed' | 'unknown'> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from('orders').select('status').eq('id', orderId).maybeSingle();
+    if (!data) return 'unknown';
+    if (data.status === 'pending' || data.status === 'failed') return 'unpaid';
+    if (data.status === 'cancelled' || data.status === 'refunded') return 'closed';
+    return 'placed';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function savePaymentSettings(input: {
   provider: string;
   methods: string[];
@@ -321,6 +371,8 @@ export async function savePaymentSettings(input: {
     metadata: { provider: settings.provider, methods: settings.methods },
   });
 
+  // صفحات المنتجات بتعرض طرق الدفع (٢٤ أكتوبر) — لازم تتجدّد معاها.
+  refreshPublicPages();
   revalidatePath('/dashboard/admin/settings/pricing');
   return { ok: true };
 }

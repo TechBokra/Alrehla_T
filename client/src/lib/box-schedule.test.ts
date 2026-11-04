@@ -31,3 +31,28 @@ describe('مهلة فتح مهمة الشحنة', () => {
     expect(opens.toISOString().slice(0, 10)).toBe('2026-11-28');
   });
 });
+
+import { shipmentWeek, shipmentGate } from './box-schedule';
+
+describe('أسبوع الشحن والتفعيل', () => {
+  const sub = { startsAt: '2026-10-16T01:41:13Z', status: 'active' };
+  const ships = [1, 2, 3].map((n) => ({ monthNumber: n, status: 'pending' as const }));
+
+  it('الأسبوع من السبت للجمعة — نفس القاعدة', () => {
+    expect(shipmentWeek(sub.startsAt, 1)).toEqual({ start: '2026-10-10', end: '2026-10-16' });
+    expect(shipmentWeek(sub.startsAt, 2)).toEqual({ start: '2026-11-14', end: '2026-11-20' });
+  });
+
+  it('التانية مقفولة لحد ما الأولى تطلع أو ييجي أسبوعها', () => {
+    const now = new Date('2026-11-01T10:00:00Z');
+    const g1 = shipmentGate(sub, ships, ships[0], now)!;
+    expect(g1).toMatchObject({ active: true, canShip: true, late: true });
+    const g2 = shipmentGate(sub, ships, ships[1], now)!;
+    expect(g2).toMatchObject({ active: false, canPrepare: false, canShip: false });
+    // الأولى طلعت ← التانية تتجهّز، بس ماتتشحنش قبل أسبوعها.
+    const after = [{ ...ships[0], status: 'shipped' as const }, ships[1], ships[2]];
+    expect(shipmentGate(sub, after, after[1], now)).toMatchObject({ active: true, canPrepare: true, canShip: false });
+    // أسبوعها جه ← تتشحن حتى لو الأولى لسه.
+    expect(shipmentGate(sub, ships, ships[1], new Date('2026-11-14T08:00:00Z'))).toMatchObject({ active: true, canShip: true });
+  });
+});

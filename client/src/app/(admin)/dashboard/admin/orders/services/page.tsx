@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getAllServiceOrders } from '@/data/domains/(admin)/service-orders/queries';
@@ -8,7 +7,7 @@ import Link from 'next/link';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { formatDate } from '@/lib/utils';
 import { serviceOrderStatus } from '@/lib/order-status';
-import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
+import { StatusBadge } from '@/components/StatusBadge';
 import { dueLabel, isOverdue, OPEN_SERVICE_STATUSES } from '@/lib/service-delivery';
 
 export const dynamic = 'force-dynamic';

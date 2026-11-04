@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, Check, CreditCard, Wallet } from 'lucide-react';
 import { Checkbox, Field, TextArea, TextInput, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';

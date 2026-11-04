@@ -615,3 +615,45 @@ export async function getStudioTasks(): Promise<Map<string, StudioTaskInfo>> {
     }),
   );
 }
+
+export type StudioImageReview = {
+  id: string;
+  imageUrl: string;
+  staffNote: string | null;
+  status: string;
+  sentAt: string;
+  decidedAt: string | null;
+  clientNote: string | null;
+  /** أسباب طلب التعديل (من ١ نوفمبر). */
+  clientReasons: string[];
+};
+
+/**
+ * صور البطل اللي اتبعتت لولي الأمر على المشروع ده (الأحدث الأول).
+ *
+ * ⚠️ الجدول ممكن يكون لسه مش موجود (ترحيل `20261025090000`) — بنرجّع
+ *    فاضي، والشاشة بتكمّل.
+ */
+export async function getStudioImageReviews(projectId: string): Promise<StudioImageReview[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('story_image_reviews')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('sent_at', { ascending: false })
+    .limit(20);
+  if (error) {
+    if (!isMissingRelation(error.code)) console.error('Error reading image reviews', { projectId, error });
+    return [];
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    imageUrl: r.image_url,
+    staffNote: r.staff_note,
+    status: r.status,
+    sentAt: r.sent_at,
+    decidedAt: r.decided_at,
+    clientNote: r.client_note,
+    clientReasons: r.client_reasons ?? [],
+  }));
+}

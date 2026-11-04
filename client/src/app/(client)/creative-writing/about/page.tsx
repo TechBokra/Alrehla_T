@@ -4,12 +4,21 @@ import { pageMetadata } from '@/lib/seo';
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: 'عن بداية الرحلة',
-    description: 'برنامج الكتابة الإبداعية في منصة الرحلة: جلسات فردية تساعد الطفل واليافع على تطوير أدواته وصوته في الكتابة.',
+    description:
+      'برنامج الكتابة الإبداعية في منصة الرحلة: جلسات فردية تساعد الطفل واليافع على تطوير أدواته وصوته في الكتابة.',
     path: '/creative-writing/about',
   });
 }
 
-import { Sparkles, PenTool, Heart } from 'lucide-react';
+import {
+  Sparkles,
+  PenTool,
+  Heart,
+  Lightbulb,
+  MessageCircle,
+  Mic,
+  BookOpen,
+} from 'lucide-react';
 
 import { PageContainer } from '@/components/PageContainer';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
@@ -18,29 +27,60 @@ import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
-
 export default async function AboutProgramPage() {
   const content = await getSiteContent();
 
   // الأيقونات والألوان ثابتة؛ النصوص من لوحة الإدارة ← محتوى الصفحات.
   const features = [
-    { key: 'feature1', icon: Sparkles, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { key: 'feature2', icon: PenTool, color: 'text-teal-600', bg: 'bg-teal-50' },
-    { key: 'feature3', icon: Heart, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    {
+      key: 'feature1',
+      icon: Sparkles,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+    {
+      key: 'feature2',
+      icon: PenTool,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+    },
+    {
+      key: 'feature3',
+      icon: Heart,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
   ].map((f) => ({
     ...f,
     title: content[`cwAbout.${f.key}.title`],
     description: content[`cwAbout.${f.key}.text`],
   }));
 
+  // النقطة الرابعة اتضافت بطلب الفريق (٢٤ أكتوبر).
   const points = [
     content['cwAbout.point1'],
     content['cwAbout.point2'],
     content['cwAbout.point3'],
-  ];
+    content['cwAbout.point4'],
+  ].filter((p) => p?.trim());
+
+  // «أهمية الكتابة الإبداعية» — قسم جديد، كله من لوحة الإدارة.
+  const importanceTitle = content['cwAbout.importance.title']?.trim();
+  const importance = [
+    { key: 'importance1', icon: Lightbulb },
+    { key: 'importance2', icon: MessageCircle },
+    { key: 'importance3', icon: Mic },
+    { key: 'importance4', icon: BookOpen },
+  ]
+    .map((b) => ({
+      ...b,
+      title: content[`cwAbout.${b.key}.title`],
+      description: content[`cwAbout.${b.key}.text`],
+    }))
+    .filter((b) => b.title?.trim());
 
   return (
-    <PageContainer className="!py-0 !space-y-0">
+    <PageContainer className="!space-y-0 !py-0">
       {/* Hero Section */}
       <Section containerClassName="pt-8">
         <SectionHeader
@@ -76,6 +116,43 @@ export default async function AboutProgramPage() {
         </div>
       </Section>
 
+      {importanceTitle && (
+        <Section containerClassName="mx-auto w-full max-w-5xl">
+          <h2 className="mb-6 text-center text-3xl font-black text-slate-800">
+            {importanceTitle}
+          </h2>
+          {content['cwAbout.importance.text']?.trim() && (
+            <p className="mx-auto mb-12 max-w-2xl text-center text-lg font-medium text-slate-600">
+              {content['cwAbout.importance.text']}
+            </p>
+          )}
+          <div className="grid gap-6 sm:grid-cols-2">
+            {importance.map((b) => {
+              const Icon = b.icon;
+              return (
+                <Card
+                  key={b.key}
+                  accentColor="emerald"
+                  className="flex items-start gap-5 p-6"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-xl font-bold text-slate-800">
+                      {b.title}
+                    </h3>
+                    <p className="leading-relaxed font-medium text-slate-600">
+                      {b.description}
+                    </p>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       {/* Distinctive Features */}
       <Section containerClassName="mx-auto w-full max-w-6xl pb-20">
         <h2 className="mb-12 text-center text-3xl font-black text-slate-800">
@@ -85,11 +162,7 @@ export default async function AboutProgramPage() {
           {features.map((feature, idx) => {
             const Icon = feature.icon;
             return (
-              <Card
-                key={idx}
-                accentColor="emerald"
-                className="p-8 text-center"
-              >
+              <Card key={idx} accentColor="emerald" className="p-8 text-center">
                 <div
                   className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${feature.bg} ${feature.color} mb-6`}
                 >
@@ -112,7 +185,11 @@ export default async function AboutProgramPage() {
         <h2 className="mb-8 text-3xl font-black text-slate-800">
           {content['cwAbout.cta.title']}
         </h2>
-        <Button href="/creative-writing/packages" accentColor="journey" size="lg">
+        <Button
+          href="/creative-writing/packages"
+          accentColor="journey"
+          size="lg"
+        >
           {content['cwAbout.cta.button']}
         </Button>
       </Section>

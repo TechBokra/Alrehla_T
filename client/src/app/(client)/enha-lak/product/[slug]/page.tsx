@@ -7,13 +7,11 @@ import { PageContainer } from '@/components/PageContainer';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import Image from 'next/image';
 import Link from 'next/link';
 import { AddToCartButton } from '@/components/cart/AddToCartButton';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { RichText } from '@/components/ui/RichText';
 import { ProductGallery } from '@/components/enha-lak/ProductGallery';
-import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { pageMetadata } from '@/lib/seo';
 import { productSchema, breadcrumbSchema } from '@/lib/structured-data';
@@ -23,6 +21,11 @@ import { ArrowLeft, Building2, Palette } from 'lucide-react';
 import { AgeBadge } from '@/components/enha-lak/AgeBadge';
 import { customizationPath } from '@/lib/product-categories';
 import { priceBlocks } from '@/lib/item-format';
+import { REVIEW_DELAY_NOTE, deliveryText, effectiveDeliveryDays } from '@/lib/delivery-days';
+import { productUnavailableReason } from '@/lib/product-availability';
+import { getPaymentAvailability } from '@/data/domains/(shared)/payments/queries';
+import { METHOD_LABELS } from '@/lib/payments/settings';
+import { getDeliveryPause } from '@/data/domains/(client)/shipping/queries';
 
 /**
  * ⚡ الصفحة بتتبني أول ما حد يفتحها، وبعدين **بتتخزّن** وتتبعت جاهزة من
@@ -71,6 +74,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   // المسار من التصنيف — حقل واحد بيقرّر، مش اتنين بيتنافسوا.
   const customization = customizationPath(product.category, product.slug);
+  // بالتوصيل بس والتوصيل متوقف؟ (قرار ٢٤ أكتوبر)
+  const payment = await getPaymentAvailability();
+  const unavailable = productUnavailableReason(product, await getDeliveryPause());
 
   // ترتيب الأسعار (الإلكترونية أولًا) من مصدر واحد مشترك مع الكارت.
   const prices = priceBlocks(product);
@@ -83,6 +89,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const settings = await getSiteSettings();
   const siteName = settings.siteName?.trim() || 'الرحلة';
+  // مدة التجهيز: الكتاب ده، أو القيمة العامة (قرار ٢٥ أكتوبر).
+  const delivery = effectiveDeliveryDays(settings.deliveryDays, product);
 
   return (
     <PageContainer className="!py-0 !space-y-0">
@@ -247,7 +255,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </div>
               {prices.headline.format === 'electronic' && (
                 <p className="mt-1 text-sm font-medium text-emerald-700">
-                  بتوصلك على الإيميل فورًا — من غير شحن ومن غير انتظار.
+                  {/* ⚠️ كانت «فورًا» — والقصة بيكتبها الفريق في أيام (خطوات «كيف تطلب»). */}
+                  بتوصلك على الإيميل — من غير شحن.
                 </p>
               )}
               {/* ملف 138: العميل يعرف قبل المعالج إن فيه الاختيار التاني وبكام. */}
@@ -266,6 +275,37 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 </p>
               )}
               
+              {/* ══ السعر بيشمل إيه، وإزاي يتدفع، وإمتى يوصل ══════════
+                  دراسة المنافسين (١٧ أكتوبر): «وضّحوا ما يشتريه السعر وكيف
+                  يُدفع» — قبل التخصيص، مش في آخره. كل سطر هنا متنفّذ فعلًا:
+                  المعاينة (story_preview)، والدفع من إعدادات الدفع،
+                  والمدة من نص «كيف تطلب» اللي الإدارة بتكتبه. */}
+              <ul className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm font-medium text-slate-700">
+                <li className="flex gap-2">
+                  <span className="text-emerald-600" aria-hidden="true">✓</span>
+                  {product.category === 'library'
+                    ? 'الغلاف باسم طفلك وصورته — والقصة نفسها زي ما هي.'
+                    : 'قصة بتتكتب لطفلك باسمه وصورته والقيمة اللي تختارها.'}
+                </li>
+                {product.category !== 'library' && (
+                  <li className="flex gap-2">
+                    <span className="text-emerald-600" aria-hidden="true">✓</span>
+                    {/* قرار ٢٥ أكتوبر: المراجعة للصورة بس، والتأخير بيأخّر الميعاد. */}
+                    {REVIEW_DELAY_NOTE}
+                  </li>
+                )}
+                <li className="flex gap-2">
+                  <span className="text-emerald-600" aria-hidden="true">✓</span>
+                  {deliveryText(delivery, prices.secondary ? 'both' : prices.headline.format)}.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-emerald-600" aria-hidden="true">✓</span>
+                  {payment.mode === 'gateway'
+                    ? `الدفع أونلاين: ${payment.methods.map((m) => METHOD_LABELS[m]).join(' · ')}.`
+                    : 'الدفع بالتحويل (إنستاباي أو محفظة)، وبترفع الإيصال بعدها.'}
+                </li>
+              </ul>
+
               <div className="mt-6">
                 {/* ⚠️ **الشرط كان `ownerType === 'platform'` الأول.**
                     فمنتج للمنصة تصنيفه «مكتبة» كان الزرار هنا بيقول
@@ -275,7 +315,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
                     دلوقتي المسار من التصنيف وحده — مصدر واحد في
                     `customizationPath`. */}
-                {customization ? (
+                {unavailable ? (
+                  // قرار ٢٤ أكتوبر: المنتج اللي بالتوصيل بس والتوصيل متوقف
+                  // بيقول ده هنا — مش بعد ما العميل يملا التخصيص.
+                  <div role="status" className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-center">
+                    <p className="font-black text-amber-900">غير متاح مؤقتًا</p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed text-amber-900">
+                      {unavailable} — المنتج ده بيتشحن بس، وبيرجع أول ما التوصيل يفتح.
+                    </p>
+                    <Link
+                      href="/enha-lak"
+                      className="mt-3 inline-flex min-h-[44px] items-center text-sm font-bold text-amber-900 underline underline-offset-4"
+                    >
+                      تصفّح باقي المنتجات
+                    </Link>
+                  </div>
+                ) : customization ? (
                   <Button
                     href={customization.href}
                     accentColor="rose"

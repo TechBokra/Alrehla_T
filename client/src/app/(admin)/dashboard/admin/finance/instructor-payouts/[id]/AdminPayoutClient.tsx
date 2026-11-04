@@ -1,7 +1,7 @@
 'use client';
 import { formatPrice } from '@/lib/utils';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { InstructorPayout, Instructor } from '@/types';
 import { markInstructorPayoutAsPaid } from '@/actions/finance';
 import { CheckCircle2, Building, AlertCircle } from 'lucide-react';

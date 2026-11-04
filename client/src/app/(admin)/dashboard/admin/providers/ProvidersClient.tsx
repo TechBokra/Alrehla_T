@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Save, Trash2, Search } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
@@ -453,7 +453,7 @@ function ProviderCard({
           {/* شرح معنى السعر — الفرق ده سبب غلطة تسعير حقيقية قبل كده. */}
           <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">
             {isPlatform
-              ? 'السعر هنا هو اللي العميل هيدفعه مباشرة — مفيش مستحق يتدفع لحد ومفيش معادلة فوقه.'
+              ? 'المنصة مقدّم تلقائي لكل الخدمات، وسعرها = سعر كارت الخدمة (الخدمات الإبداعية ← الخدمات). التعديل من الكارت بس — وده اللي العميل بيدفعه مباشرة.'
               : platformMultiplier != null && fixedAdminFee != null
                 ? `السعر هنا هو مستحق مقدّم الخدمة. العميل بيدفع فوقه معادلة المنصة (×${platformMultiplier} + ${fixedAdminFee}) — والرقم النهائي مكتوب جنب كل خدمة.`
                 : 'السعر هنا هو مستحق مقدّم الخدمة. معادلة المنصة مش متاحة دلوقتي، فالعميل بيتحاسب بنفس الرقم.'}
@@ -564,6 +564,9 @@ function OfferingRow({
           name="approvedPrice"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
+          // سعر المنصة من كارت الخدمة (٣ نوفمبر) — القاعدة بترجّعه لو اتغيّر هنا.
+          readOnly={isPlatform && !isNew}
+          title={isPlatform ? 'سعر المنصة بيتعدّل من كارت الخدمة' : undefined}
           inputMode="decimal"
           placeholder="السعر"
           aria-label={`سعر ${serviceName}`}

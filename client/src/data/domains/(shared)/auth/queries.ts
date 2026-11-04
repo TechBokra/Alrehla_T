@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { AdminPermission, UserRole, UserProfile } from '@/types';
@@ -155,7 +156,12 @@ export async function getAdminAccess(
 }
 
 // Database Access Functions
-export const getCurrentUser = async (): Promise<UserProfile> => {
+/**
+ * ⚠️ **ملفوفة بـ`cache()`** (خريطة البيانات، ٢٧ أكتوبر): الصفحة والقالب
+ *    والمكوّنات كانوا بينادوها كل واحد لوحده — كل نداء = رحلة لخادم الدخول +
+ *    قراءة الملف والدور. دلوقتي مرة واحدة لكل طلب.
+ */
+export const getCurrentUser = cache(async (): Promise<UserProfile> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -218,7 +224,7 @@ export const getCurrentUser = async (): Promise<UserProfile> => {
     ...(roleName ? { adminRoleName: roleName } : {}),
     ...(permissions.length > 0 ? { permissions } : {})
   };
-};
+});
 
 export const getAllUsers = async (): Promise<UserProfile[]> => {
   const supabase = await createClient();

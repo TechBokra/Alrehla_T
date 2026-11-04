@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { Calendar, MessageSquare } from 'lucide-react';
 import { WritingPackage, SessionWithDetails } from '@/types';

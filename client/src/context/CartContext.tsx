@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { ItemFormat } from '@/lib/item-format';
 import {
   CART_CLEAR_EVENT,
@@ -43,7 +43,18 @@ export type CartItem = {
   addonIds?: string[];
   /** الإضافات اللي اتطلبت بتخصيص — مجموعة فرعية من `addonIds`. */
   customizedAddonIds?: string[];
-  customizationData?: any;
+  /**
+   * فيه إضافة مختارة بتتشحن؟ (قرار تامر، ٢٣ أكتوبر — الإضافات بقى
+   * ليها نوع: مطبوعة / إلكترونية / الاتنين).
+   *
+   * ⚠️ **للعرض بس.** القاعدة بتحسب الشحن تاني من
+   *    `addon_products.delivery_format` وقت تسجيل الطلب — زيّ
+   *    الأسعار بالظبط. والغايب = «آه» (السلال القديمة، والسلوك
+   *    اللي كان).
+   */
+  addonsNeedShipping?: boolean;
+  /** بيانات التخصيص كما جمعها المعالج — بتتعرض وبتتبعت مع الطلب كما هي. */
+  customizationData?: { childName?: string } & Record<string, unknown>;
   /**
    * مطبوعة / إلكترونية / الاتنين (ملف 138). فاضي = مطبوعة — السلال
    * القديمة المحفوظة في المتصفح مالهاش الخانة دي.
@@ -68,6 +79,18 @@ interface CartContextType {
    *  "In real app, clearCart() would be here" — so every completed order left
    *  its items in the cart, ready to be ordered again. */
   clearCart: () => void;
+  /** يشيل بنود بعينها مرة واحدة — بعد دفع طلب اتسجّل منها. */
+  removeItems: (ids: string[]) => void;
+  /**
+   * السلة اتقرت من المتصفح؟
+   *
+   * ⚠️ **أي حاجة بتعدّل السلة أول ما الصفحة تفتح لازم تستنى ده.**
+   *    مكوّنات الصفحة بتشتغل **قبل** ما السلة تتقري (React بيشغّل
+   *    تأثيرات الأبناء قبل الأب). فتفضية السلة في صفحة «شكرًا» كانت
+   *    بتحصل على سلة لسه فاضية، وبعدها السلة تتقري وترجع كاملة —
+   *    وده بالظبط اللي حصل مع طلب ALR-000068-QB (٢٤ أكتوبر).
+   */
+  ready: boolean;
   itemCount: number;
   cartTotal: number;
 }
@@ -87,6 +110,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   //    هيتحفظ **فوق** السلة المحفوظة قبل ما تتقري — فتضيع في نفس
   //    اللحظة اللي المفروض تتحمّل فيها.
   const loaded = useRef(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -102,6 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // التخزين مقفول (تصفّح خاص) — السلة تشتغل في الذاكرة زي الأول.
     }
     loaded.current = true;
+    setReady(true);
 
     const clear = () => setItems([]);
     window.addEventListener(CART_CLEAR_EVENT, clear);
@@ -153,12 +178,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const removeItems = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
+  };
+
   const itemCount = items.length;
   const cartTotal = items.reduce((acc, i) => acc + i.price, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, replaceItem, updateQuantity, clearCart, itemCount, cartTotal }}
+      value={{ items, addItem, removeItem, replaceItem, updateQuantity, clearCart, removeItems, ready, itemCount, cartTotal }}
     >
       {children}
     </CartContext.Provider>

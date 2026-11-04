@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { StudentSessionGroups } from '@/components/dashboard/StudentSessionGroups';
 import { getStudentSessionsPageData } from '@/data/domains/(client)/sessions/page-data';

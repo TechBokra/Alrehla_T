@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { ClipboardList } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';

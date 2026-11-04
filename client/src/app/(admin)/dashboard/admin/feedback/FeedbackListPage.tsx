@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser, getAllUsers } from '@/data/domains/(shared)/auth/queries';

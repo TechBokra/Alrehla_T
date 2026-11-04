@@ -1,3 +1,4 @@
+import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 
@@ -13,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { getProductBySlug } from '@/data/domains/(client)/products/queries';
+import { isVisibleFor } from '@/lib/applies-to';
 import { getAddonProducts } from '@/data/domains/(shared)/products/addons';
 import { productRedirectPath } from '@/data/domains/(shared)/products/queries';
 import { permanentRedirect } from 'next/navigation';
@@ -71,17 +73,23 @@ export default async function CustomProductPage({ params }: { params: Promise<{ 
     getDeliveryCatalog(),
   ]);
 
+  // مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع (دراسة المنافسين).
+  const photoSettings = await getSiteSettings();
+
   return (
     <div className="min-h-screen bg-slate-50">
       <PersonalizationWizard
         product={product}
-        addons={addons}
+        addons={addons.filter((a) => isVisibleFor(a.appliesTo, { productId: product.id }))}
         addonDiscountPercent={addonDiscountPercent}
         extraFields={extraFields}
         goals={goals}
         writingDialects={writingDialects}
         deliveryPaused={delivery.pause.paused}
         pauseMessage={delivery.pause.message}
+        delivery={delivery}
+        photoRetentionDays={photoSettings.childPhotoRetentionDays}
+        deliveryDays={photoSettings.deliveryDays}
       />
     </div>
   );

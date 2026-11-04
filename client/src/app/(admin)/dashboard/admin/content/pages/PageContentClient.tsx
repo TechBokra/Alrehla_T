@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Check, ExternalLink, Search } from 'lucide-react';
 import { CONTENT_GROUPS, type ContentField } from '@/lib/site-content';

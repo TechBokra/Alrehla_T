@@ -1,12 +1,17 @@
 'use client';
 
+import type { DeliveryDays } from '@/lib/delivery-days';
 import { uploadPrivatePhoto, type PrivatePhoto } from '@/lib/private-upload-client';
 import { isSavedPhoto } from '@/lib/saved-photo';
 import { PAUSED_MESSAGE } from '@/lib/delivery';
 import Link from 'next/link';
 import { Truck } from 'lucide-react';
-import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, type ItemFormat } from '@/lib/item-format';
-import React, { useEffect, useState } from 'react';
+import type { DeliveryCatalog } from '@/data/domains/(shared)/shipping/types';
+import { physicalVerdict } from '@/lib/delivery';
+import { loadDeliveryRegion } from '@/lib/delivery-region-store';
+import { addonAllowedWith } from '@/lib/addon-availability';
+import { addonsDisplayTotal, baseListPriceForFormat, basePriceForFormat, customizedAddonIdsFor, electronicAvailable, FORMAT_LABELS, itemNeedsShipping, selectedAddonsNeedShipping, type ItemFormat } from '@/lib/item-format';
+import { useEffect, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { wizardSchema, type WizardFormValues } from './personalization-schema';
@@ -83,6 +88,7 @@ const FIELD_STEP: Record<string, { step: number; label: string }> = {
   dedicationText: { step: 2, label: 'الإهداء' },
   monthlyGoals: { step: 2, label: 'أهداف الشهور' },
   selectedAddonIds: { step: 3, label: 'الإضافات' },
+  format: { step: 3, label: 'نوع النسخة' },
   customizedAddonIds: { step: 3, label: 'تخصيص الإضافات' },
 };
 
@@ -97,7 +103,16 @@ export function PersonalizationWizard({
   writingDialects = [],
   deliveryPaused = false,
   pauseMessage = '',
+  delivery,
+  photoRetentionDays,
+  deliveryDays,
 }: {
+  /** مدة حفظ صورة الطفل — لجملة الخصوصية جنب الرفع. */
+  photoRetentionDays?: number;
+  /** مدة التجهيز العامة (الكتاب نفسه ممكن يغيّرها) — قرار ٢٥ أكتوبر. */
+  deliveryDays?: DeliveryDays;
+  /** الدول والمحافظات والمناطق — لـ«هنوصّل فين؟» في خطوة ٣ (قرار ٢٤ أكتوبر). */
+  delivery?: DeliveryCatalog;
   /** التوصيل متوقف من اللوحة — النسخة المطبوعة مش متاحة للطلب. */
   deliveryPaused?: boolean;
   pauseMessage?: string;
@@ -483,8 +498,45 @@ export function PersonalizationWizard({
      *    دلوقتي بيستعمل `itemNeedsShipping` — نفس الدالة اللي
      *    الدفع والقاعدة بيحسبوا بيها. فمفيش تعريفين للشحن.
      */
-    if (deliveryPaused && itemNeedsShipping({ format, addonIds: data.selectedAddonIds })) {
-      const becauseAddons = (data.selectedAddonIds?.length ?? 0) > 0;
+    // ⚠️ بالنسخة: إضافة «الاتنين» مع الإلكتروني بتوصل إلكترونية (قرار ٢٤ أكتوبر).
+    const addonsShip = selectedAddonsNeedShipping(addons, data.selectedAddonIds, format);
+
+    // الإضافة المطبوعة مع الإلكتروني اترفضت في خطوة ٣ — ولو جت من حالة
+    // محفوظة قديمة، بنرجّعه هناك بدل ما القاعدة ترفض الطلب في الدفع.
+    if (data.selectedAddonIds.some((id) => {
+      const addon = addons.find((a) => a.id === id);
+      return addon ? !addonAllowedWith(addon, format) : false;
+    })) {
+      setUploadError('فيه إضافة مطبوعة مختارة مع النسخة الإلكترونية — راجع خطوة النسخة والإضافات.');
+      router.push(stepHref(3));
+      return;
+    }
+
+    // منطقة اتقفلت بعد ما اختارها (أو اتختارت على جهاز تاني).
+    if (delivery && itemNeedsShipping({ format, addonIds: data.selectedAddonIds, addonsNeedShipping: addonsShip })) {
+      const region = loadDeliveryRegion();
+      const verdict = region
+        ? physicalVerdict(delivery, { country: region.country, governorate: region.gov, city: region.city })
+        : null;
+      if (verdict && !verdict.available) {
+        setUploadError(`${verdict.message} — اختار النسخة الإلكترونية أو منطقة تانية من خطوة ٣.`);
+        router.push(stepHref(3));
+        return;
+      }
+    }
+
+    if (
+      deliveryPaused &&
+      itemNeedsShipping({
+        format,
+        addonIds: data.selectedAddonIds,
+        addonsNeedShipping: addonsShip,
+      })
+    ) {
+      // ⚠️ «بسبب الإضافات» بقى يعني **إضافة بتتشحن**، مش أي إضافة.
+      //    الإضافة الإلكترونية مالهاش ذنب، ورسالة بتوجّهه يشيلها
+      //    كانت هتبعته يدوّر على مشكلة مش موجودة.
+      const becauseAddons = addonsShip;
       setUploadError(
         becauseAddons
           ? `${pauseText} — والإضافات اللي اخترتها بتتشحن. شيلها من خطوة الإضافات وكمّل بالنسخة الإلكترونية.`
@@ -544,6 +596,9 @@ export function PersonalizationWizard({
       addonIds: data.selectedAddonIds,
       // القاعدة بتضيف سعر التخصيص للإضافات دي وحدها.
       customizedAddonIds,
+      // ⚠️ للعرض في الدفع بس — القاعدة بتحسب الشحن تاني من
+      //    `addon_products.delivery_format` وقت تسجيل الطلب.
+      addonsNeedShipping: addonsShip,
     };
 
     if (editing) replaceItem(editing.id, line);
@@ -567,14 +622,14 @@ export function PersonalizationWizard({
           <h1 className="text-2xl font-black text-amber-900">التوصيل متوقف مؤقتًا</h1>
           <p className="mt-3 text-base font-medium leading-relaxed text-amber-900">{pauseText}</p>
           <p className="mt-2 text-sm font-medium leading-relaxed text-amber-800">
-            القصة دي بتتطبع وبتتشحن، فمش هينفع تتطلب دلوقتي. تقدر تتصفّح القصص اللي ليها
-            نسخة إلكترونية، أو ترجع لما التوصيل يرجع.
+            المنتج ده بيتطبع وبيتشحن، فمش هينفع يتطلب دلوقتي. تقدر تتصفّح باقي المنتجات — اللي ليها
+            نسخة إلكترونية متاحة عادي — أو ترجع لما التوصيل يرجع.
           </p>
           <Link
             href="/enha-lak"
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-700 px-6 py-3 font-bold text-white transition-colors hover:bg-amber-800"
           >
-            تصفّح باقي القصص
+            تصفّح باقي المنتجات
           </Link>
         </div>
       </div>
@@ -605,6 +660,7 @@ export function PersonalizationWizard({
               {currentStep === 1 && <Step1ChildInfo onNext={() => handleNext(['familyMemberId', 'newChildName', 'newChildBirthDate', 'newChildGender'])} />}
               {currentStep === 2 && (
                 <Step2Details
+                  photoRetentionDays={photoRetentionDays}
                   monthlyGoals={subscription?.months}
                   extraFields={extraFields}
                   goals={goals}
@@ -614,9 +670,10 @@ export function PersonalizationWizard({
                   onPrev={handlePrev}
                 />
               )}
-              {currentStep === 3 && !subscription && <Step3Addons addons={addons} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds'])} onPrev={handlePrev} />}
+              {currentStep === 3 && !subscription && <Step3Addons addons={addons} product={product} delivery={delivery} deliveryPaused={deliveryPaused} pauseMessage={pauseMessage} onNext={() => handleNext(['selectedAddonIds', 'customizedAddonIds', 'format'])} onPrev={handlePrev} />}
               {(currentStep === 4 || (subscription && currentStep === 3)) && (
                 <Step4Review
+                  deliveryDays={deliveryDays}
                   onPrev={handlePrev}
                   product={product}
                   pending={isSubmitting}
@@ -625,6 +682,7 @@ export function PersonalizationWizard({
                   writingDialects={writingDialects}
                   showWritingStyle={showWritingStyle}
                   deliveryPaused={deliveryPaused}
+                  addons={addons}
                 />
               )}
             </div>

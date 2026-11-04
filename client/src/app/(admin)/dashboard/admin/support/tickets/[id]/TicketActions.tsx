@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, Send } from 'lucide-react';
 import { replyToSupportTicket, closeSupportTicket } from '@/actions/support';

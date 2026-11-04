@@ -6,6 +6,7 @@ import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader'
 import { InstructorSessionClient } from './InstructorSessionClient';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { SessionChangeRequest } from '@/components/sessions/SessionChangeRequest';
+import { ReportIncident } from '@/components/sessions/ReportIncident';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,9 +40,14 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
       {/* ⭐ (#LQMO) المدرب يطلب موعد تاني — الإدارة بتوافق. */}
       {canRequestChange && (
         <div className="mt-6">
-          <SessionChangeRequest sessionId={session.id} existing={change} />
+          <SessionChangeRequest sessionId={session.id} existing={change} scheduledAt={session.scheduledAt} />
         </div>
       )}
+
+      {/* بند ١١ (٢٤ أكتوبر): بلاغ للإدارة — سلامة طفل، سلوك، جلسة خرجت عن السيطرة. */}
+      <div className="mt-6">
+        <ReportIncident sessionId={session.id} />
+      </div>
     </div>
   );
 }

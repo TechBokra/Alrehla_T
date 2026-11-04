@@ -38,6 +38,8 @@ async function requireProvidersAdmin() {
 
 function revalidateProviders() {
   revalidatePath('/dashboard/admin/providers');
+  revalidatePath('/dashboard/admin/writing/services/requests');
+  revalidatePath('/dashboard/admin');
   refreshPublicPages();
 }
 
@@ -228,6 +230,8 @@ export async function saveProviderOffering(params: {
     is_active: params.isActive,
     admin_notes: params.adminNotes?.trim() || null,
     updated_at: new Date().toISOString(),
+    // قرار (اعتماد أو رفض) = الطلب اتقفل؛ غير كده بيفضل في «طلبات تقديم الخدمات».
+    ...(params.status !== 'pending' ? { requested_price: null } : {}),
   };
 
   const { data: existing } = await supabase

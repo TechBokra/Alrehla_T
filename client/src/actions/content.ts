@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth-guard';
 import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { normalizeChildPhotoDays } from '@/lib/child-photos';
+import { normalizeDeliveryDays } from '@/lib/delivery-days';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@/lib/supabase/server';
 import { CONTENT_DEFAULTS, CONTENT_FIELDS } from '@/lib/site-content';
@@ -145,6 +146,14 @@ export async function updateSiteSettings(
   // مدة حفظ ملفات الطلبات ومساحة الكتابة (ملف 20) — من ٧ لـ٣٦٥ يوم.
   if (formData.has('childPhotoRetentionDays')) {
     next.childPhotoRetentionDays = normalizeChildPhotoDays(formData.get('childPhotoRetentionDays'));
+  }
+
+  // مدة تجهيز «إنها لك» العامة (قرار ٢٥ أكتوبر) — كل كتاب يقدر يغيّرها.
+  if (formData.has('deliveryDaysElectronic') || formData.has('deliveryDaysPrinted')) {
+    next.deliveryDays = normalizeDeliveryDays({
+      electronic: formData.get('deliveryDaysElectronic'),
+      printed: formData.get('deliveryDaysPrinted'),
+    });
   }
 
   if (formData.has('fileRetentionDays')) {

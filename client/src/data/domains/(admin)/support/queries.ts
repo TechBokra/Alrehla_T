@@ -11,7 +11,7 @@ export const getAllSupportTickets = async (): Promise<SupportTicket[]> => {
     return [];
   }
 
-  return data.map((t: any) => ({
+  return data.map((t) => ({
     id: t.id,
     requesterName: t.requester_name,
     subject: t.subject,

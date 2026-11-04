@@ -93,9 +93,9 @@ export const NOTIFICATION_EVENTS: {
   },
   {
     key: 'story_preview',
-    label: 'معاينة نص القصة',
+    label: 'اعتماد صورة البطل',
     description:
-      'نص القصة بقى جاهز وولي الأمر لازم يوافق قبل الرسم، وقراره لما يوصل للفريق.',
+      'صورة البطل جاهزة وولي الأمر لازم يعتمدها قبل رسم الصفحات، وقراره لما يوصل للفريق.',
     audience: 'الطرفين',
     // ⚠️ **مقفول عن قصد.** الرسم مابيبدأش قبل موافقة ولي الأمر
     //    (بوابة `text_client_approved` في القاعدة). فإيقاف الإشعار
@@ -133,5 +133,3 @@ export const NOTIFICATION_EVENTS: {
   },
 ];
 
-export const NOTIFICATION_EVENT_LABELS: Record<string, string> =
-  Object.fromEntries(NOTIFICATION_EVENTS.map((e) => [e.key, e.label]));

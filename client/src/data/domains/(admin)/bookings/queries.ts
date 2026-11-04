@@ -57,6 +57,9 @@ export async function getCourseBookingsForAdmin(): Promise<AdminCourseBooking[]>
       paymentReference: row.payment_reference ?? null,
       paymentMethod: row.payment_method ?? null,
       paymentReceiptUrl: row.payment_receipt_url ?? null,
+      paymentProvider: row.payment_provider ?? null,
+      paidAt: row.paid_at ?? null,
+      paymentIntentId: row.payment_intent_id ?? null,
       preferredInstructorId: row.preferred_instructor_id ?? null,
       preferredInstructorName: row.preferred_instructor_id
         ? (instructorName.get(row.preferred_instructor_id) ?? null)

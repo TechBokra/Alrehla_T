@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Wallet } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { WithdrawalRequestForm } from '@/components/dashboard/WithdrawalRequestForm';

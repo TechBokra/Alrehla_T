@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { refreshPublicPages } from '@/lib/revalidate';
 import { createClient } from '@/lib/supabase/server';
 import { logAuditAction } from '@/lib/audit';
+import { REVIEW_BLOCKED_MESSAGE, bookingReviewState } from '@/lib/review-eligibility';
 
 /**
  * Customer ratings.
@@ -130,5 +131,103 @@ export async function setReviewHidden(
 
   revalidatePath('/dashboard/admin/reviews');
   refreshPublicPages();
+  return { ok: true };
+}
+
+/**
+ * تقييم المدرب بعد انتهاء **باقة**.
+ *
+ * ── ليه الدالة دي موجودة ────────────────────────────────────
+ *
+ * ⚠️ **الباقات ماكانش ليها طريق تقييم خالص.** التقييم كان متاحًا
+ *    من طلب الخدمة الإبداعية وبس. فاللي حجز باقة وخلّص جلساته
+ *    مايقدرش يقيّم مدربه — وعمود `booking_id` في `reviews` فاضل
+ *    مستنّي من يوم ما اتعمل.
+ *
+ *    والنتيجة: صفر تقييم في القاعدة كلها، وكل صفحات المدربين
+ *    بتقول «لا توجد تقييمات بعد».
+ *
+ * ⚠️ **وشرط «بعد الانتهاء» بيتفحص هنا، مش في الشاشة بس** (قاعدة
+ *    «ع»): الشاشة بتخفي النموذج، والإخفاء بيتخطّى بنداء مباشر.
+ *    والفحص بنفس الدالة اللي الشاشة بتستعملها — `bookingReviewState`
+ *    — عشان ما يبقاش فيه تعريفين لـ«انتهت».
+ *
+ * ⚠️ **والمدرب بييجي من الجلسات، مش من اللي الشاشة بعتته** (قاعدة
+ *    «ف»): الباقة ممكن يكون اتنقل فيها الشغل لمدرب تاني، والتقييم
+ *    لازم يروح للّي درّس فعلًا.
+ */
+export async function submitBookingReview(params: {
+  subscriptionId: string;
+  instructorRating: number;
+  serviceRating: number;
+  comment: string;
+}): Promise<ReviewResult> {
+  const { subscriptionId, instructorRating, serviceRating, comment } = params;
+
+  const inRange = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
+  if (!inRange(instructorRating) || !inRange(serviceRating)) {
+    return { ok: false, error: 'التقييم لازم يكون من 1 إلى 5', field: 'rating' };
+  }
+  if (comment.length > 2000) return { ok: false, error: 'التعليق طويل جدًا', field: 'comment' };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'يجب تسجيل الدخول أولاً' };
+
+  const { data: sub } = await supabase
+    .from('course_subscriptions')
+    .select('id, user_id, child_id')
+    .eq('id', subscriptionId)
+    .maybeSingle();
+
+  if (!sub) return { ok: false, error: 'الباقة غير موجودة' };
+  if (sub.user_id !== user.id) return { ok: false, error: 'الباقة دي مش بتاعتك' };
+
+  const { data: sessions, error: sessionsError } = await supabase
+    .from('sessions')
+    .select('status, instructor_id')
+    .eq('course_subscription_id', subscriptionId);
+
+  // ⚠️ فشل القراءة **مش** «مفيش جلسات»: لو رجّعنا قايمة فاضية
+  //    ساعتها، الأهلية هتتحسب غلط. بنقف ونقول.
+  if (sessionsError) {
+    console.error('Error reading subscription sessions for review', sessionsError);
+    return { ok: false, error: 'تعذّر التحقق من جلسات الباقة. جرّب تاني.' };
+  }
+
+  const rows = sessions ?? [];
+  const state = bookingReviewState(rows);
+  if (!state.can) return { ok: false, error: REVIEW_BLOCKED_MESSAGE[state.reason] };
+
+  // المدرب اللي درّس فعلًا — من جلسة تمّت، مش من تفضيل الحجز.
+  const instructorId =
+    rows.find((r) => r.status === 'completed' && r.instructor_id)?.instructor_id ?? null;
+  if (!instructorId) return { ok: false, error: 'مفيش مدرب مسجّل على جلسات الباقة دي' };
+
+  const { error } = await supabase.from('reviews').insert({
+    instructor_id: instructorId,
+    reviewer_profile_id: user.id,
+    booking_id: subscriptionId,
+    dependent_participant_id: sub.child_id,
+    rating: instructorRating,
+    service_rating: serviceRating,
+    comment: comment.trim() || null,
+  });
+
+  if (error) {
+    // الفهرس الفريد على `booking_id` هو اللي بيمنع التكرار فعلًا.
+    if (String(error.message).toLowerCase().includes('duplicate')) {
+      return { ok: false, error: 'سبق أن قيّمت الباقة دي' };
+    }
+    console.error('Error submitting booking review', error);
+    return { ok: false, error: 'تعذّر حفظ التقييم' };
+  }
+
+  revalidatePath('/account/bookings');
+  refreshPublicPages();
+  revalidatePath('/dashboard/instructor/ratings');
+  revalidatePath('/dashboard/admin/reviews');
   return { ok: true };
 }

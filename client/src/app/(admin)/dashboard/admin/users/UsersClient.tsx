@@ -2,7 +2,7 @@
 
 import { SITE_URL } from '@/lib/site-url';
 import { accountMessage, greetByName, SIGN_IN_PATH } from '@/lib/account-message';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, Copy, Eye, Plus, Search, X } from 'lucide-react';

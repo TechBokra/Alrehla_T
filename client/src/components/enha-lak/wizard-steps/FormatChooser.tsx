@@ -21,41 +21,35 @@ const HINTS: Record<ItemFormat, string> = {
 /**
  * اختيار النسخة (ملف 138) — بيظهر بس لو المنتج ليه سعر إلكتروني.
  * ⚠️ الأسعار هنا للعرض؛ القاعدة بتسعّر من الجدول.
+ *
+ * ⚠️ **اتنقل لخطوة ٣ قبل الإضافات** (قرار ٢٤ أكتوبر): الإضافات
+ *    المعروضة بتعتمد على النسخة، فلازم النسخة تتختار الأول. قبل كده
+ *    كانت في المراجعة — بعد ما العميل يختار إضافات ممكن ماتنفعش معاها.
+ *
+ * والنسخة الإلكترونية مابقتش بتتشحن خالص: الإضافات المطبوعة مابتظهرش
+ * معاها (`addonAllowedWith`)، فجملة «من غير شحن» بقت صح دايمًا.
  */
 export function FormatChooser({
   product,
-  deliveryPaused = false,
+  physicalBlocked = null,
 }: {
   product: PersonalizedProduct;
-  /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة. */
-  deliveryPaused?: boolean;
+  /** التوصيل مقفول (إيقاف عام أو منطقة العميل) — النسخ اللي بتتشحن مقفولة، ودي الرسالة. */
+  physicalBlocked?: string | null;
 }) {
   const { watch, setValue } = useFormContext();
-  const selectedAddonIds: string[] = watch('selectedAddonIds') || [];
   if (!electronicAvailable(product)) return null;
   const current: ItemFormat = watch('format') ?? 'printed';
 
-  /**
-   * ⚠️ **«من غير شحن» كانت بتتقال وهي مش صحيحة.**
-   *
-   *    الكارت بيقول «ملف بيوصلك على الإيميل — من غير شحن» حتى لو
-   *    العميل مختار بوسترًا مطبوعًا كإضافة. والبوستر بيتشحن، فالبند
-   *    كله محتاج شحن (قاعدة القاعدة: «مطبوع **أو إضافة**»).
-   *
-   *    فالعميل بيقرا وعدًا بمفيش شحن، وبيترفض في الدفع. دلوقتي
-   *    الكارت بيقول الحقيقة لما يكون فيه إضافة.
-   */
-  const addonsForceShipping = selectedAddonIds.length > 0;
-
   return (
-    <fieldset className="rounded-2xl border border-slate-200 bg-white p-6">
+    <fieldset className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
       <legend className="px-2 font-bold text-slate-800">نوع النسخة</legend>
       <div className="grid gap-3 sm:grid-cols-3">
         {ITEM_FORMATS.map((f) => {
           const Icon = ICONS[f];
           const selected = current === f;
-          // ⚠️ «مطبوعة» و«الاتنين» بيتشحنوا، فبيتقفلوا وقت إيقاف التوصيل.
-          const blocked = deliveryPaused && f !== 'electronic';
+          // «مطبوعة» و«الاتنين» بيتشحنوا، فبيتقفلوا لما التوصيل مقفول.
+          const blocked = Boolean(physicalBlocked) && f !== 'electronic';
           return (
             <label
               key={f}
@@ -79,20 +73,15 @@ export function FormatChooser({
               <span className="flex items-center gap-2 font-bold text-slate-900">
                 <Icon className="h-4 w-4" aria-hidden /> {FORMAT_LABELS[f]}
               </span>
-              <span className="text-xs text-slate-600">
-                {blocked
-                  ? 'غير متاح — التوصيل متوقف مؤقتًا'
-                  : f === 'electronic' && addonsForceShipping
-                    ? 'ملف بيوصلك على الإيميل — والإضافات بتتشحن لعنوانك'
-                    : HINTS[f]}
-              </span>
-              <span className="mt-1 font-black text-emerald-800">
-                {formatPrice(basePriceForFormat(product, f))}
-              </span>
+              <span className="text-xs text-slate-600">{blocked ? 'مش متاحة لمنطقتك دلوقتي' : HINTS[f]}</span>
+              <span className="mt-1 font-black text-emerald-800">{formatPrice(basePriceForFormat(product, f))}</span>
             </label>
           );
         })}
       </div>
+      {physicalBlocked && (
+        <p className="mt-3 text-xs font-bold text-amber-800">{physicalBlocked}</p>
+      )}
       {current !== 'printed' && (
         <p className="mt-3 text-xs text-slate-600">
           النسخة الإلكترونية نسخة واحدة — الإيميل بتكتبه في خطوة الدفع.

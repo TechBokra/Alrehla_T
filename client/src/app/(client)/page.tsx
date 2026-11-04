@@ -74,7 +74,7 @@ export default async function Home() {
   // «قريبًا» دائمًا مهما كتبت الإدارة آراء في قاعدة البيانات.
   const testimonials = await getTestimonials();
   const publishers = await getPublishers();
-  const activePublishers = publishers.filter((p: any) => p.status === 'active').slice(0, 4);
+  const activePublishers = publishers.filter((p) => p.status === 'active').slice(0, 4);
   const siteName = settings.siteName?.trim() || 'الرحلة';
 
   return (
@@ -301,7 +301,7 @@ export default async function Home() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {activePublishers.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-500 font-medium">قريبًا</div>
-        ) : activePublishers.map((publisher: any) => (
+        ) : activePublishers.map((publisher) => (
             <Link href={`/enha-lak/publisher/${publisher.slug}`} key={publisher.id} className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 transition-all hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col items-center text-center">
               <div className="mb-4 relative h-20 w-20 flex items-center justify-center">
                 {publisher.logoUrl ? (

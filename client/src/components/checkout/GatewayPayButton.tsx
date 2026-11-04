@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CreditCard, ShieldCheck } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { BusyButton } from '@/components/forms/Form';

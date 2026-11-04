@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getInstructors } from '@/data/domains/(admin)/instructors/queries';
 import { getProfileUpdateRequestsByInstructor } from '@/data/domains/(admin)/instructors/profile-updates';
 import { getInstructorCertification } from '@/data/domains/(admin)/instructors/certification';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { AdminInstructorClient } from './AdminInstructorClient';
@@ -17,6 +16,8 @@ import Link from 'next/link';
 import { getInstructorMediaForAdmin } from '@/data/domains/(admin)/instructors/media';
 import { StatusBadge } from '@/components/StatusBadge';
 import { optimizedImageUrl } from '@/lib/cloudinary';
+import { getAdminCourse, getTrainingRecords } from '@/data/domains/(admin)/training/queries';
+import { InstructorTrainingCard } from '../training/InstructorTrainingCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const certification = await getInstructorCertification(target.id);
   const services = await getStandaloneServices({ includeInactive: true });
   const serviceOffers = await getInstructorServiceOffers(target.id);
-  const formula = await getPricingFormulaSettings();
+  const formula = await getProviderPricingSettings();
   const media = await getInstructorMediaForAdmin(target.id);
+  // التأهيل التأسيسي الذاتي (طلب تامر، ٢٤ أكتوبر).
+  const [trainingCourse, trainingRecords] = await Promise.all([
+    getAdminCourse(),
+    target.userId ? getTrainingRecords([target.userId]) : Promise.resolve(new Map()),
+  ]);
 
   // الباقات المفعّلة + اللي المدرب مسجَّل عليها دلوقتي.
   // ⚠️ بتتقري من الدالة العامة عشان تبقى **نفس المصدر** اللي معالج
@@ -83,6 +89,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         transferTargets={instructors
           .filter((i) => i.id !== target.id && i.status === 'active')
           .map((i) => ({ id: i.id, name: i.displayName }))}
+      />
+
+      <InstructorTrainingCard
+        course={trainingCourse.state === 'ok' ? trainingCourse.data : null}
+        record={target.userId ? trainingRecords.get(target.userId) : undefined}
+        userId={target.userId ?? null}
+        instructorId={target.id}
       />
 
       {/* ⚠️ **صور المدرب كانت مش ظاهرة هنا خالص** — الإداري كان لازم

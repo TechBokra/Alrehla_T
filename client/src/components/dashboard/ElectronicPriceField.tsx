@@ -1,4 +1,3 @@
-import React from 'react';
 import { Field } from '@/components/forms/Form';
 import { MoneyInput } from '@/components/dashboard/PublisherCostField';
 

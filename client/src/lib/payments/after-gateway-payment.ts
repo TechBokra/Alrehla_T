@@ -55,43 +55,55 @@ export async function afterServiceOrderPaid(
       .is('due_at', null);
     if (dueError) console.error('تعذّر ضبط مهلة التسليم بعد الدفع', dueError);
 
-    const { data: order } = await supabase
-      .from('service_orders')
-      .select('buyer_profile_id, instructor_id, provider_id')
-      .eq('id', orderId)
-      .maybeSingle();
-
-    if (!order) return { ok: false, note: 'الطلب مش موجود بعد تسجيل الدفع' };
-
-    await notifyUser({
-      event: 'order_status',
-      recipientProfileId: order.buyer_profile_id,
-      title: 'تم تأكيد دفعك',
-      message: 'استلمنا المبلغ، والمدرب سيبدأ التنفيذ.',
-      link: `/account/orders/creative-writing/${orderId}`,
-    });
-
-    const providerUserId = order.provider_id
-      ? await getProviderUserId(order.provider_id)
-      : order.instructor_id
-        ? await getInstructorUserId(order.instructor_id)
-        : null;
-
-    if (providerUserId) {
-      await notifyUser({
-        event: 'service_order_new',
-        recipientProfileId: providerUserId,
-        title: 'طلب جاهز للتنفيذ',
-        message: `تم تأكيد الدفع — يمكنك بدء التنفيذ الآن. المهلة ${SERVICE_DUE_DAYS} يومًا.`,
-        link: `/dashboard/provider/orders/${orderId}`,
-      });
-    }
-
-    return { ok: true };
+    return await notifyServiceOrderPaid(supabase, orderId);
   } catch (error) {
     console.error('فشل تجهيز طلب الخدمة بعد الدفع', orderId, error);
     return { ok: false, note: 'الدفع اتسجّل والتجهيز فشل' };
   }
+}
+
+/**
+ * إشعارَي «اتدفع»: للعميل («تم تأكيد دفعك») ولمقدّم الخدمة («طلب جاهز
+ * للتنفيذ»). مكان واحد للدفع بالبوابة وللتأكيد اليدوي من الإدارة —
+ * كانوا نسختين بنفس النص.
+ */
+export async function notifyServiceOrderPaid(
+  supabase: SupabaseClient<Database>,
+  orderId: string,
+): Promise<AfterPaymentResult> {
+  const { data: order } = await supabase
+    .from('service_orders')
+    .select('buyer_profile_id, instructor_id, provider_id')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (!order) return { ok: false, note: 'الطلب مش موجود بعد تسجيل الدفع' };
+
+  await notifyUser({
+    event: 'order_status',
+    recipientProfileId: order.buyer_profile_id,
+    title: 'تم تأكيد دفعك',
+    message: 'استلمنا المبلغ، والمدرب سيبدأ التنفيذ.',
+    link: `/account/orders/creative-writing/${orderId}`,
+  });
+
+  const providerUserId = order.provider_id
+    ? await getProviderUserId(order.provider_id)
+    : order.instructor_id
+      ? await getInstructorUserId(order.instructor_id)
+      : null;
+
+  if (providerUserId) {
+    await notifyUser({
+      event: 'service_order_new',
+      recipientProfileId: providerUserId,
+      title: 'طلب جاهز للتنفيذ',
+      message: `تم تأكيد الدفع — يمكنك بدء التنفيذ الآن. المهلة ${SERVICE_DUE_DAYS} يومًا.`,
+      link: `/dashboard/provider/orders/${orderId}`,
+    });
+  }
+
+  return { ok: true };
 }
 
 /**

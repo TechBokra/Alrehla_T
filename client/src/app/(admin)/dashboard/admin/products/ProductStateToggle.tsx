@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { EyeOff, Eye } from 'lucide-react';
 import { setProductActive } from '@/actions/products';

@@ -1,12 +1,11 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getMessagesForTicket } from '@/data/domains/(shared)/support/queries';
 import { getAllSupportTickets } from '@/data/domains/(admin)/support/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { Paperclip, Send, CheckCircle, Clock, Archive } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { ticketStatus } from '@/lib/ticket-status';
 import { StatusBadge } from '@/components/StatusBadge';
 import { TicketReplyBox, CloseTicketButton } from './TicketActions';

@@ -1,10 +1,11 @@
-import React from 'react';
+import { AGE_GROUP_LABEL, TRACK_LABEL } from '@/lib/package-labels';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { saveWritingPackage } from '@/actions/writing';
 import { ActionForm } from '@/components/dashboard/ActionForm';
+import { ImageField } from '@/components/dashboard/ImageField';
 import {
   Checkbox,
   Field,
@@ -26,7 +27,10 @@ export default async function Page() {
 
   return (
     <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-12">
-      <DashboardPageHeader title="إضافة باقة جديدة" backHref="/dashboard/admin/writing/packages" />
+      <DashboardPageHeader
+        title="إضافة باقة جديدة"
+        backHref="/dashboard/admin/writing/packages"
+      />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         {/* `ActionForm` بدل `<form action>` العادي: لو الأكشن رجّع خطأ
@@ -41,10 +45,15 @@ export default async function Page() {
             <Field label="اسم الباقة" name="name" required>
               <TextInput />
             </Field>
-            <Field label="الفئة العمرية" help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل." name="ageGroup" required>
+            <Field
+              label="الفئة العمرية"
+              help="السن اللي الباقة معمولة له. الأهالي بيشوفوا الباقات على حسب سن الطفل."
+              name="ageGroup"
+              required
+            >
               <Select>
-                <option value="under_12">أقل من 12 سنة</option>
-                <option value="12_plus">12 سنة فأكثر</option>
+                <option value="under_12">{AGE_GROUP_LABEL.under_12}</option>
+                <option value="12_plus">{AGE_GROUP_LABEL['12_plus']}</option>
               </Select>
             </Field>
             <Field
@@ -54,18 +63,28 @@ export default async function Page() {
             >
               <Select defaultValue="">
                 <option value="">بدون مسار</option>
-                <option value="foundation">مسار التأسيس</option>
-                <option value="youth">مسار اليافعين والكبار</option>
-                <option value="specialization">مسار التخصص</option>
+                <option value="foundation">{TRACK_LABEL.foundation}</option>
+                <option value="youth">{TRACK_LABEL.youth}</option>
+                <option value="specialization">{TRACK_LABEL.specialization}</option>
               </Select>
             </Field>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="الوصف القصير" help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها." name="shortDescription" required>
+            <Field
+              label="الوصف القصير"
+              help="سطر أو اتنين بيظهروا في كارت الباقة وفي أول صفحتها."
+              name="shortDescription"
+              required
+            >
               <TextInput />
             </Field>
-            <Field label="الفئة المستهدفة" help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»." name="targetAudience" required>
+            <Field
+              label="الفئة المستهدفة"
+              help="بيظهر في صفحة الباقة تحت «لمين؟» — مثلًا «للي بيحب يكتب ومحتاج يبدأ»."
+              name="targetAudience"
+              required
+            >
               <TextInput />
             </Field>
           </FormSection>
@@ -75,27 +94,68 @@ export default async function Page() {
           </Field>
 
           <FormSection columns={3}>
-            <Field label="السعر (ج.م)" help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز." name="price" required>
+            <Field
+              label="السعر (ج.م)"
+              help="السعر اللي ولي الأمر بيدفعه للباقة كلها، وبيظهر في الكارت وفي الحجز."
+              name="price"
+              required
+            >
               <TextInput type="number" />
             </Field>
             <Field label="عدد الجلسات" name="sessionsCount" required>
               <TextInput type="number" />
             </Field>
-            <Field label="مدة الجلسة" help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»." name="sessionDuration" required>
+            <Field
+              label="مدة الجلسة"
+              help="نص بيظهر زي ما هو في الكارت — مثلًا «40 دقيقة»."
+              name="sessionDuration"
+              required
+            >
               <TextInput defaultValue="40 دقيقة" />
             </Field>
           </FormSection>
 
           <FormSection columns={2}>
-            <Field label="مدة البرنامج الإجمالية (نص)" help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»." name="durationText" required>
+            <Field
+              label="مدة البرنامج الإجمالية (نص)"
+              help="بيظهر في الكارت جنب «المدة» — مثلًا «شهرين» أو «8 أسابيع»."
+              name="durationText"
+              required
+            >
               <TextInput />
             </Field>
-            <Field label="ملاحظة المتطلبات السابقة" help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة." name="prerequisiteNote">
+            <Field
+              label="ملاحظة المتطلبات السابقة"
+              help="اختياري. لو الباقة محتاجة حاجة قبلها (مثلًا باقة أساسيات)، اكتبها وهتظهر في صفحة الباقة."
+              name="prerequisiteNote"
+            >
               <TextInput />
             </Field>
           </FormSection>
 
-          <Checkbox id="isActive" name="isActive" defaultChecked label="الباقة نشطة ومتاحة للحجز" />
+          <Checkbox
+            id="isActive"
+            name="isActive"
+            defaultChecked
+            label="الباقة ظاهرة على الموقع"
+          />
+          <input type="hidden" name="hasImage" value="1" />
+          <ImageField
+            name="imageUrl"
+            label="صورة الباقة"
+            folder="alrehla/packages"
+            aspect="wide"
+            library
+            hint="بتظهر فوق كارت الباقة وفي أول صفحة التفاصيل. الأفضل صورة عرضية (١٦:١٠) معبّرة عن محتوى الباقة، من غير نص مكتوب عليها."
+          />
+
+          <input type="hidden" name="hasBookingOpen" value="1" />
+          <Checkbox
+            id="bookingOpen"
+            name="bookingOpen"
+            defaultChecked
+            label="الحجز مفتوح — لو مش متعلّم، الباقة بتظهر «قريبًا» مع زرار «بلّغني لما تفتح»"
+          />
 
           <FormActions>
             <SubmitButton>إضافة الباقة</SubmitButton>

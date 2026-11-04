@@ -48,7 +48,7 @@ export default async function StudentDetailsPage({ params }: { params: Promise<{
   //    بيرجّع صفر مستندات بلا أي خطأ، فالصفحة تقول «لا توجد مستندات»
   //    والمدرب مش شايف شغل طالبه أصلًا (ملف SQL 89).
   const documents = await getStudentDocuments(student.documentsRef);
-  const docsData = documents.map((doc: any) => ({
+  const docsData = documents.map((doc) => ({
     title: doc.title,
     date: formatDate(doc.updatedAt),
     status: doc.status === 'reviewed' ? (

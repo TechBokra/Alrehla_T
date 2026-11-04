@@ -10,6 +10,10 @@ export type AdminCourseBooking = {
   paymentReference: string | null;
   paymentMethod: string | null;
   paymentReceiptUrl: string | null;
+  /** بوابة الدفع: `xpay` | `manual`، ووقت الدفع ورقم العملية عندها. */
+  paymentProvider?: string | null;
+  paidAt?: string | null;
+  paymentIntentId?: string | null;
   preferredInstructorId: string | null;
   preferredInstructorName: string | null;
   createdAt: string;

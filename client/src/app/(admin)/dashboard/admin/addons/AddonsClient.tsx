@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,11 +10,19 @@ import { formatPrice } from '@/lib/utils';
 import { optimizedImageUrl } from '@/lib/cloudinary';
 import { ImageField } from '@/components/dashboard/ImageField';
 import { GalleryField } from '@/components/dashboard/GalleryField';
+import { AppliesToPicker } from '@/components/admin/AppliesToPicker';
+import { appliesToSummary, type AppliesToProduct } from '@/lib/applies-to';
 import type { AddonProduct } from '@/types';
 import { Field, TextInput, TextArea, Checkbox, BusyButton } from '@/components/forms/Form';
 import { FormError } from '@/components/ui/FormError';
 
 const UNEXPECTED = 'حصل خطأ غير متوقع — حدّث الصفحة وجرّب تاني.';
+
+const ADDON_FORMATS = [
+  { value: 'printed' as const, label: 'مطبوعة', hint: 'بتتشحن لعنوان العميل' },
+  { value: 'electronic' as const, label: 'إلكترونية', hint: 'ملف على الإيميل — من غير شحن' },
+  { value: 'both' as const, label: 'مطبوعة + إلكترونية', hint: 'بتتشحن ومعاها ملف' },
+];
 
 const EMPTY = {
   id: '',
@@ -23,15 +31,19 @@ const EMPTY = {
   price: 0,
   isActive: true,
   sortOrder: 0,
+  /** مطبوعة / إلكترونية / الاتنين — الافتراضي زيّ اللي كان. */
+  deliveryFormat: 'printed' as 'printed' | 'electronic' | 'both',
   imageUrl: '',
   // ملف 19 — صفحة التفاصيل.
   galleryImageUrls: [] as string[],
   longDescription: '',
   /** سطر لكل نقطة — نفس خانة تفاصيل المنتج. */
   features: '',
+  /** المنتجات اللي الإضافة بتظهر معاها — `null` = الكل (قرار ٢٤ أكتوبر). */
+  appliesTo: null as string[] | null,
 };
 
-export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
+export function AddonsClient({ addons, products = [] }: { addons: AddonProduct[]; products?: AppliesToProduct[] }) {
   const router = useRouter();
   const [form, setForm] = useState(EMPTY);
   const [open, setOpen] = useState(false);
@@ -48,10 +60,12 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
       price: addon.price,
       isActive: addon.isActive,
       sortOrder: addon.sortOrder,
+      deliveryFormat: addon.deliveryFormat,
       imageUrl: addon.imageUrl ?? '',
       galleryImageUrls: addon.galleryImageUrls ?? [],
       longDescription: addon.longDescription ?? '',
       features: (addon.features ?? []).join('\n'),
+      appliesTo: addon.appliesTo ?? null,
     });
     setOpen(true);
     setError('');
@@ -71,10 +85,12 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
         price: Number(form.price),
         isActive: form.isActive,
         sortOrder: Number(form.sortOrder),
+        deliveryFormat: form.deliveryFormat,
         imageUrl: form.imageUrl || null,
         galleryImageUrls: form.galleryImageUrls,
         longDescription: form.longDescription,
         features: form.features.split('\n'),
+        appliesTo: form.appliesTo,
       });
     } catch {
       setError(UNEXPECTED);
@@ -153,6 +169,41 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </Field>
+            {/* ══ نوع الإضافة ═══════════════════════════════════
+                ملاحظة تامر (٢٣ أكتوبر): «الإضافات ليه شحن فقط؟».
+
+                ⚠️ **الاختيار ده بيغيّر حاجة حقيقية**: الإضافة
+                   المطبوعة بتخلّي الطلب كله محتاج عنوان شحن —
+                   حتى لو القصة إلكترونية. والإلكترونية لأ. */}
+            <Field
+              label="نوع الإضافة"
+              className="md:col-span-2"
+              hint="المطبوعة بتخلّي الطلب محتاج عنوان شحن. الإلكترونية بتوصل على الإيميل والطلب يفضل من غير شحن."
+            >
+              <div className="grid gap-2 sm:grid-cols-3">
+                {ADDON_FORMATS.map((f) => (
+                  <label
+                    key={f.value}
+                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border-2 p-3 transition-colors ${
+                      form.deliveryFormat === f.value
+                        ? 'border-emerald-600 bg-emerald-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="addon-delivery-format"
+                      className="sr-only"
+                      checked={form.deliveryFormat === f.value}
+                      onChange={() => setForm({ ...form, deliveryFormat: f.value })}
+                    />
+                    <span className="font-bold text-slate-800">{f.label}</span>
+                    <span className="text-xs font-medium text-slate-500">{f.hint}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
+
             <Field label="الترتيب في القايمة" hint="الأصغر يظهر أولًا">
               <TextInput
                 type="number"
@@ -160,6 +211,17 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
                 onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
               />
             </Field>
+            {/* قرار ٢٤ أكتوبر: الإدارة بتختار الإضافة تظهر مع أنهي منتج. */}
+            <div className="md:col-span-2">
+              <AppliesToPicker
+                value={form.appliesTo}
+                onChange={(appliesTo) => setForm((f) => ({ ...f, appliesTo }))}
+                products={products}
+                disabled={busy}
+                showBox={false}
+                allLabel="مع كل المنتجات"
+              />
+            </div>
             <div className="md:col-span-2">
               {/* ⚠️ `key`: الحقل بيمسك الصورة في حالته من أول مرة — من غيره
                   فتح إضافة تانية للتعديل كان هيعرض صورة اللي قبلها. */}
@@ -264,6 +326,10 @@ export function AddonsClient({ addons }: { addons: AddonProduct[] }) {
               {addon.description && (
                 <p className="mt-1 text-sm text-slate-500">{addon.description}</p>
               )}
+              <p className="mt-1 text-xs font-bold text-slate-500">
+                {ADDON_FORMATS.find((f) => f.value === addon.deliveryFormat)?.label ?? 'مطبوعة'} ·{' '}
+                {appliesToSummary(addon.appliesTo ?? null).replace('بيظهر في', 'بتظهر مع')}
+              </p>
             </div>
 
             <div className="text-end">

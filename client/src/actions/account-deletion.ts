@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireUser, requireAdmin, requireNotDependent } from '@/lib/auth-guard';
+import { requireAdmin, requireNotDependent } from '@/lib/auth-guard';
 import { logAuditAction } from '@/lib/audit';
 import { notifyAdmins } from '@/lib/notifications';
 

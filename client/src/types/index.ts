@@ -60,6 +60,13 @@ export type WritingPackage = {
   shortDescription: string;
   fullDescription: string;
   isActive: boolean;
+  /**
+   * false = الباقة ظاهرة والحجز «قريبًا» (قرار ٢٤ أكتوبر، بند ٩).
+   * مختلف عن `isActive` اللي بيخفيها خالص. الغايب = مفتوحة.
+   */
+  bookingOpen?: boolean;
+  /** صورة الباقة (Cloudinary) — الغايب = خلفية المسار. */
+  imageUrl?: string | null;
 };
 
 // ملف المدرب
@@ -133,7 +140,7 @@ export type Instructor = {
   /**
    * الباقات اللي المدرب بيدرّبها (ملف SQL 102).
    *
-   * ⚠️ **المصفوفة الفاضية معناها «كل الباقات» — مش «ولا باقة».**
+   * ⚠️ **المصفوفة الفاضية معناها «ولا باقة»** (من ٣ نوفمبر — كانت «كل الباقات»).
    *
    *    والفرق ده مقصود: لو الفاضي معناه «ولا باقة»، كان كل المدربين
    *    يختفوا من الموقع أول ما الميزة تنشر، لحد ما الإدارة تفتح كل
@@ -173,7 +180,8 @@ export type PublicInstructor = Omit<
 export interface ProfileUpdateRequest {
   id: string;
   instructorId: string;
-  requestedChanges: Partial<Instructor>;
+  /** `_requestType: 'packages'` = طلب باقات منفصل عن الملف. */
+  requestedChanges: Partial<Instructor> & { packageIds?: string[]; _requestType?: 'packages' };
   status: 'pending' | 'approved' | 'rejected';
   adminFeedback?: string;
   createdAt: string;
@@ -189,7 +197,6 @@ export interface Review {
   scheduledSessionId?: string;
   createdAt: string;
 }
-
 
 // خدمة إبداعية مستقلة
 export type CreativeService = {
@@ -222,6 +229,12 @@ export type CreativeService = {
   /** حد حجم الملف بالميجا (١–١٠). */
   fileMaxMb?: number;
   fileKinds?: ('pdf' | 'word' | 'image')[];
+  /**
+   * مين يقدّم الخدمة غير المنصة (تعليقات الفريق، ٣ نوفمبر). المنصة دايمًا
+   * مقدّم بسعر الكارت. الغايب = مفتوحة (زي قبل الخانات).
+   */
+  openToInstructors?: boolean;
+  openToIndividuals?: boolean;
 };
 
 /** One instructor's offer to provide one creative service, at a price. */
@@ -311,14 +324,6 @@ export type SessionStatus =
   | 'completed'
   | 'cancelled';
 
-// عملية الحجز لباقة معينة
-export type Booking = {
-  id: string;
-  sessionId: string;
-  status: BookingStatus;
-  bookedAt: string;
-};
-
 // فئة المنتج المخصص
 export type ProductCategory = 'library' | 'custom' | 'subscription';
 
@@ -353,6 +358,12 @@ export type PersonalizedProduct = {
    * فاضي/غير موجود = الثلاثة. بيتحدد من شاشة المنتج في الإدارة.
    */
   writingStyles?: string[];
+  /**
+   * مدة التجهيز بالأيام لهذا الكتاب — فاضي = القيمة العامة من الإعدادات
+   * (قرار تامر، ٢٥ أكتوبر). التفاصيل في `lib/delivery-days.ts`.
+   */
+  deliveryDaysElectronic?: number;
+  deliveryDaysPrinted?: number;
   /**
    * عرض سعري ساري (يظهر في الصفحات العامة فقط): `price`/`electronicPrice`
    * هنا **بعد العرض**، وده الأصل. الحساب الحقيقي في القاعدة (`effective_price`).
@@ -449,6 +460,10 @@ export type Order = {
   paymentReference?: string;
   paymentMethod?: 'instapay' | 'vodafone_cash';
   paymentReceiptUrl?: string;
+  /** بوابة الدفع: `xpay` | `manual`، ووقت الدفع ورقم العملية عندها. */
+  paymentProvider?: string | null;
+  paidAt?: string | null;
+  paymentIntentId?: string | null;
   /** Fulfilment — the order used to stop at "paid" with nothing after it. */
   trackingReference?: string;
   shippedAt?: string;
@@ -521,6 +536,20 @@ export type AddonProduct = {
   supportsCustomization: boolean;
   /** الفرق اللي بيتضاف على السعر لو العميل اختار «بتخصيص». */
   customizationPrice: number;
+  /**
+   * الإضافة دي بتوصل إزاي؟ (قرار تامر، ٢٣ أكتوبر)
+   *
+   * ⚠️ **كانت كل الإضافات مفترَضة ملموسة.** قاعدة الشحن في القاعدة
+   *    كانت «أي إضافة ← الطلب محتاج شحن»، فالقصة الإلكترونية + ملف
+   *    تلوين PDF كانت بتطلب عنوان شحن. والإدارة ماكانش عندها طريقة
+   *    تقول إن الإضافة دي ملف.
+   *
+   * `printed` بتتشحن · `electronic` على الإيميل من غير شحن ·
+   * `both` بتتشحن ومعاها نسخة إلكترونية.
+   */
+  deliveryFormat: 'printed' | 'electronic' | 'both';
+  /** المنتجات اللي الإضافة بتظهر معاها — `null` = كل المنتجات (قرار ٢٤ أكتوبر). */
+  appliesTo?: string[] | null;
   /** الصورة الرئيسية من Cloudinary (ملف 12) — الكارت وأول صورة في المعرض. */
   imageUrl?: string;
   /** صور فرعية لصفحة التفاصيل (ملف 19، لحد ٨). */
@@ -563,14 +592,6 @@ export type SubscriptionTier = {
   saleLabel?: string;
 };
 
-// أفراد العائلة المرتبطين بحساب
-export interface FamilyMember {
-  id: string;
-  fullName: string;
-  birthDate: string | null;
-  avatarUrl?: string | null;
-}
-
 // الإشعارات
 export interface NotificationItem {
   id: string;
@@ -611,7 +632,6 @@ export type Publisher = {
   isSample: boolean;
   status: 'pending' | 'active' | 'suspended';
 };
-
 
 // حالة الدفع
 export type PayoutStatus = 'pending' | 'paid';
@@ -706,7 +726,6 @@ export interface InstructorStudent {
   totalSessions: number;
 }
 
-
 export type AdminPermission = 
   | 'canManageUsers'
   | 'canManageInstructors'
@@ -737,7 +756,6 @@ export type AdminPermission =
   | 'canManageStudio'
   /** استوديو القصص — العمل في المشاريع اللي الشخص مسؤول عنها (محرر / مشرف فني). */
   | 'canWorkStudio';
-
 
 export type BoxSubscription = {
   id: string;
@@ -853,7 +871,6 @@ export interface CourseSubscription {
   createdAt: string;
 }
 
-
 export type DocumentStatus = 'draft' | 'submitted' | 'reviewed';
 
 export interface PortfolioDocument {
@@ -866,13 +883,7 @@ export interface PortfolioDocument {
   updatedAt: string;
 }
 
-
-
-
 export type PaymentMethod = 'credit_card' | 'fawry' | 'wallet';
-
-
-
 
 export interface InstructorPricingOption {
   id: string;
@@ -891,20 +902,6 @@ export interface PricingFormulaSettings {
 export type BillingModel = 'monthly' | 'per_session';
 export type CompensationApprovalStatus = 'proposed' | 'under_discussion' | 'approved' | 'rejected';
 
-export interface InstructorCompensationProfile {
-  id: string;
-  instructorId: string;
-  billingModel: BillingModel;
-  selectedPricingOptionId: string;
-  monthlyMinimumHours: number; // افتراضي 60، يُستخدم فقط عند billingModel = 'monthly'
-  overtimeRatePerHour?: number;
-  approvalStatus: CompensationApprovalStatus;
-  adminNotes?: string;
-  reviewedByProfileId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface InstructorCertification {
   id: string;
   instructorId: string;
@@ -914,7 +911,6 @@ export interface InstructorCertification {
   examScore?: number;
   certifiedAt?: string;
 }
-
 
 export interface PublisherOrder {
   id: string;
@@ -926,8 +922,6 @@ export interface PublisherOrder {
   status: string;
   createdAt: string;
 }
-
-
 
 export interface WithdrawalRequest {
   id: string;
@@ -943,6 +937,8 @@ export interface ChildProfile {
   userProfileId: string;
   fullName: string;
   birthDate: string | null;
+  /** استثناء السن من الإدارة (بند ١٠) — بيغلب تاريخ الميلاد. */
+  ageGroupOverride?: AgeGroup | null;
   /** ذكر/أنثى — تُستخدم في صياغة القصة. كانت تُجمع في المعالج وتُهمل. */
   gender?: 'male' | 'female' | null;
   avatarUrl?: string | null;

@@ -68,14 +68,3 @@ export async function getDependentRequests(): Promise<DependentRequestRow[]> {
   return map(data);
 }
 
-/** عدّاد المعلّق — بيظهر جنب رابط «طلبات الأبناء». */
-export async function countPendingDependentRequests(): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from('dependent_requests')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'pending');
-
-  if (error) return 0;
-  return count ?? 0;
-}

@@ -1383,6 +1383,8 @@ export type Database = {
           target_audience: string | null
           track: string | null
           updated_at: string
+          booking_open: boolean
+          image_url: string | null
         }
         Insert: {
           age_group: Database["public"]["Enums"]["age_group"]
@@ -1402,6 +1404,8 @@ export type Database = {
           target_audience?: string | null
           track?: string | null
           updated_at?: string
+          booking_open?: boolean
+          image_url?: string | null
         }
         Update: {
           age_group?: Database["public"]["Enums"]["age_group"]
@@ -1421,6 +1425,8 @@ export type Database = {
           target_audience?: string | null
           track?: string | null
           updated_at?: string
+          booking_open?: boolean
+          image_url?: string | null
         }
         Relationships: [
           {
@@ -2329,6 +2335,8 @@ export type Database = {
           sort_order: number
           updated_at: string
           writing_styles: string[] | null
+          delivery_days_electronic: number | null
+          delivery_days_printed: number | null
         }
         Insert: {
           category: Database["public"]["Enums"]["product_category"]
@@ -2357,6 +2365,8 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           writing_styles?: string[] | null
+          delivery_days_electronic?: number | null
+          delivery_days_printed?: number | null
         }
         Update: {
           category?: Database["public"]["Enums"]["product_category"]
@@ -2385,6 +2395,8 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           writing_styles?: string[] | null
+          delivery_days_electronic?: number | null
+          delivery_days_printed?: number | null
         }
         Relationships: []
       }
@@ -3433,6 +3445,8 @@ export type Database = {
       standalone_services: {
         Row: {
           allows_files: boolean
+          open_to_instructors: boolean
+          open_to_individuals: boolean
           category: string | null
           cover_image_url: string | null
           deliverables: string[] | null
@@ -3452,6 +3466,8 @@ export type Database = {
         }
         Insert: {
           allows_files?: boolean
+          open_to_instructors?: boolean
+          open_to_individuals?: boolean
           category?: string | null
           cover_image_url?: string | null
           deliverables?: string[] | null
@@ -3471,6 +3487,8 @@ export type Database = {
         }
         Update: {
           allows_files?: boolean
+          open_to_instructors?: boolean
+          open_to_individuals?: boolean
           category?: string | null
           cover_image_url?: string | null
           deliverables?: string[] | null
@@ -3760,6 +3778,199 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      training_courses: {
+        Row: {
+          id: string
+          title: string
+          version: string
+          content: Json
+          module_pass_pct: number
+          final_pass_pct: number
+          critical_required: boolean
+          required_for_activation: boolean
+          is_active: boolean
+          estimate_min_minutes: number
+          estimate_max_minutes: number
+          idle_minutes: number
+          topic_modules: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id: string
+          title: string
+          version: string
+          content: Json
+          module_pass_pct?: number
+          final_pass_pct?: number
+          critical_required?: boolean
+          required_for_activation?: boolean
+          is_active?: boolean
+          estimate_min_minutes?: number
+          estimate_max_minutes?: number
+          idle_minutes?: number
+          topic_modules?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          version?: string
+          content?: Json
+          module_pass_pct?: number
+          final_pass_pct?: number
+          critical_required?: boolean
+          required_for_activation?: boolean
+          is_active?: boolean
+          estimate_min_minutes?: number
+          estimate_max_minutes?: number
+          idle_minutes?: number
+          topic_modules?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      training_final_attempts: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          course_version: string
+          selected: Json
+          correct: number
+          total: number
+          score: number
+          critical_correct: number
+          critical_total: number
+          passed: boolean
+          submitted_at: string
+          open_answers: Json | null
+          admin_review: Json | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          course_version: string
+          selected: Json
+          correct: number
+          total: number
+          score: number
+          critical_correct: number
+          critical_total: number
+          passed: boolean
+          submitted_at?: string
+          open_answers?: Json | null
+          admin_review?: Json | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          course_version?: string
+          selected?: Json
+          correct?: number
+          total?: number
+          score?: number
+          critical_correct?: number
+          critical_total?: number
+          passed?: boolean
+          submitted_at?: string
+          open_answers?: Json | null
+          admin_review?: Json | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+        }
+        Relationships: []
+      }
+      training_progress: {
+        Row: {
+          user_id: string
+          course_id: string
+          started_at: string
+          last_seen_at: string
+          active_seconds: number
+          modules: Json
+          final_attempts: number
+          best_score: number | null
+          passed_at: string | null
+          passed_version: string | null
+          reset_at: string | null
+        }
+        Insert: {
+          user_id: string
+          course_id: string
+          started_at?: string
+          last_seen_at?: string
+          active_seconds?: number
+          modules?: Json
+          final_attempts?: number
+          best_score?: number | null
+          passed_at?: string | null
+          passed_version?: string | null
+          reset_at?: string | null
+        }
+        Update: {
+          user_id?: string
+          course_id?: string
+          started_at?: string
+          last_seen_at?: string
+          active_seconds?: number
+          modules?: Json
+          final_attempts?: number
+          best_score?: number | null
+          passed_at?: string | null
+          passed_version?: string | null
+          reset_at?: string | null
+        }
+        Relationships: []
+      }
+      story_image_reviews: {
+        Row: {
+          id: string
+          project_id: string
+          image_url: string
+          staff_note: string | null
+          status: string
+          sent_at: string
+          sent_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          client_note: string | null
+          client_reasons?: string[] | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          image_url: string
+          staff_note?: string | null
+          status?: string
+          sent_at?: string
+          sent_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          client_note?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          image_url?: string
+          staff_note?: string | null
+          status?: string
+          sent_at?: string
+          sent_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          client_note?: string | null
+        }
+        Relationships: []
       }
       story_versions: {
         Row: {
@@ -4864,6 +5075,55 @@ export type Database = {
       }
       story_version_send_to_client: {
         Args: { p_version_id: string }
+        Returns: string
+      }
+      training_course_for_me: { Args: { p_course: string }; Returns: Json }
+      training_start: { Args: { p_course: string }; Returns: undefined }
+      training_heartbeat: { Args: { p_course: string; p_seconds: number }; Returns: undefined }
+      training_submit_module: {
+        Args: { p_course: string; p_module: number; p_answers: Json }
+        Returns: Json
+      }
+      training_submit_final: { Args: { p_course: string; p_answers: Json }; Returns: Json }
+      training_review_attempt: { Args: { p_attempt: string; p_review: Json }; Returns: Json }
+      box_subscription_set_start: { Args: { p_subscription: string; p_start: string }; Returns: Json }
+      box_shipment_active: { Args: { p_shipment: string }; Returns: boolean }
+      training_reset_progress: { Args: { p_user: string; p_course: string }; Returns: undefined }
+      ops_retention_sweep: { Args: never; Returns: Json }
+      ops_health: { Args: never; Returns: Json }
+      my_story_image_reviews_all: {
+        Args: never
+        Returns: {
+          order_id: string
+          order_item_id: string
+          status: string
+          sent_at: string
+          decided_at: string | null
+          character_approved: boolean | null
+        }[]
+      }
+      story_image_send: {
+        Args: { p_project_id: string; p_note?: string | null }
+        Returns: string
+      }
+      my_story_image_reviews: {
+        Args: { p_order_id: string }
+        Returns: {
+          project_id: string
+          order_item_id: string
+          product_id: string
+          review_id: string
+          image_url: string
+          staff_note: string | null
+          status: string
+          sent_at: string
+          decided_at: string | null
+          client_note: string | null
+          character_approved: boolean | null
+        }[]
+      }
+      story_image_decide: {
+        Args: { p_review_id: string; p_approve: boolean; p_note?: string | null; p_reasons?: string[] | null }
         Returns: string
       }
       next_payment_reference: { Args: never; Returns: string }

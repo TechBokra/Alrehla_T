@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
-import { getAllUsers, getCurrentUser, getAdminRoles } from '@/data/domains/(shared)/auth/queries';
+import {
+  getAllUsers,
+  getCurrentUser,
+  getAdminRoles,
+} from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
 import { createClient } from '@/lib/supabase/server';
@@ -22,29 +25,41 @@ import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const user = await getCurrentUser();
   if (!hasAdminPermission(user, 'canManageUsers')) {
     return <Unauthorized />;
   }
 
   const { id } = await params;
-  const [allUsers, adminRoles] = await Promise.all([getAllUsers(), getAdminRoles()]);
+  const [allUsers, adminRoles] = await Promise.all([
+    getAllUsers(),
+    getAdminRoles(),
+  ]);
   const targetUser = allUsers.find((u) => u.id === id);
   if (!targetUser) notFound();
 
-  const { accountEmail, loginBlocked } = await getAdminUserAuthData(id, targetUser.email || '');
+  const { accountEmail, loginBlocked } = await getAdminUserAuthData(
+    id,
+    targetUser.email || ''
+  );
 
   const supabase = await createClient();
 
   // 1. طلبات المتجر / المنتجات
   const { data: rawOrders } = await supabase
     .from('orders')
-    .select('id, total_amount, status, created_at, payment_method, tracking_reference, order_items(id)')
+    .select(
+      'id, total_amount, status, created_at, payment_method, tracking_reference, order_items(id)'
+    )
     .eq('user_id', id)
     .order('created_at', { ascending: false });
 
-  const orders: UserOrderRow[] = (rawOrders || []).map((o: any) => ({
+  const orders: UserOrderRow[] = (rawOrders || []).map((o) => ({
     id: o.id,
     totalAmount: Number(o.total_amount || 0),
     status: o.status,
@@ -57,18 +72,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   // 2. طلبات الخدمات الإبداعية
   const { data: rawServiceOrders } = await supabase
     .from('service_orders')
-    .select('id, amount, status, created_at, standalone_services(name), instructors(display_name)')
+    .select(
+      'id, amount, status, created_at, standalone_services(name), instructors(display_name)'
+    )
     .eq('buyer_profile_id', id)
     .order('created_at', { ascending: false });
 
-  const serviceOrders: UserServiceOrderRow[] = (rawServiceOrders || []).map((so: any) => ({
-    id: so.id,
-    serviceName: so.standalone_services?.name || 'خدمة إبداعية',
-    instructorName: so.instructors?.display_name || undefined,
-    amount: Number(so.amount || 0),
-    status: so.status,
-    createdAt: so.created_at,
-  }));
+  const serviceOrders: UserServiceOrderRow[] = (rawServiceOrders || []).map(
+    (so) => ({
+      id: so.id,
+      serviceName: so.standalone_services?.name || 'خدمة إبداعية',
+      instructorName: so.instructors?.display_name || undefined,
+      amount: Number(so.amount || 0),
+      status: so.status,
+      createdAt: so.created_at,
+    })
+  );
 
   // 3. اشتراكات ومواعيد الجلسات
   const { data: subs } = await supabase
@@ -76,17 +95,21 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     .select('id, package_id, creative_writing_packages(name)')
     .eq('user_id', id);
 
-  const subIds = (subs || []).map((s: any) => s.id);
+  const subIds = (subs || []).map((s) => s.id);
   let sessions: UserSessionRow[] = [];
   if (subIds.length > 0) {
     const { data: rawSessions } = await supabase
       .from('sessions')
-      .select('id, session_number, scheduled_at, status, course_subscription_id, instructors(display_name)')
+      .select(
+        'id, session_number, scheduled_at, status, course_subscription_id, instructors(display_name)'
+      )
       .in('course_subscription_id', subIds)
       .order('scheduled_at', { ascending: false });
 
-    const pkgMap = new Map((subs || []).map((s: any) => [s.id, s.creative_writing_packages?.name]));
-    sessions = (rawSessions || []).map((s: any) => ({
+    const pkgMap = new Map(
+      (subs || []).map((s) => [s.id, s.creative_writing_packages?.name])
+    );
+    sessions = (rawSessions || []).map((s) => ({
       id: s.id,
       sessionNumber: s.session_number,
       scheduledAt: s.scheduled_at,
@@ -110,6 +133,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     birthDate: c.birth_date ?? undefined,
     age: c.age,
     createdAt: c.created_at,
+    ageGroupOverride:
+      ((c as { age_group_override?: string | null })
+        .age_group_override as UserChildRow['ageGroupOverride']) ?? null,
   }));
 
   // 5. تذاكر الدعم الفني
@@ -119,7 +145,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     .eq('user_id', id)
     .order('created_at', { ascending: false });
 
-  const tickets: UserTicketRow[] = (rawTickets || []).map((t: any) => ({
+  const tickets: UserTicketRow[] = (rawTickets || []).map((t) => ({
     id: t.id,
     subject: t.subject,
     category: t.category,
@@ -127,9 +153,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     createdAt: t.created_at,
   }));
 
-  const isAdminAccount = targetUser.role === 'super_admin' || targetUser.role === 'general_supervisor';
+  const isAdminAccount =
+    targetUser.role === 'super_admin' ||
+    targetUser.role === 'general_supervisor';
   // الحذف لمدير النظام بس، ومابيتعملش على حساب إداري ولا على نفسك.
-  const canDelete = user.role === 'super_admin' && !isAdminAccount && targetUser.id !== user.id;
+  const canDelete =
+    user.role === 'super_admin' && !isAdminAccount && targetUser.id !== user.id;
   const [activity, { data: openRequest }] = await Promise.all([
     canDelete ? getAccountActivity(id) : Promise.resolve(null),
     supabase
@@ -141,7 +170,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl flex-1 px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+    <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 md:py-12 lg:px-8">
       <DashboardPageHeader
         title={`ملف المستخدم: ${targetUser.fullName}`}
         backHref="/dashboard/admin/users"
@@ -168,7 +197,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           archivedAt={targetUser.archivedAt}
           pendingRequest={
             openRequest
-              ? { reason: openRequest.reason ?? '', createdAt: formatDate(openRequest.created_at) }
+              ? {
+                  reason: openRequest.reason ?? '',
+                  createdAt: formatDate(openRequest.created_at),
+                }
               : null
           }
         />
@@ -193,7 +225,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         childrenList={childrenList}
         tickets={tickets}
         isSuperAdmin={user.role === 'super_admin'}
-        adminRoles={(adminRoles ?? []).map(({ id, name, isDefault }) => ({ id, name, isDefault }))}
+        adminRoles={(adminRoles ?? []).map(({ id, name, isDefault }) => ({
+          id,
+          name,
+          isDefault,
+        }))}
       />
     </div>
   );

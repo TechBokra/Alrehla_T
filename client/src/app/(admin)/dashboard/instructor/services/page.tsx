@@ -3,13 +3,16 @@ import { redirect } from 'next/navigation';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { SimpleDataTable } from '@/components/dashboard/SimpleDataTable';
 import { MyServiceOffersClient } from './MyServiceOffersClient';
-import { getPricingFormulaSettings } from '@/data/domains/(shared)/pricing/queries';
+import { getProviderPricingSettings } from '@/data/domains/(shared)/pricing/queries';
 import { StatusBadge, type StatusBadgeType } from '@/components/StatusBadge';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getMyInstructorId } from '@/data/domains/(admin)/instructors/identity';
-import { getStandaloneServices, getInstructorServiceOffers } from '@/data/domains/(shared)/services/queries';
+import {
+  getStandaloneServices,
+  getInstructorServiceOffers,
+} from '@/data/domains/(shared)/services/queries';
 import { getServiceOrdersForInstructor } from '@/data/domains/(admin)/service-orders/queries';
 
 export const dynamic = 'force-dynamic';
@@ -36,12 +39,17 @@ export default async function InstructorServicesPage() {
   if (!instructorId) {
     return (
       <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
-        <DashboardPageHeader title="الخدمات الإبداعية" backHref="/dashboard/instructor" />
+        <DashboardPageHeader
+          title="الخدمات الإبداعية"
+          backHref="/dashboard/instructor"
+        />
         <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-16 text-center">
           <p className="text-lg font-bold text-slate-500">
             لم يتم ربط حسابك بملف مدرب بعد.
           </p>
-          <p className="mt-2 text-slate-400">تواصل مع الإدارة لاستكمال بياناتك.</p>
+          <p className="mt-2 text-slate-400">
+            تواصل مع الإدارة لاستكمال بياناتك.
+          </p>
         </div>
       </div>
     );
@@ -51,18 +59,21 @@ export default async function InstructorServicesPage() {
     getStandaloneServices(),
     getInstructorServiceOffers(instructorId),
     getServiceOrdersForInstructor(instructorId),
-    getPricingFormulaSettings(),
+    getProviderPricingSettings(),
     getSiteSettings(),
   ]);
 
   const orderRows = orders.map((order) => {
-    const status = ORDER_STATUS[order.status] ?? { label: order.status, type: 'warning' as const };
+    const status = ORDER_STATUS[order.status] ?? {
+      label: order.status,
+      type: 'warning' as const,
+    };
     return {
       id: order.id,
       serviceName: (
         <Link
           href={`/dashboard/instructor/services/orders/${order.id}`}
-          className="font-bold text-brand-strong hover:underline"
+          className="text-brand-strong font-bold hover:underline"
         >
           {order.serviceName}
         </Link>
@@ -83,14 +94,23 @@ export default async function InstructorServicesPage() {
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 space-y-10 px-6 py-12">
       <div>
-        <DashboardPageHeader title="الخدمات التي تقدّمها" backHref="/dashboard/instructor" />
+        <DashboardPageHeader
+          title="الخدمات التي تقدّمها"
+          backHref="/dashboard/instructor"
+        />
         <p className="mt-2 font-medium text-slate-500">
-          اختر الخدمات التي تستطيع تقديمها واقترح حصيلتك من كل منها. الإدارة تعتمد السعر
-          النهائي قبل أن تظهر الخدمة للعملاء.
+          اختر الخدمات التي تستطيع تقديمها واقترح حصيلتك من كل منها. الإدارة
+          تعتمد السعر النهائي قبل أن تظهر الخدمة للعملاء.
         </p>
         <div className="mt-4">
           <MyServiceOffersClient
-            services={services}
+            // الخدمات المقفولة على المنصة (أو المستقلين) مابتظهرش للمدرب (٣ نوفمبر)
+            // — إلا لو له عرض عليها قبل كده.
+            services={services.filter(
+              (s) =>
+                s.openToInstructors !== false ||
+                offers.some((o) => o.serviceId === s.id)
+            )}
             offers={offers}
             formula={formula}
             priceAlert={settings.instructorPriceAlert}
@@ -100,7 +120,9 @@ export default async function InstructorServicesPage() {
 
       <div>
         <DashboardPageHeader title="طلبات الخدمات" />
-        <p className="mt-2 font-medium text-slate-500">الطلبات التي اختارك فيها العملاء.</p>
+        <p className="mt-2 font-medium text-slate-500">
+          الطلبات التي اختارك فيها العملاء.
+        </p>
         <div className="mt-4">
           <SimpleDataTable columns={orderColumns} data={orderRows} />
         </div>

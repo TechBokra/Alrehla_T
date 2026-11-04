@@ -4,13 +4,19 @@ import type { ChildProfile } from '@/types';
 import { createClient } from '@/lib/supabase/server';
 
 /** Only the signed-in guardian's children; use the session client, never admin credentials. */
-export async function getFamilyMembers(options: QueryReadOptions = {}): Promise<ChildProfile[]> {
+export async function getFamilyMembers(
+  options: QueryReadOptions = {}
+): Promise<ChildProfile[]> {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
   if (authError && options.throwOnError) throw authError;
   if (!user) return [];
 
-  const { data, error } = await supabase.from('child_profiles')
+  const { data, error } = await supabase
+    .from('child_profiles')
     .select('*')
     .eq('user_profile_id', user.id)
     .order('created_at', { ascending: true });
@@ -22,6 +28,10 @@ export async function getFamilyMembers(options: QueryReadOptions = {}): Promise<
     userProfileId: child.user_profile_id,
     fullName: child.full_name,
     birthDate: child.birth_date,
+    // العمود من ترحيل ٢٤ أكتوبر — لسه مش في الأنواع المولّدة.
+    ageGroupOverride:
+      ((child as { age_group_override?: string | null })
+        .age_group_override as ChildProfile['ageGroupOverride']) ?? null,
     gender: (child.gender as ChildProfile['gender']) ?? null,
     avatarUrl: child.avatar_url,
     createdAt: child.created_at,

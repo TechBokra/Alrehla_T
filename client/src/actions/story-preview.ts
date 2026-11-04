@@ -2,25 +2,17 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { requireUser, requireAdmin } from '@/lib/auth-guard';
-import { notifyUser, notifyAdmins } from '@/lib/notifications';
+import { requireAdmin } from '@/lib/auth-guard';
+import { notifyUser } from '@/lib/notifications';
 import { logAuditAction } from '@/lib/audit';
-import { noteProblem } from '@/lib/story-preview';
 
 /**
- * قرار ولي الأمر على معاينة النص، وإرسال الفريق للنسخة.
+ * إرسال الفريق لنسخة النص لولي الأمر.
  *
- * ⚠️ **بترجّع ولا بترمي** (قاعدة «هـ»): Next بيمسح نص أي استثناء
- *    من أكشن في الإنتاج، فولي الأمر كان هيشوف رسالة إنجليزي
- *    عامة بدل «اكتب عايز نعدّل إيه».
- *
- * ⚠️ **والحارس مش هنا.** الحارس `story_version_guard` ودالة
- *    `story_preview_decide` في القاعدة — بيتأكدوا إن النسخة على
- *    طلبه، وإنها اتبعتت له، وإنها مستنية قراره. اللي هنا بيدّي
- *    الرسالة العربية ويبعت الإشعار ويفرّغ الكاش.
+ * ⚠️ **بترجّع ولا بترمي** (قاعدة «هـ»).
+ * ⚠️ قرار ولي الأمر على النص اتشال (٢٥ أكتوبر: العميل بيراجع صورة البطل بس —
+ *    `actions/image-review`). الحارس في القاعدة (`story_version_guard`).
  */
-
-type Result = { ok: true; decision: 'approved' | 'changes_requested' } | { ok: false; error: string };
 
 function errMessage(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback;
@@ -36,74 +28,6 @@ async function previewContext(versionId: string) {
     .maybeSingle();
   const project = (data?.story_projects ?? null) as { order_id: string; product_id: string } | null;
   return { versionNo: data?.version_no ?? null, orderId: project?.order_id ?? null };
-}
-
-/**
- * ولي الأمر وافق على النص، أو طلب تعديل.
- *
- * ⚠️ **الملاحظة إلزامية لطلب التعديل** — وبتتفحص هنا كمان مش في
- *    القاعدة بس، عشان الرسالة تكون مفيدة («قول لنا بالظبط
- *    الحاجة اللي مش عاجبتك») مش رسالة قاعدة بيانات.
- */
-export async function decideStoryPreview(params: {
-  versionId: string;
-  approve: boolean;
-  note?: string;
-}): Promise<Result> {
-  let user;
-  try {
-    user = await requireUser();
-  } catch (err) {
-    return { ok: false, error: errMessage(err, 'لازم تسجّل الدخول') };
-  }
-
-  if (!params.approve) {
-    const problem = noteProblem(params.note ?? '');
-    if (problem) return { ok: false, error: problem };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('story_preview_decide', {
-    p_version_id: params.versionId,
-    p_approve: params.approve,
-    p_note: params.note?.trim() || null,
-  });
-
-  if (error) {
-    console.error('Error recording story preview decision', { versionId: params.versionId, error });
-    return { ok: false, error: error.message || 'تعذّر تسجيل قرارك. جرّب تاني.' };
-  }
-
-  const decision = data === 'approved' ? 'approved' : 'changes_requested';
-  const { versionNo, orderId } = await previewContext(params.versionId);
-
-  // ⚠️ الفريق لازم يعرف دلوقتي: الطلب كان واقف على قراره، وأول
-  //    ما ياخده الشغل بيكمّل. إشعار متأخّر = يوم ضايع في الإنتاج.
-  await notifyAdmins({
-    title:
-      decision === 'approved'
-        ? 'ولي الأمر وافق على النص'
-        : 'ولي الأمر طلب تعديل على النص',
-    message:
-      decision === 'approved'
-        ? `النسخة ${versionNo ?? ''} اتعتمدت — الرسم بقى مفتوح.`
-        : `النسخة ${versionNo ?? ''}: ${params.note?.trim().slice(0, 200) ?? ''}`,
-    link: orderId ? `/dashboard/admin/orders/${orderId}` : undefined,
-    event: 'story_preview',
-  });
-
-  await logAuditAction({
-    action: decision === 'approved' ? 'story_preview_approved' : 'story_preview_changes_requested',
-    entityType: 'story_version',
-    entityId: params.versionId,
-    actorProfileId: user.id,
-    metadata: { orderId, versionNo },
-  });
-
-  if (orderId) revalidatePath(`/account/orders/enha-lak/${orderId}/preview`);
-  revalidatePath('/account/orders/enha-lak');
-
-  return { ok: true, decision };
 }
 
 /**

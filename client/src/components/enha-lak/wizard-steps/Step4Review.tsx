@@ -1,10 +1,12 @@
 import React from 'react';
+import { DEFAULT_DELIVERY_DAYS, REVIEW_DELAY_NOTE, deliveryText, effectiveDeliveryDays, type DeliveryDays } from '@/lib/delivery-days';
 import { useFormContext } from 'react-hook-form';
 import { useRouter, usePathname } from 'next/navigation';
-import { PersonalizedProduct } from '@/types';
+import { PersonalizedProduct, type AddonProduct } from '@/types';
 import { Button } from '@/components/ui/Button';
-import { FormatChooser } from './FormatChooser';
-import { cartNeedsShipping } from '@/lib/item-format';
+import { electronicAvailable, FORMAT_LABELS, itemNeedsShipping, type ItemFormat } from '@/lib/item-format';
+import { ADDON_DELIVERY_TEXT, addonDeliveredAs } from '@/lib/addon-availability';
+import { loadDeliveryRegion, type DeliveryRegion } from '@/lib/delivery-region-store';
 import type { CustomizationField } from '@/lib/customization-fields';
 import { ExtraFieldsReview } from './ExtraFieldsSection';
 import { describeWritingStyle, type WritingDialect } from '@/lib/writing-style';
@@ -18,9 +20,15 @@ export function Step4Review({
   writingDialects = [],
   showWritingStyle = false,
   deliveryPaused = false,
+  addons = [],
+  deliveryDays,
 }: {
+  /** مدة التجهيز العامة — الكتاب ممكن يغيّرها (قرار ٢٥ أكتوبر). */
+  deliveryDays?: DeliveryDays;
   /** التوصيل متوقف — النسخ اللي بتتشحن مقفولة في اختيار النسخة. */
   deliveryPaused?: boolean;
+  /** عشان نعرف أنهي إضافة بتتشحن (قرار تامر، ٢٣ أكتوبر). */
+  addons?: AddonProduct[];
   /** اللهجات — لعرض اسم اللهجة المختارة. */
   writingDialects?: WritingDialect[];
   /** خيار أسلوب الكتابة ظاهر في الخطوة ٢ (قصة مخصّصة واحدة). */
@@ -39,6 +47,16 @@ export function Step4Review({
   const pathname = usePathname();
 
   const values = watch();
+  const format: ItemFormat = (electronicAvailable(product) ? values.format : 'printed') ?? 'printed';
+  const selectedIds: string[] = values.selectedAddonIds ?? [];
+  const chosenAddons = addons.filter((a) => selectedIds.includes(a.id));
+  const needsShipping = itemNeedsShipping({ format, addonIds: selectedIds, addonsNeedShipping: false });
+  // المنطقة اللي اتختارت في خطوة ٣ (محفوظة على الجهاز).
+  const [region, setRegion] = React.useState<DeliveryRegion | null>(null);
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ القراية بعد أول رسم.
+    setRegion(loadDeliveryRegion());
+  }, []);
   
   const goToStep = (step: number) => {
     router.push(`${pathname}?step=${step}`);
@@ -47,7 +65,7 @@ export function Step4Review({
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-black text-slate-800">مراجعة الطلب</h2>
-      <p className="text-slate-600">تأكد من صحة البيانات قبل إضافة المنتج للسلة.</p>
+      <p className="text-slate-600">راجع البيانات، وبعدها على الدفع على طول.</p>
 
       <div className="space-y-6 mt-6">
         {/* General Info */}
@@ -147,48 +165,84 @@ export function Step4Review({
           </div>
         )}
 
-        <FormatChooser product={product} deliveryPaused={deliveryPaused} />
-
-        {/* ══ الشحن ═══════════════════════════════════════════
-            إلكتروني من غير إضافات = مفيش شحن (ملف 138).
-
-            ⚠️ **والسطر ده كان بيكدب بهدوء.** لما التوصيل يكون
-               متوقف وفي الطلب إضافة، كان بيقول «سيتم إدخال بيانات
-               الشحن في خطوة الدفع التالية» — والعميل بيضيف للسلة
-               ويروح الدفع ويلاقي الطلب مرفوض. السطر كان بيوعد
-               بخطوة مش هتحصل. */}
-        {(() => {
-          const needs = cartNeedsShipping([
-            { format: values.format, addonIds: values.selectedAddonIds },
-          ]);
-          if (subscriptionMonths) {
-            return (
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
-                صندوق كل شهر لمدة {subscriptionMonths.toLocaleString('ar-EG')} شهور — مصاريف الشحن
-                = سعر منطقتك × عدد الشهور، وبتتحسب في خطوة الدفع
+        {/* ══ النسخة والتوصيل والإضافات ═══════════════════════
+            ⚠️ اختيار النسخة اتنقل لخطوة ٣ (قبل الإضافات) — هنا ملخص
+               وزرار «تعديل» بس (قرار ٢٤ أكتوبر). */}
+        {!subscriptionMonths && (
+          <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <button
+              type="button"
+              onClick={() => goToStep(3)}
+              className="absolute top-6 left-6 text-sm font-bold text-blue-600 hover:underline"
+            >
+              تعديل
+            </button>
+            <h3 className="mb-4 font-bold text-slate-800">
+              {electronicAvailable(product) ? 'النسخة والتوصيل والإضافات' : 'التوصيل والإضافات'}
+            </h3>
+            <div className="space-y-3 text-sm">
+              {electronicAvailable(product) && (
+                <div>
+                  <span className="mb-1 block text-slate-500">النسخة:</span>
+                  <span className="font-bold text-slate-800">{FORMAT_LABELS[format]}</span>
+                </div>
+              )}
+              <div>
+                <span className="mb-1 block text-slate-500">التوصيل:</span>
+                <span className="font-bold text-slate-800">
+                  {format === 'electronic'
+                    ? 'على الإيميل — من غير شحن'
+                    : region?.city
+                      ? `${region.gov} — ${region.city}`
+                      : 'بتختار المنطقة في الدفع'}
+                </span>
               </div>
-            );
-          }
-          if (needs && deliveryPaused) {
-            return (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
-                <p>الطلب ده محتاج شحن، والتوصيل متوقف مؤقتًا — فمش هينفع يتطلب دلوقتي.</p>
-                <p className="mt-1 font-medium leading-relaxed">
-                  {(values.selectedAddonIds?.length ?? 0) > 0
-                    ? 'الإضافات اللي اخترتها بتتشحن. ارجع لخطوة الإضافات وشيلها، وكمّل بالنسخة الإلكترونية.'
-                    : 'اختار النسخة الإلكترونية فوق وهتقدر تكمّل عادي.'}
-                </p>
+              <div>
+                <span className="mb-1 block text-slate-500">الميعاد:</span>
+                <span className="font-bold text-slate-800">
+                  {deliveryText(effectiveDeliveryDays(deliveryDays ?? DEFAULT_DELIVERY_DAYS, product), format)}.
+                </span>
+                {product.category !== 'library' && (
+                  <span className="mt-1 block text-xs font-medium text-slate-600">{REVIEW_DELAY_NOTE}</span>
+                )}
               </div>
-            );
-          }
-          return (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
-              {needs
-                ? 'سيتم إدخال بيانات الشحن في خطوة الدفع التالية'
-                : 'مفيش شحن — هتكتب الإيميل اللي هتستلم عليه في خطوة الدفع'}
+              <div>
+                <span className="mb-1 block text-slate-500">الإضافات:</span>
+                {chosenAddons.length === 0 ? (
+                  <span className="font-bold text-slate-800">من غير إضافات</span>
+                ) : (
+                  <ul className="space-y-1">
+                    {chosenAddons.map((a) => (
+                      <li key={a.id} className="font-bold text-slate-800">
+                        {a.name}{' '}
+                        <span className="font-medium text-slate-500">
+                          — {ADDON_DELIVERY_TEXT[addonDeliveredAs(a, format)]}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
+
+        {subscriptionMonths ? (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
+            صندوق كل شهر لمدة {subscriptionMonths.toLocaleString('ar-EG')} شهور — مصاريف الشحن = سعر منطقتك × عدد
+            الشهور، وبتتحسب في خطوة الدفع
+          </div>
+        ) : needsShipping && deliveryPaused ? (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-900">
+            الطلب ده محتاج شحن، والتوصيل متوقف مؤقتًا — ارجع لخطوة ٣ واختار النسخة الإلكترونية.
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center text-sm font-bold text-blue-800">
+            {needsShipping
+              ? 'الخطوة الجاية: العنوان بالتفصيل والدفع'
+              : 'الخطوة الجاية: الإيميل اللي هتستلم عليه والدفع'}
+          </div>
+        )}
       </div>
       <div className="flex justify-between pt-6 border-t border-slate-100">
         <button
@@ -205,9 +259,11 @@ export function Step4Review({
           type="submit"
           accentColor="journey"
           pending={pending}
-          pendingText="جارٍ الإضافة…"
+          pendingText="لحظة…"
         >
-          إضافة للسلة
+          {/* بيروح للدفع على طول (قرار ٢٤ أكتوبر) — الطلب بيتحفظ في
+              السلة كمان، فلو رجع مايضيعش. */}
+          متابعة للدفع
         </Button>
       </div>
     </div>

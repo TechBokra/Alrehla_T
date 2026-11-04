@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
-import React from 'react';
+import { toUrlToken } from '@/lib/join-token';
 import { DashboardPageHeader } from '@/components/dashboard/DashboardPageHeader';
 import { getJoinRequests } from '@/data/domains/(admin)/join-requests/queries';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { hasAdminPermission, formatDate } from '@/lib/utils';
 import { Unauthorized } from '@/components/admin/Unauthorized';
-import { User, Mail, Phone, Calendar, Briefcase, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Mail, Phone, Calendar, Briefcase, FileText, CheckCircle, Clock } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import Link from 'next/link';
 import { joinRequestRoleLabel, joinNextStep } from '@/lib/join-roles';
@@ -95,7 +95,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       createdAt: m.created_at,
     }));
     if (tokenRow?.access_token) {
-      shareUrl = `${SITE_URL}/join-us/r/${encodeURIComponent(tokenRow.access_token)}`;
+      shareUrl = `${SITE_URL}/join-us/r/${toUrlToken(tokenRow.access_token)}`;
     }
   }
 
@@ -269,6 +269,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           applicantName={target.applicantName}
           messages={messages}
           shareUrl={shareUrl}
+          phone={target.phone ?? ''}
         />
       </div>
     </div>

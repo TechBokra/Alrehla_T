@@ -141,15 +141,17 @@ describe('السلسلة موصّلة من أول اللوحة لآخر قرار
       .replace(/^\s*\/\/.*$/gm, '')
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
 
-  it('شاشة الاستوديو فيها زرار «ابعتها لولي الأمر»', () => {
+  // ⚠️ قرار تامر (٢٥ أكتوبر): العميل بيراجع **صورة البطل بس** — زرار
+  //    إرسال النص اتشال، والإرسال بقى للصورة من تبويب «الشخصية».
+  it('شاشة الاستوديو بتبعت صورة البطل مش النص', () => {
     const src = read('../app/(admin)/dashboard/admin/studio/[id]/panels.tsx');
-    expect(src).toMatch(/action=\{sendVersionToClient\}/);
-    expect(src).toContain('sentToClientAt');
+    expect(src).not.toMatch(/action=\{sendVersionToClient\}/);
+    expect(src).toMatch(/action=\{sendCharacterImage\}/);
   });
 
-  it('قايمة الطلبات فيها رابط المعاينة لما يكون فيه نص مستني', () => {
+  it('قايمة الطلبات فيها رابط المعاينة لما تكون فيه صورة مستنية', () => {
     const src = read('../app/(client)/account/orders/enha-lak/page.tsx');
-    expect(src).toMatch(/countAwaitingPreviews\s*\(/);
+    expect(src).toMatch(/awaitingImageCount\s*\(/);
     expect(src).toContain('/preview');
   });
 
@@ -170,11 +172,13 @@ describe('السلسلة موصّلة من أول اللوحة لآخر قرار
     expect(src).not.toMatch(/from\(\s*'story_versions'\s*\)/);
   });
 
+  // ⚠️ (٣ نوفمبر) قرار ولي الأمر على **النص** اتشال من الكود (ماكانش حد بيناديه
+  //    من ٢٥ أكتوبر). قراره دلوقتي على **صورة البطل** — بنفس الشروط.
   it('الأكشن بينادي دالة القاعدة، والملاحظة بتتفحص قبلها', () => {
-    const src = read('../actions/story-preview.ts');
-    expect(src).toMatch(/rpc\(\s*'story_preview_decide'/);
-    expect(src).toMatch(/noteProblem\s*\(/);
-    expect(src).toMatch(/rpc\(\s*'story_version_send_to_client'/);
+    expect(read('../actions/story-preview.ts')).toMatch(/rpc\(\s*'story_version_send_to_client'/);
+    const image = read('../actions/image-review.ts');
+    expect(image).toMatch(/rpc\(\s*'story_image_decide'/);
+    expect(image).toMatch(/imageNoteProblem\s*\(/);
   });
 
   it('ملف الترحيل بيضيف فرع المشتري وما بيمسحش حاجة', () => {

@@ -67,7 +67,7 @@ export default function CartClient({
                     <ShoppingCart className="h-10 w-10" />
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">سلتك فارغة</h3>
-                  <p className="mt-2 text-slate-500">تصفح المكتبة وأضف بعض القصص الممتعة!</p>
+                  <p className="mt-2 text-slate-500">تصفّح المنتجات وأضف اللي يعجبك!</p>
                   <Button href="/enha-lak" variant="neutral" className="mt-6">
                     تصفح المنتجات
                   </Button>

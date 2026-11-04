@@ -15,7 +15,7 @@ import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { getCopyrightYear } from '@/data/domains/(shared)/content/timing';
 import { optimizedImageUrl } from '@/lib/cloudinary';
-import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram, ExternalLink } from 'lucide-react';
 
 /** روابط الفوتر — الرابط ثابت والنص من «محتوى الصفحات» ← الفوتر. */
 const QUICK_LINKS = [
@@ -58,6 +58,14 @@ export default async function Footer() {
   const [settings, content, year] = await Promise.all([getSiteSettings(), getSiteContent(), getCopyrightYear()]);
   const logo = settings.images.logoDark || settings.images.logo;
   const siteName = settings.siteName || 'منصة الرحلة';
+  // سطر الشركة المالكة برابط موقعها (طلب تامر، ٢ نوفمبر). الرابط لازم https.
+  const ownerName = content['footer.owner.name']?.trim();
+  const ownerUrlRaw = content['footer.owner.url']?.trim() ?? '';
+  const ownerUrl = /^https:\/\/[^\s"'<>]+$/i.test(ownerUrlRaw) ? ownerUrlRaw : '';
+  // ⚠️ سطر الحقوق في القاعدة كان مكتوب فيه اسم الشركة ورابطها كنص خام قبل
+  //    الخانات الجديدة — أي جزء لحد الرابط بيتشال عشان مايتكررش.
+  const rights =
+    (content['footer.copyright'] ?? '').replace(/^[\s\S]*https?:\/\/\S+\s*/, '').trim() || 'جميع الحقوق محفوظة.';
 
   return (
     <footer className="mt-auto border-t border-slate-200 bg-white px-6 py-8 md:px-12 md:py-12">
@@ -198,8 +206,27 @@ export default async function Footer() {
           الحيّ أداه 2.63:1 والمطلوب 4.5:1. `slate-500` بيدّي 4.69:1. */}
       <div className="mx-auto mt-12 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-slate-100 pt-6 text-xs font-medium text-slate-600 md:flex-row">
         <p>
-          © {year} {siteName}. {content['footer.copyright']}
+          © {year} {siteName}. {rights}
         </p>
+        {ownerName && (
+          <p>
+            {content['footer.owner.prefix']}{' '}
+            {ownerUrl ? (
+              <a
+                href={ownerUrl}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1 font-bold text-slate-700 underline decoration-slate-300 underline-offset-4 transition-colors hover:text-slate-900 hover:decoration-slate-500"
+              >
+                {ownerName}
+                <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                <span className="sr-only">(بيفتح في تبويب جديد)</span>
+              </a>
+            ) : (
+              <span className="font-bold text-slate-700">{ownerName}</span>
+            )}
+          </p>
+        )}
       </div>
     </footer>
   );

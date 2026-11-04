@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Eye, EyeOff, X, Check } from 'lucide-react';
@@ -42,6 +42,8 @@ const EMPTY: ServiceInput = {
   allowsFiles: false,
   fileMaxMb: FILE_MAX_MB_LIMIT,
   fileKinds: ['pdf', 'word', 'image'],
+  openToInstructors: true,
+  openToIndividuals: true,
 };
 
 /**
@@ -88,7 +90,11 @@ function ServiceForm({
               placeholder="مثال: مراجعات"
             />
           </Field>
-          <Field label="السعر (ج.م)" required>
+          <Field
+            label="السعر (ج.م)"
+            required
+            hint="ده سعر المنصة اللي بيظهر في الموقع — المنصة بتقدّم كل خدمة بالسعر ده تلقائيًا."
+          >
             <TextInput
               type="number"
               min={0}
@@ -192,6 +198,27 @@ function ServiceForm({
               library
             />
           </div>
+        </div>
+      </section>
+
+      {/* ── مين يقدّم الخدمة (تعليقات الفريق، ٣ نوفمبر) ──────── */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-black text-slate-700">مين يقدّم الخدمة</h3>
+        <p className="text-xs font-medium text-slate-600">
+          المنصة بتقدّمها دايمًا بسعر الكارت. اختار مين كمان يقدر يطلب يقدّمها — الشيل بيوقّف عروضهم الحالية عليها
+          (مابيمسحهاش).
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Checkbox
+            label="المدربين"
+            checked={value.openToInstructors !== false}
+            onChange={(e) => set({ openToInstructors: e.target.checked })}
+          />
+          <Checkbox
+            label="مقدّمي الخدمة المستقلين"
+            checked={value.openToIndividuals !== false}
+            onChange={(e) => set({ openToIndividuals: e.target.checked })}
+          />
         </div>
       </section>
 
@@ -302,6 +329,8 @@ export function ServicesManagerClient({ services, providerCounts = {} }: Props) 
     allowsFiles: s.allowsFiles === true,
     fileMaxMb: s.fileMaxMb ?? FILE_MAX_MB_LIMIT,
     fileKinds: s.fileKinds ?? ['pdf', 'word', 'image'],
+    openToInstructors: s.openToInstructors !== false,
+    openToIndividuals: s.openToIndividuals !== false,
   });
 
   return (
@@ -378,6 +407,15 @@ export function ServicesManagerClient({ services, providerCounts = {} }: Props) 
                       {service.category}
                     </span>
                   )}
+                  <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
+                    {service.openToInstructors === false && service.openToIndividuals === false
+                      ? 'المنصة بس'
+                      : service.openToInstructors === false
+                        ? 'المنصة + المستقلين'
+                        : service.openToIndividuals === false
+                          ? 'المنصة + المدربين'
+                          : 'المنصة + المدربين + المستقلين'}
+                  </span>
                   {/* الشاشة دي بتعرض الموقوف كمان — لازم يبان من نظرة. */}
                   {!service.isActive && (
                     <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">

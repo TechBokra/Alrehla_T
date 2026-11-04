@@ -29,6 +29,8 @@ export const SCANNED_TABLES: { table: string; label: string }[] = [
   { table: 'personalized_products', label: 'المنتجات (الغلاف والمعرض والمسودّات)' },
   { table: 'addon_products', label: 'الإضافات' },
   { table: 'standalone_services', label: 'الخدمات الإبداعية' },
+  // ⚠️ من ٢٤ أكتوبر (صورة الباقة). من غيره، التنظيف كان هيمسح صور الباقات.
+  { table: 'creative_writing_packages', label: 'باقات بداية الرحلة' },
   { table: 'blog_posts', label: 'المدونة (الغلاف وصور المقال)' },
   { table: 'box_subscription_plans', label: 'خطط صندوق الرحلة' },
   { table: 'box_subscriptions', label: 'اشتراكات الصندوق' },

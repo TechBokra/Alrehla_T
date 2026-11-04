@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Video, Calendar, Check } from 'lucide-react';
 import { updateSessionDetails } from '@/actions/admin-sessions';
@@ -80,6 +80,12 @@ export function SessionSettings({
       <h2 className="mb-1 text-xl font-bold text-slate-800">إعدادات الجلسة</h2>
       <p className="mb-5 text-sm font-medium text-slate-500">
         أي تعديل هنا يصل للمدرب والمتدرب كإشعار.
+      </p>
+      {/* سياسة الغياب (بند ٦، ٢٤ أكتوبر). الإدارة هي طريق الاستثناء:
+          قواعد الـ٢٤ ساعة والمرتين مابتنطبقش على التعديل من هنا. */}
+      <p className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-900">
+        المدرب ماحضرش؟ ماتقفلش الجلسة — حدّد لها موعد جديد هنا كتعويض. والتعديل من هنا مش محكوم بقاعدة
+        الـ٢٤ ساعة ولا المرتين، فده كمان طريق الظروف الطارئة.
       </p>
 
       {/* خطأ الخانة بيظهر تحتها؛ الباقي هنا. */}

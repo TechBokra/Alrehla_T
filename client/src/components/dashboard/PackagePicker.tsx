@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import { TRACK_SHORT } from '@/lib/package-labels';
 
 /**
  * اختيار الباقات اللي المدرب بيدرّبها.
  *
- * ⚠️ **الفاضي معناه «كل الباقات» — مش «ولا باقة».**
+ * ⚠️ **الفاضي معناه «ولا باقة»** (تعليقات الفريق، ٣ نوفمبر — كان «كل الباقات»).
  *
  *    والمكوّن ده **بيقول كده بالنص** عن قصد. من غير السطر ده، الإداري
  *    (أو المدرب) يشوف ست مربّعات كلها فاضية ويفتكر إن المدرب مقفول
@@ -22,11 +22,7 @@ export type PackageChoice = {
   sessionsCount: number | null;
 };
 
-const TRACK_LABEL: Record<string, string> = {
-  foundation: 'تأسيس',
-  youth: 'يافعين',
-  specialization: 'تخصص',
-};
+const TRACK_LABEL: Record<string, string> = TRACK_SHORT;
 
 export function PackagePicker({
   packages,
@@ -47,8 +43,8 @@ export function PackagePicker({
     <div className="space-y-3">
       {selected.length === 0 ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-800">
-          مش محدَّد — المدرب بيظهر في <strong>كل</strong> الباقات. حدّد باقة أو أكتر
-          عشان تقصره عليها.
+          مش محدَّد — المدرب <strong>مش ظاهر في أي باقة</strong>. حدّد الباقات اللي
+          بيدرّبها عشان يظهر فيها.
         </p>
       ) : (
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">

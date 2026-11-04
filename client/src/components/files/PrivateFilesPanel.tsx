@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
 import { cloudinaryPost } from '@/lib/cloudinary';

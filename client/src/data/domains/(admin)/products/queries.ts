@@ -52,14 +52,14 @@ export async function getPendingProducts(): Promise<
     return [];
   }
 
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  const rows = data ?? [];
   if (rows.length === 0) return [];
 
   // اسم الناشر معاه: شاشة مراجعة بتعرض منتجات بلا أسماء بتخلّي
   // الإداري يفتح تبويبًا تاني لكل واحد عشان يعرف بتاع مين.
   const publisherIds = [
-    ...new Set(rows.map((r) => r.publisher_id).filter(Boolean)),
-  ] as string[];
+    ...new Set(rows.map((r) => r.publisher_id).filter((id): id is string => !!id)),
+  ];
   const names = new Map<string, string>();
   if (publisherIds.length > 0) {
     const { data: pubs } = await supabase
@@ -76,7 +76,7 @@ export async function getPendingProducts(): Promise<
       : mapProductRow(p)),
     reviewStatus: 'pending' as const,
     publisherName: p.publisher_id
-      ? (names.get(p.publisher_id as string) ?? 'ناشر غير معروف')
+      ? (names.get(p.publisher_id) ?? 'ناشر غير معروف')
       : undefined,
   }));
 }

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { createClient } from '@/lib/supabase/server';
-import { Instructor } from '@/types';
+import type { Instructor, WeeklySlot } from '@/types';
 import type { InstructorAdminRow } from '@/data/domains/(admin)/instructors/types';
 
 /**
@@ -109,6 +109,40 @@ async function pricingByInstructorId(
   return out;
 }
 
+type InstructorRow = Database['public']['Tables']['instructors']['Row'];
+
+/**
+ * صف المدرب ← `Instructor` — نسخة واحدة (كانت اتنين، واتفرّقوا في
+ * `trainingPassed`: واحدة بتسيب `null` تعدّي).
+ */
+function mapInstructor(
+  row: InstructorRow,
+  avatars: Map<string, string>,
+  pricing: Awaited<ReturnType<typeof pricingByInstructorId>>,
+): Instructor {
+  const price = pricing.get(row.id);
+  return {
+    id: row.id,
+    userId: row.user_id,
+    displayName: row.display_name,
+    bio: row.bio,
+    specialties: row.specialties,
+    yearsExperience: row.years_experience,
+    isSample: row.is_sample ?? undefined,
+    status: row.status,
+    // الصورة من `user_profiles` مش من `instructors` — شوف `avatarsByUserId`.
+    avatarUrl: avatars.get(row.user_id),
+    trainingPassed: row.training_passed ?? false,
+    workModel: row.work_model,
+    requestedPrice: price?.requested,
+    selectedPricingOptionId: row.selected_pricing_option_id || undefined,
+    approvedPrice: price?.approved,
+    weeklySchedule: (row.weekly_schedule as unknown as WeeklySlot[] | null) || [],
+    pendingSchedule: (row.pending_schedule as unknown as WeeklySlot[] | null) || undefined,
+    monthlyHoursCommitted: price?.hours,
+  };
+}
+
 export const getInstructors = async (): Promise<Instructor[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from('instructors')
@@ -127,26 +161,7 @@ export const getInstructors = async (): Promise<Instructor[]> => {
     pricingByInstructorId(supabase, data.map((inst: { id: string }) => inst.id)),
   ]);
 
-  return data.map((inst: any) => ({
-    id: inst.id,
-    userId: inst.user_id,
-    displayName: inst.display_name,
-    bio: inst.bio,
-    specialties: inst.specialties,
-    yearsExperience: inst.years_experience,
-    isSample: inst.is_sample,
-    status: inst.status,
-    // الصورة من `user_profiles` مش من `instructors` — شوف `avatarsByUserId`.
-    avatarUrl: avatars.get(inst.user_id),
-    trainingPassed: inst.training_passed,
-    workModel: inst.work_model,
-    requestedPrice: pricing.get(inst.id)?.requested,
-    selectedPricingOptionId: inst.selected_pricing_option_id || undefined,
-    approvedPrice: pricing.get(inst.id)?.approved,
-    weeklySchedule: (inst.weekly_schedule as any[]) || [],
-    pendingSchedule: (inst.pending_schedule as any[]) || undefined,
-    monthlyHoursCommitted: pricing.get(inst.id)?.hours,
-  }));
+  return data.map((inst) => mapInstructor(inst, avatars, pricing));
 };
 
 /** كل بيانات المدرب الواحد — **للوحات فقط**. نفس سبب `getInstructors`. */
@@ -165,28 +180,7 @@ export const getInstructorById = async (
     avatarsByUserId(supabase, [data.user_id]),
     pricingByInstructorId(supabase, [data.id]),
   ]);
-  const price = pricing.get(data.id);
-
-  return {
-    id: data.id,
-    userId: data.user_id,
-    displayName: data.display_name,
-    bio: data.bio,
-    specialties: data.specialties,
-    yearsExperience: data.years_experience,
-    isSample: data.is_sample ?? undefined,
-    status: data.status,
-    // الصورة من `user_profiles` مش من `instructors` — شوف `avatarsByUserId`.
-    avatarUrl: avatars.get(data.user_id),
-    trainingPassed: data.training_passed ?? false,
-    workModel: data.work_model,
-    requestedPrice: price?.requested,
-    selectedPricingOptionId: data.selected_pricing_option_id || undefined,
-    approvedPrice: price?.approved,
-    weeklySchedule: (data.weekly_schedule as any[]) || [],
-    pendingSchedule: (data.pending_schedule as any[]) || undefined,
-    monthlyHoursCommitted: price?.hours,
-  };
+  return mapInstructor(data, avatars, pricing);
 };
 
 export const getInstructorsForAdmin = async (): Promise<InstructorAdminRow[]> => {

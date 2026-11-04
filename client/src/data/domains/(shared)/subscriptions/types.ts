@@ -19,5 +19,7 @@ export type DueBoxShipment = {
   freeAddonName?: string;
   dueDate: string;
   overdue: boolean;
+  /** أسبوع الشحن وقفل الأزرار (طلب تامر، ١ نوفمبر). */
+  gate: import('@/lib/box-schedule').ShipmentGate | null;
   recipient?: { name?: string; phone?: string; address?: string };
 };

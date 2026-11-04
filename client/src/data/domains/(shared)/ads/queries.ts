@@ -2,7 +2,8 @@ import { cache } from 'react';
 import { createPublicClient } from '@/lib/supabase/public';
 import { type Ad, visibleAds } from '@/lib/ads';
 
-type Row = {
+/** صفّ الإعلان من القاعدة — مشترك بين الموقع واللوحة. */
+export type AdRow = {
   id: string;
   title: string;
   advertiser_name: string | null;
@@ -16,10 +17,10 @@ type Row = {
   sort_order: number;
 };
 
-const COLUMNS =
+export const AD_COLUMNS =
   'id, title, advertiser_name, image_url, image_url_mobile, link_url, placements, starts_at, ends_at, is_active, sort_order';
 
-function toAd(row: Row): Ad {
+export function toAd(row: AdRow): Ad {
   return {
     id: row.id,
     title: row.title,
@@ -52,13 +53,13 @@ function toAd(row: Row): Ad {
  */
 export const getAds = cache(async (): Promise<Ad[]> => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase.from('ads').select(COLUMNS);
+  const { data, error } = await supabase.from('ads').select(AD_COLUMNS);
 
   if (error || !data) {
     if (error) console.error('Error fetching ads:', error);
     return [];
   }
-  return (data as Row[]).map(toAd);
+  return (data as AdRow[]).map(toAd);
 });
 
 /** إعلانات خانة واحدة، جاهزة للعرض. */

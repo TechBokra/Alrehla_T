@@ -1,0 +1,90 @@
+-- ═══════════════════════════════════════════════════════════════
+-- تصليح: الإدارة مش قادرة تحفظ «التدريب والاعتماد»
+-- ═══════════════════════════════════════════════════════════════
+--
+-- البلاغ
+--   «لوحة الإدارة ← إدارة المدرب ← تعذّر حفظ بيانات التدريب:
+--    permission denied for table instructor_certifications»
+--
+-- ── السبب: ترحيل ١٧ أكتوبر، وهو غلطي ──────────────────────────
+--
+--   `20261017235000_certification_read_only_for_instructor.sql`
+--   كان بيقفل ثغرة حقيقية: المدرب كان يقدر يكتب في صف شهادته
+--   ويحطّ `exam_passed = true` لنفسه. وقفلتها بسطرين:
+--
+--       revoke insert, update, delete, truncate
+--         on public.instructor_certifications from authenticated;
+--
+--   + صلاحية صفوف (`admins manage certifications`) بتسمح للإدارة
+--   بكل حاجة، وللمدرب بالقراءة بس.
+--
+--   ⚠️ **والسطر التاني مابيشتغلش من غير الأول.**
+--
+--      صلاحيات الصفوف (RLS) بتتفحص **بعد** صلاحيات الجدول
+--      (GRANT)، مش بدالها. والإدارة بتدخل بنفس دور
+--      `authenticated` اللي المدرب داخل بيه — مفيش دور منفصل
+--      للإدارة في Supabase، الفرق بيتحدّد بـ`is_admin()` جوّه
+--      الصلاحية.
+--
+--      فلما سحبت INSERT/UPDATE من `authenticated`، سحبتها من
+--      **الإدارة كمان**. الطلب بيترفض عند بوابة الجدول قبل ما
+--      صلاحية الصفوف تتقرا أصلًا — وعشان كده الرسالة
+--      «permission denied for table» مش «new row violates policy».
+--
+--      يعني شلت الطابق اللي الحارس واقف عليه.
+--
+-- ── التصليح ───────────────────────────────────────────────────
+--
+--   بنرجّع الصلاحية للدور، والحارس يفضل صلاحية الصفوف:
+--
+--     • GRANT بيفتح الباب لكل `authenticated`
+--     • `admins manage certifications` (USING/WITH CHECK =
+--       `is_admin()`) بتسمح للإدارة وبس
+--     • المدرب معاه SELECT على صفّه وخلاص — فمحاولته يكتب
+--       بتترفض بصلاحية الصفوف، مش بغياب الصلاحية
+--
+--   ⚠️ **والثغرة الأصلية بتفضل مقفولة.** ده مش رجوع عن ترحيل
+--      ١٧ أكتوبر — صلاحياته هي اللي بتمنع المدرب، وهي موجودة.
+--      الاختبار في التحقق رقم ٣ تحت بيثبت ده.
+--
+--   و`anon` بيفضل محروم تمامًا زيّ ما هو.
+--
+-- الأثر
+--   • صلاحيات جدول واحد بترجع لدور `authenticated`.
+--   • مفيش صف اتعدّل، ومفيش صلاحية صفوف اتغيّرت، ومفيش جدول اتلمس.
+--
+-- الترتيب
+--   **بعد** `20261017235000_certification_read_only_for_instructor`.
+--   لو اتشغّل قبله، الترحيل ده هيترجع عليه ويتلغي أثره.
+--
+-- التحقق بعد التشغيل
+--   1) الصلاحيات رجعت:
+--        select privilege_type from information_schema.role_table_grants
+--         where table_name='instructor_certifications' and grantee='authenticated'
+--         order by 1;
+--      ← INSERT, REFERENCES, SELECT, TRIGGER, UPDATE
+--
+--   2) صلاحيات الصفوف زيّ ما هي (مش مفروض تتغيّر):
+--        select policyname, cmd from pg_policies
+--         where tablename='instructor_certifications' order by policyname;
+--      ← admins manage certifications [ALL] · instructor reads own certification [SELECT]
+--
+--   3) ⚠️ **والأهم — المدرب لسه مش قادر يعتمد نفسه.** جرّبها من
+--      حساب مدرب حقيقي (مش من لوحة SQL، لأن اللوحة بتشتغل بدور
+--      `postgres` وبتتخطّى صلاحيات الصفوف):
+--        update instructor_certifications set exam_passed = true
+--         where instructor_id = '<رقم المدرب>';
+--      ← 0 rows (صلاحية الصفوف رفضت) — **مش** رسالة permission denied
+--
+--   4) والإدارة بتحفظ من الشاشة عادي (ده البلاغ نفسه).
+--
+-- الرجوع للخلف
+--   revoke insert, update, delete on public.instructor_certifications
+--     from authenticated;
+--   ⚠️ وده بيرجّع العطل ده نفسه — مافيش سبب تعمله.
+-- ═══════════════════════════════════════════════════════════════
+
+grant insert, update, delete on public.instructor_certifications to authenticated;
+
+comment on table public.instructor_certifications is
+  'شهادة المدرب. الصلاحية على الجدول مفتوحة لـauthenticated عن قصد — الحارس صلاحية الصفوف (is_admin)، لأن الإدارة والمدرب بيدخلوا بنفس الدور. سحب الصلاحية من الدور بيقفل الشاشة على الإدارة كمان (عطل ٢٣ أكتوبر).';

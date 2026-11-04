@@ -1,6 +1,6 @@
 'use client';
 import { PHONE_INPUT_PROPS, phoneErrorFor } from '@/lib/phone';
-import { requiredFieldProps, clearCustomValidity, focusField } from '@/lib/form-validation';
+import { requiredFieldProps, focusField } from '@/lib/form-validation';
 import { shippingBlockers, hasOrderableRemainder, blockerLabel } from '@/lib/shipping-blockers';
 import { DiscountCodeField, type AppliedDiscount } from '@/components/checkout/DiscountCodeField';
 import { discountAmount } from '@/lib/discount-codes';
@@ -8,10 +8,10 @@ import { formatPrice } from '@/lib/utils';
 
 import React, { useState } from 'react';
 import { useCart, type CartItem } from '@/context/CartContext';
+import { loadDeliveryRegion } from '@/lib/delivery-region-store';
 import { saveDeferredItems, takeDeferredItems } from '@/lib/cart-storage';
-import { TransferInstructions } from '@/components/checkout/TransferInstructions';
 import { UserProfile as UserType } from '@/types';
-import { CreditCard, Wallet, MapPin, Truck, ShieldCheck, ChevronRight, CheckCircle2, Package } from 'lucide-react';
+import { CreditCard, MapPin, Truck, ShieldCheck, ChevronRight, Package } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,7 +20,9 @@ import { createOrder, createBoxSubscriptionOrder, submitPaymentProof } from '@/a
 import type { PaymentMethod } from '@/actions/orders';
 import { PaymentProofForm } from '@/components/checkout/PaymentProofForm';
 import { GatewayPayButton } from '@/components/checkout/GatewayPayButton';
-import type { PaymentAvailability } from '@/lib/payments/settings';
+import { getResumableOrder, startGatewayPayment } from '@/actions/payments';
+import { cartSignature, clearPendingOrder, loadPendingOrder, resumableFor, savePendingOrder } from '@/lib/pending-order-store';
+import { METHOD_LABELS, type PaymentAvailability } from '@/lib/payments/settings';
 import { Section } from '@/components/ui/Section';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -48,12 +50,18 @@ interface Props {
   paymentQrUrl?: string;
   /** الدول والمحافظات والمناطق وأسعارها وإيقاف التوصيل — من الأدمن. للعرض فقط: القاعدة هي الحارس. */
   delivery: DeliveryCatalog;
+  /**
+   * نوع كل إضافة (مطبوعة / إلكترونية / الاتنين) — عشان نمسك سلة قديمة
+   * فيها نسخة إلكترونية + إضافة مطبوعة **قبل** ما القاعدة ترفضها
+   * (`guard_order_item_addons` — قرار ٢٤ أكتوبر).
+   */
+  addonFormats?: Record<string, string>;
   /** بوابة دفع ولا تحويل يدوي — من إعدادات الدفع في اللوحة. */
   payment: PaymentAvailability;
   user: UserType;
 }
 
-export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery, payment }: Props) {
+export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delivery, payment, addonFormats = {} }: Props) {
   // ⚠️ `payment` اتحاد مميّز، والتضييق جوّه JSX مابيشتغلش مع شرط مركّب —
   //    فبنفصله هنا مرة واحدة.
   const gateway = payment.mode === 'gateway' ? payment : null;
@@ -65,12 +73,10 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   // told the payment succeeded, and nothing was ever charged. Until a real
   // payment gateway is integrated, transfer is the only method on offer.
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transactionRef, setTransactionRef] = useState('');
   const [orderError, setOrderError] = useState('');
   const [placedOrder, setPlacedOrder] = useState<{ id: string; reference: string; total: number | null } | null>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isSuccess, setIsSuccess] = useState(false);
 
   // Form states
   const [shippingInfo, setShippingInfo] = useState({
@@ -125,7 +131,83 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
   // رسالة سبب المنع تحت المنطقة (محافظة مقفولة، إلخ) غير إغلاق الدولة الكامل.
   const areaBlockedMessage =
     verdict && !verdict.available && !countryClosed.closed && shippingInfo.gov ? verdict.message : '';
-  const canContinue = shippingKnown && !electronicBlocked;
+  // ── سلة قديمة: نسخة إلكترونية + إضافة مطبوعة (قرار ٢٤ أكتوبر) ──
+  const addonConflicts = items.filter(
+    (i: CartItem) =>
+      i.format === 'electronic' && (i.addonIds ?? []).some((id) => addonFormats[id] === 'printed'),
+  );
+  const canContinue = shippingKnown && !electronicBlocked && addonConflicts.length === 0;
+
+  // ── طلب اتسجّل ومااتدفعش (قرار ٢٤ أكتوبر) ────────────────────
+  // العميل راح صفحة الدفع ورجع من غير ما يدفع: بنعرض عليه يكمّل على
+  // نفس الطلب بدل ما يتسجّل طلب تاني — **لو اختار**.
+  const [resumable, setResumable] = useState<{ orderId: string; reference: string; total: number } | null>(null);
+  const [resuming, setResuming] = useState(false);
+  React.useEffect(() => {
+    const pending = resumableFor(loadPendingOrder(), items);
+    if (!pending) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ بيتقري بعد أول رسم.
+      setResumable(null);
+      return;
+    }
+    let alive = true;
+    void getResumableOrder(pending.orderId).then((r) => {
+      if (!alive) return;
+      if (r.ok) setResumable({ orderId: pending.orderId, reference: r.reference, total: r.total });
+      else {
+        // اتدفع أو اتلغى — مالوش لازمة يفضل محفوظ.
+        clearPendingOrder();
+        setResumable(null);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [items]);
+
+  const resumeOrder = () => {
+    if (!resumable) return;
+    setResuming(true);
+    setOrderError('');
+    startTransition(async () => {
+      if (gateway) {
+        try {
+          const pay = await startGatewayPayment(resumable.orderId, 'order');
+          if (pay.ok) {
+            window.location.assign(pay.url);
+            return;
+          }
+          setOrderError(pay.error);
+        } catch {
+          setOrderError('تعذّر فتح صفحة الدفع. جرّب تاني.');
+        }
+        setResuming(false);
+        return;
+      }
+      // التحويل: نفس الطلب، وبيانات التحويل ورفع الإيصال.
+      setPlacedOrder({ id: resumable.orderId, reference: resumable.reference, total: resumable.total });
+      setResuming(false);
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  };
+
+  // ── المنطقة اللي اتختارت في المعالج ──────────────────────────
+  // «يكمّل الطلب مباشرة»: العميل اختار منطقته في خطوة ٣، فمانسألوش تاني.
+  // بنستعملها بس لو لسه موجودة في الكتالوج، ولو هو ماكتبش حاجة.
+  React.useEffect(() => {
+    const saved = loadDeliveryRegion();
+    if (!saved) return;
+    const exists = delivery.rates.some(
+      (r) => r.countryCode === saved.country && r.governorate === saved.gov && r.city === saved.city,
+    );
+    if (!exists) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- التخزين في المتصفح بس؛ القراية بعد أول رسم عشان ماتختلفش عن نسخة الخادم.
+    setCountry(saved.country);
+    setShippingInfo((prev) => (prev.gov ? prev : { ...prev, gov: saved.gov, city: saved.city }));
+    // مرة واحدة عند الفتح بس — بعدها اختيار العميل هنا هو اللي يمشي.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ══ الشحن مقفول من اللوحة ═════════════════════════════════
      ملاحظة تامر (١٨ أكتوبر): «لما يكون الشحن مش مفعّل من لوحة
@@ -177,7 +259,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
 
   // كود الخصم «ذو صلة» لما يكون فيه حاجة يتحسب عليها، وقبل ما الطلب
   // يتسجّل: بعد التسجيل القاعدة قفلت الإجمالي وتغيير الكود مابيعملش حاجة.
-  const discountRelevant = items.length > 0 && !placedOrder && !isSuccess;
+  const discountRelevant = items.length > 0 && !placedOrder;
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,8 +279,12 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       return;
     }
     setEmailError('');
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (mixedBox) return;
+    // ⚠️ **ضغطة واحدة** (قرار تامر، ٢٤ أكتوبر: «إتمام الطلب بياخد ٣
+    //    صفحات»). كان: «المتابعة للدفع» ← «سجّل الطلب وكمّل الدفع» ←
+    //    «ادفع» ← صفحة XPay. دلوقتي الزرار ده بيسجّل الطلب ويفتح صفحة
+    //    الدفع على طول.
+    placeOrder();
   };
 
   /**
@@ -208,8 +294,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
    * يكتبه في ملاحظة التحويل. قبل كده كان الطلب والإيصال بيتبعتوا مرة
    * واحدة، فما كانش فيه رقم يربط التحويل بالطلب.
    */
-  const handleRegisterOrder = (e: React.FormEvent) => {
-    e.preventDefault();
+  const placeOrder = () => {
     setIsProcessing(true);
     setOrderError('');
     startTransition(async () => {
@@ -257,9 +342,8 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
         discount?.code,
       );
 
-      setIsProcessing(false);
-
       if (!result.ok) {
+        setIsProcessing(false);
         // العربة ما بتتفضّاش عند الفشل: العميل يصحّح ويعيد المحاولة.
         // غلط في الرقم ← نرجّعه لصفحة البيانات وتحت الخانة، مش هنا.
         //
@@ -277,6 +361,33 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       }
 
       setPlacedOrder({ id: result.orderId, reference: result.paymentReference, total: result.totalAmount });
+      // عشان لو رجع من صفحة الدفع من غير ما يدفع، يقدر يكمّل على نفس الطلب.
+      savePendingOrder({
+        orderId: result.orderId,
+        reference: result.paymentReference,
+        total: result.totalAmount,
+        signature: cartSignature(items),
+        itemIds: items.map((i: CartItem) => i.id),
+      });
+
+      // البوابة: على صفحة الدفع على طول — من غير زرار «ادفع» تاني.
+      // ⚠️ `isProcessing` بيفضل شغّال: الصفحة بتتنقل، والزرار مايتضغطش تاني.
+      if (gateway) {
+        try {
+          const pay = await startGatewayPayment(result.orderId, 'order');
+          if (pay.ok) {
+            window.location.assign(pay.url);
+            return;
+          }
+          setOrderError(pay.error);
+        } catch {
+          setOrderError('الطلب اتسجّل، بس تعذّر فتح صفحة الدفع. اضغط «ادفع» تحت وجرّب تاني.');
+        }
+      }
+      // التحويل (أو البوابة مافتحتش): بيانات الدفع تحت، والطلب مسجّل.
+      setIsProcessing(false);
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   };
 
@@ -295,6 +406,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       }
 
       clearCart();
+      clearPendingOrder();
       // المنتجات اللي استنت طلب الاشتراك (`saveDeferredItems`) ترجع للسلة
       // — ودلوقتي هتاخد خصم المشترك لما الدفع يتأكد.
       for (const item of takeDeferredItems<CartItem>()) addItem(item);
@@ -302,7 +414,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
     });
   };
 
-  if (items.length === 0 && !isSuccess) {
+  if (items.length === 0) {
     return (
       <Section containerClassName="py-16 text-center max-w-3xl">
         <h2 className="text-2xl font-bold text-slate-800 mb-4">عربة التسوق فارغة</h2>
@@ -311,34 +423,6 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
           تصفح المتجر
         </Button>
       </Section>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <Card accentColor="rose" className="p-8 md:p-12 text-center max-w-2xl mx-auto">
-        <div className="flex justify-center mb-6">
-          <div className="h-24 w-24 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500">
-            <CheckCircle2 className="h-12 w-12" />
-          </div>
-        </div>
-        <h2 className="text-3xl font-black text-slate-800 mb-4">تم تأكيد طلبك بنجاح!</h2>
-        {/* A random number used to be shown as "your order number", and the
-            page claimed an invoice had been emailed — no email is sent
-            anywhere in this flow. */}
-        <p className="mb-8 text-slate-600">
-          يمكنك متابعة حالة الطلب من صفحة طلباتك في حسابك.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button href="/dashboard" variant="neutral" className="px-8 py-3">
-            الذهاب للوحة التحكم
-          </Button>
-          <Button href="/enha-lak" variant="secondary" className="px-8 py-3 border-none !bg-rose-50 !text-rose-700 hover:!bg-rose-100">
-            العودة للمتجر
-          </Button>
-        </div>
-      </Card>
     );
   }
 
@@ -369,6 +453,65 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
       <div className="lg:col-span-2 space-y-8">
         
         {/* Step 1: Shipping */}
+        {resumable && !placedOrder && (
+          <div role="status" className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900">
+            <p className="font-black">عندك طلب بنفس المحتويات اتسجّل ولسه مادفعتوش</p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">
+              رقم الطلب <span className="font-mono font-bold" dir="ltr">{resumable.reference}</span> — المبلغ{' '}
+              {formatPrice(resumable.total)}. تقدر تكمّل دفعه بدل ما يتسجّل طلب جديد.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={resumeOrder}
+                disabled={resuming || isPending}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-60"
+              >
+                {resuming ? 'لحظة…' : gateway ? `كمّل دفع الطلب ده (${formatPrice(resumable.total)})` : 'كمّل الطلب ده'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearPendingOrder();
+                  setResumable(null);
+                }}
+                disabled={resuming}
+                className="inline-flex min-h-[44px] items-center rounded-xl border border-blue-300 bg-white px-5 text-sm font-bold text-blue-900 hover:bg-blue-100"
+              >
+                اعمل طلب جديد
+              </button>
+            </div>
+            {orderError && <p className="mt-3 text-sm font-bold text-red-700">{orderError}</p>}
+          </div>
+        )}
+
+        {addonConflicts.length > 0 && (
+          <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900">
+            <p className="font-black">
+              {addonConflicts.length === 1 ? 'بند محتاج تعديل قبل الطلب' : 'بنود محتاجة تعديل قبل الطلب'}
+            </p>
+            <p className="mt-1 text-sm font-medium leading-relaxed">
+              النسخة الإلكترونية بتوصل على الإيميل من غير شحن، فالإضافات المطبوعة مابقتش بتتطلب معاها. عدّل البند واختار
+              إضافات إلكترونية أو نسخة مطبوعة.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {addonConflicts.map((i: CartItem) => (
+                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2">
+                  <span className="text-sm font-bold">{i.name}</span>
+                  {i.productSlug && (
+                    <Link
+                      href={`/enha-lak/custom/${encodeURIComponent(i.productSlug)}?step=3&edit=${encodeURIComponent(i.id)}`}
+                      className="inline-flex min-h-[44px] items-center rounded-lg bg-amber-800 px-3 text-xs font-bold text-white hover:bg-amber-900"
+                    >
+                      عدّلها
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 1 ? 'border-rose-200 shadow-md' : 'bg-slate-50 opacity-60'}`}>
           <div className="flex items-center gap-4 mb-8">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 1 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>1</div>
@@ -657,9 +800,39 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   بيشرح — وأغلب الناس بتفترض إن الموقع باظ، مش إن فيه
                   قرار إداري. السطر ده بيقول السبب والحل. */}
               <div className="pt-4 flex flex-col items-end gap-2">
-                <button type="submit" disabled={!canContinue} className="flex items-center gap-2 rounded-xl bg-slate-900 px-8 py-3 font-bold text-white hover:bg-slate-800 transition-colors disabled:opacity-60">
-                  المتابعة للدفع <ChevronRight className="h-5 w-5 rotate-180" />
+                {orderError && (
+                  <div role="alert" className="w-full rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+                    {orderError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={!canContinue || mixedBox || isProcessing || isPending}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-8 py-4 font-black text-white shadow-lg transition-colors hover:bg-rose-700 disabled:opacity-60 sm:w-auto"
+                >
+                  {isProcessing || isPending ? (
+                    gateway ? 'لحظة — بنفتح صفحة الدفع…' : 'جارٍ تسجيل الطلب…'
+                  ) : gateway ? (
+                    <>
+                      <CreditCard className="h-5 w-5" aria-hidden="true" /> ادفع {formatPrice(grandTotal)}
+                    </>
+                  ) : (
+                    <>
+                      سجّل الطلب واعرض بيانات التحويل <ChevronRight className="h-5 w-5 rotate-180" />
+                    </>
+                  )}
                 </button>
+                {gateway && canContinue && !mixedBox && (
+                  <p className="flex items-center gap-1 text-xs font-medium text-slate-500">
+                    <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    هتتحوّل لصفحة دفع آمنة ({gateway.methods.map((m) => METHOD_LABELS[m]).join(' · ')}). بيانات بطاقتك مابتعدّيش على موقعنا.
+                  </p>
+                )}
+                {mixedBox && (
+                  <p role="status" className="text-sm font-bold text-amber-800">
+                    شيل المنتجات التانية من الملخّص عشان تكمّل الاشتراك — التفاصيل جنبها.
+                  </p>
+                )}
                 {!canContinue && (
                   <p role="status" className="text-sm font-bold text-amber-800">
                     {/* ⚠️ الشرط كان `hasElectronic` — وهي بترجّع صح لبند
@@ -700,13 +873,19 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                   )}
                 </div>
               </div>
-              <button onClick={() => setStep(1)} className="text-sm font-bold text-rose-600 hover:underline">تعديل</button>
+              {/* بعد تسجيل الطلب، التعديل هنا كان هيعمل طلب تاني. */}
+              {!placedOrder && (
+                <button onClick={() => setStep(1)} className="text-sm font-bold text-rose-600 hover:underline">تعديل</button>
+              )}
             </div>
           )}
         </Card>
 
-        {/* Step 2: Payment */}
-        <Card accentColor="rose" className={`p-6 md:p-8 transition-all ${step === 2 ? 'border-rose-200 shadow-md' : 'opacity-50 pointer-events-none'}`}>
+        {/* Step 2: Payment — بيظهر بس بعد تسجيل الطلب (بيانات التحويل، أو
+            إعادة المحاولة لو صفحة البوابة مافتحتش). قبلها كان كارت باهت
+            بيقول للعميل إن فيه خطوة كمان. */}
+        {step === 2 && (
+        <Card accentColor="rose" className="border-rose-200 p-6 shadow-md md:p-8">
           <div className="flex items-center gap-4 mb-8">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full font-black ${step === 2 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}`}>2</div>
             <h2 className="text-xl font-black text-slate-800">طريقة الدفع</h2>
@@ -743,68 +922,9 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
                 </div>
               )}
             </>
-          ) : (
-            <form onSubmit={handleRegisterOrder} className="space-y-6">
-              <div className="flex gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                <ShieldCheck className="h-5 w-5 shrink-0" />
-                <p>
-                  {gateway
-                    ? 'هتسجّل الطلب الأول، وبعدها تتحوّل لصفحة دفع آمنة تدفع فيها بالبطاقة أو المحفظة. بيانات بطاقتك مابتعدّيش على موقعنا.'
-                    : 'الدفع بالتحويل (إنستاباي أو فودافون كاش). هتسجّل الطلب الأول، وهيظهرلك رقم مرجعي تكتبه في ملاحظة التحويل، وبعدها ترفع الإيصال. ولن نطلب منك بيانات بطاقتك على هذه الصفحة أبدًا.'}
-                </p>
-              </div>
-
-              {orderError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
-                  {orderError}
-                </div>
-              )}
-
-              {/* ⚠️ **كود الخصم اتنقل لملخّص الطلب** (ملاحظة تامر، ١٥
-                  أكتوبر): كان مدفونًا جوّه نموذج الدفع، يعني العميل
-                  مابيشوفهوش غير في الخطوة التانية — بعد ما يكون خلّص
-                  البيانات وشاف الإجمالي من غير خصمه. ودلوقتي هو جنب
-                  الأرقام اللي بيأثّر عليها، وظاهر من أول الصفحة. */}
-
-              {/* ⚠️ **تنبيه «الصندوق بيتطلب لوحده» اتنقل لملخّص الطلب**
-                  (ملاحظة تامر، ١٨ أكتوبر: «ده مش مكانه»).
-
-                  كان هنا — جوّه **خطوة الدفع**. والكلام اللي فيه عن
-                  **محتويات السلة**: شيل المنتجات التانية واطلب
-                  الاشتراك لوحده. فالعميل بيقرا في خانة «طريقة الدفع»
-                  كلامًا عن سلّته، والزرار اللي بيحلّ المشكلة بيغيّر
-                  حاجة هو شايفها في الناحية التانية من الشاشة.
-
-                  دلوقتي التنبيه فوق البنود نفسها في الملخّص، وبيبان
-                  من **الخطوة الأولى** مش بعد ما يملا بياناته كلها. */}
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isProcessing || !canContinue || mixedBox}
-                  className="w-full flex justify-center items-center gap-2 rounded-xl bg-rose-600 px-8 py-4 font-black text-white hover:bg-rose-700 transition-colors shadow-lg disabled:opacity-70"
-                >
-                  {/* ⚠️ **النص كان ثابتًا «واعرض بيانات التحويل»** حتى
-                      والبوابة شغّالة — والسطر الأزرق فوقه بالظبط بيقول
-                      إنه هيتحوّل لصفحة دفع. الزرار كان بيناقض الكلام
-                      اللي فوقه بسطرين. */}
-                  {isPending || isProcessing
-                    ? 'جارٍ تسجيل الطلب…'
-                    : gateway
-                      ? 'سجّل الطلب وكمّل الدفع'
-                      : 'سجّل الطلب واعرض بيانات التحويل'}
-                </button>
-
-                {/* الزرار المقفول لازم يقول هو مقفول ليه. */}
-                {mixedBox && (
-                  <p role="status" className="mt-2 text-center text-sm font-bold text-amber-800">
-                    شيل المنتجات التانية من الملخّص عشان تكمّل الاشتراك — التفاصيل جنبها.
-                  </p>
-                )}
-              </div>
-            </form>
-          )}
+          ) : null}
         </Card>
+        )}
 
       </div>
 
@@ -837,7 +957,7 @@ export function CheckoutClient({ user, paymentWalletNumber, paymentQrUrl, delive
           )}
 
           <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <div key={item.id} className="flex gap-4 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
                 {/* ⚠️ **البند من غير صورة كان بيطلّع أيقونة مكسورة.**
                     `optimizedImageUrl(undefined)` بترجّع `''`، و`<Image src="">`

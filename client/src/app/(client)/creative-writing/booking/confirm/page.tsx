@@ -47,13 +47,15 @@ export default async function BookingConfirmPage({
     time: slotTime,
     child: childParam,
   } = await searchParams;
-  const [settings, payment, packages, instructors, content] = await Promise.all([
-    getSiteSettings(),
-    getPaymentAvailability(),
-    getWritingPackages(),
-    getVisibleInstructors(),
-    getSiteContent(),
-  ]);
+  const [settings, payment, packages, instructors, content] = await Promise.all(
+    [
+      getSiteSettings(),
+      getPaymentAvailability(),
+      getWritingPackages(),
+      getVisibleInstructors(),
+      getSiteContent(),
+    ]
+  );
 
   const chosenPackage = packages.find((pkg) => pkg.id === packageId);
   const chosenInstructor = instructors.find((i) => i.id === instructorId);
@@ -62,13 +64,15 @@ export default async function BookingConfirmPage({
   // وإنه مش محجوز باشتراك شغّال. رابط متلاعب فيه — أو تبويبة قديمة
   // فُتحت قبل ما حد يحجز نفس الميعاد — ما يقدرش يعدّي.
   const booked = chosenInstructor
-    ? (await getBookedSlotsByInstructor([chosenInstructor.id]))[chosenInstructor.id] ?? []
+    ? ((await getBookedSlotsByInstructor([chosenInstructor.id]))[
+        chosenInstructor.id
+      ] ?? [])
     : [];
 
   // من غير باقة صحيحة مفيش حجز. كان الكود بيحط 'dummy-package' ويكمّل.
   if (!chosenPackage) {
     return (
-      <PageContainer className="!py-0 !space-y-0">
+      <PageContainer className="!space-y-0 !py-0">
         <Section containerClassName="mx-auto w-full max-w-2xl py-24 text-center">
           <h1 className="mb-4 text-2xl font-black text-slate-800">
             الباقة مش محددة
@@ -87,12 +91,42 @@ export default async function BookingConfirmPage({
     );
   }
 
+  // باقة «قريبًا» (بند ٩) — رابط قديم أو متكتب بالإيد. القاعدة بترفض
+  // الحجز على أي حال؛ هنا بنقول ده بدل ما يملا البيانات ويترفض في الآخر.
+  if (chosenPackage.bookingOpen === false) {
+    return (
+      <PageContainer className="!space-y-0 !py-0">
+        <Section containerClassName="mx-auto w-full max-w-2xl py-24 text-center">
+          <h1 className="mb-4 text-2xl font-black text-slate-800">
+            باقة «{chosenPackage.name}» هتفتح قريبًا
+          </h1>
+          <p className="mb-8 font-medium text-slate-500">
+            الحجز لسه مافتحش. تقدر تطلب نبلّغك أول ما تفتح من صفحة الباقة.
+          </p>
+          <Link
+            href={`/creative-writing/packages/${encodeURIComponent(chosenPackage.slug || chosenPackage.id)}`}
+            className="rounded-xl bg-slate-900 px-8 py-3 font-bold text-white"
+          >
+            صفحة الباقة
+          </Link>
+        </Section>
+      </PageContainer>
+    );
+  }
+
   return (
-    <PageContainer className="!py-0 !space-y-0">
+    <PageContainer className="!space-y-0 !py-0">
       <Section containerClassName="mx-auto w-full max-w-3xl pt-12 pb-24">
-        <h1 className="mb-10 text-center text-3xl font-black text-slate-800 md:text-5xl">تأكيد ومراجعة الحجز</h1>
-        <Card accentColor="emerald" className="p-6 md:p-10 shadow-xl shadow-slate-200/50">
-          <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+        <h1 className="mb-10 text-center text-3xl font-black text-slate-800 md:text-5xl">
+          تأكيد ومراجعة الحجز
+        </h1>
+        <Card
+          accentColor="emerald"
+          className="p-6 shadow-xl shadow-slate-200/50 md:p-10"
+        >
+          <Suspense
+            fallback={<div className="p-8 text-center">جاري التحميل...</div>}
+          >
             <BookingConfirmClient
               payment={payment}
               recording={settings.sessionRecording}
@@ -103,6 +137,7 @@ export default async function BookingConfirmPage({
               paymentWalletNumber={settings.paymentWalletNumber}
               paymentQrUrl={settings.paymentQrUrl}
               packageId={chosenPackage.id}
+              packageAgeGroup={chosenPackage.ageGroup}
               packageName={chosenPackage.name}
               packagePrice={chosenPackage.price}
               instructorId={chosenInstructor?.id}
@@ -110,9 +145,10 @@ export default async function BookingConfirmPage({
               instructorAvatarUrl={chosenInstructor?.avatarUrl}
               presetChildId={childParam}
               preferredSlot={
-                slotDay && slotTime &&
+                slotDay &&
+                slotTime &&
                 (chosenInstructor?.weeklySchedule ?? []).some(
-                  (s) => s.day === slotDay && s.time === slotTime,
+                  (s) => s.day === slotDay && s.time === slotTime
                 ) &&
                 !booked.some((b) => b.day === slotDay && b.time === slotTime)
                   ? { day: slotDay, time: slotTime }

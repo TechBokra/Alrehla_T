@@ -32,7 +32,7 @@ export function getInstructorChangeItems(
       iconType: 'packages',
       title: 'باقات التدريب',
       detail,
-      badge: pkgIds.length === 0 ? 'كل الباقات' : `${pkgIds.length} باقة`,
+      badge: pkgIds.length === 0 ? 'ولا باقة' : `${pkgIds.length} باقة`,
     });
   }
 

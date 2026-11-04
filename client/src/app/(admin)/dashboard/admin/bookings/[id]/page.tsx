@@ -1,4 +1,3 @@
-import React from 'react';
 import { TaskBanner } from '@/components/admin/TaskBanner';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -68,6 +67,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         amount={target.amount ?? 0}
         method={target.paymentMethod}
         receiptUrl={receiptViewUrl(target.paymentReceiptUrl)}
+        status={target.status}
+        provider={target.paymentProvider}
+        paidAt={target.paidAt}
+        gatewayId={target.paymentIntentId}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -189,7 +192,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             المعلّق بيفضل معلّقًا للأبد. والمكوّن بيخفي نفسه للمكتمل
             والملغي. */}
         <div className="mb-6">
-          <CancelBooking subscriptionId={target.id} status={target.status} />
+          <CancelBooking subscriptionId={target.id} status={target.status} superAdmin={user.role === 'super_admin'} />
         </div>
 
         <div className="flex gap-4 border-t border-slate-100 pt-6">
