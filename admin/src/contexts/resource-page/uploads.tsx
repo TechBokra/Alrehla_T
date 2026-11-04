@@ -20,7 +20,7 @@ export function ResourceUploadsProvider({
 export function useResourceUploads() {
   const uploads = useContext(ResourceUploadsContext);
   if (!uploads) {
-    throw new Error("Resource upload fields must be rendered inside a resource form page.");
+    throw new Error("Resource upload fields must be rendered inside a resource form.");
   }
   return uploads;
 }

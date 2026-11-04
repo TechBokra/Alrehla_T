@@ -24,7 +24,9 @@ export function useResourceUploadSlot(
   const queryClient = useQueryClient();
   const [uploadingIds, setUploadingIds] = useState<ReadonlySet<string>>(() => new Set());
   const adapter = useLibraryUploadAdapter(definition.folder);
-  const access = useResourceAuthorization("uploads", "upload");
+  const access = useResourceAuthorization("uploads", "upload", {
+    folder: definition.folder,
+  });
   const uploader = useUploader<CloudinaryUploadResult>({
     adapter: adapter ?? unavailableAdapter,
     autoUpload: false,
@@ -43,7 +45,9 @@ export function useResourceUploadSlot(
   const resolve = useCallback(
     async (ids: readonly string[]) => {
       if (!ids.length) return [];
-      await assertResourceAccess("uploads", "upload");
+      await assertResourceAccess("uploads", "upload", {
+        folder: definition.folder,
+      });
       if (!adapter) throw new Error("إعداد رفع الصور غير مكتمل.");
       const pendingIds = getPendingCloudinaryUploadIds(uploader, ids);
       if (pendingIds.length === 0) return resolveCloudinaryUploads(uploader, ids);

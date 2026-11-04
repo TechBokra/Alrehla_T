@@ -47,6 +47,7 @@ export interface ResourceFormPageDefinition<
   dataProviderName?: string;
   dialog?: {
     title: string;
+    uploads?: Record<string, ResourceUploadDefinition>;
     canEdit?: (record: TRecord) => boolean;
     getErrorMessage?: (error: unknown) => string;
     onSaved?: (record: TRecord, action: "create" | "edit") => void;

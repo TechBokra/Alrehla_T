@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { UseTableReturnType } from "@refinedev/react-table";
 import type { UseDataTableOptions } from "@/components/refine-ui/data-table/use-data-table";
 import type { RowReordering } from "@/components/block/shuip/data-table";
+import type { ResourceFormDialogContext } from "./forms/types";
 import type { ResourceFormFactory } from "./page/types";
 
 export interface ResourceRowAction {
@@ -16,12 +17,8 @@ export interface ResourceRowAction {
   variant?: "default" | "destructive";
 }
 
-export interface ResourceFormFieldsContext<TRecord> {
-  record?: TRecord;
-  formId: string;
-  disabled: boolean;
-  onFormValidityChange: (isValid: boolean) => void;
-  onSave: (values: Record<string, unknown>) => Promise<void>;
+export interface ResourceFormFieldsContext<TRecord>
+  extends ResourceFormDialogContext<TRecord> {
   resource: string;
   action: "create" | "edit";
 }

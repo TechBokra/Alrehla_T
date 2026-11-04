@@ -517,13 +517,8 @@ export function DataTable<TData>({
                 </TableHead>
               ))}
               {showViewOptions && (
-                <TableHead className=" ">
-                  <div
-                    className={cn(
-                      "flex",
-                      dir === "rtl" ? "justify-end" : "justify-start",
-                    )}
-                  >
+                <TableHead className="w-[50px] px-2 text-left">
+                  <div dir="ltr" className="flex w-full justify-start">
                     <DataTableViewOptions table={table} />
                   </div>
                 </TableHead>

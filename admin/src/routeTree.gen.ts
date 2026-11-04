@@ -32,6 +32,7 @@ import { Route as CatalogSettingsCustomizationFieldsRouteImport } from './routes
 import { Route as CatalogSettingsStoryGoalsRouteImport } from './routes/catalog/settings/story-goals'
 import { Route as CatalogSettingsWritingDialectsRouteImport } from './routes/catalog/settings/writing-dialects'
 import { Route as CatalogProductsIdEditRouteImport } from './routes/catalog/products/$id.edit'
+import { Route as SubscriptionsBoxPlansIndexRouteImport } from './routes/subscriptions/box/plans/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -152,6 +153,12 @@ const CatalogProductsIdEditRoute = CatalogProductsIdEditRouteImport.update({
   path: '/products/$id/edit',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
+const SubscriptionsBoxPlansIndexRoute =
+  SubscriptionsBoxPlansIndexRouteImport.update({
+    id: '/subscriptions/box/plans/',
+    path: '/subscriptions/box/plans/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans/': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -199,6 +207,7 @@ export interface FileRoutesByTo {
   '/catalog/promotions': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -225,6 +234,7 @@ export interface FileRoutesById {
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans/': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/catalog/promotions/'
     | '/catalog/publisher-products/'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/catalog/promotions'
     | '/catalog/publisher-products'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans'
   id:
     | '__root__'
     | '/'
@@ -299,6 +311,7 @@ export interface FileRouteTypes {
     | '/catalog/promotions/'
     | '/catalog/publisher-products/'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -313,6 +326,7 @@ export interface RootRouteChildren {
   SignInIndexRoute: typeof SignInIndexRoute
   AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
   AuthLinkIndexRoute: typeof AuthLinkIndexRoute
+  SubscriptionsBoxPlansIndexRoute: typeof SubscriptionsBoxPlansIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -478,6 +492,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogProductsIdEditRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
+    '/subscriptions/box/plans/': {
+      id: '/subscriptions/box/plans/'
+      path: '/subscriptions/box/plans'
+      fullPath: '/subscriptions/box/plans/'
+      preLoaderRoute: typeof SubscriptionsBoxPlansIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -557,6 +578,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInIndexRoute: SignInIndexRoute,
   AuthCallbackIndexRoute: AuthCallbackIndexRoute,
   AuthLinkIndexRoute: AuthLinkIndexRoute,
+  SubscriptionsBoxPlansIndexRoute: SubscriptionsBoxPlansIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

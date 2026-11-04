@@ -37,7 +37,7 @@ export const boxPlanSchema = z
     durationMonths: z.number().finite().int().min(1),
     savingsNote: textSchema,
     description: textSchema,
-    imageUrl: textSchema,
+    imageUrl: optionalCloudinaryUrlSchema,
     features: z.array(textSchema),
     isHighlighted: z.boolean(),
     isActive: z.boolean(),

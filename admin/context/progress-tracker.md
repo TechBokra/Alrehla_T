@@ -1,5 +1,26 @@
 # Progress Tracker
 
+### Box subscription plan management — 2026-11-03
+
+- Added `/subscriptions/box/plans` with the legacy client plan fields in a
+  create/edit Dialog, a responsive two-column form, and the shared UploadCN
+  image field. The list searches plan names and shows image avatars, visibility
+  and highlighted badges, duration, prices and row actions.
+- Added the named `boxPlans` provider, subscription permission checks, scoped
+  add-on choices, single-highlight handling, navigation and generated route.
+  The existing `media-library` function source now allows authorized uploads
+  into `alrehla/box-plans`; deploy that function for hosted upload support.
+- Matched the plan image control to the legacy client UI (preview plus
+  full-width upload/change button) and placed it in the right column, with plan
+  name and short description on the left. The rest of the form remains two
+  columns.
+- Added best-effort create/update/delete audit entries through the existing
+  audit table. Documented the remaining boundary: direct Supabase writes do not
+  invoke the legacy Next.js public-cache revalidation action.
+  `pnpm --dir admin run typecheck` passes. Chrome inspection could not attach:
+  the browser debugger was unattached and computer-use permissions were denied.
+  No tests or live plan/media changes were made.
+
 ### Platform settings navigation and identity/contact — 2026-11-03
 
 - Reorganized settings by domain: catalog definitions, identity/contact,
@@ -912,3 +933,11 @@ change.
 - Follow-up: the sortable “العرض” header had its own alignment. Wrapped it in
   an RTL start-aligned container and removed the header button's negative start
   margin for this column. Tests/build were not run.
+- Follow-up alignment fix: made the sortable header button full width and
+  explicitly right-aligned its contents, so the title does not depend on the
+  intrinsic button width. Anchored `DataTableViewOptions` to the physical left
+  edge of its final header cell using an LTR alignment wrapper. Chrome's open
+  local tab reported “Debugger unattached”; the alternate browser preview could
+  not reach localhost, so the rendered result could not be visually confirmed.
+  Updated the shared table architecture and catalog-offers guide.
+  `git diff --check` passes; tests/build were not run.

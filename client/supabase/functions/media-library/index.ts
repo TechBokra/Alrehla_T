@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 const folders = [
   "alrehla/uploads",
   "alrehla/products",
+  "alrehla/box-plans",
   "alrehla/addons",
   "alrehla/site",
   "alrehla/blog",
@@ -210,22 +211,6 @@ export async function handleRequest(request: Request): Promise<Response> {
       !["super_admin", "general_supervisor"].includes(profile.role)
     )
       throw new Failure(403, "ليس لديك صلاحية إدارة الوسائط.");
-    if (profile.role === "general_supervisor") {
-      let roleQuery = client.from("admin_roles").select("permissions");
-      roleQuery = profile.admin_role_id
-        ? roleQuery.eq("id", profile.admin_role_id)
-        : roleQuery.eq("is_default", true);
-      const { data: role, error: roleError } = await roleQuery.maybeSingle();
-      if (roleError) throw new Failure(503, "تعذر التحقق من صلاحيات المحتوى.");
-      if (!role?.permissions?.includes("canManageContent"))
-        throw new Failure(403, "ليس لديك صلاحية إدارة المحتوى.");
-    }
-    if (
-      !env("CLOUDINARY_CLOUD_NAME") ||
-      !env("CLOUDINARY_API_KEY") ||
-      !env("CLOUDINARY_API_SECRET")
-    )
-      throw new Failure(503, "إعدادات Cloudinary غير مكتملة.");
     const raw = await request.text();
     if (new TextEncoder().encode(raw).length > 16_384)
       throw new Failure(413, "الطلب كبير جدًا.");
@@ -237,6 +222,32 @@ export async function handleRequest(request: Request): Promise<Response> {
     }
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new Failure(400, "طلب غير صالح.");
+    const boxPlanUpload =
+      body.action === "sign" &&
+      body.params?.folder === "alrehla/box-plans";
+    if (profile.role === "general_supervisor") {
+      let roleQuery = client.from("admin_roles").select("permissions");
+      roleQuery = profile.admin_role_id
+        ? roleQuery.eq("id", profile.admin_role_id)
+        : roleQuery.eq("is_default", true);
+      const { data: role, error: roleError } = await roleQuery.maybeSingle();
+      if (roleError) throw new Failure(503, "تعذر التحقق من صلاحيات المحتوى.");
+      const allowed = role?.permissions?.includes("canManageContent") ||
+        (boxPlanUpload && role?.permissions?.includes("canManageSubscriptions"));
+      if (!allowed)
+        throw new Failure(
+          403,
+          boxPlanUpload
+            ? "ليس لديك صلاحية رفع صور خطط الصندوق."
+            : "ليس لديك صلاحية إدارة المحتوى.",
+        );
+    }
+    if (
+      !env("CLOUDINARY_CLOUD_NAME") ||
+      !env("CLOUDINARY_API_KEY") ||
+      !env("CLOUDINARY_API_SECRET")
+    )
+      throw new Failure(503, "إعدادات Cloudinary غير مكتملة.");
     if (body.action === "list") {
       const q =
         typeof body.search === "string" ? body.search.trim().slice(0, 100) : "";

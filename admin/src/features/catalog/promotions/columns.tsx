@@ -31,11 +31,11 @@ export function promotionColumns(now: number): ColumnDef<Promotion, unknown>[] {
     {
       accessorKey: "target_type",
       header: ({ column }) => (
-        <div dir="rtl" className="flex w-full justify-start">
+        <div dir="rtl" className="w-full text-right">
           <DataTableColumnHeader
             column={column}
             title="العرض"
-            className="ms-0 justify-start"
+            className="ms-0 w-full justify-start text-right"
           />
         </div>
       ),

@@ -65,6 +65,33 @@ export function evaluateResourceAccess(
     return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
       ? { can: true } : deny("لا تملك صلاحية إدارة العروض.");
   }
+  if (resource === "box_subscription_plans") {
+    if (!["list", "show", "create", "edit", "delete"].includes(action))
+      return deny("هذا الإجراء غير متاح لخطط صندوق الرحلة.");
+    return actor.role === "super_admin" ||
+      actor.permissions.includes("canManageSubscriptions")
+      ? { can: true }
+      : deny("لا تملك صلاحية إدارة اشتراكات صندوق الرحلة.");
+  }
+  if (resource === "box_plan_addons") {
+    if (action !== "list") return deny("هذا الإجراء غير متاح لإضافات خطط الصندوق.");
+    return actor.role === "super_admin" ||
+      actor.permissions.includes("canManageSubscriptions")
+      ? { can: true }
+      : deny("لا تملك صلاحية إدارة اشتراكات صندوق الرحلة.");
+  }
+  if (resource === "uploads") {
+    if (!["list", "upload"].includes(action))
+      return deny("هذا الإجراء غير متاح للوسائط.");
+    const permissions = action === "upload" &&
+      params?.folder === "alrehla/box-plans"
+      ? ["canManageContent", "canManageSubscriptions"]
+      : ["canManageContent"];
+    return actor.role === "super_admin" ||
+      permissions.some((permission) => actor.permissions.includes(permission))
+      ? { can: true }
+      : deny("لا تملك صلاحية رفع هذه الصورة.");
+  }
   if (["catalog_settings", "customization_fields", "story_goals", "writing_dialects"].includes(resource ?? "")) {
     const allowed = resource === "catalog_settings"
       ? action === "list"
@@ -81,10 +108,9 @@ export function evaluateResourceAccess(
       : ["canManageCatalog", "canManagePublishers"]
     : resource === "addon_products"
       ? ["canManageCatalog"]
-      : resource === "uploads" ? ["canManageContent"] : undefined;
+      : undefined;
   const knownAction = crudActions.has(action) ||
-    ((resource === "personalized_products" || resource === "addon_products") && action === "sort") ||
-    (resource === "uploads" && action === "upload");
+    ((resource === "personalized_products" || resource === "addon_products") && action === "sort");
   if (!permissions || !knownAction) return deny("لا توجد سياسة وصول لهذا المورد أو الإجراء.");
   return actor.role === "super_admin" ||
     permissions.some((permission) => actor.permissions.includes(permission))

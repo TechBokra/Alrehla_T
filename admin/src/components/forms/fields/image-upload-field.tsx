@@ -12,6 +12,7 @@ import {
   UploadDropzone,
   UploadDropzoneDescription,
   UploadDropzoneTitle,
+  UploadTrigger,
 } from "@/components/ui/upload";
 import type { ImageUploadSelection } from "@/hooks/uploads";
 
@@ -23,12 +24,15 @@ export interface ImageUploadSourcePickerProps {
 export interface ImageUploadFieldProps extends FieldProps {
   /** The uploader slot declared by the resource's page definition. */
   uploadKey: string;
+  /** Compact preview and full-width upload button used by the box plans form. */
+  appearance?: "default" | "box-plan";
   renderSourcePicker?: (props: ImageUploadSourcePickerProps) => ReactNode;
 }
 
 /** Resource-backed image field: the resource page owns its uploader and signed adapter. */
 export function ImageUploadField({
   uploadKey,
+  appearance = "default",
   renderSourcePicker,
   label,
   description,
@@ -71,6 +75,25 @@ export function ImageUploadField({
         const item = items.find((entry) => entry.id === id)!;
         return { kind: "queued", uploadId: id, name: item.name } satisfies ImageUploadSelection;
       });
+    if (appearance === "box-plan" && queueIds.length > 0) {
+      const latestId = queueIds[queueIds.length - 1];
+      const latest = items.find((item) => item.id === latestId);
+      const next = latest
+        ? [{ kind: "queued", uploadId: latest.id, name: latest.name } satisfies ImageUploadSelection]
+        : [];
+      for (const staleId of queueIds.slice(0, -1)) {
+        upload.uploader.remove(staleId);
+      }
+      if (
+        next.length !== valueRef.current.length ||
+        (next[0]?.kind === "queued" && valueRef.current[0]?.kind !== "queued") ||
+        (next[0]?.kind === "queued" && valueRef.current[0]?.kind === "queued" && next[0].uploadId !== valueRef.current[0].uploadId)
+      ) {
+        valueRef.current = next;
+        onChangeRef.current(next);
+      }
+      return;
+    }
     const next = [...kept, ...added].slice(0, maxFiles);
     if (added.length || next.length !== valueRef.current.length) {
       valueRef.current = next;
@@ -78,10 +101,10 @@ export function ImageUploadField({
     }
     // Queue IDs change only when a file is added or removed, not on progress.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueKey]);
+  }, [queueKey, appearance, maxFiles]);
 
   const canUpload = Boolean(upload.adapter && upload.allowed);
-  const full = value.length >= maxFiles;
+  const full = appearance !== "box-plan" && value.length >= maxFiles;
   const controlDisabled = Boolean(disabled || upload.uploading);
   const setImages = (next: ImageUploadSelection[]) => {
     valueRef.current = next;
@@ -94,8 +117,21 @@ export function ImageUploadField({
   };
   const pickSavedImage = (url: string) => {
     if (controlDisabled || full || value.some((image) => image.kind === "saved" && image.url === url)) return;
-    setImages([...value, { kind: "saved", url }]);
+    setImages(
+      appearance === "box-plan"
+        ? [{ kind: "saved", url }]
+        : [...value, { kind: "saved", url }],
+    );
   };
+  const selectedImage = value[0];
+  const selectedUpload =
+    selectedImage?.kind === "queued"
+      ? items.find((item) => item.id === selectedImage.uploadId)
+      : undefined;
+  const imageAlt = typeof label === "string" ? label : "الصورة";
+  const isSelectedUploading =
+    selectedImage?.kind === "queued" &&
+    upload.uploadingIds.has(selectedImage.uploadId);
 
   return (
     <BaseFormField
@@ -123,45 +159,96 @@ export function ImageUploadField({
             }
           }}
         >
-          <div className="flex flex-wrap gap-2">
-            {canUpload ? (
-              <Upload
-                uploader={upload.uploader}
-                disabled={controlDisabled || full}
-                className="w-auto"
-              >
-                <UploadDropzone size="sm" className="min-h-10 flex-row gap-2 px-3 py-2 text-start">
-                  <ImagePlus className="size-4" />
-                  <span className="flex flex-col items-start gap-0.5">
-                    <UploadDropzoneTitle className="text-sm">اختيار صورة</UploadDropzoneTitle>
-                    <UploadDropzoneDescription className="text-xs">
-                      JPG أو PNG أو WebP أو AVIF{maxSizeMb ? ` — حتى ${maxSizeMb} ميجابايت` : ""}
-                    </UploadDropzoneDescription>
-                  </span>
-                </UploadDropzone>
-              </Upload>
-            ) : null}
-            {renderSourcePicker?.({ disabled: controlDisabled || full, onPick: pickSavedImage })}
-          </div>
-
-          {value.length ? (
-            <ol className="flex flex-wrap gap-3">
-              {value.map((image, index) => (
-                <ImagePreview
-                  key={image.kind === "saved" ? image.url : image.uploadId}
-                  image={image}
-                  upload={image.kind === "queued" ? items.find((item) => item.id === image.uploadId) : undefined}
-                  isUploading={image.kind === "queued" && upload.uploadingIds.has(image.uploadId)}
+          {appearance === "box-plan" ? (
+            <div className="flex flex-col gap-2">
+              {canUpload ? (
+                <Upload
+                  uploader={upload.uploader}
                   disabled={controlDisabled}
-                  onRemove={() => removeImage(index)}
+                  multiple={false}
+                  className="gap-2"
+                >
+                  <BoxPlanImagePreview
+                    image={selectedImage}
+                    upload={selectedUpload}
+                    uploading={isSelectedUploading}
+                    alt={imageAlt}
+                  />
+                  <UploadTrigger
+                    disabled={controlDisabled}
+                    variant="secondary"
+                    size="lg"
+                    className="w-full rounded-xl text-sm font-bold"
+                  >
+                    {upload.uploading ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <ImagePlus />
+                    )}
+                    {upload.uploading
+                      ? "جارٍ الرفع…"
+                      : value.length
+                        ? "تغيير"
+                        : "رفع صورة"}
+                  </UploadTrigger>
+                </Upload>
+              ) : (
+                <BoxPlanImagePreview
+                  image={selectedImage}
+                  upload={selectedUpload}
+                  uploading={isSelectedUploading}
+                  alt={imageAlt}
                 />
-              ))}
-            </ol>
-          ) : (
-            <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
-              <Images className="size-5" />
-              <span>لم تُضف صورة بعد</span>
+              )}
+              {renderSourcePicker?.({
+                disabled: controlDisabled,
+                onPick: pickSavedImage,
+              })}
             </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {canUpload ? (
+                  <Upload
+                    uploader={upload.uploader}
+                    disabled={controlDisabled || full}
+                    className="w-auto"
+                  >
+                    <UploadDropzone size="sm" className="min-h-10 flex-row gap-2 px-3 py-2 text-start">
+                      <ImagePlus className="size-4" />
+                      <span className="flex flex-col items-start gap-0.5">
+                        <UploadDropzoneTitle className="text-sm">اختيار صورة</UploadDropzoneTitle>
+                        <UploadDropzoneDescription className="text-xs">
+                          JPG أو PNG أو WebP أو AVIF{maxSizeMb ? ` — حتى ${maxSizeMb} ميجابايت` : ""}
+                        </UploadDropzoneDescription>
+                      </span>
+                    </UploadDropzone>
+                  </Upload>
+                ) : null}
+                {renderSourcePicker?.({ disabled: controlDisabled || full, onPick: pickSavedImage })}
+              </div>
+
+              {value.length ? (
+                <ol className="flex flex-wrap gap-3">
+                  {value.map((image, index) => (
+                    <ImagePreview
+                      key={image.kind === "saved" ? image.url : image.uploadId}
+                      image={image}
+                      upload={image.kind === "queued" ? items.find((item) => item.id === image.uploadId) : undefined}
+                      isUploading={image.kind === "queued" && upload.uploadingIds.has(image.uploadId)}
+                      disabled={controlDisabled}
+                      alt={imageAlt}
+                      onRemove={() => removeImage(index)}
+                    />
+                  ))}
+                </ol>
+              ) : (
+                <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted/20 text-sm text-muted-foreground">
+                  <Images className="size-5" />
+                  <span>لم تُضف صورة بعد</span>
+                </div>
+              )}
+            </>
           )}
 
           {items.filter((item) => item.status === "rejected" || item.status === "cancelled").map((item) => (
@@ -193,12 +280,14 @@ function ImagePreview({
   upload,
   isUploading,
   disabled,
+  alt,
   onRemove,
 }: {
   image: ImageUploadSelection;
   upload?: UploadItem<CloudinaryUploadResult>;
   isUploading: boolean;
   disabled: boolean;
+  alt: string;
   onRemove: () => void;
 }) {
   const localUrl = useObjectUrl(image.kind === "queued" ? upload?.file : undefined);
@@ -206,7 +295,7 @@ function ImagePreview({
   return (
     <li className="relative w-44 overflow-hidden rounded-xl border bg-card">
       <div className="relative aspect-[3/4] bg-muted/30">
-        {src ? <img src={src} alt="صورة المنتج" className="size-full object-cover" /> : null}
+        {src ? <img src={src} alt={alt} className="size-full object-cover" /> : null}
         <span className="absolute start-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-1 text-xs shadow">
           <Star className="size-3 fill-current" /> الصورة
         </span>
@@ -230,6 +319,40 @@ function ImagePreview({
         <Button type="button" variant="ghost" size="icon-xs" disabled={disabled} aria-label="إزالة الصورة" onClick={onRemove}><X /></Button>
       </div>
     </li>
+  );
+}
+
+function BoxPlanImagePreview({
+  image,
+  upload,
+  uploading,
+  alt,
+}: {
+  image?: ImageUploadSelection;
+  upload?: UploadItem<CloudinaryUploadResult>;
+  uploading: boolean;
+  alt: string;
+}) {
+  const localUrl = useObjectUrl(image?.kind === "queued" ? upload?.file : undefined);
+  const src = image?.kind === "saved" ? image.url : localUrl;
+
+  return (
+    <div className="relative h-32 w-full overflow-hidden rounded-xl border bg-muted/40">
+      {src ? (
+        <img src={src} alt={alt} className="size-full object-cover" />
+      ) : (
+        <div className="flex h-full items-center justify-center text-xs font-bold text-muted-foreground">
+          بدون صورة
+        </div>
+      )}
+      {uploading && upload ? (
+        <span className="absolute inset-x-2 bottom-2 flex items-center gap-2 rounded-lg bg-background/90 p-2 text-xs shadow-sm">
+          <LoaderCircle className="size-3.5 animate-spin" />
+          <span className="min-w-0 flex-1 truncate">جارٍ الرفع…</span>
+          <span>{Math.round(upload.progress.percent)}%</span>
+        </span>
+      ) : null}
+    </div>
   );
 }
 
