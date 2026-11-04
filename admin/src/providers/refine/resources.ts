@@ -6,6 +6,7 @@ import {
   ShoppingBag,
   Table2,
   Users,
+  PackageCheck,
 } from "lucide-react";
 
 export const catalogSettingsItems = [
@@ -62,6 +63,20 @@ const navigationItems = {
     label: "العروض والخصومات",
     icon: Tags,
   },
+  boxPlans: {
+    resource: "box_subscription_plans",
+    to: "/subscriptions/box/plans",
+    mode: "dialog",
+    label: "خطط صندوق الرحلة",
+    icon: PackageCheck,
+  },
+  writingPackages: {
+    resource: "creative_writing_packages",
+    to: "/writing/packages",
+    mode: "dialog",
+    label: "باقات الكتابة الإبداعية",
+    icon: BookOpen,
+  },
 } as const;
 
 const publisherProductsNavigationItem = {
@@ -86,6 +101,8 @@ export const adminNavigationGroups = [
       navigationItems.promotions,
     ],
   },
+  { label: "صندوق الرحلة", items: [navigationItems.boxPlans] },
+  { label: "بداية الرحلة", items: [navigationItems.writingPackages] },
 ] as const;
 
 export const resources: ResourceProps[] = [
@@ -129,6 +146,9 @@ export const resources: ResourceProps[] = [
         ...(item.resource === "orders" ? { dataProviderName: "orders" } : {}),
         ...(item.resource === "price_promotions"
           ? { dataProviderName: "promotions" }
+          : {}),
+        ...(item.resource === "box_subscription_plans"
+          ? { dataProviderName: "boxPlans" }
           : {}),
       },
     };

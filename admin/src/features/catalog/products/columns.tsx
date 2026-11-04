@@ -3,8 +3,10 @@ import { Package } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
 import {
   ResourceRowActions,
+  ResourceActionsColumnHeader,
   createResourceSwitchColumn,
 } from "@/components/resources";
+import { CatalogImageAvatar } from "../catalog-image-avatar";
 import type { Product } from "./model";
 
 const categories = [
@@ -15,32 +17,35 @@ const categories = [
 export function productColumns(): ColumnDef<Product, unknown>[] {
   return [
     {
+      id: "image",
+      meta: { label: "صورة المنتج", compactCell: true },
+      header: () => <span className="sr-only">صورة المنتج</span>,
+      size: 50,
+      minSize: 50,
+      maxSize: 70,
+      enableSorting: false,
+      enableColumnFilter: false,
+      enableHiding: false,
+      cell: ({ row }) => (
+        <CatalogImageAvatar
+          src={row.original.cover_image_url}
+          fallback={<Package aria-hidden="true" />}
+        />
+      ),
+    },
+    {
       accessorKey: "name",
       meta: { label: "اسم المنتج", variant: "text" },
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="اسم المنتج" />
       ),
-      size: 260,
+      size: 220,
       cell: ({ row }) => {
         const product = row.original;
         return (
-          <div className="flex items-center gap-3">
-            {product.cover_image_url ? (
-              <img
-                className="size-10 shrink-0 rounded object-cover"
-                src={product.cover_image_url}
-                alt={product.name}
-                title={product.name}
-              />
-            ) : (
-              <div className="flex size-10 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                <Package className="size-5" />
-              </div>
-            )}
-            <p className="font-bold text-sm" title={product.name}>
-              {product.name}
-            </p>
-          </div>
+          <bdi className="break-words font-bold text-sm" title={product.name}>
+            {product.name}
+          </bdi>
         );
       },
     },
@@ -75,10 +80,14 @@ export function productColumns(): ColumnDef<Product, unknown>[] {
     }),
     {
       id: "actions",
+      size: 50,
+      minSize: 50,
+      maxSize: 70,
       enableSorting: false,
       enableColumnFilter: false,
       enableHiding: false,
-      header: "الإجراءات",
+      header: () => <ResourceActionsColumnHeader />,
+      meta: { label: "الإجراءات" },
       cell: ({ row }) => <ProductRowActions product={row.original} />,
     },
   ];

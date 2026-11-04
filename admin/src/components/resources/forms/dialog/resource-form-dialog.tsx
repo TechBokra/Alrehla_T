@@ -1,10 +1,12 @@
-import { useId, useState, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import type { BaseRecord } from "@refinedev/core";
 import { LoaderCircle, Save } from "lucide-react";
 import { FormDialog } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useResourceFormCrud } from "@/hooks/resources";
+import { useResourceUploads } from "@/contexts/resource-page/uploads";
+import { resolveImageSelectionUrls } from "@/hooks/uploads";
 import type { ResourceFormDialogContext } from "../types";
 
 export type { ResourceFormDialogContext } from "../types";
@@ -33,7 +35,22 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
 }) {
   const formId = useId();
   const [formValid, setFormValid] = useState(false);
-  const editing = id !== undefined;
+  const [preparing, setPreparing] = useState(false);
+  const [prepareError, setPrepareError] = useState<string>();
+  const preparingRef = useRef(false);
+  const uploads = useResourceUploads();
+  const hasPendingUploads = Object.values(uploads).some(
+    (upload) =>
+      upload.uploading ||
+      upload.items.some(
+        (item) => !["success", "error", "rejected", "cancelled"].includes(item.status),
+      ),
+  );
+  const uploadBlocked = Object.values(uploads).some(
+    (upload) =>
+      upload.failed ||
+      (upload.items.length > 0 && (upload.accessPending || !upload.allowed)),
+  );
   const crud = useResourceFormCrud<TRecord>({
     resource,
     id,
@@ -42,17 +59,47 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
     getErrorMessage,
     onSaved,
   });
+  const resolveImages = useCallback(
+    async (slot: string, images: Parameters<typeof resolveImageSelectionUrls>[1]) => {
+      const upload = uploads[slot];
+      if (!upload) throw new Error("إعداد رفع الصور غير مكتمل لهذا الحقل.");
+      return resolveImageSelectionUrls(upload.resolve, images);
+    },
+    [uploads],
+  );
   async function save(values: Record<string, unknown>) {
-    if (await crud.save(values)) onClose();
+    setPrepareError(undefined);
+    if (await crud.save(values)) {
+      for (const upload of Object.values(uploads)) upload.clearCompleted();
+      onClose();
+    }
   }
+  async function submit(
+    prepare: () => Record<string, unknown> | Promise<Record<string, unknown>>,
+  ) {
+    if (preparingRef.current || crud.busy || uploadBlocked) return;
+    preparingRef.current = true;
+    setPreparing(true);
+    setPrepareError(undefined);
+    try {
+      await save(await prepare());
+    } catch (error) {
+      setPrepareError(getErrorMessage(error));
+    } finally {
+      preparingRef.current = false;
+      setPreparing(false);
+    }
+  }
+  const dialogPending = crud.pending || preparing || hasPendingUploads;
   return (
     <FormDialog
       open
       title={title}
       description="راجع البيانات ثم اضغط حفظ."
-      pending={crud.pending}
+      pending={dialogPending}
       onOpenChange={(open) => {
-        if (!open && crud.canDismiss()) onClose();
+        if (!open && crud.canDismiss() && !preparing && !hasPendingUploads)
+          onClose();
       }}
       footer={
         <>
@@ -60,21 +107,30 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
             type="submit"
             form={formId}
             disabled={
-              crud.busy || crud.initialError || crud.unavailable || !formValid
+              crud.busy ||
+              crud.initialError ||
+              crud.unavailable ||
+              !formValid ||
+              preparing ||
+              uploadBlocked
             }
-            aria-busy={crud.pending}
+            aria-busy={crud.pending || preparing}
           >
             {crud.pending ? (
               <LoaderCircle className="animate-spin" />
             ) : (
               <Save />
             )}
-            {crud.pending ? "جارٍ الحفظ…" : "حفظ"}
+            {preparing && !crud.pending
+              ? "جارٍ تجهيز الصورة…"
+              : crud.pending
+                ? "جارٍ الحفظ…"
+                : "حفظ"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            disabled={crud.pending}
+            disabled={crud.pending || preparing || hasPendingUploads}
             onClick={onClose}
           >
             إلغاء
@@ -82,7 +138,7 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
         </>
       }
     >
-      <div aria-busy={crud.busy} className="flex flex-col gap-4">
+      <div aria-busy={crud.busy || preparing} className="flex flex-col gap-4">
         {crud.initialLoading ? (
           <div role="status" className="flex flex-col gap-3">
             <span>جارٍ تحميل السجل…</span>
@@ -120,12 +176,20 @@ export function ResourceFormDialog<TRecord extends BaseRecord>({
                 {crud.error}
               </p>
             )}
+            {prepareError && (
+              <p role="alert" className="text-destructive">
+                {prepareError}
+              </p>
+            )}
             {children({
               record: crud.record,
               formId,
-              disabled: crud.busy || crud.unavailable,
+              disabled: crud.busy || preparing || crud.unavailable,
               onFormValidityChange: setFormValid,
               onSave: save,
+              uploads,
+              resolveImages,
+              submit,
             })}
           </>
         )}

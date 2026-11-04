@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Package } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
 import { createResourceSwitchColumn } from "@/components/resources";
+import { CatalogImageAvatar } from "@/features/catalog/catalog-image-avatar";
 import type { Database } from "@/types/supabase";
 import type { Product } from "../products/model";
 
@@ -38,33 +39,36 @@ export function publisherProductColumns(
 
   return [
     {
+      id: "image",
+      meta: { label: "صورة المنتج", compactCell: true },
+      header: () => <span className="sr-only">صورة المنتج</span>,
+      size: 50,
+      minSize: 50,
+      maxSize: 70,
+      enableSorting: false,
+      enableColumnFilter: false,
+      enableHiding: false,
+      cell: ({ row }) => (
+        <CatalogImageAvatar
+          src={row.original.cover_image_url}
+          fallback={<Package aria-hidden="true" />}
+        />
+      ),
+    },
+    {
       accessorKey: "name",
       meta: { label: "اسم المنتج", variant: "text" },
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="اسم المنتج" />
       ),
-      maxSize: 250,
-      size: 250,
+      maxSize: 220,
+      size: 220,
       cell: ({ row }) => {
         const product = row.original;
         return (
-          <div className="flex min-w-56 items-center gap-3">
-            {product.cover_image_url ? (
-              <img
-                className="size-10 shrink-0 rounded object-cover"
-                src={product.cover_image_url}
-                alt={product.name}
-                title={product.name}
-              />
-            ) : (
-              <div className="flex size-10 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
-                <Package className="size-5" />
-              </div>
-            )}
-            <span className="font-semibold" dir="auto" title={product.name}>
-              {product.name}
-            </span>
-          </div>
+          <span className="font-semibold" dir="auto" title={product.name}>
+            {product.name}
+          </span>
         );
       },
     },

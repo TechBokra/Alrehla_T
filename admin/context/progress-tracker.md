@@ -1,5 +1,67 @@
 # Progress Tracker
 
+### Creative-writing package management — 2026-11-04
+
+- Added `/writing/packages` as its own sidebar group, «بداية الرحلة», with the
+  page label «باقات الكتابة الإبداعية». The resource uses the existing
+  `creative_writing_packages` table, shared `ResourceView`, dialog form,
+  Refine CRUD lifecycle and the existing catalog permission.
+- Matched the fields in the current client/admin package model: name, age group,
+  track, short/full descriptions, audience, price, session count and duration,
+  program duration, prerequisite note and active state. The first dialog row is
+  a two-column Avatar fallback followed by «اسم الباقة»; remaining fields use a
+  two-column grid. The table uses the shared Avatar component pattern and
+  `createResourceSwitchColumn({ field: "is_active", label: "الحالة" })`.
+- The package table has no image field, so per the requested fallback-only
+  choice no image upload, migration or generated database-type change was added.
+  Package deletion was initially denied. The follow-up entry below enables it
+  through the shared guarded delete action.
+- Added the feature flow and component responsibilities to
+  `doc/writing-packages.md` and linked it from the application architecture.
+  The new Refine direct write does not call the legacy Next.js
+  `revalidatePath`/public-page refresh action. Route generation completed with
+  the existing circular-dependency warning. No tests, typecheck or build were
+  run; no live rows were changed.
+
+### Compact feature table columns and package deletion — 2026-11-04
+
+- Set shared status switches to 50px columns with a 70px maximum and kept them
+  visible. Set feature action columns to the same width bounds; order actions
+  now use an icon-only button with an accessible label.
+- Made the catalog, publisher-product, box-plan and writing-package images
+  separate 50px Avatar columns. Publisher product rows now use the shared
+  Avatar composition. Package rows retain the fallback because their table has
+  no persisted image field.
+- Kept Avatar, status and action columns visible by default at 50px (maximum
+  70px); compact icon headers fit the narrow status/action columns. The shared
+  table removes cell padding only for Avatar columns so each 50px Avatar stays
+  fully visible.
+- Enabled package deletion under the existing `canManageCatalog` UI policy and
+  existing admin RLS policy. The shared confirmation dialog explains linked
+  records; foreign keys remain authoritative and may reject deletion. No
+  migration or policy change was added. Tests, typecheck and build were not run.
+
+### Box subscription plan management — 2026-11-03
+
+- Added `/subscriptions/box/plans` with the legacy client plan fields in a
+  create/edit Dialog, a responsive two-column form, and the shared UploadCN
+  image field. The list searches plan names and shows image avatars, visibility
+  and highlighted badges, duration, prices and row actions.
+- Added the named `boxPlans` provider, subscription permission checks, scoped
+  add-on choices, single-highlight handling, navigation and generated route.
+  The existing `media-library` function source now allows authorized uploads
+  into `alrehla/box-plans`; deploy that function for hosted upload support.
+- Matched the plan image control to the legacy client UI (preview plus
+  full-width upload/change button) and placed it in the right column, with plan
+  name and short description on the left. The rest of the form remains two
+  columns.
+- Added best-effort create/update/delete audit entries through the existing
+  audit table. Documented the remaining boundary: direct Supabase writes do not
+  invoke the legacy Next.js public-cache revalidation action.
+  `pnpm --dir admin run typecheck` passes. Chrome inspection could not attach:
+  the browser debugger was unattached and computer-use permissions were denied.
+  No tests or live plan/media changes were made.
+
 ### Platform settings navigation and identity/contact — 2026-11-03
 
 - Reorganized settings by domain: catalog definitions, identity/contact,
@@ -876,3 +938,47 @@ change.
 - Consolidated customization field name, required badge, example and product/
   box visibility into one “خانة التخصيص” column. Status and row actions remain
   separate controls. No backend changes; tests/build were not run.
+
+
+### Catalog list avatars and table options alignment — 2026-11-03
+
+- Restored shared `CatalogImageAvatar` use in product and add-on table cells,
+  including lazy-loaded images and icon fallbacks. Added the image-column rule
+  to `context/ui-context.md`.
+- Aligned `DataTableViewOptions` to the physical left edge of its final header
+  cell in RTL and to the left in LTR. Existing catalog name search and the
+  combined customization-field column were already present and were left intact.
+- Tests/build were not run.
+
+
+### Active sidebar item border — 2026-11-03
+
+- Added a two-pixel right border in the sidebar primary color to active top-level
+  and nested menu links. The indicator follows the shared `isActive` state.
+- Tests/build were not run.
+
+
+### Main sidebar menu corners — 2026-11-03
+
+- Changed main sidebar menu buttons to square corners with `rounded-none`.
+  Nested submenu links retain their existing corner treatment.
+- Tests/build were not run.
+
+
+### Promotions offer column RTL — 2026-11-03
+
+- Set the “العرض” cell content to RTL and aligned its item label to the right,
+  so the target, discount, and period read consistently in Arabic.
+- Tests/build were not run.
+
+- Follow-up: the sortable “العرض” header had its own alignment. Wrapped it in
+  an RTL start-aligned container and removed the header button's negative start
+  margin for this column. Tests/build were not run.
+- Follow-up alignment fix: made the sortable header button full width and
+  explicitly right-aligned its contents, so the title does not depend on the
+  intrinsic button width. Anchored `DataTableViewOptions` to the physical left
+  edge of its final header cell using an LTR alignment wrapper. Chrome's open
+  local tab reported “Debugger unattached”; the alternate browser preview could
+  not reach localhost, so the rendered result could not be visually confirmed.
+  Updated the shared table architecture and catalog-offers guide.
+  `git diff --check` passes; tests/build were not run.

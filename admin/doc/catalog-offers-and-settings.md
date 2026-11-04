@@ -6,8 +6,10 @@
   The table shows the target name/type, badge label, percentage or sale price,
   Cairo start/end times, current period state, activation switch and edit actions.
   It includes scheduled, active, expired and paused rows. The period indicator
-  refreshes every 30 seconds. Deletion and bulk mutations are blocked; stop an
-  offer with its activation switch.
+  refreshes every 30 seconds. The sortable “العرض” header is right-aligned, and
+  the shared column-visibility control stays at the physical left edge of the
+  final header cell. Deletion and bulk mutations are blocked; stop an offer with
+  its activation switch.
 - Create/edit uses the shared resource Dialog. Inputs are target type, searched
   target, discount kind/value, Cairo start/end datetime and optional badge label.
   Targets match the legacy screen: printed product, electronic product, add-on,
@@ -52,7 +54,7 @@
 | Module | Responsibility |
 | --- | --- |
 | `features/catalog/promotions/page.tsx` | Resource composition and live period clock with timer cleanup. |
-| `features/catalog/promotions/columns.tsx` | One target/discount/label/date summary column, period state, shared status switch and row actions. |
+| `features/catalog/promotions/columns.tsx` | One target/discount/label/date summary column with a right-aligned sortable header, period state, shared status switch and row actions. |
 | `features/catalog/promotions/dialogs.tsx` | TanStack Form, existing shared Dialog contract and Cairo-labelled inputs. |
 | `features/catalog/promotions/target-field.tsx` | Searchable, single-target picker, Refine hydration and retry UI. |
 | `features/catalog/promotions/model.ts` | Types, form schema, payload mapping, Cairo conversion, display state and Arabic errors. |

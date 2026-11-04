@@ -7,6 +7,7 @@ import { usersDataProvider } from "./users-data-provider";
 import { ordersDataProvider } from "./orders-data-provider";
 import { catalogSettingsDataProvider } from "./catalog-settings-data-provider";
 import { promotionsDataProvider } from "./promotions-data-provider";
+import { boxPlansDataProvider } from "./box-plans-data-provider";
 
 export const refineDataProviders = {
   default: adminDataProvider,
@@ -17,4 +18,5 @@ export const refineDataProviders = {
   orders: ordersDataProvider,
   catalogSettings: catalogSettingsDataProvider,
   promotions: promotionsDataProvider,
+  boxPlans: boxPlansDataProvider,
 } satisfies DataProviders;

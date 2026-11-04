@@ -31,7 +31,9 @@ import { Route as CatalogPublisherProductsIndexRouteImport } from './routes/cata
 import { Route as CatalogSettingsCustomizationFieldsRouteImport } from './routes/catalog/settings/customization-fields'
 import { Route as CatalogSettingsStoryGoalsRouteImport } from './routes/catalog/settings/story-goals'
 import { Route as CatalogSettingsWritingDialectsRouteImport } from './routes/catalog/settings/writing-dialects'
+import { Route as WritingPackagesIndexRouteImport } from './routes/writing/packages/index'
 import { Route as CatalogProductsIdEditRouteImport } from './routes/catalog/products/$id.edit'
+import { Route as SubscriptionsBoxPlansIndexRouteImport } from './routes/subscriptions/box/plans/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -147,11 +149,22 @@ const CatalogSettingsWritingDialectsRoute =
     path: '/settings/writing-dialects',
     getParentRoute: () => CatalogRouteRoute,
   } as any)
+const WritingPackagesIndexRoute = WritingPackagesIndexRouteImport.update({
+  id: '/writing/packages/',
+  path: '/writing/packages/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CatalogProductsIdEditRoute = CatalogProductsIdEditRouteImport.update({
   id: '/products/$id/edit',
   path: '/products/$id/edit',
   getParentRoute: () => CatalogRouteRoute,
 } as any)
+const SubscriptionsBoxPlansIndexRoute =
+  SubscriptionsBoxPlansIndexRouteImport.update({
+    id: '/subscriptions/box/plans/',
+    path: '/subscriptions/box/plans/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,7 +189,9 @@ export interface FileRoutesByFullPath {
   '/catalog/products/': typeof CatalogProductsIndexRoute
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
+  '/writing/packages/': typeof WritingPackagesIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans/': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -198,7 +213,9 @@ export interface FileRoutesByTo {
   '/catalog/products': typeof CatalogProductsIndexRoute
   '/catalog/promotions': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products': typeof CatalogPublisherProductsIndexRoute
+  '/writing/packages': typeof WritingPackagesIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -224,7 +241,9 @@ export interface FileRoutesById {
   '/catalog/products/': typeof CatalogProductsIndexRoute
   '/catalog/promotions/': typeof CatalogPromotionsIndexRoute
   '/catalog/publisher-products/': typeof CatalogPublisherProductsIndexRoute
+  '/writing/packages/': typeof WritingPackagesIndexRoute
   '/catalog/products/$id/edit': typeof CatalogProductsIdEditRoute
+  '/subscriptions/box/plans/': typeof SubscriptionsBoxPlansIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -251,7 +270,9 @@ export interface FileRouteTypes {
     | '/catalog/products/'
     | '/catalog/promotions/'
     | '/catalog/publisher-products/'
+    | '/writing/packages/'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -273,7 +294,9 @@ export interface FileRouteTypes {
     | '/catalog/products'
     | '/catalog/promotions'
     | '/catalog/publisher-products'
+    | '/writing/packages'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans'
   id:
     | '__root__'
     | '/'
@@ -298,7 +321,9 @@ export interface FileRouteTypes {
     | '/catalog/products/'
     | '/catalog/promotions/'
     | '/catalog/publisher-products/'
+    | '/writing/packages/'
     | '/catalog/products/$id/edit'
+    | '/subscriptions/box/plans/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -313,6 +338,8 @@ export interface RootRouteChildren {
   SignInIndexRoute: typeof SignInIndexRoute
   AuthCallbackIndexRoute: typeof AuthCallbackIndexRoute
   AuthLinkIndexRoute: typeof AuthLinkIndexRoute
+  WritingPackagesIndexRoute: typeof WritingPackagesIndexRoute
+  SubscriptionsBoxPlansIndexRoute: typeof SubscriptionsBoxPlansIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -471,12 +498,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogSettingsWritingDialectsRouteImport
       parentRoute: typeof CatalogRouteRoute
     }
+    '/writing/packages/': {
+      id: '/writing/packages/'
+      path: '/writing/packages'
+      fullPath: '/writing/packages/'
+      preLoaderRoute: typeof WritingPackagesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catalog/products/$id/edit': {
       id: '/catalog/products/$id/edit'
       path: '/products/$id/edit'
       fullPath: '/catalog/products/$id/edit'
       preLoaderRoute: typeof CatalogProductsIdEditRouteImport
       parentRoute: typeof CatalogRouteRoute
+    }
+    '/subscriptions/box/plans/': {
+      id: '/subscriptions/box/plans/'
+      path: '/subscriptions/box/plans'
+      fullPath: '/subscriptions/box/plans/'
+      preLoaderRoute: typeof SubscriptionsBoxPlansIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -557,6 +598,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignInIndexRoute: SignInIndexRoute,
   AuthCallbackIndexRoute: AuthCallbackIndexRoute,
   AuthLinkIndexRoute: AuthLinkIndexRoute,
+  WritingPackagesIndexRoute: WritingPackagesIndexRoute,
+  SubscriptionsBoxPlansIndexRoute: SubscriptionsBoxPlansIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

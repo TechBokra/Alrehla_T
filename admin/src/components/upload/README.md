@@ -6,13 +6,20 @@ Upload forms use the installed UploadCN blocks: ImageUpload, AvatarUpload (crop)
 
 `hooks/uploads/use-library-upload-adapter.ts` builds the shared signed adapter. The internal `features/uploads/api.ts` calls Supabase's existing `media-library` Edge Function, which authenticates the current admin, checks content permissions and signs restricted image parameters. The browser uploads bytes directly to Cloudinary. Successful uploads invalidate the product picker's `media-assets` query.
 
-Resource form pages declare upload slots in their page definition. The shared
-resource upload layer creates a non-auto-starting UploadCN queue for each slot;
-the registered `ImageUploadField` selects files and shows queue state. Product
-submission waits for the selected cover upload to complete before calling the
-Refine CRUD mutation, and aborts that mutation when upload preparation fails.
+Resource form pages and dialogs declare upload slots in their form definition.
+The shared resource upload layer creates a non-auto-starting UploadCN queue for
+each slot; the registered `ImageUploadField` selects files and shows queue
+state. Submission waits for the selected image upload to complete before
+calling the Refine CRUD mutation, and aborts that mutation when upload
+preparation fails. Dialogs also prevent dismissal while a file is queued or
+uploading.
 
-The `/uploads` management page and its Refine provider have been removed. Product forms retain a product-folder image picker using the internal media API. Product-media ordering in the upload dialog is a local preview; it does not save product associations. Removing queued items does not delete Cloudinary assets.
+The `/uploads` management page and its Refine provider have been removed.
+Product forms retain a product-folder image picker using the internal media
+API. Box-plan dialogs use the same image field with the `alrehla/box-plans`
+folder. Product-media ordering in the upload dialog is a local preview; it does
+not save product associations. Removing queued items does not delete Cloudinary
+assets.
 
 ## Backend setup
 

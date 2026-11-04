@@ -28,6 +28,8 @@ Refine authorization policy.
 | Product image assets | Internal feature API | Product picker reads and signed uploads use the existing Supabase Edge Function |
 | Users | `users` | `users-data-provider.ts` and the existing `admin-users` Edge Function |
 | Store orders | `orders` | `orders-data-provider.ts`; list/detail enrichment and allowlisted custom commands |
+| Box subscription plans | `boxPlans` | `box-plans-data-provider.ts`; validated plan CRUD and a scoped add-on choice list |
+| Creative-writing packages | `default` | Existing `creative_writing_packages` table through the shared resource Dialog and Refine CRUD hooks |
 | Customization fields, goals and dialects | `catalogSettings` | Existing tables through the validated catalog adapter; dialect code-to-ID mapping |
 
 The registered `refineDataProviders` map is in
@@ -75,6 +77,11 @@ state. `useResourceScope` owns selection and record lookup;
 The list authorization gate wraps the controller so denied/pending pages do not
 mount resource queries.
 
+`DataTable` appends the column-visibility control in a dedicated final header
+cell and aligns it to the physical left edge, including in RTL layouts. Feature
+column headers set their own direction and width when Arabic sorting controls
+need right alignment.
+
 ## Route forms and details pages
 
 The module-scope `createResourcePage` factory in
@@ -87,7 +94,7 @@ reader in `src/hooks/resources/page/`. Page context remains separate from list
 selection context. Form pages expose the TanStack instance as `page.form` and
 feature-owned helpers as `page.feature`; details pages expose no form.
 
-Form definitions may declare named upload slots with a folder, accepted types,
+Page and dialog form definitions may declare named upload slots with a folder, accepted types,
 maximum size and file count. `ResourceUploadSlots` creates one signed UploadCN
 queue per slot through `useResourceUploadSlot`, with `autoUpload: false`, retry
 disabled and the same Refine `uploads/upload` permission used by the media
@@ -95,7 +102,9 @@ library. The registered `ImageUploadField` reads its named slot, renders the
 shared UploadCN picker/progress/preview/removal UI through `BaseFormField`, and
 can compose a feature-owned source picker such as the product media library.
 The preview shows `جارٍ الرفع…` only for IDs being resolved by the current Save
-submission; merely selecting a file does not show upload progress.
+submission; merely selecting a file does not show upload progress. Dialogs use
+the same slot and image field, resolve uploads in their shared Save lifecycle,
+and keep the dialog open while queued or uploading files remain.
 
 For form pages, `useResourceFormCrud` is a thin adapter around Refine `useForm`.
 Refine owns edit query state, create/update mutations, CRUD invalidation and
@@ -171,10 +180,12 @@ boundaries. For orders, the current admin RLS policy is broader than the
 frontend `canManageOrders` check, so client-side authorization does not narrow
 direct database access.
 
-No new or modified Supabase functions, migrations, schema, policies, Next.js
-APIs or deployments are part of this implementation. The order commands use
-only currently existing tables, triggers, policies and RPCs. XPay callbacks
-remain authoritative for payment.
+No migrations, database schema or policy changes, Next.js APIs or deployments
+are part of this implementation. The existing `media-library` function source
+is updated to allow box-plan image uploads by subscription managers; deploy the
+updated function separately. The order commands use only currently existing
+tables, triggers, policies and RPCs. XPay callbacks remain authoritative for
+payment.
 
 ## Detailed implementation guide
 
@@ -203,3 +214,10 @@ partial-save recovery, and module responsibilities.
 See [Catalog offers and settings](./catalog-offers-and-settings.md) for the
 promotions resource, guarded price validation, add-on table composition and
 catalog settings access through the user menu.
+
+See [Box subscription plans](./box-subscription-plans.md) for the dialog fields,
+UploadCN image flow, access rules and the current public-cache/audit boundary.
+
+See [Creative-writing packages](./writing-packages.md) for the separate
+«بداية الرحلة» sidebar group, dialog fields, Avatar fallback, permission rule
+and shared Refine CRUD flow.
