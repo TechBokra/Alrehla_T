@@ -9,11 +9,12 @@ declare module "@tanstack/react-table" {
   }
 }
 
-export type BooleanField<TRecord> = Extract<keyof TRecord, string> & {
-  [TKey in keyof TRecord]-?: NonNullable<TRecord[TKey]> extends boolean
-    ? TKey
-    : never;
-}[keyof TRecord];
+export type BooleanField<TRecord> = Extract<keyof TRecord, string> &
+  {
+    [TKey in keyof TRecord]-?: NonNullable<TRecord[TKey]> extends boolean
+      ? TKey
+      : never;
+  }[keyof TRecord];
 
 export function createResourceSwitchColumn<
   TRecord extends BaseRecord & { id: string | number },
@@ -31,7 +32,6 @@ export function createResourceSwitchColumn<
   return {
     accessorKey: field,
     header: label,
-    size: 170,
     meta: {
       label,
       variant: "multiSelect",

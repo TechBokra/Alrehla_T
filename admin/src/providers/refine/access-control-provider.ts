@@ -62,7 +62,8 @@ export function evaluateResourceAccess(
   if (resource === "price_promotions") {
     if (!["list", "show", "create", "edit"].includes(action))
       return deny("أوقف العرض بدلًا من حذفه.");
-    return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
+    return actor.role === "super_admin" ||
+      actor.permissions.includes("canManageCatalog")
       ? { can: true } : deny("لا تملك صلاحية إدارة العروض.");
   }
   if (resource === "box_subscription_plans") {
@@ -79,6 +80,13 @@ export function evaluateResourceAccess(
       actor.permissions.includes("canManageSubscriptions")
       ? { can: true }
       : deny("لا تملك صلاحية إدارة اشتراكات صندوق الرحلة.");
+  }
+  if (resource === "creative_writing_packages") {
+    if (!["list", "show", "create", "edit", "delete"].includes(action))
+      return deny("هذا الإجراء غير متاح لباقات الكتابة الإبداعية.");
+    return actor.role === "super_admin" || actor.permissions.includes("canManageCatalog")
+      ? { can: true }
+      : deny("لا تملك صلاحية إدارة باقات الكتابة الإبداعية.");
   }
   if (resource === "uploads") {
     if (!["list", "upload"].includes(action))

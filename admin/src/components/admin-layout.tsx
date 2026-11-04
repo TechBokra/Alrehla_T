@@ -159,6 +159,7 @@ function getPageLabel(pathname: string) {
     return "منتجات الناشرين";
   if (pathname.startsWith("/catalog/addons")) return "الإضافات";
   if (pathname.startsWith("/catalog/products")) return "منتجات المنصة";
+  if (pathname.startsWith("/writing/packages")) return "باقات الكتابة الإبداعية";
   if (pathname.startsWith("/orders")) return "الطلبات";
   if (pathname.startsWith("/notifications")) return "الإشعارات";
   if (pathname.startsWith("/users")) return "المستخدمون";

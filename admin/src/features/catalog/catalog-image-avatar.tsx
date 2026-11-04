@@ -10,7 +10,7 @@ export function CatalogImageAvatar({
   fallback: ReactNode;
 }) {
   return (
-    <Avatar className="mt-0.5 size-14 shrink-0 rounded-lg after:rounded-lg">
+    <Avatar className="mt-0.5 size-[50px] shrink-0 rounded-lg after:rounded-lg">
       <AvatarImage
         src={src || undefined}
         alt=""

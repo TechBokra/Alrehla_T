@@ -29,6 +29,7 @@ Refine authorization policy.
 | Users | `users` | `users-data-provider.ts` and the existing `admin-users` Edge Function |
 | Store orders | `orders` | `orders-data-provider.ts`; list/detail enrichment and allowlisted custom commands |
 | Box subscription plans | `boxPlans` | `box-plans-data-provider.ts`; validated plan CRUD and a scoped add-on choice list |
+| Creative-writing packages | `default` | Existing `creative_writing_packages` table through the shared resource Dialog and Refine CRUD hooks |
 | Customization fields, goals and dialects | `catalogSettings` | Existing tables through the validated catalog adapter; dialect code-to-ID mapping |
 
 The registered `refineDataProviders` map is in
@@ -216,3 +217,7 @@ catalog settings access through the user menu.
 
 See [Box subscription plans](./box-subscription-plans.md) for the dialog fields,
 UploadCN image flow, access rules and the current public-cache/audit boundary.
+
+See [Creative-writing packages](./writing-packages.md) for the separate
+«بداية الرحلة» sidebar group, dialog fields, Avatar fallback, permission rule
+and shared Refine CRUD flow.

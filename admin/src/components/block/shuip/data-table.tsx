@@ -133,6 +133,7 @@ declare module "@tanstack/react-table" {
     variant?: "text" | "number" | "date" | "select" | "multiSelect";
     options?: DataTableFilterOption[];
     icon?: React.ComponentType<{ className?: string }>;
+    compactCell?: boolean;
   }
 }
 
@@ -566,6 +567,7 @@ export function DataTable<TData>({
                       style={getColumnStyles(cell.column)}
                       className={cn(
                         "overflow-hidden",
+                        cell.column.columnDef.meta?.compactCell && "p-0",
                         getPinClass(cell.column),
                       )}
                     >

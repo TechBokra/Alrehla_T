@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/components/block/shuip/data-table";
 import {
   createResourceSwitchColumn,
+  ResourceActionsColumnHeader,
   ResourceRowActions,
 } from "@/components/resources";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,10 @@ export function promotionColumns(now: number): ColumnDef<Promotion, unknown>[] {
         const dateRange = `من ${date.format(new Date(promotion.starts_at))} إلى ${date.format(new Date(promotion.ends_at))}`;
 
         return (
-          <div dir="rtl" className="flex min-w-0 flex-col gap-1 py-1 text-start">
+          <div
+            dir="rtl"
+            className="flex min-w-0 flex-col gap-1 py-1 text-start"
+          >
             <bdi className="font-semibold text-foreground text-start">
               {promotion.target_name ?? `عنصر غير متاح: ${promotion.target_id}`}{" "}
               <span>({targetType})</span>
@@ -99,7 +103,11 @@ export function promotionColumns(now: number): ColumnDef<Promotion, unknown>[] {
     }),
     {
       id: "actions",
-      header: "الإجراءات",
+      size: 50,
+      minSize: 50,
+      maxSize: 70,
+      header: () => <ResourceActionsColumnHeader />,
+      meta: { label: "الإجراءات" },
       enableSorting: false,
       enableColumnFilter: false,
       enableHiding: false,

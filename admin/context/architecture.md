@@ -97,6 +97,18 @@ read-only publisher list, and exposes the shared `is_active` switch. It does not
 expose product forms or reorder rows from that list. See
 [publisher products](../doc/publisher-products.md).
 
+Creative-writing packages have a separate `/writing/packages` resource page in
+the «بداية الرحلة» sidebar group. It uses the existing
+`creative_writing_packages` table and shared Refine resource CRUD/dialog
+architecture, with the legacy client/admin package fields and shared
+`createResourceSwitchColumn` for `is_active`. The table and the first form row
+use the shared Avatar composition with a package icon fallback. The table has
+an Avatar image column without a persisted image field, and image upload is
+omitted; no database change is included. Package deletion uses the shared
+confirmation dialog and is allowed by the existing admin package RLS policy;
+foreign-key relationships block deletion when linked records require it. See
+[creative-writing packages](../doc/writing-packages.md).
+
 Time-limited price promotions use the named `promotions` provider and existing
 `price_promotions` table. It allowlists the four legacy target types, validates
 current target prices before writes, and supports create/edit/activation with

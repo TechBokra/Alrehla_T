@@ -70,6 +70,13 @@ const navigationItems = {
     label: "خطط صندوق الرحلة",
     icon: PackageCheck,
   },
+  writingPackages: {
+    resource: "creative_writing_packages",
+    to: "/writing/packages",
+    mode: "dialog",
+    label: "باقات الكتابة الإبداعية",
+    icon: BookOpen,
+  },
 } as const;
 
 const publisherProductsNavigationItem = {
@@ -95,6 +102,7 @@ export const adminNavigationGroups = [
     ],
   },
   { label: "صندوق الرحلة", items: [navigationItems.boxPlans] },
+  { label: "بداية الرحلة", items: [navigationItems.writingPackages] },
 ] as const;
 
 export const resources: ResourceProps[] = [

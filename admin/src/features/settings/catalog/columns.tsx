@@ -4,6 +4,7 @@ import type { BooleanField } from "@/components/resources/columns/resource-switc
 import {
   createResourceSwitchColumn,
   ResourceRowActions,
+  ResourceActionsColumnHeader,
 } from "@/components/resources";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,10 +27,14 @@ function activeColumn<
 function actionsColumn<T extends { id: string }>(): ColumnDef<T, unknown> {
   return {
     id: "actions",
+    size: 50,
+    minSize: 50,
+    maxSize: 70,
     enableSorting: false,
     enableColumnFilter: false,
     enableHiding: false,
-    header: "الإجراءات",
+    header: () => <ResourceActionsColumnHeader />,
+    meta: { label: "الإجراءات" },
     cell: ({ row }) => <ResourceRowActions id={row.original.id} />,
   };
 }
@@ -70,7 +75,8 @@ export function customizationFieldColumns(): ColumnDef<
       size: 380,
       cell: ({ row }) => {
         const field = row.original;
-        const products = field.applies_to?.filter((target) => target !== "box").length ?? 0;
+        const products =
+          field.applies_to?.filter((target) => target !== "box").length ?? 0;
         const includesBox = field.applies_to?.includes("box") ?? false;
         const scope = !field.applies_to?.length
           ? "كل المنتجات وصندوق الرحلة"
@@ -89,7 +95,9 @@ export function customizationFieldColumns(): ColumnDef<
           <div className="flex min-w-64 flex-col items-start gap-1.5 py-1">
             <div className="flex flex-wrap items-center gap-2">
               <bdi className="font-medium">{field.label}</bdi>
-              {field.is_required ? <Badge variant="secondary">إلزامية</Badge> : null}
+              {field.is_required ? (
+                <Badge variant="secondary">إلزامية</Badge>
+              ) : null}
             </div>
             {field.placeholder ? (
               <p className="text-sm text-muted-foreground">
@@ -107,12 +115,7 @@ export function customizationFieldColumns(): ColumnDef<
   ];
 }
 export function storyGoalColumns(): ColumnDef<StoryGoal, unknown>[] {
-  return [
-    labelColumn(),
-    scopeColumn(),
-    activeColumn(),
-    actionsColumn(),
-  ];
+  return [labelColumn(), scopeColumn(), activeColumn(), actionsColumn()];
 }
 export function writingDialectColumns(): ColumnDef<WritingDialect, unknown>[] {
   return [

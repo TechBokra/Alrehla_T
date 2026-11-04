@@ -1,5 +1,46 @@
 # Progress Tracker
 
+### Creative-writing package management — 2026-11-04
+
+- Added `/writing/packages` as its own sidebar group, «بداية الرحلة», with the
+  page label «باقات الكتابة الإبداعية». The resource uses the existing
+  `creative_writing_packages` table, shared `ResourceView`, dialog form,
+  Refine CRUD lifecycle and the existing catalog permission.
+- Matched the fields in the current client/admin package model: name, age group,
+  track, short/full descriptions, audience, price, session count and duration,
+  program duration, prerequisite note and active state. The first dialog row is
+  a two-column Avatar fallback followed by «اسم الباقة»; remaining fields use a
+  two-column grid. The table uses the shared Avatar component pattern and
+  `createResourceSwitchColumn({ field: "is_active", label: "الحالة" })`.
+- The package table has no image field, so per the requested fallback-only
+  choice no image upload, migration or generated database-type change was added.
+  Package deletion was initially denied. The follow-up entry below enables it
+  through the shared guarded delete action.
+- Added the feature flow and component responsibilities to
+  `doc/writing-packages.md` and linked it from the application architecture.
+  The new Refine direct write does not call the legacy Next.js
+  `revalidatePath`/public-page refresh action. Route generation completed with
+  the existing circular-dependency warning. No tests, typecheck or build were
+  run; no live rows were changed.
+
+### Compact feature table columns and package deletion — 2026-11-04
+
+- Set shared status switches to 50px columns with a 70px maximum and kept them
+  visible. Set feature action columns to the same width bounds; order actions
+  now use an icon-only button with an accessible label.
+- Made the catalog, publisher-product, box-plan and writing-package images
+  separate 50px Avatar columns. Publisher product rows now use the shared
+  Avatar composition. Package rows retain the fallback because their table has
+  no persisted image field.
+- Kept Avatar, status and action columns visible by default at 50px (maximum
+  70px); compact icon headers fit the narrow status/action columns. The shared
+  table removes cell padding only for Avatar columns so each 50px Avatar stays
+  fully visible.
+- Enabled package deletion under the existing `canManageCatalog` UI policy and
+  existing admin RLS policy. The shared confirmation dialog explains linked
+  records; foreign keys remain authoritative and may reject deletion. No
+  migration or policy change was added. Tests, typecheck and build were not run.
+
 ### Box subscription plan management — 2026-11-03
 
 - Added `/subscriptions/box/plans` with the legacy client plan fields in a
