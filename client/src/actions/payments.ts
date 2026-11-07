@@ -52,8 +52,13 @@ export async function startGatewayPayment(
     return { ok: false, error: 'الدفع بالبطاقة غير متاح حاليًا — ادفع بالتحويل.' };
   }
 
+  // شحن شهادة إتمام ورقية — جدولها ودوالها (ملف 20261107130000).
+  if (kind === 'certificate') {
+    return startCertificatePayment(orderId, settings.methods);
+  }
+
   // خدمة كتابة أو حجز باقة — جدول تاني ودوال تانية.
-  if (kind !== 'order') {
+  if (kind === 'service_order' || kind === 'course_subscription') {
     return startCreativeWritingPayment(orderId, kind, settings.methods);
   }
 
@@ -248,6 +253,53 @@ async function startCreativeWritingPayment(
     return { ok: false, error: PAY_FAILED };
   }
 
+  return { ok: true, url: session.url };
+}
+
+/**
+ * رسوم شحن الشهادة الورقية. الرسوم اتحسبت في القاعدة من جدول الشحن وقت
+ * الطلب (`course_certificate_request_paper`) — بنقراها من هناك، مش من الشاشة.
+ */
+async function startCertificatePayment(id: string, methods: GatewayMethod[]): Promise<StartPaymentResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('course_certificates')
+    .select('status, shipping_fee, payment_reference, participant_name, recipient_name, recipient_phone')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) return { ok: false, error: PAY_FAILED };
+  if (!data) return { ok: false, error: 'الطلب غير موجود' };
+  if (data.status !== 'awaiting_payment') return { ok: false, error: 'الطلب ده مش في انتظار الدفع' };
+
+  const amount = Number(data.shipping_fee ?? 0);
+  if (!Number.isInteger(amount) || amount <= 0) {
+    return { ok: false, error: 'رسوم الشحن غير محددة — كلّمنا من صفحة الدعم.' };
+  }
+
+  const session = await createCheckoutSession({
+    orderId: id,
+    kind: 'certificate',
+    amount,
+    description: `شحن شهادة ${data.participant_name} — ${data.payment_reference ?? id.slice(0, 8)}`,
+    methods,
+    successUrl: `${SITE_URL}/account/bookings?certificate=paid`,
+    cancelUrl: `${SITE_URL}/account/bookings`,
+    customer: { name: data.recipient_name ?? undefined, phone: data.recipient_phone ?? undefined },
+  });
+  if (session.ok && session.note) await recordSessionFailure(id, session.note, 'certificate');
+  if (!session.ok) {
+    await recordSessionFailure(id, session.detail ?? 'unknown', 'certificate');
+    return { ok: false, error: session.error };
+  }
+
+  const { data: attached, error: attachError } = await supabase.rpc('attach_payment_session_cert', {
+    p_id: id,
+    p_session_id: session.sessionId,
+  });
+  if (attachError || !(attached as { ok?: boolean } | null)?.ok) {
+    console.error('تعذّر ربط جلسة دفع الشهادة', attachError ?? attached);
+    return { ok: false, error: PAY_FAILED };
+  }
   return { ok: true, url: session.url };
 }
 

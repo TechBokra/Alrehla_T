@@ -19,14 +19,14 @@ export const HANDLED_EVENTS = [
 
 /**
  * نوع المدفوع له — الدفعة ممكن تكون لطلب منتج، أو لخدمة كتابة، أو
- * لحجز باقة. التلاتة في جداول مختلفة بدوال مختلفة.
+ * لحجز باقة، أو لشحن شهادة إتمام ورقية. كلهم في جداول مختلفة بدوال مختلفة.
  *
  * ⚠️ الجلسات القديمة اللي اتفتحت قبل الخانة دي مافيهاش `kind`، فالغياب
  *    معناه 'order' — وده كان السلوك الوحيد وقتها.
  */
-export type PaymentKind = 'order' | 'service_order' | 'course_subscription';
+export type PaymentKind = 'order' | 'service_order' | 'course_subscription' | 'certificate';
 
-export const PAYMENT_KINDS: PaymentKind[] = ['order', 'service_order', 'course_subscription'];
+export const PAYMENT_KINDS: PaymentKind[] = ['order', 'service_order', 'course_subscription', 'certificate'];
 
 export function isPaymentKind(v: unknown): v is PaymentKind {
   return typeof v === 'string' && (PAYMENT_KINDS as string[]).includes(v);

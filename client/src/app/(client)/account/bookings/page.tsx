@@ -11,10 +11,16 @@ import { AccountBookingsClient, type BookingRow } from './AccountBookingsClient'
 import { CertificatesSection } from './CertificatesSection';
 import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
 import { getCertificates } from '@/data/domains/(shared)/certificates/queries';
+import { EMPTY_DELIVERY_CATALOG, getDeliveryCatalog } from '@/data/domains/(client)/shipping/queries';
 
 export const dynamic = 'force-dynamic';
 
-export default async function BookingsPage() {
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ certificate?: string }>;
+}) {
+  const sp = await searchParams;
   const user = await getCurrentUser();
   const [sessions, settings, content, reviewable, certificates] = await Promise.all([
     getSessions(),
@@ -25,6 +31,11 @@ export default async function BookingsPage() {
     // شهادات الإتمام (٧ نوفمبر) — بتاعة صاحب الحساب بس.
     user.role === 'visitor' ? Promise.resolve([]) : getCertificates({ ownerId: user.id }),
   ]);
+
+  // كتالوج الشحن بس لو فيه شهادة ممكن تتطلب ورقية.
+  const certificateCatalog = certificates.some((c) => c.status === 'issued')
+    ? await getDeliveryCatalog()
+    : EMPTY_DELIVERY_CATALOG;
 
   const rows: BookingRow[] = sessions.map((session) => {
     const status = sessionStatusView(session.status);
@@ -67,7 +78,11 @@ export default async function BookingsPage() {
           ⚠️ والكارت بيظهر **بعد آخر جلسة بس** — `bookingReviewState`
              هي اللي بتقرر، ونفس الدالة بتتفحص تاني في الأكشن قبل
              الكتابة (قاعدة «ع»: إخفاء الشاشة بيتخطّى). */}
-      <CertificatesSection certificates={certificates} />
+      <CertificatesSection
+        certificates={certificates}
+        catalog={certificateCatalog}
+        justPaid={sp.certificate === 'paid'}
+      />
 
       {reviewable.map((b) => (
         <ReviewForm

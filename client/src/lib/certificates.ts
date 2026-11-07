@@ -2,19 +2,29 @@
  * شهادات إتمام «بداية الرحلة» (ملف 20261107120000).
  *
  * المسار: «بانتظار الإصدار» ← «صدرت» (رقمية جاهزة لولي الأمر) ← ولو طلب
- * نسخة ورقية: «طباعة» ← «في الشحن» ← «اتسلّمت». كل مرحلة شغل مهمة في
+ * نسخة ورقية: «بانتظار دفع الشحن» ← «طباعة» ← «في الشحن» ← «اتسلّمت».
+ * الشهادة مجانية؛ ولي الأمر بيدفع رسوم الشحن بس، أونلاين قبل الطباعة
+ * (ملف 20261107130000). كل مرحلة شغل مهمة في
  * «مهامي» (المسار certificates)، وكل تغيير بدالة في القاعدة بتتأكد من
  * الصلاحية والحالة — الشاشة مابتكتبش في الجدول مباشرة.
  */
 
-export type CertificateStatus = 'pending' | 'issued' | 'print_requested' | 'shipped' | 'delivered';
+export type CertificateStatus = 'pending' | 'issued' | 'awaiting_payment' | 'print_requested' | 'shipped' | 'delivered';
 
-export const CERTIFICATE_STATUSES: CertificateStatus[] = ['pending', 'issued', 'print_requested', 'shipped', 'delivered'];
+export const CERTIFICATE_STATUSES: CertificateStatus[] = [
+  'pending',
+  'issued',
+  'awaiting_payment',
+  'print_requested',
+  'shipped',
+  'delivered',
+];
 
 /** للإدارة. */
 export const CERTIFICATE_STATUS_LABELS: Record<CertificateStatus, string> = {
   pending: 'بانتظار الإصدار',
   issued: 'صدرت (رقمية)',
+  awaiting_payment: 'طلب ورقية — بانتظار دفع الشحن',
   print_requested: 'مطلوب نسخة ورقية — طباعة',
   shipped: 'في الشحن',
   delivered: 'اتسلّمت',
@@ -24,6 +34,7 @@ export const CERTIFICATE_STATUS_LABELS: Record<CertificateStatus, string> = {
 export const CERTIFICATE_PARENT_LABELS: Record<CertificateStatus, string> = {
   pending: 'بنجهّزها',
   issued: 'جاهزة',
+  awaiting_payment: 'النسخة الورقية مستنية دفع الشحن',
   print_requested: 'النسخة الورقية بتتطبع',
   shipped: 'النسخة الورقية في الطريق',
   delivered: 'النسخة الورقية اتسلّمت',

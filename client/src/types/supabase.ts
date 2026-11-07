@@ -1427,6 +1427,14 @@ export type Database = {
           delivered_at: string | null
           created_at: string
           updated_at: string
+          country_code: string | null
+          shipping_fee: number | null
+          payment_reference: string | null
+          payment_provider: string | null
+          payment_session_id: string | null
+          payment_intent_id: string | null
+          payment_method: string | null
+          paid_at: string | null
         }
         Insert: {
           id?: string
@@ -1451,6 +1459,14 @@ export type Database = {
           delivered_at?: string | null
           created_at?: string
           updated_at?: string
+          country_code?: string | null
+          shipping_fee?: number | null
+          payment_reference?: string | null
+          payment_provider?: string | null
+          payment_session_id?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          paid_at?: string | null
         }
         Update: {
           id?: string
@@ -1475,6 +1491,14 @@ export type Database = {
           delivered_at?: string | null
           created_at?: string
           updated_at?: string
+          country_code?: string | null
+          shipping_fee?: number | null
+          payment_reference?: string | null
+          payment_provider?: string | null
+          payment_session_id?: string | null
+          payment_intent_id?: string | null
+          payment_method?: string | null
+          paid_at?: string | null
         }
         Relationships: []
       }
@@ -5375,8 +5399,24 @@ export type Database = {
           p_city: string
           p_governorate: string
           p_notes?: string | null
+          p_country?: string
         }
-        Returns: undefined
+        Returns: Json
+      }
+      course_certificate_cancel_paper: { Args: { p_id: string }; Returns: undefined }
+      attach_payment_session_cert: { Args: { p_id: string; p_session_id: string }; Returns: Json }
+      record_gateway_payment_cert: {
+        Args: {
+          p_event_id: string
+          p_event_type: string
+          p_id: string
+          p_session_id: string | null
+          p_intent_id: string | null
+          p_amount_minor: number | null
+          p_method: string | null
+          p_payload?: Json
+        }
+        Returns: Json
       }
       course_certificate_ship: { Args: { p_id: string; p_tracking?: string | null }; Returns: undefined }
       course_certificate_deliver: { Args: { p_id: string }; Returns: undefined }

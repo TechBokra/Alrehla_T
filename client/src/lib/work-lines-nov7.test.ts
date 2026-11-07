@@ -80,3 +80,24 @@ describe('شهادات الإتمام', () => {
     expect(participantNameProblem('يوسف أحمد')).toBeNull();
   });
 });
+
+describe('دفع شحن الشهادة', () => {
+  it('النوع معروف للويبهوك', async () => {
+    const { parseXpayEvent } = await import('@/lib/payments/xpay-event');
+    const ev = parseXpayEvent({
+      id: 'evt_1',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_1', amountTotal: 9000, metadata: { orderId: '6f1c2d3e-4b5a-4c6d-8e7f-001122334455', kind: 'certificate' } } },
+    });
+    expect(ev?.kind).toBe('certificate');
+    expect(ev?.amountMinor).toBe(9000);
+  });
+
+  it('القاعدة بتقبل المصدر في سجل الدفعات', () => {
+    const sql = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20261107130000_certificate_shipping_payment.sql'),
+      'utf8',
+    );
+    expect(sql).toMatch(/source_kind = ANY \(ARRAY\[[^\]]*'certificate'/);
+  });
+});

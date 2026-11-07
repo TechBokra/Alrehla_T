@@ -15,6 +15,7 @@ import type { Certificate } from '@/data/domains/(shared)/certificates/queries';
 const BADGE: Record<CertificateStatus, StatusBadgeType> = {
   pending: 'pending',
   issued: 'success',
+  awaiting_payment: 'neutral',
   print_requested: 'warning',
   shipped: 'info',
   delivered: 'success',
@@ -100,7 +101,8 @@ function CertificateCard({ c }: { c: Certificate }) {
         <StatusBadge type={BADGE[c.status]} label={CERTIFICATE_STATUS_LABELS[c.status]} />
       </div>
 
-      {(c.status === 'print_requested' || c.status === 'shipped' || c.status === 'delivered') && c.addressLine && (
+      {(c.status === 'awaiting_payment' || c.status === 'print_requested' || c.status === 'shipped' || c.status === 'delivered') &&
+        c.addressLine && (
         <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">
           <p className="font-bold text-slate-900">الشحن إلى</p>
           <p>
@@ -111,6 +113,19 @@ function CertificateCard({ c }: { c: Certificate }) {
           </p>
           {c.shippingNotes && <p className="text-slate-500">ملاحظات: {c.shippingNotes}</p>}
           {c.paperRequestedAt && <p className="text-xs text-slate-500">اتطلبت {day(c.paperRequestedAt)}</p>}
+          {c.shippingFee !== null && (
+            <p>
+              رسوم الشحن: <strong>{c.shippingFee} ج</strong>
+              {c.shippingFee > 0 &&
+                (c.paidAt ? ` — اتدفعت ${day(c.paidAt)}` : ' — لسه ماتدفعتش (الطباعة بتبدأ بعد الدفع)')}
+              {c.paymentReference && (
+                <>
+                  {' '}
+                  · <span dir="ltr">{c.paymentReference}</span>
+                </>
+              )}
+            </p>
+          )}
           {c.trackingReference && (
             <p>
               رقم الشحنة: <span dir="ltr">{c.trackingReference}</span>

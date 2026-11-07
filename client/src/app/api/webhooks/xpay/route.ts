@@ -66,6 +66,9 @@ async function resolveKind(
     .maybeSingle();
   if (inCourses.data) return 'course_subscription';
 
+  const inCertificates = await admin.from('course_certificates').select('id').eq('id', id).maybeSingle();
+  if (inCertificates.data) return 'certificate';
+
   return null;
 }
 
@@ -126,6 +129,32 @@ export async function POST(request: Request) {
   if (!kind) {
     console.error('xpay webhook: رقم مش موجود في أي جدول', event.id, event.orderId);
     return NextResponse.json({ received: true, outcome: 'unknown_source' });
+  }
+
+  // ── شحن شهادة إتمام ورقية (ملف 20261107130000) ────────────
+  //
+  // الدالة بتسجّل الدفعة وبتنقل الشهادة لـ«الطباعة» (والمحفّز بيفتح
+  // مهمتها) — مفيش تجهيز تاني بعدها.
+  if (kind === 'certificate') {
+    const { data, error } = await supabase.rpc('record_gateway_payment_cert', {
+      p_event_id: event.id,
+      p_event_type: event.type,
+      p_id: event.orderId,
+      p_session_id: event.sessionId,
+      p_intent_id: event.intentId,
+      p_amount_minor: event.amountMinor,
+      p_method: event.method,
+      p_payload: parsedBody as never,
+    });
+    if (error) {
+      console.error('xpay webhook: فشل تسجيل دفع الشهادة', event.id, error);
+      return NextResponse.json({ error: 'could not record payment' }, { status: 500 });
+    }
+    const outcome = (data as { outcome?: string } | null)?.outcome ?? 'unknown';
+    if (outcome === 'amount_mismatch' || outcome === 'order_not_found') {
+      console.error('xpay webhook: حدث مرفوض', event.id, outcome);
+    }
+    return NextResponse.json({ received: true, outcome });
   }
 
   // ── خدمة كتابة أو حجز باقة ────────────────────────────────

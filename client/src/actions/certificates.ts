@@ -13,6 +13,11 @@ import { paperRequestProblem, participantNameProblem } from '@/lib/certificates'
  */
 export type CertificateResult = { ok: true } | { ok: false; error: string; field?: string };
 
+/** طلب الورقية: لو فيه رسوم شحن، الخطوة الجاية الدفع. */
+export type PaperRequestResult =
+  | { ok: true; needsPayment: boolean; fee: number }
+  | { ok: false; error: string; field?: string };
+
 const DENIED = 'الشهادات محتاجة صلاحية «إدارة الحجوزات»';
 const ADMIN_PATH = '/dashboard/admin/bookings/certificates';
 
@@ -127,8 +132,11 @@ export async function deliverCertificate(id: string): Promise<CertificateResult>
   return { ok: true };
 }
 
-/** ولي الأمر يطلب نسخة ورقية بعنوانه. */
-export async function requestPaperCertificate(formData: FormData): Promise<CertificateResult> {
+/**
+ * ولي الأمر يطلب نسخة ورقية بعنوانه. الشهادة مجانية؛ رسوم الشحن بتتحسب في
+ * القاعدة من جدول الشحن حسب المنطقة، ولو أكتر من صفر الشهادة بتستنى الدفع.
+ */
+export async function requestPaperCertificate(formData: FormData): Promise<PaperRequestResult> {
   const id = String(formData.get('id') ?? '');
   const input = {
     recipientName: String(formData.get('recipientName') ?? ''),
@@ -147,8 +155,9 @@ export async function requestPaperCertificate(formData: FormData): Promise<Certi
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'سجّل الدخول الأول' };
 
-  const { error } = await supabase.rpc('course_certificate_request_paper', {
+  const { data, error } = await supabase.rpc('course_certificate_request_paper', {
     p_id: id,
+    p_country: String(formData.get('country') ?? 'EG') || 'EG',
     p_recipient_name: input.recipientName.trim(),
     p_recipient_phone: input.recipientPhone.trim(),
     p_address_line: input.addressLine.trim(),
@@ -159,6 +168,19 @@ export async function requestPaperCertificate(formData: FormData): Promise<Certi
   if (error) {
     console.error('requestPaperCertificate', error);
     return { ok: false, error: dbMessage(error, 'تعذّر إرسال الطلب') };
+  }
+  const result = (data ?? {}) as { status?: string; fee?: number };
+  refresh();
+  return { ok: true, needsPayment: result.status === 'awaiting_payment', fee: Number(result.fee ?? 0) };
+}
+
+/** إلغاء طلب الورقية قبل الدفع (أو لتصحيح العنوان) — الشهادة ترجع «جاهزة». */
+export async function cancelPaperCertificate(id: string): Promise<CertificateResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('course_certificate_cancel_paper', { p_id: id });
+  if (error) {
+    console.error('cancelPaperCertificate', error);
+    return { ok: false, error: dbMessage(error, 'تعذّر إلغاء الطلب') };
   }
   refresh();
   return { ok: true };
