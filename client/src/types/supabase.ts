@@ -1005,6 +1005,45 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_plan_items: {
+        Row: {
+          id: string
+          title: string
+          notes: string | null
+          planned_for: string | null
+          status: string
+          post_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          done_at: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          notes?: string | null
+          planned_for?: string | null
+          status?: string
+          post_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          done_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          notes?: string | null
+          planned_for?: string | null
+          status?: string
+          post_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+          done_at?: string | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_name: string
@@ -1364,6 +1403,81 @@ export type Database = {
           },
         ]
       }
+      course_certificates: {
+        Row: {
+          id: string
+          subscription_id: string
+          owner_id: string
+          participant_name: string
+          package_name: string
+          certificate_no: string | null
+          status: string
+          completed_at: string
+          issued_at: string | null
+          issued_by: string | null
+          paper_requested_at: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          address_line: string | null
+          city: string | null
+          governorate: string | null
+          shipping_notes: string | null
+          tracking_reference: string | null
+          shipped_at: string | null
+          delivered_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          subscription_id: string
+          owner_id: string
+          participant_name: string
+          package_name: string
+          certificate_no?: string | null
+          status?: string
+          completed_at?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          paper_requested_at?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          address_line?: string | null
+          city?: string | null
+          governorate?: string | null
+          shipping_notes?: string | null
+          tracking_reference?: string | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          subscription_id?: string
+          owner_id?: string
+          participant_name?: string
+          package_name?: string
+          certificate_no?: string | null
+          status?: string
+          completed_at?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          paper_requested_at?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          address_line?: string | null
+          city?: string | null
+          governorate?: string | null
+          shipping_notes?: string | null
+          tracking_reference?: string | null
+          shipped_at?: string | null
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creative_writing_packages: {
         Row: {
           age_group: Database["public"]["Enums"]["age_group"]
@@ -1384,6 +1498,7 @@ export type Database = {
           track: string | null
           updated_at: string
           booking_open: boolean
+          includes_certificate: boolean
           image_url: string | null
         }
         Insert: {
@@ -1405,6 +1520,7 @@ export type Database = {
           track?: string | null
           updated_at?: string
           booking_open?: boolean
+          includes_certificate?: boolean
           image_url?: string | null
         }
         Update: {
@@ -1426,6 +1542,7 @@ export type Database = {
           track?: string | null
           updated_at?: string
           booking_open?: boolean
+          includes_certificate?: boolean
           image_url?: string | null
         }
         Relationships: [
@@ -5246,6 +5363,23 @@ export type Database = {
       }
       studio_route_reset: { Args: { p_product: string }; Returns: number }
       box_shipment_tasks_sync: { Args: never; Returns: Json }
+      work_channels_daily: { Args: never; Returns: number }
+      course_certificate_create: { Args: { p_subscription: string }; Returns: string }
+      course_certificate_issue: { Args: { p_id: string; p_participant_name: string }; Returns: string }
+      course_certificate_request_paper: {
+        Args: {
+          p_id: string
+          p_recipient_name: string
+          p_recipient_phone: string
+          p_address_line: string
+          p_city: string
+          p_governorate: string
+          p_notes?: string | null
+        }
+        Returns: undefined
+      }
+      course_certificate_ship: { Args: { p_id: string; p_tracking?: string | null }; Returns: undefined }
+      course_certificate_deliver: { Args: { p_id: string }; Returns: undefined }
       task_rule_apply: { Args: { p_line: string; p_step: string }; Returns: number }
       student_sessions: {
         Args: never

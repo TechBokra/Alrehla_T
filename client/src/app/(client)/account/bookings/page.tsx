@@ -8,16 +8,22 @@ import { getSiteSettings } from '@/data/domains/(shared)/settings/queries';
 import { getSiteContent } from '@/data/domains/(shared)/content/queries';
 import { SessionRecordingNotice } from '@/components/SessionRecordingNotice';
 import { AccountBookingsClient, type BookingRow } from './AccountBookingsClient';
+import { CertificatesSection } from './CertificatesSection';
+import { getCurrentUser } from '@/data/domains/(shared)/auth/queries';
+import { getCertificates } from '@/data/domains/(shared)/certificates/queries';
 
 export const dynamic = 'force-dynamic';
 
 export default async function BookingsPage() {
-  const [sessions, settings, content, reviewable] = await Promise.all([
+  const user = await getCurrentUser();
+  const [sessions, settings, content, reviewable, certificates] = await Promise.all([
     getSessions(),
     getSiteSettings(),
     getSiteContent(),
     // الباقات اللي خلصت ولسه ما اتقيّمتش.
     getReviewableBookings(),
+    // شهادات الإتمام (٧ نوفمبر) — بتاعة صاحب الحساب بس.
+    user.role === 'visitor' ? Promise.resolve([]) : getCertificates({ ownerId: user.id }),
   ]);
 
   const rows: BookingRow[] = sessions.map((session) => {
@@ -61,6 +67,8 @@ export default async function BookingsPage() {
           ⚠️ والكارت بيظهر **بعد آخر جلسة بس** — `bookingReviewState`
              هي اللي بتقرر، ونفس الدالة بتتفحص تاني في الأكشن قبل
              الكتابة (قاعدة «ع»: إخفاء الشاشة بيتخطّى). */}
+      <CertificatesSection certificates={certificates} />
+
       {reviewable.map((b) => (
         <ReviewForm
           key={b.subscriptionId}

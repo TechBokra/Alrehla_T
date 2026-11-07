@@ -10,6 +10,11 @@ const LINE_LABELS: Record<string, string> = {
   box: 'شحنات صندوق الرحلة',
   services: 'الخدمات',
   courses: 'الكورسات والجلسات',
+  certificates: 'شهادات الإتمام',
+  support: 'تذاكر الدعم',
+  channels: 'واتساب والإيميل',
+  join: 'طلبات الانضمام',
+  blog: 'خطة المدونة',
 };
 
 export const dynamic = 'force-dynamic';
@@ -38,6 +43,9 @@ export async function GET(request: Request) {
   // مهام الشحنات الشهرية للصندوق الأول (تتفتح قبل موعدها)، وبعدها فحص المواعيد. فشل الأولى مايوقفش التانية.
   const boxRes = await admin.rpc('box_shipment_tasks_sync');
   if (boxRes.error) console.error('task-deadlines cron: box shipments', boxRes.error.message);
+  // مهمة اليوم لكل قناة تواصل ليها مسؤول (ملف 20261107100000). قبل تشغيل الملف الدالة مش موجودة — بنكمّل.
+  const channelsRes = await admin.rpc('work_channels_daily');
+  if (channelsRes.error) console.error('task-deadlines cron: channels', channelsRes.error.message);
 
   const { data, error } = await admin.rpc('work_tasks_deadline_sweep');
   if (error) {

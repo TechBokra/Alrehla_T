@@ -56,6 +56,13 @@ export default async function Page() {
         title="إدارة المدونة"
         action={{ label: 'مقال جديد', href: '/dashboard/admin/content/blog/new' }}
       />
+      <p className="mb-4 text-sm font-medium text-slate-600">
+        المقالات الجاية ومراحلها ومسؤوليها في{' '}
+        <Link href="/dashboard/admin/content/blog/plan" className="font-bold text-blue-700 hover:underline">
+          خطة المحتوى
+        </Link>
+        .
+      </p>
       <SimpleDataTable columns={columns} data={formatted} />
     </div>
   );

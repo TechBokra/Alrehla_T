@@ -11,6 +11,8 @@ import { PaymentReviewPanel } from '@/components/admin/PaymentReviewPanel';
 import { ConfirmPaymentButton } from '@/components/dashboard/ConfirmPaymentButton';
 import { AssignInstructor } from './AssignInstructor';
 import { CancelBooking } from './CancelBooking';
+import { CertificatePanel } from './CertificatePanel';
+import { getCertificateForSubscription } from '@/data/domains/(shared)/certificates/queries';
 import { AddSession } from './AddSession';
 import { getSubscriptionSessionPlan } from '@/data/domains/(admin)/sessions/plan';
 import { quotaNotice } from '@/lib/session-plan';
@@ -44,10 +46,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   const { id } = await params;
-  const [bookings, instructors, plan] = await Promise.all([
+  const [bookings, instructors, plan, certificate] = await Promise.all([
     getCourseBookingsForAdmin(),
     getInstructors(),
     getSubscriptionSessionPlan(id),
+    getCertificateForSubscription(id),
   ]);
   const target = bookings.find((b) => b.id === id);
   if (!target) notFound();
@@ -191,6 +194,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             كانت تسمية حالة في الشاشة ومفيش طريقة توصّلها، فالحجز
             المعلّق بيفضل معلّقًا للأبد. والمكوّن بيخفي نفسه للمكتمل
             والملغي. */}
+        {/* شهادة الإتمام (٧ نوفمبر) — `undefined` = ملف القاعدة لسه ماتشغّلش. */}
+        {certificate !== undefined && (
+          <CertificatePanel
+            subscriptionId={target.id}
+            status={certificate?.status ?? null}
+            bookingStatus={target.status}
+          />
+        )}
+
         <div className="mb-6">
           <CancelBooking subscriptionId={target.id} status={target.status} superAdmin={user.role === 'super_admin'} />
         </div>

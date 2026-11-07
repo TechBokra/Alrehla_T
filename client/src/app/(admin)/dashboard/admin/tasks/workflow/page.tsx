@@ -124,10 +124,18 @@ export default async function WorkflowPage({
               </li>
             ))}
           </ul>
-          <p className="text-xs font-medium leading-6 text-slate-600">
-            البند المخصّص في الطلب بيعدّي بمسار الاستوديو بالتوازي مع تجهيز الطلب وشحنه؛ حالته بتظهر لمدير الطلب في
-            «رحلة الطلب».
-          </p>
+          {group.id === 'enha_lak' && (
+            <p className="text-xs font-medium leading-6 text-slate-600">
+              البند المخصّص في الطلب بيعدّي بمسار الاستوديو بالتوازي مع تجهيز الطلب وشحنه؛ حالته بتظهر لمدير الطلب في
+              «رحلة الطلب».
+            </p>
+          )}
+          {group.id === 'contact' && (
+            <p className="text-xs font-medium leading-6 text-slate-600">
+              تذاكر الدعم مهمة لكل تذكرة لحد ما الدعم يرد. واتساب والإيميل مش متوصّلين بالموقع، فكل قناة ليها
+              <strong> مهمة يومية</strong> لمسؤولها — وبتبدأ تتفتح أول ما تحدد للقناة مسؤول هنا.
+            </p>
+          )}
         </section>
       )}
 

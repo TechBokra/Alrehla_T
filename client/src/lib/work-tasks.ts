@@ -1,11 +1,24 @@
 /**
  * توزيع الطلبات على المسؤولين (ملف 14) — الثوابت المشتركة.
  */
-export type WorkLine = 'enha_lak' | 'box' | 'courses' | 'services' | 'studio';
+export type WorkLine =
+  | 'enha_lak'
+  | 'box'
+  | 'courses'
+  | 'services'
+  | 'studio'
+  // ٧ نوفمبر: مجالات مش طلبات مدفوعة — مرحلة «التنفيذ» بس (مفيش مراجعة دفع).
+  | 'certificates'
+  | 'support'
+  | 'channels'
+  | 'join'
+  | 'blog';
 export type WorkStage = 'payment' | 'fulfilment';
 
 // الترتيب مقصود: مسارات «إنها لك» (الطلب · الاستوديو · الصندوق) جنب بعض.
-export const WORK_LINES: WorkLine[] = ['enha_lak', 'studio', 'box', 'courses', 'services'];
+export const WORK_LINES: WorkLine[] = [
+  'enha_lak', 'studio', 'box', 'courses', 'certificates', 'services', 'support', 'channels', 'join', 'blog',
+];
 export const WORK_STAGES: WorkStage[] = ['payment', 'fulfilment'];
 
 /** اسم المسار كامل (للمهام والفلاتر): «إنها لك» واحدة بمساراتها. */
@@ -14,7 +27,12 @@ export const WORK_LINE_LABELS: Record<WorkLine, string> = {
   studio: 'إنها لك — إنتاج القصة المخصّصة',
   box: 'إنها لك — صندوق الرحلة',
   courses: 'حجوزات «بداية الرحلة»',
+  certificates: '«بداية الرحلة» — شهادات الإتمام',
   services: 'الخدمات الإبداعية',
+  support: 'قنوات التواصل — تذاكر الدعم',
+  channels: 'قنوات التواصل — واتساب والإيميل',
+  join: 'طلبات الانضمام',
+  blog: 'المدونة — خطة المحتوى',
 };
 
 /** اسم المسار داخل منظومته (بدون اسم المنظومة). */
@@ -23,7 +41,12 @@ export const WORK_TRACK_LABELS: Record<WorkLine, string> = {
   studio: 'إنتاج القصة المخصّصة (الاستوديو)',
   box: 'صندوق الرحلة',
   courses: 'الحجوزات',
+  certificates: 'شهادات الإتمام',
   services: 'الخدمات',
+  support: 'تذاكر الدعم وطلبات جلسة الدعم',
+  channels: 'واتساب والإيميل — مهمة يومية',
+  join: 'طلبات الانضمام',
+  blog: 'خطة المحتوى',
 };
 
 /**
@@ -31,12 +54,15 @@ export const WORK_TRACK_LABELS: Record<WorkLine, string> = {
  * وصندوق الرحلة. المفاتيح (`line`) هي مفاتيح التخزين في القاعدة، والشاشات بتعرض المنظومة كوحدة
  * واحدة وتخصّص كل مسار جواها (مراحله ومسؤولوه ومهله).
  */
-export type WorkGroup = 'enha_lak' | 'courses' | 'services';
+export type WorkGroup = 'enha_lak' | 'courses' | 'services' | 'contact' | 'join' | 'blog';
 
 export const WORK_GROUPS: { id: WorkGroup; label: string; lines: WorkLine[] }[] = [
   { id: 'enha_lak', label: 'إنها لك', lines: ['enha_lak', 'studio', 'box'] },
-  { id: 'courses', label: 'حجوزات «بداية الرحلة»', lines: ['courses'] },
+  { id: 'courses', label: 'حجوزات «بداية الرحلة»', lines: ['courses', 'certificates'] },
   { id: 'services', label: 'الخدمات الإبداعية', lines: ['services'] },
+  { id: 'contact', label: 'قنوات التواصل', lines: ['support', 'channels'] },
+  { id: 'join', label: 'طلبات الانضمام', lines: ['join'] },
+  { id: 'blog', label: 'المدونة', lines: ['blog'] },
 ];
 
 export function groupOfLine(line: WorkLine): WorkGroup {
@@ -75,6 +101,11 @@ export const WORK_LINE_STAGES: Record<WorkLine, WorkStage[]> = {
   courses: ['payment', 'fulfilment'],
   services: ['payment', 'fulfilment'],
   studio: ['fulfilment'],
+  certificates: ['fulfilment'],
+  support: ['fulfilment'],
+  channels: ['fulfilment'],
+  join: ['fulfilment'],
+  blog: ['fulfilment'],
 };
 
 export function isStageOfLine(line: WorkLine, stage: WorkStage): boolean {

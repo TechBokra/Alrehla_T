@@ -330,6 +330,11 @@ export const ADMIN_NAV: AdminGroup[] = [
             permission: 'canManageBookings',
           },
           {
+            label: 'شهادات الإتمام',
+            href: `${A}/bookings/certificates`,
+            permission: 'canManageBookings',
+          },
+          {
             label: 'الجلسات والتقارير',
             href: `${A}/sessions`,
             permission: 'canManageBookings',
@@ -402,6 +407,11 @@ export const ADMIN_NAV: AdminGroup[] = [
           {
             label: 'المدونة',
             href: `${A}/content/blog`,
+            permission: 'canManageContent',
+          },
+          {
+            label: 'خطة محتوى المدونة',
+            href: `${A}/content/blog/plan`,
             permission: 'canManageContent',
           },
           {
